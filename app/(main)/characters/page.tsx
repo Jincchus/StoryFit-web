@@ -21,8 +21,6 @@ export default function CharactersPage() {
   const { draft, dispatch } = useApp()
   const [characters, setCharacters] = useState<Character[]>([])
   const [error, setError] = useState('')
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-
   useEffect(() => {
     api.get('/api/characters').then(setCharacters).catch(e => setError(e.message))
   }, [])
@@ -81,8 +79,6 @@ export default function CharactersPage() {
               className={`char-card ${draft.charId === c.id ? 'selected' : ''}`}
               style={{ position: 'relative' }}
               onClick={e => { sparkleAt(e.clientX, e.clientY); dispatch({ type: 'selectChar', id: c.id }) }}
-              onMouseEnter={() => setHoveredId(c.id)}
-              onMouseLeave={() => setHoveredId(null)}
             >
               <div className="pic-wrap">
                 {c.avatarUrl
@@ -95,10 +91,10 @@ export default function CharactersPage() {
               <div className="tag-row">
                 {(c.tags ?? []).map(tag => <span className="tag" key={tag}>{tag}</span>)}
               </div>
-              {!c.isPreset && hoveredId === c.id && (
-                <div className="hstack" style={{ gap: 4, marginTop: 4, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
-                  <button className="msg-action-btn" style={{ fontSize: 9 }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>
-                  <button className="msg-action-btn danger" style={{ fontSize: 9 }} onClick={e => handleDelete(e, c.id)}>✕ 삭제</button>
+              {!c.isPreset && (
+                <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
+                  <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>
+                  <button className="btn danger" style={{ fontSize: 10, padding: '3px 8px' }} onClick={e => handleDelete(e, c.id)}>✕ 삭제</button>
                 </div>
               )}
             </div>
