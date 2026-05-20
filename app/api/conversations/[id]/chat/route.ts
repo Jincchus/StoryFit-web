@@ -76,8 +76,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const stream = new ReadableStream({
     async start(controller) {
+      let fullText = ''
       try {
-        let fullText = ''
         await streamChat(
           {
             provider: conv.currentAI as 'gemini',
