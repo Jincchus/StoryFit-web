@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     data: {
       userId,
       title: body.title,
+      mode: body.mode ?? 'roleplay',
       currentAI: body.currentAI ?? 'gemini',
       userPersonaId: body.userPersonaId ?? null,
       characters: { create: { characterId: body.characterId } },

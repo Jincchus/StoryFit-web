@@ -16,6 +16,7 @@ export default function NewConversationPage() {
   const [char, setChar] = useState<Character | null>(null)
   const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(false)
+  const [mode, setMode] = useState<'roleplay' | 'novel'>('roleplay')
   const startingRef = useRef(false)
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function NewConversationPage() {
         title: `${char.name}와의 대화`,
         currentAI: draft.modelId,
         userPersonaId: draft.personaId ?? null,
+        mode,
       })
       router.push(`/conversations/${conv.id}`)
       dispatch({ type: 'resetDraft' })
@@ -58,7 +60,7 @@ export default function NewConversationPage() {
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
             <button className="btn ghost" onClick={() => router.push('/characters')}>← 뒤로</button>
             <button className="btn primary" disabled={loading} onClick={handleStart}>
-              {loading ? '...' : '✦ 롤플레이 시작'}
+              {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : '✦ 롤플레이 시작'}
             </button>
           </div>
         </div>
@@ -77,6 +79,27 @@ export default function NewConversationPage() {
                 <div className="meta">
                   <h4>{char.name} <span className="muted" style={{ fontWeight: 400 }}>· {char.title}</span></h4>
                 </div>
+              </div>
+            </section>
+
+            <section className="new-conv-section">
+              <div className="label">대화 모드</div>
+              <div className="hstack" style={{ gap: 8 }}>
+                <button
+                  className={`btn ${mode === 'roleplay' ? 'primary' : 'ghost'}`}
+                  onClick={() => setMode('roleplay')}
+                  style={{ fontSize: 11 }}
+                >⚔ 롤플레이</button>
+                <button
+                  className={`btn ${mode === 'novel' ? 'primary' : 'ghost'}`}
+                  onClick={() => setMode('novel')}
+                  style={{ fontSize: 11 }}
+                >✍ 소설</button>
+              </div>
+              <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
+                {mode === 'roleplay'
+                  ? '나 ↔ 캐릭터 1:1 대화 형식'
+                  : '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
               </div>
             </section>
 

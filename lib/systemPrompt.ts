@@ -80,6 +80,64 @@ export function buildSystemPrompt({
   return parts.join('\n\n---\n\n')
 }
 
+export function buildNovelSystemPrompt({
+  character,
+  userPersona,
+  coreMemory,
+  statusTimeline,
+  lorebook = [],
+  longTermMemory = [],
+}: BuildSystemPromptParams): string {
+  const personaName = userPersona?.name ?? '주인공'
+  const characterName = character.name
+
+  const NOVEL_BASE = `당신은 소설 작가입니다. ${personaName}과 ${characterName}이 함께 등장하는 장면을 써주세요.
+
+반드시 다음 출력 형식을 지켜주세요:
+- 상황 묘사·행동·배경: 이름 없이 일반 텍스트 (예: 빗소리가 창문을 두드렸다.)
+- 대사: [이름] : "내용" (예: ${characterName} : "안녕하세요.")
+- 내면 생각: [이름] : '내용' (예: ${personaName} : '왜 이렇게 떨리지...')
+
+사용 가능한 이름은 "${personaName}"과 "${characterName}"뿐입니다.
+유저의 장면 지시를 바탕으로 두 인물이 자연스럽게 상호작용하는 장면을 만들어주세요.`
+
+  const parts = [NOVEL_BASE]
+
+  if (userPersona) {
+    parts.push(`[${personaName} 설정]\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)
+  }
+  if (coreMemory?.trim()) {
+    parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)
+  }
+  if (statusTimeline?.trim()) {
+    parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
+  }
+  parts.push(`[${characterName} 설정]\n${character.systemPrompt}`)
+  if (character.scenarioDescription?.trim()) {
+    parts.push(`[시나리오 배경]\n${character.scenarioDescription}`)
+  }
+  if (character.exampleDialogues?.trim()) {
+    parts.push(`[예시 대화 (참고용)]\n${character.exampleDialogues}`)
+  }
+  if (lorebook.length > 0) {
+    const sorted = [...lorebook].sort((a, b) => b.priority - a.priority)
+    const selected: string[] = []
+    let tokenCount = 0
+    for (const entry of sorted) {
+      const approxTokens = Math.ceil(entry.content.length / 4)
+      if (tokenCount + approxTokens > 1000) break
+      selected.push(entry.content)
+      tokenCount += approxTokens
+    }
+    if (selected.length > 0) parts.push(`[세계관 정보]\n${selected.join('\n\n')}`)
+  }
+  if (longTermMemory.length > 0) {
+    parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
+  }
+
+  return parts.join('\n\n---\n\n')
+}
+
 export function matchLorebook(entries: LorebookEntry[], recentMessages: Message[], scanDepth: number = 5): LorebookEntry[] {
   const recent = recentMessages.slice(-scanDepth).map(m => m.content.toLowerCase())
   return entries.filter(entry => {

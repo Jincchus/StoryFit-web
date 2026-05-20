@@ -6,12 +6,13 @@ import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import MessageBlocks from '@/components/ui/MessageBlocks'
+import NovelScene from '@/components/ui/NovelScene'
 import AiPill from '@/components/ui/AiPill'
 import type { AIProvider } from '@/types'
 
 interface Msg { id: string; role: string; content: string; aiModel?: string }
 interface Conv {
-  id: string; title: string; currentAI: string; coreMemory: string; statusTimeline: string
+  id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string
   characters: { character: { id: string; name: string; kind: string; avatarUrl?: string } }[]
   userPersona?: { id: string; name: string } | null
   messages: Msg[]
@@ -223,6 +224,7 @@ export default function ChatPage() {
   const char = conv.characters[0]?.character
   if (!char) return null
 
+  const isNovel = conv.mode === 'novel'
   const lastMsg = messages[messages.length - 1]
   const isLastAssistant = lastMsg?.role === 'assistant'
 
@@ -239,9 +241,12 @@ export default function ChatPage() {
               }
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {char.name}
-                {conv.userPersona && <span className="muted" style={{ fontWeight: 400 }}> · {conv.userPersona.name}</span>}
+              <div className="hstack" style={{ gap: 5, overflow: 'hidden' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {char.name}
+                  {conv.userPersona && <span className="muted" style={{ fontWeight: 400 }}> · {conv.userPersona.name}</span>}
+                </span>
+                <span className="mode-badge">{isNovel ? '소설' : '롤플레이'}</span>
               </div>
               <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 턴 {Math.floor(messages.length / 2)}
@@ -264,10 +269,12 @@ export default function ChatPage() {
             <div className="chatlog" ref={logRef}>
               {messages.length === 0 && !streaming && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
-                  <div style={{ fontSize: 24 }}>✦</div>
+                  <div style={{ fontSize: 24 }}>{isNovel ? '✍' : '✦'}</div>
                   <div className="tiny muted" style={{ textAlign: 'center', lineHeight: 1.6 }}>
-                    {char.name}와의 대화를 시작해보세요.<br />
-                    아래에 메시지를 입력하면 됩니다.
+                    {isNovel
+                      ? <>장면을 지시해보세요.<br />예: "{char.name}와 처음 만나는 장면"</>
+                      : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
+                    }
                   </div>
                 </div>
               )}
@@ -310,9 +317,16 @@ export default function ChatPage() {
                             </div>
                           </div>
                         ) : isYou ? (
-                          <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+                          isNovel
+                            ? <div className="novel-direction">
+                                <div className="novel-direction-label">장면 지시</div>
+                                {m.content}
+                              </div>
+                            : <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                         ) : (
-                          <MessageBlocks text={m.content} />
+                          isNovel
+                            ? <NovelScene text={m.content} />
+                            : <MessageBlocks text={m.content} />
                         )}
                       </div>
                     </div>
@@ -349,7 +363,9 @@ export default function ChatPage() {
                         </span>
                       </div>
                       {streaming
-                        ? <MessageBlocks text={streaming} />
+                        ? isNovel
+                          ? <NovelScene text={streaming} />
+                          : <MessageBlocks text={streaming} />
                         : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
                             <span>•</span><span>•</span><span>•</span>
                           </div>
@@ -361,7 +377,7 @@ export default function ChatPage() {
               )}
 
               {messages.length === 0 && !typing && (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-soft)', fontSize: 11 }}>✦ 대화를 시작해보세요</div>
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-soft)', fontSize: 11 }}>{isNovel ? '✍ 장면을 지시해보세요' : '✦ 대화를 시작해보세요'}</div>
               )}
             </div>
 
@@ -374,7 +390,7 @@ export default function ChatPage() {
             <div className="composer">
               <input
                 className="field"
-                placeholder={typing ? 'AI가 응답 중...' : `${char.name}에게 말 걸기…`}
+                placeholder={typing ? 'AI가 장면을 쓰는 중...' : isNovel ? '장면을 지시해보세요… (예: 두 사람이 처음 만나는 장면)' : `${char.name}에게 말 걸기…`}
                 value={text}
                 disabled={typing}
                 onChange={e => setText(e.target.value)}

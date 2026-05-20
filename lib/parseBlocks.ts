@@ -1,5 +1,5 @@
 export type BlockType = 'narration' | 'dialogue' | 'thought'
-export interface Block { type: BlockType; text: string }
+export interface Block { type: BlockType; text: string; speaker?: string }
 
 export function parseBlocks(text: string): Block[] {
   const blocks: Block[] = []
@@ -40,6 +40,49 @@ export function parseBlocks(text: string): Block[] {
     narration += ch
     i++
   }
+  flushNarration()
+  return blocks
+}
+
+const SPEAKER_RE = /^(.+?)\s*:\s*(.+)$/
+
+export function parseNovelBlocks(text: string): Block[] {
+  const blocks: Block[] = []
+  const lines = text.split('\n')
+  let narrationLines: string[] = []
+
+  const flushNarration = () => {
+    const t = narrationLines.join('\n').trim()
+    if (t) blocks.push({ type: 'narration', text: t })
+    narrationLines = []
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) { narrationLines.push(''); continue }
+
+    const match = trimmed.match(SPEAKER_RE)
+    if (match) {
+      const speaker = match[1].trim()
+      const content = match[2].trim()
+
+      if ((content.startsWith('"') && content.endsWith('"')) ||
+          (content.startsWith('“') && content.endsWith('”'))) {
+        flushNarration()
+        blocks.push({ type: 'dialogue', speaker, text: content.slice(1, -1) })
+        continue
+      }
+      if ((content.startsWith("'") && content.endsWith("'")) ||
+          (content.startsWith('‘') && content.endsWith('’'))) {
+        flushNarration()
+        blocks.push({ type: 'thought', speaker, text: content.slice(1, -1) })
+        continue
+      }
+    }
+
+    narrationLines.push(trimmed)
+  }
+
   flushNarration()
   return blocks
 }

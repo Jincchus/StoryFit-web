@@ -1,5 +1,6 @@
 export type SafetyLevel = 'strict' | 'standard' | 'relaxed'
 export type AIProvider = 'gemini' | 'claude' | 'chatgpt'
+export type ConvMode = 'roleplay' | 'novel'
 export type MessageRole = 'user' | 'assistant'
 export type AvatarKind = 'wizard' | 'knight' | 'rogue' | 'maid' | 'vampire' | 'ai' | 'elf' | 'ninja' | 'player' | 'custom'
 
@@ -42,6 +43,7 @@ export interface Message {
 export interface Conversation {
   id: string
   title: string
+  mode: ConvMode
   currentAI: AIProvider
   userPersonaId: string | null
   coreMemory: string

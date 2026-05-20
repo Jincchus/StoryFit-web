@@ -328,6 +328,14 @@ body[data-art="modern"] .narration-block { color: #a394c0; }
 .thought-bubble { color: #9d8bba !important; background: rgba(157,139,186,.1) !important; border-color: rgba(157,139,186,.3) !important; }
 body[data-art="modern"] .thought-bubble { color: #a394c0 !important; }
 
+/* ─── Novel mode ──────────────────────────────────────────────────────── */
+.novel-scene { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.novel-speech-wrap { display: flex; flex-direction: column; gap: 2px; }
+.novel-speaker { font-size: 10px; font-weight: 700; color: var(--purple); padding: 0 2px; }
+.novel-direction { background: rgba(139,92,246,.07); border: 1px solid rgba(139,92,246,.2); padding: 8px 12px; font-size: 11px; color: var(--ink-soft); font-style: italic; white-space: pre-wrap; line-height: 1.6; }
+.novel-direction-label { font-size: 9px; font-weight: 700; color: var(--purple); margin-bottom: 4px; font-style: normal; }
+.mode-badge { font-size: 9px; padding: 1px 5px; background: rgba(139,92,246,.15); color: var(--purple); border: 1px solid rgba(139,92,246,.3); }
+
 /* ─── Message actions ─────────────────────────────────────────────────── */
 .msg-wrap { display: flex; flex-direction: column; gap: 2px; }
 .msg-wrap.you { align-items: flex-end; }

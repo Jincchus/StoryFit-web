@@ -71,6 +71,7 @@ model Conversation {
   userPersona     UserPersona?            @relation(fields: [userPersonaId], references: [id])
   coreMemory      String                  @default("")
   statusTimeline  String                  @default("")
+  mode            String                  @default("roleplay")
   isSummarizing   Boolean                 @default(false)
   characters      ConversationCharacter[]
   messages        Message[]

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
-import { buildSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
+import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import type { Message } from '@/types'
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     recentMessages,
   )
 
-  const systemPrompt = buildSystemPrompt({
+  const promptParams = {
     character: {
       ...character,
       kind: 'custom' as const,
@@ -59,7 +59,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     statusTimeline: conv.statusTimeline,
     lorebook: matchedLorebook,
     longTermMemory: conv.memories.map(m => m.summary),
-  })
+  }
+  const systemPrompt = conv.mode === 'novel'
+    ? buildNovelSystemPrompt(promptParams)
+    : buildSystemPrompt(promptParams)
 
   // Build message history for AI
   const history = [...conv.messages, userMsg].map(m => ({
