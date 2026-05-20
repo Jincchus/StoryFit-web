@@ -22,6 +22,7 @@ export default function CharacterNewPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [namePool, setNamePool] = useState<string[]>(RANDOM_NAMES)
   const [form, setForm] = useState<CharForm>({
     name: '', title: '', gender: '', description: '',
     systemPrompt: '', scenarioDescription: '',
@@ -31,6 +32,12 @@ export default function CharacterNewPage() {
     temperature: 0.9, frequencyPenalty: 0.3, presencePenalty: 0.3,
   })
   const [tagInput, setTagInput] = useState('')
+
+  useEffect(() => {
+    fetch('/api/names').then(r => r.json()).then((names: string[]) => {
+      if (names.length > 0) setNamePool(names)
+    }).catch(() => {})
+  }, [])
 
   const set = <K extends keyof CharForm>(key: K, val: CharForm[K]) => setForm(f => ({ ...f, [key]: val }))
 
@@ -87,7 +94,7 @@ export default function CharacterNewPage() {
                   <label className="label">이름 *</label>
                   <div className="hstack" style={{ gap: 5 }}>
                     <input className="field" style={{ flex: 1 }} placeholder="캐릭터 이름" value={form.name} onChange={e => set('name', e.target.value)} />
-                    <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => set('name', RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)])}>🎲</button>
+                    <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => set('name', namePool[Math.floor(Math.random() * namePool.length)])}>🎲</button>
                   </div>
                 </div>
                 <div>

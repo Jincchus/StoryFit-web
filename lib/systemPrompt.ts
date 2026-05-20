@@ -7,6 +7,7 @@ interface BuildSystemPromptParams {
   statusTimeline?: string
   lorebook?: LorebookEntry[]
   longTermMemory?: string[]
+  globalRules?: string
 }
 
 const BASE_RULES = `당신은 소설형 롤플레이 AI입니다. 다음 규칙을 반드시 따르세요:
@@ -24,8 +25,12 @@ export function buildSystemPrompt({
   statusTimeline,
   lorebook = [],
   longTermMemory = [],
+  globalRules,
 }: BuildSystemPromptParams): string {
   const parts: string[] = []
+
+  // -1. Global rules (admin-configured, prepended before everything)
+  if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
 
   // 0. Base rules
   parts.push(BASE_RULES)
@@ -87,6 +92,7 @@ export function buildNovelSystemPrompt({
   statusTimeline,
   lorebook = [],
   longTermMemory = [],
+  globalRules,
 }: BuildSystemPromptParams): string {
   const personaName = userPersona?.name ?? '주인공'
   const characterName = character.name
@@ -101,7 +107,9 @@ export function buildNovelSystemPrompt({
 사용 가능한 이름은 "${personaName}"과 "${characterName}"뿐입니다.
 유저의 장면 지시를 바탕으로 두 인물이 자연스럽게 상호작용하는 장면을 만들어주세요.`
 
-  const parts = [NOVEL_BASE]
+  const parts: string[] = []
+  if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
+  parts.push(NOVEL_BASE)
 
   if (userPersona) {
     parts.push(`[${personaName} 설정]\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)

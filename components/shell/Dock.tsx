@@ -1,16 +1,18 @@
 'use client'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { apiLogout } from '@/lib/authClient'
+import { apiLogout, getIsAdmin } from '@/lib/authClient'
 
 export default function Dock() {
   const pathname = usePathname()
   const router = useRouter()
   const [clock, setClock] = useState('')
   const [showStart, setShowStart] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const startRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    setIsAdmin(getIsAdmin())
     const update = () => setClock(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }))
     update()
     const id = setInterval(update, 30000)
@@ -45,6 +47,14 @@ export default function Dock() {
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/personas') }}>
               👤 내 페르소나
             </button>
+            {isAdmin && (
+              <>
+                <div className="start-menu-divider" />
+                <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/admin') }}>
+                  ⚙ 관리자 패널
+                </button>
+              </>
+            )}
             <div className="start-menu-divider" />
             <button className="start-menu-item danger" onClick={handleLogout}>
               ⏻ 로그아웃

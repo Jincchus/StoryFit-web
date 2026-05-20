@@ -27,6 +27,13 @@ export default function CharacterEditPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState<CharForm | null>(null)
   const [tagInput, setTagInput] = useState('')
+  const [namePool, setNamePool] = useState<string[]>(RANDOM_NAMES)
+
+  useEffect(() => {
+    fetch('/api/names').then(r => r.json()).then((names: string[]) => {
+      if (names.length > 0) setNamePool(names)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     api.get(`/api/characters/${id}`)
@@ -116,7 +123,7 @@ export default function CharacterEditPage() {
                   <label className="label">이름 *</label>
                   <div className="hstack" style={{ gap: 5 }}>
                     <input className="field" style={{ flex: 1 }} placeholder="캐릭터 이름" value={form.name} onChange={e => set('name', e.target.value)} />
-                    <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => set('name', RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)])}>🎲</button>
+                    <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => set('name', namePool[Math.floor(Math.random() * namePool.length)])}>🎲</button>
                   </div>
                 </div>
                 <div>

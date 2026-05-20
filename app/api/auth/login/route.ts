@@ -13,11 +13,11 @@ export async function POST(req: NextRequest) {
   }
 
   const [accessToken, refreshToken] = await Promise.all([
-    signAccessToken(user.id),
+    signAccessToken(user.id, user.isAdmin),
     signRefreshToken(user.id),
   ])
 
-  const res = NextResponse.json({ accessToken, userId: user.id })
+  const res = NextResponse.json({ accessToken, userId: user.id, isAdmin: user.isAdmin })
   res.cookies.set('refreshToken', refreshToken, { httpOnly: true, sameSite: 'strict', maxAge: 60 * 60 * 24 * 30 })
   return res
 }

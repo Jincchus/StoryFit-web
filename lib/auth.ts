@@ -3,8 +3,8 @@ import { SignJWT, jwtVerify } from 'jose'
 const accessSecret = new TextEncoder().encode(process.env.JWT_SECRET!)
 const refreshSecret = new TextEncoder().encode(process.env.JWT_REFRESH_SECRET!)
 
-export async function signAccessToken(userId: string) {
-  return new SignJWT({ sub: userId })
+export async function signAccessToken(userId: string, isAdmin = false) {
+  return new SignJWT({ sub: userId, isAdmin })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('1h')
     .sign(accessSecret)
