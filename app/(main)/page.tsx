@@ -50,7 +50,7 @@ export default function HomePage() {
     if (selected.size === 0 || deleting) return
     setDeleting(true)
     try {
-      await Promise.all([...selected].map(id => api.delete(`/api/conversations/${id}`)))
+      await Promise.all(Array.from(selected).map(id => api.delete(`/api/conversations/${id}`)))
       setConversations(prev => prev.filter(c => !selected.has(c.id)))
       exitSelect()
     } finally {
