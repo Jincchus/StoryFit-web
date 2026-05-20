@@ -21,7 +21,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!getAccessToken()) router.replace('/login')
-  }, [router])
+  }, [])
 
   return (
     <div className="shell-wrap">
