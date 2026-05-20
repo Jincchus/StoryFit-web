@@ -376,9 +376,6 @@ export default function ChatPage() {
                 </div>
               )}
 
-              {messages.length === 0 && !typing && (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--ink-soft)', fontSize: 11 }}>{isNovel ? '✍ 장면을 지시해보세요' : '✦ 대화를 시작해보세요'}</div>
-              )}
             </div>
 
             {sendError && (
