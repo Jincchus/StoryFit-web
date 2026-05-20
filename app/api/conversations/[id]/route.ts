@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
     include: {
-      characters: { include: { character: true } },
+      characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
       messages: { orderBy: { createdAt: 'asc' }, where: { isSelected: true } },
       userPersona: { select: { id: true, name: true } },
     },
@@ -28,7 +28,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json()
   const allowed = ['title', 'currentAI', 'userPersonaId', 'coreMemory', 'statusTimeline', 'scenarioDescription']
-  const data = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)))
+  const data: Record<string, unknown> = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)))
+
+  const cacheInvalidatingFields = ['coreMemory', 'statusTimeline', 'scenarioDescription', 'userPersonaId']
+  if (Object.keys(data).some(k => cacheInvalidatingFields.includes(k))) {
+    data.geminiCacheId = null
+    data.geminiCacheExpiry = null
+  }
 
   const conv = await prisma.conversation.update({ where: { id: params.id }, data })
   return NextResponse.json(conv)

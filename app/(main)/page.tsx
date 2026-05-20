@@ -20,13 +20,45 @@ export default function HomePage() {
   const router = useRouter()
   const [conversations, setConversations] = useState<ConvItem[]>([])
   const [error, setError] = useState('')
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     api.get('/api/conversations').then(setConversations).catch(e => setError(e.message))
   }, [])
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selected.size === conversations.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(conversations.map(c => c.id)))
+    }
+  }
+
+  const exitSelect = () => { setSelecting(false); setSelected(new Set()) }
+
+  const handleDeleteSelected = async () => {
+    if (selected.size === 0 || deleting) return
+    setDeleting(true)
+    try {
+      await Promise.all([...selected].map(id => api.delete(`/api/conversations/${id}`)))
+      setConversations(prev => prev.filter(c => !selected.has(c.id)))
+      exitSelect()
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteOne = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     await api.delete(`/api/conversations/${id}`)
     setConversations(prev => prev.filter(c => c.id !== id))
@@ -41,7 +73,29 @@ export default function HomePage() {
             <div className="tiny muted">{conversations.length}개의 진행 중인 롤플레이</div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
-            <button className="btn primary" onClick={() => router.push('/characters')}>✦ 새 대화 시작</button>
+            {selecting ? (
+              <>
+                <button className="btn ghost" style={{ fontSize: 10 }} onClick={toggleAll}>
+                  {selected.size === conversations.length ? '전체 해제' : '전체 선택'}
+                </button>
+                <button
+                  className="btn danger"
+                  style={{ fontSize: 10 }}
+                  disabled={selected.size === 0 || deleting}
+                  onClick={handleDeleteSelected}
+                >
+                  {deleting ? '삭제 중...' : `✕ 삭제 (${selected.size})`}
+                </button>
+                <button className="btn ghost" style={{ fontSize: 10 }} onClick={exitSelect}>취소</button>
+              </>
+            ) : (
+              <>
+                {conversations.length > 0 && (
+                  <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setSelecting(true)}>☑ 선택</button>
+                )}
+                <button className="btn primary" onClick={() => router.push('/characters')}>✦ 새 대화 시작</button>
+              </>
+            )}
           </div>
         </div>
 
@@ -53,15 +107,28 @@ export default function HomePage() {
             const ai = AI_MODELS.find(x => x.id === conv.currentAI) ?? AI_MODELS[0]
             const lastLine = conv.messages[0]?.content ?? ''
             const when = new Date(conv.updatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            const isChecked = selected.has(conv.id)
+
             return (
               <div
                 key={conv.id}
                 className="row"
-                style={{ position: 'relative' }}
-                onClick={() => router.push(`/conversations/${conv.id}`)}
-                onMouseEnter={() => setHoveredId(conv.id)}
-                onMouseLeave={() => setHoveredId(null)}
+                style={{ position: 'relative', cursor: selecting ? 'pointer' : undefined, background: isChecked ? 'var(--lavender)' : undefined }}
+                onClick={() => selecting ? toggleSelect(conv.id) : router.push(`/conversations/${conv.id}`)}
               >
+                {selecting && (
+                  <div style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 20 }}>
+                    <div style={{
+                      width: 14, height: 14,
+                      border: `1.5px solid ${isChecked ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
+                      background: isChecked ? 'var(--hot-pink)' : 'transparent',
+                      borderRadius: 2,
+                      display: 'grid', placeItems: 'center',
+                    }}>
+                      {isChecked && <span style={{ color: '#fff', fontSize: 9, lineHeight: 1 }}>✓</span>}
+                    </div>
+                  </div>
+                )}
                 <div className="thumb">
                   {char?.avatarUrl
                     ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
@@ -82,12 +149,12 @@ export default function HomePage() {
                     {ai.short}
                   </span>
                   <span className="when">{when}</span>
-                  {hoveredId === conv.id && (
+                  {!selecting && (
                     <button
                       className="msg-action-btn danger"
                       style={{ fontSize: 9, padding: '1px 5px' }}
-                      onClick={e => handleDelete(e, conv.id)}
-                    >✕ 삭제</button>
+                      onClick={e => handleDeleteOne(e, conv.id)}
+                    >✕</button>
                   )}
                 </div>
               </div>

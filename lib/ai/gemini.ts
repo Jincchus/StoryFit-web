@@ -20,6 +20,24 @@ export interface GeminiChatParams {
   temperature?: number
   frequencyPenalty?: number
   safetyLevel?: SafetyLevel
+  cacheId?: string
+}
+
+export async function createGeminiCache(
+  systemPrompt: string,
+): Promise<{ name: string; expiry: Date } | null> {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+    const cache = await (genAI as any).caches.create({
+      model: 'models/gemini-2.5-flash',
+      systemInstruction: systemPrompt,
+      ttl: '3600s',
+    })
+    const expiry = cache.expireTime ? new Date(cache.expireTime) : new Date(Date.now() + 3_600_000)
+    return { name: cache.name as string, expiry }
+  } catch {
+    return null
+  }
 }
 
 export async function streamGeminiChat(
@@ -28,19 +46,39 @@ export async function streamGeminiChat(
   signal?: AbortSignal,
 ): Promise<string> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction: params.systemPrompt,
-    generationConfig: {
-      temperature: params.temperature ?? 0.9,
-      maxOutputTokens: 2048,
-    },
-    safetySettings: HARM_CATEGORIES.map(category => ({
-      category,
-      threshold: SAFETY_MAP[params.safetyLevel ?? 'standard'],
-    })),
-    tools: [],
-  })
+
+  const generationConfig = {
+    temperature: params.temperature ?? 0.9,
+    maxOutputTokens: 2048,
+  }
+  const safetySettings = HARM_CATEGORIES.map(category => ({
+    category,
+    threshold: SAFETY_MAP[params.safetyLevel ?? 'standard'],
+  }))
+
+  let model
+  if (params.cacheId) {
+    try {
+      const cachedContent = await (genAI as any).caches.get(params.cacheId)
+      model = (genAI as any).getGenerativeModelFromCachedContent(cachedContent, { generationConfig, safetySettings })
+    } catch {
+      model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        systemInstruction: params.systemPrompt,
+        generationConfig,
+        safetySettings,
+        tools: [],
+      })
+    }
+  } else {
+    model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      systemInstruction: params.systemPrompt,
+      generationConfig,
+      safetySettings,
+      tools: [],
+    })
+  }
 
   const rawHistory = params.messages.slice(0, -1)
   const firstUserIdx = rawHistory.findIndex(m => m.role === 'user')

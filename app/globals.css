@@ -166,6 +166,8 @@ body[data-art="modern"] .btn { border-width: 1.5px; border-color: #d8c3e8; box-s
 body[data-art="modern"] .btn.primary { background: linear-gradient(180deg, #ffa8da, #ff6fb5); border-color: #ff6fb5; box-shadow: 0 3px 0 #d44e8e; text-shadow: none; }
 .btn.ghost { background: transparent; border-color: transparent; box-shadow: none; }
 .btn.ghost:hover { background: rgba(255,255,255,.5) }
+.btn.danger { background: transparent; border-color: #ff2e93; color: #ff2e93; }
+.btn.danger:hover { background: #ffe0ee; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
 
 /* ─── Inputs ─────────────────────────────────────────────────────────── */

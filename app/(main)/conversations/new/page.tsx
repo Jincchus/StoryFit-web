@@ -14,29 +14,51 @@ export default function NewConversationPage() {
   const router = useRouter()
   const { draft, dispatch } = useApp()
   const [char, setChar] = useState<Character | null>(null)
+  const [allChars, setAllChars] = useState<Character[]>([])
+  const [tikiChars, setTikiChars] = useState<Character[]>([])
   const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<'roleplay' | 'novel'>('roleplay')
+  const [mode, setMode] = useState<'roleplay' | 'novel' | 'tikiTaka'>('roleplay')
   const [scenarioDescription, setScenarioDescription] = useState('')
   const startingRef = useRef(false)
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
+    api.get('/api/characters').then(setAllChars).catch(() => {})
   }, [])
 
   useEffect(() => {
     if (!draft.charId && !startingRef.current) { router.replace('/characters'); return }
-    if (draft.charId) api.get(`/api/characters/${draft.charId}`).then(setChar).catch(() => {})
+    if (draft.charId) {
+      api.get(`/api/characters/${draft.charId}`).then((c: Character) => {
+        setChar(c)
+        setTikiChars([c])
+      }).catch(() => {})
+    }
   }, [draft.charId, router])
+
+  const toggleTikiChar = (c: Character) => {
+    if (c.id === char?.id) return
+    setTikiChars(prev =>
+      prev.find(x => x.id === c.id)
+        ? prev.filter(x => x.id !== c.id)
+        : [...prev, c],
+    )
+  }
 
   const handleStart = async () => {
     if (!char || loading) return
     setLoading(true)
     startingRef.current = true
     try {
+      const characterIds = mode === 'tikiTaka'
+        ? tikiChars.map(c => c.id)
+        : [char.id]
       const conv = await api.post('/api/conversations', {
-        characterId: char.id,
-        title: `${char.name}와의 대화`,
+        characterIds,
+        title: mode === 'tikiTaka'
+          ? `${tikiChars.map(c => c.name).join(', ')}과의 대화`
+          : `${char.name}와의 대화`,
         currentAI: draft.modelId,
         userPersonaId: draft.personaId ?? null,
         mode,
@@ -61,8 +83,8 @@ export default function NewConversationPage() {
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
             <button className="btn ghost" onClick={() => router.push('/characters')}>← 뒤로</button>
-            <button className="btn primary" disabled={loading} onClick={handleStart}>
-              {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : '✦ 롤플레이 시작'}
+            <button className="btn primary" disabled={loading || (mode === 'tikiTaka' && tikiChars.length < 2)} onClick={handleStart}>
+              {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : mode === 'tikiTaka' ? '✦ 티키타카 시작' : '✦ 롤플레이 시작'}
             </button>
           </div>
         </div>
@@ -97,13 +119,58 @@ export default function NewConversationPage() {
                   onClick={() => setMode('novel')}
                   style={{ fontSize: 11 }}
                 >✍ 소설</button>
+                <button
+                  className={`btn ${mode === 'tikiTaka' ? 'primary' : 'ghost'}`}
+                  onClick={() => setMode('tikiTaka')}
+                  style={{ fontSize: 11 }}
+                >⟳ 티키타카</button>
               </div>
               <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
-                {mode === 'roleplay'
-                  ? '나 ↔ 캐릭터 1:1 대화 형식'
-                  : '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
+                {mode === 'roleplay' && '나 ↔ 캐릭터 1:1 대화 형식'}
+                {mode === 'novel' && '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
+                {mode === 'tikiTaka' && '여러 캐릭터가 순서대로 번갈아 응답합니다 — 아래에서 참여 캐릭터를 선택하세요'}
               </div>
             </section>
+
+            {mode === 'tikiTaka' && (
+              <section className="new-conv-section">
+                <div className="label">참여 캐릭터 <span className="muted" style={{ fontWeight: 400 }}>(순서 = 응답 순서)</span></div>
+                <div className="tiny muted" style={{ marginBottom: 8 }}>
+                  현재 선택: {tikiChars.map(c => c.name).join(' → ')}
+                  {tikiChars.length < 2 && <span style={{ color: '#ff6b8a', marginLeft: 6 }}>최소 2명 필요</span>}
+                </div>
+                <div className="vstack" style={{ gap: 5 }}>
+                  {allChars.map(c => {
+                    const isMain = c.id === char.id
+                    const isIn = !!tikiChars.find(x => x.id === c.id)
+                    const order = tikiChars.findIndex(x => x.id === c.id)
+                    return (
+                      <div
+                        key={c.id}
+                        className={`persona-option ${isIn ? 'selected' : ''}`}
+                        style={{ cursor: isMain ? 'default' : 'pointer', opacity: isMain ? 0.8 : 1 }}
+                        onClick={() => toggleTikiChar(c)}
+                      >
+                        <div className="thumb" style={{ width: 28, height: 28 }}>
+                          {c.avatarUrl
+                            ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                            : <PixelAvatar kind={c.kind} size={28} />
+                          }
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 11 }}>
+                            {c.name}
+                            {isMain && <span className="muted" style={{ fontWeight: 400, marginLeft: 4 }}>(주 캐릭터)</span>}
+                          </div>
+                          <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
+                        </div>
+                        {isIn && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>#{order + 1}</span>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
 
             <section className="new-conv-section">
               <div className="label">시나리오 배경 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>

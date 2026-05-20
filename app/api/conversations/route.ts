@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const body = await req.json()
-  if (!body.characterId || !body.title) return NextResponse.json({ error: 'characterId와 title은 필수입니다.' }, { status: 400 })
+  if (!body.title) return NextResponse.json({ error: 'title은 필수입니다.' }, { status: 400 })
+
+  const characterIds: string[] = body.characterIds ?? (body.characterId ? [body.characterId] : [])
+  if (characterIds.length === 0) return NextResponse.json({ error: 'characterId가 필요합니다.' }, { status: 400 })
 
   const conversation = await prisma.conversation.create({
     data: {
@@ -37,7 +40,9 @@ export async function POST(req: NextRequest) {
       currentAI: body.currentAI ?? 'gemini',
       userPersonaId: body.userPersonaId ?? null,
       scenarioDescription: body.scenarioDescription ?? '',
-      characters: { create: { characterId: body.characterId } },
+      characters: {
+        create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),
+      },
     },
     include: { characters: { include: { character: true } }, messages: true },
   })

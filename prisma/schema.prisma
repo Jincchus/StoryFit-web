@@ -94,7 +94,9 @@ model Conversation {
   statusTimeline      String                  @default("")
   scenarioDescription String                  @default("")
   mode                String                  @default("roleplay")
-  isSummarizing   Boolean                 @default(false)
+  isSummarizing       Boolean                 @default(false)
+  geminiCacheId       String?
+  geminiCacheExpiry   DateTime?
   characters      ConversationCharacter[]
   messages        Message[]
   memories        Memory[]
@@ -106,6 +108,7 @@ model Conversation {
 model ConversationCharacter {
   conversationId String
   characterId    String
+  turnOrder      Int          @default(0)
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   character      Character    @relation(fields: [characterId], references: [id])
 

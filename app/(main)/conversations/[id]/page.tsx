@@ -10,10 +10,11 @@ import NovelScene from '@/components/ui/NovelScene'
 import AiPill from '@/components/ui/AiPill'
 import type { AIProvider } from '@/types'
 
-interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; parentId?: string | null }
+interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; parentId?: string | null; characterId?: string | null }
+interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string } }
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
-  characters: { character: { id: string; name: string; kind: string; avatarUrl?: string } }[]
+  characters: ConvChar[]
   userPersona?: { id: string; name: string } | null
   messages: Msg[]
 }
@@ -27,6 +28,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Msg[]>([])
   const [streaming, setStreaming] = useState('')
   const [typing, setTyping] = useState(false)
+  const [streamingCharId, setStreamingCharId] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [sendError, setSendError] = useState('')
   const [model, setModel] = useState<AIProvider>('gemini')
@@ -130,6 +132,7 @@ export default function ChatPage() {
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       let buf = ''
+      let currentCharText = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -141,13 +144,35 @@ export default function ChatPage() {
           if (!line.startsWith('data: ')) continue
           try {
             const json = JSON.parse(line.slice(6))
-            if (json.text) setStreaming(prev => prev + json.text)
-            if (json.done) {
+            if (json.allDone) {
               setStreaming('')
+              setStreamingCharId(null)
               await loadConv()
-            }
-            if (json.error) {
+            } else if (json.text) {
+              if (json.characterId) setStreamingCharId(json.characterId)
+              setStreaming(prev => prev + json.text)
+              currentCharText += json.text
+            } else if (json.done) {
+              if (json.characterId) {
+                const savedText = currentCharText
+                setMessages(prev => [...prev, {
+                  id: json.messageId,
+                  role: 'assistant',
+                  content: savedText || '[응답 없음]',
+                  characterId: json.characterId,
+                  branchCount: 1,
+                  branchIndex: 1,
+                }])
+                setStreaming('')
+                setStreamingCharId(null)
+                currentCharText = ''
+              } else {
+                setStreaming('')
+                await loadConv()
+              }
+            } else if (json.error) {
               setStreaming('')
+              setStreamingCharId(null)
               setSendError(json.error)
               await loadConv()
             }
@@ -161,11 +186,12 @@ export default function ChatPage() {
       }
     } finally {
       setTyping(false)
+      setStreamingCharId(null)
       abortRef.current = null
     }
   }
 
-  const stopStream = () => { abortRef.current?.abort(); setTyping(false); setStreaming('') }
+  const stopStream = () => { abortRef.current?.abort(); setTyping(false); setStreaming(''); setStreamingCharId(null) }
 
   const handleDelete = async (msgId: string) => {
     await api.delete(`/api/conversations/${params.id}/messages`, { messageId: msgId })
@@ -279,11 +305,16 @@ export default function ChatPage() {
   if (!char) return null
 
   const isNovel = conv.mode === 'novel'
+  const isTikiTaka = conv.mode === 'tikiTaka'
   const lastMsg = messages[messages.length - 1]
   const isLastAssistant = lastMsg?.role === 'assistant'
 
+  const charMap = new Map(conv.characters.map(cc => [cc.character.id, cc.character]))
+  const getMsgChar = (m: Msg) => (m.characterId ? charMap.get(m.characterId) ?? char : char)
+  const streamingChar = streamingCharId ? charMap.get(streamingCharId) ?? char : char
+
   return (
-    <Win title={`채팅 — ${char.name}`} icon={PixelIcons.chat}>
+    <Win title={isTikiTaka ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat}>
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
         <div className="chat-header spread">
           <div className="hstack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
@@ -297,10 +328,10 @@ export default function ChatPage() {
             <div style={{ minWidth: 0 }}>
               <div className="hstack" style={{ gap: 5, overflow: 'hidden' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {char.name}
+                  {isTikiTaka ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
                   {conv.userPersona && <span className="muted" style={{ fontWeight: 400 }}> · {conv.userPersona.name}</span>}
                 </span>
-                <span className="mode-badge">{isNovel ? '소설' : '롤플레이'}</span>
+                <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '티키타카' : '롤플레이'}</span>
               </div>
               <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 턴 {Math.floor(messages.length / 2)}
@@ -327,13 +358,16 @@ export default function ChatPage() {
                   <div className="tiny muted" style={{ textAlign: 'center', lineHeight: 1.6 }}>
                     {isNovel
                       ? <>장면을 지시해보세요.<br />예: "{char.name}와 처음 만나는 장면"</>
-                      : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
+                      : isTikiTaka
+                        ? <>{conv.characters.map(cc => cc.character.name).join(', ')}와의 대화를 시작해보세요.<br />메시지를 보내면 캐릭터들이 순서대로 응답합니다.</>
+                        : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
                     }
                   </div>
                 </div>
               )}
               {messages.map(m => {
                 const isYou = m.role === 'user'
+                const msgChar = getMsgChar(m)
                 const ai = AI_MODELS.find(x => x.id === m.aiModel) ?? AI_MODELS[0]
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
@@ -347,14 +381,14 @@ export default function ChatPage() {
                   >
                     <div className={`msg ${isYou ? 'you' : ''}`}>
                       <div className="av">
-                        {char.avatarUrl && !isYou
-                          ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                          : <PixelAvatar kind={isYou ? 'player' : char.kind as any} size={24} />
+                        {msgChar.avatarUrl && !isYou
+                          ? <img src={msgChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                          : <PixelAvatar kind={isYou ? 'player' : msgChar.kind as any} size={24} />
                         }
                       </div>
                       <div>
                         <div className="who">
-                          <span>{isYou ? (isNovel ? '작가' : (conv.userPersona?.name ?? '당신')) : char.name}</span>
+                          <span>{isYou ? (isNovel ? '작가' : (conv.userPersona?.name ?? '당신')) : msgChar.name}</span>
                           {!isYou && <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>}
                         </div>
                         {isEditing ? (
@@ -379,7 +413,7 @@ export default function ChatPage() {
                             : <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                         ) : (
                           isNovel
-                            ? <NovelScene text={m.content} personaName={conv.userPersona?.name ?? '주인공'} charName={char.name} />
+                            ? <NovelScene text={m.content} personaName={conv.userPersona?.name ?? '주인공'} charName={msgChar.name} />
                             : <MessageBlocks text={m.content} />
                         )}
                       </div>
@@ -423,21 +457,21 @@ export default function ChatPage() {
                 <div className="msg-wrap">
                   <div className="msg typing">
                     <div className="av">
-                      {char.avatarUrl
-                        ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                        : <PixelAvatar kind={char.kind as any} size={24} />
+                      {streamingChar.avatarUrl
+                        ? <img src={streamingChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                        : <PixelAvatar kind={streamingChar.kind as any} size={24} />
                       }
                     </div>
                     <div>
                       <div className="who">
-                        <span>{char.name}</span>
+                        <span>{streamingChar.name}</span>
                         <span className={`ai-tag ${AI_MODELS.find(x => x.id === model)?.className ?? ''}`}>
                           {AI_MODELS.find(x => x.id === model)?.tag}
                         </span>
                       </div>
                       {streaming
                         ? isNovel
-                          ? <NovelScene text={streaming} personaName={conv.userPersona?.name ?? '주인공'} charName={char.name} />
+                          ? <NovelScene text={streaming} personaName={conv.userPersona?.name ?? '주인공'} charName={streamingChar.name} />
                           : <MessageBlocks text={streaming} />
                         : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
                             <span>•</span><span>•</span><span>•</span>
@@ -460,7 +494,7 @@ export default function ChatPage() {
             <div className="composer">
               <input
                 className="field"
-                placeholder={typing ? 'AI가 장면을 쓰는 중...' : isNovel ? '장면을 지시해보세요… (예: 두 사람이 처음 만나는 장면)' : `${char.name}에게 말 걸기…`}
+                placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요… (예: 두 사람이 처음 만나는 장면)' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : `${char.name}에게 말 걸기…`}
                 value={text}
                 disabled={typing}
                 onChange={e => setText(e.target.value)}

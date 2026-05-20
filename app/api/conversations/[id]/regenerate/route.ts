@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
 import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
+import { createGeminiCache } from '@/lib/ai/gemini'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
 import type { Message } from '@/types'
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
     include: {
-      characters: { include: { character: true } },
+      characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
       messages: { where: { isSelected: true }, orderBy: { createdAt: 'asc' } },
       userPersona: true,
       lorebooks: true,
@@ -27,12 +28,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
-  const character = conv.characters[0]?.character
-  if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
-
   const selectedMsgs = conv.messages
   const lastAssistant = [...selectedMsgs].reverse().find(m => m.role === 'assistant')
   if (!lastAssistant) return NextResponse.json({ error: '재생성할 응답이 없습니다.' }, { status: 400 })
+
+  const character = (lastAssistant.characterId
+    ? conv.characters.find(cc => cc.character.id === lastAssistant.characterId)?.character
+    : null) ?? conv.characters[0]?.character
+  if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
   // deselect the last assistant message (create branch sibling)
   await prisma.message.update({ where: { id: lastAssistant.id }, data: { isSelected: false } })
@@ -79,6 +82,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     ? buildNovelSystemPrompt(promptParams)
     : buildSystemPrompt(promptParams)
 
+  const now = new Date()
+  const validCache = conv.geminiCacheId && conv.geminiCacheExpiry && new Date(conv.geminiCacheExpiry) > now
+  const cacheId = validCache ? conv.geminiCacheId! : undefined
+
   const history = historyMsgs.map(m => ({
     role: m.role === 'user' ? 'user' as const : 'model' as const,
     parts: [{ text: m.content }],
@@ -100,6 +107,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             temperature: character.temperature,
             frequencyPenalty: character.frequencyPenalty,
             safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
+            cacheId,
           },
           chunk => {
             fullText += chunk
@@ -127,6 +135,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         triggerAutoCoreMemory(params.id, character.name, character.systemPrompt).catch(err =>
           console.error('[autoCoreMemory] error:', err),
         )
+
+        if (!validCache) {
+          createGeminiCache(systemPrompt).then(async result => {
+            if (result) {
+              await prisma.conversation.update({
+                where: { id: params.id },
+                data: { geminiCacheId: result.name, geminiCacheExpiry: result.expiry },
+              })
+            }
+          }).catch(() => {})
+        }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: newMsg.id })}\n\n`))
       } catch (err: any) {

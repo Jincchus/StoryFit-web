@@ -54,7 +54,7 @@ ${transcript}
     if (extracted) {
       await prisma.conversation.update({
         where: { id: conversationId },
-        data: { coreMemory: extracted },
+        data: { coreMemory: extracted, geminiCacheId: null, geminiCacheExpiry: null },
       })
     }
   } catch (err) {

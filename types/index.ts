@@ -1,6 +1,6 @@
 export type SafetyLevel = 'strict' | 'standard' | 'relaxed'
 export type AIProvider = 'gemini' | 'claude' | 'chatgpt'
-export type ConvMode = 'roleplay' | 'novel'
+export type ConvMode = 'roleplay' | 'novel' | 'tikiTaka'
 export type MessageRole = 'user' | 'assistant'
 export type AvatarKind = 'wizard' | 'knight' | 'rogue' | 'maid' | 'vampire' | 'ai' | 'elf' | 'ninja' | 'player' | 'custom'
 
@@ -37,6 +37,7 @@ export interface Message {
   aiModel?: string
   isSelected: boolean
   parentId: string | null
+  characterId?: string | null
 }
 
 export interface Conversation {
