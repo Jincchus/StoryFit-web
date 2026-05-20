@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     include: {
       characters: { include: { character: true } },
       messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+      userPersona: { select: { name: true } },
     },
     orderBy: { updatedAt: 'desc' },
   })

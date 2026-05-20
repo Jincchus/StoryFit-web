@@ -12,7 +12,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
-    include: { characters: { include: { character: true } }, messages: { orderBy: { createdAt: 'asc' }, where: { isSelected: true } } },
+    include: {
+      characters: { include: { character: true } },
+      messages: { orderBy: { createdAt: 'asc' }, where: { isSelected: true } },
+      userPersona: { select: { name: true } },
+    },
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
   return NextResponse.json(conv)
