@@ -110,9 +110,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: assistantMsgId })}\n\n`))
       } catch (err) {
-        if (!abortController.signal.aborted && fullText) {
-          // Partial save on abort with content
-        }
+        console.error('[chat] AI error:', err)
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: '응답 생성 중 오류가 발생했습니다.' })}\n\n`))
       } finally {
         controller.close()
