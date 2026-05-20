@@ -143,7 +143,7 @@ export default function HomePage() {
                   <p className="muted" style={{ fontSize: 10, marginBottom: 2 }}>{char?.name}</p>
                   <p>{lastLine}</p>
                 </div>
-                <div className="vstack" style={{ alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+                <div className="vstack" style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                   <span className="ai-pill" style={{ padding: '1px 5px', fontSize: 9, cursor: 'default' }}>
                     <span className="dot" style={{ background: ai.id === 'chatgpt' ? '#a3e0ff' : ai.id === 'gemini' ? '#c9b6ff' : '#b8f5d2' }} />
                     {ai.short}
@@ -151,10 +151,10 @@ export default function HomePage() {
                   <span className="when">{when}</span>
                   {!selecting && (
                     <button
-                      className="msg-action-btn danger"
-                      style={{ fontSize: 9, padding: '1px 5px' }}
+                      className="btn danger"
+                      style={{ fontSize: 10, padding: '3px 8px', minWidth: 44 }}
                       onClick={e => handleDeleteOne(e, conv.id)}
-                    >✕</button>
+                    >✕ 삭제</button>
                   )}
                 </div>
               </div>
