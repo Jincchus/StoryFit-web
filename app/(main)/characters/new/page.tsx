@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useApp } from '@/providers/AppProvider'
+import { api } from '@/lib/api'
 import { DEFAULT_TAGS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
-import type { SafetyLevel, AIProvider, AvatarKind } from '@/types'
+import type { SafetyLevel, AIProvider } from '@/types'
 
 interface CharForm {
   name: string; title: string; description: string
@@ -18,7 +18,8 @@ interface CharForm {
 
 export default function CharacterNewPage() {
   const router = useRouter()
-  const { dispatch } = useApp()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState<CharForm>({
     name: '', title: '', description: '',
     systemPrompt: '', scenarioDescription: '',
@@ -43,17 +44,17 @@ export default function CharacterNewPage() {
     setTagInput('')
   }
 
-  const handleSubmit = () => {
-    if (!form.name.trim() || !form.systemPrompt.trim()) return
-    dispatch({
-      type: 'addCharacter',
-      character: {
-        ...form, id: 'custom-' + Date.now(),
-        kind: 'custom' as AvatarKind,
-        alternateGreetings: [], isPreset: false,
-      },
-    })
-    router.push('/characters')
+  const handleSubmit = async () => {
+    if (!form.name.trim() || !form.systemPrompt.trim() || loading) return
+    setLoading(true)
+    setError('')
+    try {
+      await api.post('/api/characters', { ...form, alternateGreetings: [] })
+      router.push('/characters')
+    } catch (e: any) {
+      setError(e.message)
+      setLoading(false)
+    }
   }
 
   return (
@@ -66,11 +67,12 @@ export default function CharacterNewPage() {
           </div>
           <div className="hstack" style={{ flexShrink: 0, gap: 6, flexWrap: 'wrap' }}>
             <button className="btn ghost" onClick={() => router.back()}>← 취소</button>
+            {error && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {error}</div>}
             <button
               className="btn primary"
-              disabled={!form.name.trim() || !form.systemPrompt.trim()}
+              disabled={loading || !form.name.trim() || !form.systemPrompt.trim()}
               onClick={handleSubmit}
-            >✦ 캐릭터 저장</button>
+            >{loading ? '저장 중...' : '✦ 캐릭터 저장'}</button>
           </div>
         </div>
 
