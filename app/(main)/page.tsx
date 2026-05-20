@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { apiLogout } from '@/lib/authClient'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
@@ -33,11 +32,6 @@ export default function HomePage() {
     setConversations(prev => prev.filter(c => c.id !== id))
   }
 
-  const handleLogout = async () => {
-    await apiLogout()
-    router.replace('/login')
-  }
-
   return (
     <Win title="홈 (Home)" icon={PixelIcons.home}>
       <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0 }}>
@@ -47,8 +41,6 @@ export default function HomePage() {
             <div className="tiny muted">{conversations.length}개의 진행 중인 롤플레이</div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
-            <button className="btn ghost" style={{ fontSize: 10 }} onClick={handleLogout}>로그아웃</button>
-            <button className="btn" onClick={() => router.push('/personas')}>내 페르소나</button>
             <button className="btn primary" onClick={() => router.push('/characters')}>✦ 새 대화 시작</button>
           </div>
         </div>

@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
-import { PRESET_CHARS } from '@/data/presetCharacters'
 
 export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const custom = await prisma.character.findMany({ where: { creatorId: userId } })
-  return NextResponse.json([...PRESET_CHARS, ...custom])
+  const characters = await prisma.character.findMany({
+    where: { OR: [{ isPreset: true }, { creatorId: userId }] },
+    orderBy: [{ isPreset: 'desc' }, { createdAt: 'asc' }],
+  })
+  return NextResponse.json(characters)
 }
 
 export async function POST(req: NextRequest) {

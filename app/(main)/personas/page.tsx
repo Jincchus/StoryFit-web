@@ -8,24 +8,32 @@ import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 interface Persona {
   id: string
   name: string
+  gender: string
   description: string
   additionalInfo: string
 }
+
+const RANDOM_NAMES = [
+  '이루리', '하이든', '세라', '나린', '유이', '아리엘', '카이', '레나',
+  '이안', '소라', '미루', '하루', '에린', '지온', '루나', '세이',
+  '아론', '비르', '다온', '루이', '제이', '미온', '하온', '솔이',
+  '카엘', '이든', '루카', '레오', '엘라', '미아', '다니', '노아',
+]
 
 export default function PersonasPage() {
   const router = useRouter()
   const [personas, setPersonas] = useState<Persona[]>([])
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', description: '', additionalInfo: '' })
+  const [form, setForm] = useState({ name: '', gender: '', description: '', additionalInfo: '' })
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
   }, [])
 
-  const openCreate = () => { setForm({ name: '', description: '', additionalInfo: '' }); setCreating(true); setEditingId(null) }
-  const openEdit = (p: Persona) => { setForm({ name: p.name, description: p.description, additionalInfo: p.additionalInfo }); setEditingId(p.id); setCreating(false) }
+  const openCreate = () => { setForm({ name: '', gender: '', description: '', additionalInfo: '' }); setCreating(true); setEditingId(null) }
+  const openEdit = (p: Persona) => { setForm({ name: p.name, gender: p.gender ?? '', description: p.description, additionalInfo: p.additionalInfo }); setEditingId(p.id); setCreating(false) }
 
   const handleSave = async () => {
     if (!form.name.trim() || loading) return
@@ -75,8 +83,27 @@ export default function PersonasPage() {
               <div className="form-grid">
                 <div>
                   <label className="label">이름 *</label>
-                  <input className="field" placeholder="AI가 나를 부르는 이름" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                  <div className="hstack" style={{ gap: 4 }}>
+                    <input className="field" style={{ flex: 1 }} placeholder="AI가 나를 부르는 이름" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                    <button
+                      type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }}
+                      onClick={() => setForm(f => ({ ...f, name: RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] }))}
+                    >🎲</button>
+                  </div>
                 </div>
+                <div>
+                  <label className="label">성별</label>
+                  <div className="hstack" style={{ gap: 6 }}>
+                    {['', '남성', '여성', '기타'].map(g => (
+                      <label key={g} className="hstack" style={{ gap: 3, cursor: 'pointer', fontSize: 11 }}>
+                        <input type="radio" name="gender" value={g} checked={form.gender === g} onChange={() => setForm(f => ({ ...f, gender: g }))} />
+                        {g || '미설정'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="form-grid">
                 <div>
                   <label className="label">추가 정보</label>
                   <input className="field" placeholder="직업, 관계 등" value={form.additionalInfo} onChange={e => setForm(f => ({ ...f, additionalInfo: e.target.value }))} />
@@ -101,7 +128,7 @@ export default function PersonasPage() {
                 <PixelAvatar kind="player" size={36} />
               </div>
               <div className="meta">
-                <h4>{p.name}</h4>
+                <h4>{p.name}{p.gender && <span className="muted" style={{ fontWeight: 400, fontSize: 10 }}> · {p.gender}</span>}</h4>
                 <p>{p.description}</p>
                 {p.additionalInfo && <p className="tiny muted">{p.additionalInfo}</p>}
               </div>

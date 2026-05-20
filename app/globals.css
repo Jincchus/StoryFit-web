@@ -225,6 +225,13 @@ body[data-art="modern"] .row .thumb { border: 1.5px solid #ecdcf3; border-radius
 }
 body[data-art="retro"] .dock { box-shadow: inset 1px 1px 0 var(--chrome-hi), inset -1px -1px 0 var(--chrome-shadow); }
 .dock .start { display: flex; align-items: center; gap: 5px; padding: 4px 8px; background: linear-gradient(180deg, #ff8fcf, #ff2e93); color: #fff; border: 2px solid var(--chrome-border); font-family: var(--font-title); font-size: 9px; text-shadow: 1px 1px 0 rgba(0,0,0,.3); cursor: pointer; border-radius: var(--radius); letter-spacing: .03em; }
+.dock .start.active { background: linear-gradient(180deg, #ff2e93, #ff8fcf); box-shadow: inset 1px 1px 0 rgba(0,0,0,.2); }
+.start-menu { position: absolute; bottom: calc(100% + 6px); left: 0; min-width: 160px; background: var(--chrome-face); border: 2px solid var(--chrome-border); border-radius: var(--radius); padding: 4px; z-index: 100; box-shadow: 4px 4px 0 rgba(43,31,85,.15); }
+.start-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; font-size: 11px; font-weight: 700; background: none; border: none; border-radius: var(--radius); cursor: pointer; color: var(--ink); text-align: left; }
+.start-menu-item:hover { background: var(--lavender); }
+.start-menu-item.danger { color: #ff2e93; }
+.start-menu-item.danger:hover { background: #ffe0ee; }
+.start-menu-divider { height: 1px; background: var(--chrome-border); margin: 3px 0; }
 .dock .clock { margin-left: auto; padding: 4px 8px; font-family: var(--font-mono); font-size: 13px; font-weight: 700; background: #fff; border: 1.5px solid var(--chrome-border); color: var(--ink); border-radius: var(--radius); }
 .dock .tray { display: flex; gap: 6px; align-items: center; padding: 2px 6px; font-size: 14px; }
 

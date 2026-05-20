@@ -46,6 +46,7 @@ model UserPersona {
   userId         String
   user           User           @relation(fields: [userId], references: [id])
   name           String
+  gender         String         @default("")
   description    String         @default("")
   additionalInfo String         @default("")
   conversations  Conversation[]
