@@ -21,6 +21,7 @@ model Character {
   id                  String    @id @default(cuid())
   name                String
   title               String    @default("")
+  gender              String    @default("")
   description         String    @default("")
   systemPrompt        String
   scenarioDescription String    @default("")
@@ -39,6 +40,14 @@ model Character {
   creator             User?     @relation(fields: [creatorId], references: [id])
   conversations       ConversationCharacter[]
   lorebooks           Lorebook[]
+}
+
+model UploadedImage {
+  id         String   @id @default(cuid())
+  filename   String   @unique
+  isShared   Boolean  @default(false)
+  uploaderId String?
+  createdAt  DateTime @default(now())
 }
 
 model UserPersona {

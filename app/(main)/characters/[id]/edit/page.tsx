@@ -5,10 +5,12 @@ import { api } from '@/lib/api'
 import { DEFAULT_TAGS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
+import AvatarPicker from '@/components/ui/AvatarPicker'
+import ParamTooltip from '@/components/ui/ParamTooltip'
 import type { SafetyLevel, AIProvider } from '@/types'
 
 interface CharForm {
-  name: string; title: string; description: string
+  name: string; title: string; gender: string; description: string
   systemPrompt: string; scenarioDescription: string
   firstMessage: string; exampleDialogues: string
   avatarUrl: string; tags: string[]
@@ -31,6 +33,7 @@ export default function CharacterEditPage() {
       .then((c: any) => setForm({
         name: c.name ?? '',
         title: c.title ?? '',
+        gender: c.gender ?? '',
         description: c.description ?? '',
         systemPrompt: c.systemPrompt ?? '',
         scenarioDescription: c.scenarioDescription ?? '',
@@ -120,12 +123,23 @@ export default function CharacterEditPage() {
                 </div>
               </div>
               <div>
+                <label className="label">성별</label>
+                <div className="hstack" style={{ gap: 10 }}>
+                  {['', '남성', '여성', '기타'].map(g => (
+                    <label key={g} className="hstack" style={{ gap: 4, cursor: 'pointer', fontSize: 11 }}>
+                      <input type="radio" name="char-gender" value={g} checked={form.gender === g} onChange={() => set('gender', g)} />
+                      {g || '미설정'}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
                 <label className="label">캐릭터 설명</label>
                 <textarea className="field" rows={2} placeholder="외모, 성격, 배경을 간략하게 적어주세요" value={form.description} onChange={e => set('description', e.target.value)} />
               </div>
               <div>
-                <label className="label">아바타 URL <span className="tiny muted">(외부 이미지 주소)</span></label>
-                <input className="field" placeholder="https://..." value={form.avatarUrl} onChange={e => set('avatarUrl', e.target.value)} />
+                <label className="label">아바타 이미지</label>
+                <AvatarPicker value={form.avatarUrl} onChange={url => set('avatarUrl', url)} />
               </div>
             </div>
 
@@ -190,17 +204,20 @@ export default function CharacterEditPage() {
               <div className="form-section-title">AI 파라미터</div>
               <div className="form-grid">
                 <div>
-                  <label className="label">안전 수준</label>
+                  <label className="label">
+                    안전 수준
+                    <ParamTooltip text={"AI가 민감한 내용을 얼마나 차단할지 결정합니다.\n\n엄격: 폭력·성인 표현 거의 차단\n표준: 일반적인 수준으로 차단 (기본값)\n완화: 성숙한 표현 일부 허용"} />
+                  </label>
                   <select className="field" value={form.safetyLevel} onChange={e => set('safetyLevel', e.target.value as SafetyLevel)}>
-                    <option value="strict">Strict (엄격)</option>
-                    <option value="standard">Standard (표준)</option>
-                    <option value="relaxed">Relaxed (완화)</option>
+                    <option value="strict">엄격 (Strict)</option>
+                    <option value="standard">표준 (Standard)</option>
+                    <option value="relaxed">완화 (Relaxed)</option>
                   </select>
                 </div>
                 <div>
                   <label className="label">기본 AI</label>
                   <select className="field" value={form.defaultAI} onChange={e => set('defaultAI', e.target.value as AIProvider)}>
-                    <option value="gemini">Gemini 2.0 Flash</option>
+                    <option value="gemini">Gemini 2.5 Flash</option>
                     <option value="claude" disabled>Claude (준비 중)</option>
                     <option value="chatgpt" disabled>GPT-4o (준비 중)</option>
                   </select>
@@ -208,11 +225,17 @@ export default function CharacterEditPage() {
               </div>
               <div className="form-grid" style={{ marginTop: 8 }}>
                 <div>
-                  <label className="label">Temperature: {form.temperature.toFixed(1)} <span className="tiny muted">(창의성, 0~2)</span></label>
+                  <label className="label">
+                    창의성: {form.temperature.toFixed(1)}
+                    <ParamTooltip text={"AI 답변의 창의성·무작위성을 조절합니다.\n\n낮을수록 (0~0.5): 일관되고 예측 가능한 답변\n보통 (0.7~1.0): 자연스럽고 다양한 표현 (추천)\n높을수록 (1.5~2.0): 창의적이지만 가끔 엉뚱한 답변"} />
+                  </label>
                   <input type="range" className="param-slider" min={0} max={2} step={0.1} value={form.temperature} onChange={e => set('temperature', parseFloat(e.target.value))} />
                 </div>
                 <div>
-                  <label className="label">frequencyPenalty: {form.frequencyPenalty.toFixed(2)} <span className="tiny muted">(단어 반복 억제)</span></label>
+                  <label className="label">
+                    반복 억제: {form.frequencyPenalty.toFixed(2)}
+                    <ParamTooltip text={"같은 단어나 표현이 반복되는 것을 억제합니다.\n\n낮을수록 (0~0.2): 반복 허용, 일관된 말투 유지\n보통 (0.3~0.5): 적당한 억제 (추천)\n높을수록 (0.8~): 다양한 어휘 사용, 말투 변할 수 있음"} />
+                  </label>
                   <input type="range" className="param-slider" min={0} max={2} step={0.05} value={form.frequencyPenalty} onChange={e => set('frequencyPenalty', parseFloat(e.target.value))} />
                 </div>
               </div>
