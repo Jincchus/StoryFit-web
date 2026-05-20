@@ -36,6 +36,7 @@ model Character {
   presencePenalty     Float     @default(0.3)
   defaultAI           String    @default("gemini")
   isPreset            Boolean   @default(false)
+  createdAt           DateTime  @default(now())
   creatorId           String?
   creator             User?     @relation(fields: [creatorId], references: [id])
   conversations       ConversationCharacter[]
