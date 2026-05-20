@@ -22,7 +22,8 @@ export default function CharacterNewPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [namePool, setNamePool] = useState<string[]>(RANDOM_NAMES)
+  const [namePool, setNamePool] = useState<{ name: string; category: string }[]>([])
+  const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
   const [form, setForm] = useState<CharForm>({
     name: '', title: '', gender: '', description: '',
     systemPrompt: '', scenarioDescription: '',
@@ -34,9 +35,7 @@ export default function CharacterNewPage() {
   const [tagInput, setTagInput] = useState('')
 
   useEffect(() => {
-    fetch('/api/names').then(r => r.json()).then((names: string[]) => {
-      if (names.length > 0) setNamePool(names)
-    }).catch(() => {})
+    fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
   }, [])
 
   const set = <K extends keyof CharForm>(key: K, val: CharForm[K]) => setForm(f => ({ ...f, [key]: val }))
@@ -94,7 +93,18 @@ export default function CharacterNewPage() {
                   <label className="label">이름 *</label>
                   <div className="hstack" style={{ gap: 5 }}>
                     <input className="field" style={{ flex: 1 }} placeholder="캐릭터 이름" value={form.name} onChange={e => set('name', e.target.value)} />
-                    <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => set('name', namePool[Math.floor(Math.random() * namePool.length)])}>🎲</button>
+                    {(['all', 'korean', 'western'] as const).map(c => (
+                      <button key={c} type="button"
+                        className={`btn ${nameCat === c ? 'primary' : 'ghost'}`}
+                        style={{ fontSize: 9, padding: '3px 5px', flexShrink: 0 }}
+                        onClick={() => setNameCat(c)}
+                      >{c === 'all' ? '전체' : c === 'korean' ? '한국' : '서양'}</button>
+                    ))}
+                    <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => {
+                      const pool = (nameCat === 'all' ? namePool : namePool.filter(n => n.category === nameCat)).map(n => n.name)
+                      const arr = pool.length > 0 ? pool : RANDOM_NAMES
+                      set('name', arr[Math.floor(Math.random() * arr.length)])
+                    }}>🎲</button>
                   </div>
                 </div>
                 <div>
