@@ -333,7 +333,6 @@ export default function ChatPage() {
                 value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text) } }}
-                disabled={typing}
               />
               <button className="btn primary" onClick={() => send(text)} disabled={!text.trim() || typing}>전송</button>
             </div>
