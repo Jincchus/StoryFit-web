@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
 import { buildSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
+import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import type { Message } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -108,6 +109,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         assistantMsgId = assistantMsg.id
 
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
+
+        triggerMemorySummarization(params.id, character.systemPrompt).catch(err =>
+          console.error('[summarize] error:', err),
+        )
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: assistantMsgId })}\n\n`))
       } catch (err) {
         console.error('[chat] AI error:', err)
