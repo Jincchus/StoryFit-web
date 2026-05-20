@@ -5,15 +5,35 @@ import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
-interface NameEntry { id: string; name: string; category: string }
+interface NameEntry { id: string; name: string; category: string; gender: string }
 type Cat = 'korean' | 'western'
+type Gender = '' | '남성' | '여성' | '기타'
+
+const GENDER_LABEL: Record<Gender, string> = { '': '미설정', '남성': '남', '여성': '여', '기타': '기타' }
+const GENDER_COLOR: Record<Gender, string> = { '': '#9d8bba', '남성': '#6bb5ff', '여성': '#ff8fcf', '기타': '#b8f5d2' }
+
+function GenderPicker({ value, onChange }: { value: Gender; onChange: (g: Gender) => void }) {
+  return (
+    <div className="hstack" style={{ gap: 3 }}>
+      {(['', '남성', '여성', '기타'] as Gender[]).map(g => (
+        <button key={g} type="button"
+          className={`btn ${value === g ? 'primary' : 'ghost'}`}
+          style={{ fontSize: 9, padding: '2px 5px' }}
+          onClick={() => onChange(g)}
+        >{GENDER_LABEL[g]}</button>
+      ))}
+    </div>
+  )
+}
 
 export default function AdminNamesPage() {
   const [names, setNames] = useState<NameEntry[]>([])
   const [input, setInput] = useState('')
   const [cat, setCat] = useState<Cat>('korean')
+  const [gender, setGender] = useState<Gender>('')
   const [bulkInput, setBulkInput] = useState('')
   const [bulkCat, setBulkCat] = useState<Cat>('korean')
+  const [bulkGender, setBulkGender] = useState<Gender>('')
   const [showBulk, setShowBulk] = useState(false)
   const [filter, setFilter] = useState<'all' | Cat>('all')
   const [error, setError] = useState('')
@@ -27,7 +47,7 @@ export default function AdminNamesPage() {
     if (!name) return
     setError('')
     try {
-      const created = await api.post('/api/admin/names', { name, category: cat })
+      const created = await api.post('/api/admin/names', { name, category: cat, gender })
       setNames(prev => [...prev, created])
       setInput('')
     } catch (e: any) { setError(e.message) }
@@ -40,7 +60,7 @@ export default function AdminNamesPage() {
     let added = 0
     for (const name of lines) {
       try {
-        const created = await api.post('/api/admin/names', { name, category: bulkCat })
+        const created = await api.post('/api/admin/names', { name, category: bulkCat, gender: bulkGender })
         setNames(prev => [...prev, created])
         added++
       } catch {}
@@ -79,20 +99,27 @@ export default function AdminNamesPage() {
                 </button>
               ))}
             </div>
+            <GenderPicker value={gender} onChange={setGender} />
             <button className="btn primary" onClick={handleAdd}>추가</button>
             <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowBulk(s => !s)}>일괄</button>
           </div>
 
           {showBulk && (
             <div className="vstack" style={{ gap: 6, padding: 8, background: 'var(--pane)', border: '1px solid var(--chrome-border)' }}>
-              <div className="hstack" style={{ gap: 6 }}>
-                <span className="tiny muted">카테고리:</span>
-                {(['korean', 'western'] as Cat[]).map(c => (
-                  <button key={c} className={`btn ${bulkCat === c ? 'primary' : 'ghost'}`}
-                    style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setBulkCat(c)}>
-                    {c === 'korean' ? '한국식' : '서양식'}
-                  </button>
-                ))}
+              <div className="hstack" style={{ gap: 10, flexWrap: 'wrap' }}>
+                <div className="hstack" style={{ gap: 4 }}>
+                  <span className="tiny muted">분류:</span>
+                  {(['korean', 'western'] as Cat[]).map(c => (
+                    <button key={c} className={`btn ${bulkCat === c ? 'primary' : 'ghost'}`}
+                      style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setBulkCat(c)}>
+                      {c === 'korean' ? '한국식' : '서양식'}
+                    </button>
+                  ))}
+                </div>
+                <div className="hstack" style={{ gap: 4 }}>
+                  <span className="tiny muted">성별:</span>
+                  <GenderPicker value={bulkGender} onChange={setBulkGender} />
+                </div>
               </div>
               <textarea
                 className="field" rows={6}
@@ -122,9 +149,14 @@ export default function AdminNamesPage() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {filtered.map(n => (
               <div key={n.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11 }}>
-                <span style={{ fontSize: 9, color: n.category === 'korean' ? 'var(--purple)' : 'var(--pink)', marginRight: 2 }}>
+                <span style={{ fontSize: 9, color: n.category === 'korean' ? 'var(--purple)' : 'var(--pink)' }}>
                   {n.category === 'korean' ? 'KR' : 'EN'}
                 </span>
+                {n.gender && (
+                  <span style={{ fontSize: 9, color: GENDER_COLOR[n.gender as Gender] }}>
+                    {GENDER_LABEL[n.gender as Gender]}
+                  </span>
+                )}
                 <span>{n.name}</span>
                 <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
                   onClick={() => handleDelete(n.id)}>×</button>

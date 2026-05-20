@@ -10,10 +10,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!await authenticateAdmin(req)) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
-  const { name, category } = await req.json()
+  const { name, category, gender } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: 'name이 필요합니다.' }, { status: 400 })
   try {
-    const created = await prisma.randomName.create({ data: { name: name.trim(), category: category ?? 'korean' } })
+    const created = await prisma.randomName.create({ data: { name: name.trim(), category: category ?? 'korean', gender: gender ?? '' } })
     return NextResponse.json(created, { status: 201 })
   } catch {
     return NextResponse.json({ error: '이미 존재하는 이름입니다.' }, { status: 409 })

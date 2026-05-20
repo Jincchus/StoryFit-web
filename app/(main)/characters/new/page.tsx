@@ -22,7 +22,7 @@ export default function CharacterNewPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [namePool, setNamePool] = useState<{ name: string; category: string }[]>([])
+  const [namePool, setNamePool] = useState<{ name: string; category: string; gender: string }[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
   const [form, setForm] = useState<CharForm>({
     name: '', title: '', gender: '', description: '',
@@ -101,9 +101,14 @@ export default function CharacterNewPage() {
                       >{c === 'all' ? '전체' : c === 'korean' ? '한국' : '서양'}</button>
                     ))}
                     <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => {
-                      const pool = (nameCat === 'all' ? namePool : namePool.filter(n => n.category === nameCat)).map(n => n.name)
-                      const arr = pool.length > 0 ? pool : RANDOM_NAMES
-                      set('name', arr[Math.floor(Math.random() * arr.length)])
+                      const pool = nameCat === 'all' ? namePool : namePool.filter(n => n.category === nameCat)
+                      if (pool.length > 0) {
+                        const picked = pool[Math.floor(Math.random() * pool.length)]
+                        set('name', picked.name)
+                        if (picked.gender) set('gender', picked.gender)
+                      } else {
+                        set('name', RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)])
+                      }
                     }}>🎲</button>
                   </div>
                 </div>

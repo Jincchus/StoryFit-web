@@ -23,6 +23,7 @@ model RandomName {
   id        String   @id @default(cuid())
   name      String   @unique
   category  String   @default("korean")
+  gender    String   @default("")
   createdAt DateTime @default(now())
 }
 
