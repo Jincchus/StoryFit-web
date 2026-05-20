@@ -1,12 +1,10 @@
 'use client'
 import { usePathname, useRouter } from 'next/navigation'
-import { useApp } from '@/providers/AppProvider'
 import { useEffect, useState } from 'react'
 
 export default function Dock() {
   const pathname = usePathname()
   const router = useRouter()
-  const { state } = useApp()
   const [clock, setClock] = useState('')
 
   useEffect(() => {
@@ -22,10 +20,6 @@ export default function Dock() {
   const isNewConv = pathname === '/characters' || pathname === '/conversations/new'
   const isCharCreate = pathname === '/characters/new'
 
-  const activeConvId = isChat ? pathname.split('/')[2] : null
-  const activeConv = activeConvId ? state.conversations.find(c => c.id === activeConvId) : null
-  const activeChar = activeConv ? activeConv.characters[0] : null
-
   return (
     <div className="dock">
       <button className="start">
@@ -40,15 +34,9 @@ export default function Dock() {
       <div style={{ display: 'flex', gap: 4, overflow: 'hidden', flex: 1 }}>
         <button className={`dock-tab ${isHome ? 'active' : ''}`} onClick={() => router.push('/')}>홈</button>
         <button className={`dock-tab ${isPersonas ? 'active' : ''}`} onClick={() => router.push('/personas')}>페르소나</button>
-        {isChat && (
-          <button className="dock-tab active">▸ {activeChar?.name ?? '채팅'}</button>
-        )}
-        {isNewConv && (
-          <button className="dock-tab active">▸ 새 대화</button>
-        )}
-        {isCharCreate && (
-          <button className="dock-tab active">▸ 캐릭터 만들기</button>
-        )}
+        {isChat && <button className="dock-tab active">▸ 채팅</button>}
+        {isNewConv && <button className="dock-tab active">▸ 새 대화</button>}
+        {isCharCreate && <button className="dock-tab active">▸ 캐릭터 만들기</button>}
       </div>
       <div className="tray">
         <span title="네트워크" style={{ color: '#22a06b' }}>●</span>
