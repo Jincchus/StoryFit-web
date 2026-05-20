@@ -9,11 +9,18 @@ import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 interface ConvItem {
   id: string
   title: string
+  mode: string
   currentAI: string
   updatedAt: string
   characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
   messages: { content: string }[]
   userPersona?: { name: string } | null
+}
+
+const MODE_LABEL: Record<string, string> = {
+  roleplay: '⚔ 롤플레이',
+  novel: '✍ 소설',
+  tikiTaka: '⟳ 티키타카',
 }
 
 export default function HomePage() {
@@ -144,10 +151,13 @@ export default function HomePage() {
                   <p>{lastLine}</p>
                 </div>
                 <div className="vstack" style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                  <span className="ai-pill" style={{ padding: '1px 5px', fontSize: 9, cursor: 'default' }}>
-                    <span className="dot" style={{ background: ai.id === 'chatgpt' ? '#a3e0ff' : ai.id === 'gemini' ? '#c9b6ff' : '#b8f5d2' }} />
-                    {ai.short}
-                  </span>
+                  <div className="hstack" style={{ gap: 4 }}>
+                    <span className="mode-badge" style={{ fontSize: 8 }}>{MODE_LABEL[conv.mode] ?? conv.mode}</span>
+                    <span className="ai-pill" style={{ padding: '1px 5px', fontSize: 9, cursor: 'default' }}>
+                      <span className="dot" style={{ background: ai.id === 'chatgpt' ? '#a3e0ff' : ai.id === 'gemini' ? '#c9b6ff' : '#b8f5d2' }} />
+                      {ai.short}
+                    </span>
+                  </div>
                   <span className="when">{when}</span>
                   {!selecting && (
                     <button
