@@ -1,6 +1,18 @@
 export type BlockType = 'narration' | 'dialogue' | 'thought'
 export interface Block { type: BlockType; text: string; speaker?: string }
 
+const DQUOTES = ['"', '“', '”']
+const SQUOTES = ["'", '‘', '’']
+
+function findAny(text: string, chars: string[], from: number): number {
+  let min = -1
+  for (const c of chars) {
+    const idx = text.indexOf(c, from)
+    if (idx !== -1 && (min === -1 || idx < min)) min = idx
+  }
+  return min
+}
+
 export function parseBlocks(text: string): Block[] {
   const blocks: Block[] = []
   let i = 0
@@ -14,11 +26,9 @@ export function parseBlocks(text: string): Block[] {
 
   while (i < text.length) {
     const ch = text[i]
-    // double quotes: ASCII " or Unicode " "
-    if (ch === '"' || ch === '“' || ch === '”') {
-      const openQ = ch
-      const closeQ = openQ === '“' ? '”' : '"'
-      const end = text.indexOf(closeQ, i + 1)
+
+    if (DQUOTES.includes(ch)) {
+      const end = findAny(text, DQUOTES, i + 1)
       if (end !== -1) {
         flushNarration()
         blocks.push({ type: 'dialogue', text: text.slice(i, end + 1) })
@@ -26,10 +36,9 @@ export function parseBlocks(text: string): Block[] {
         continue
       }
     }
-    // single quotes: ASCII ' or Unicode ' '
-    if (ch === "'" || ch === '‘' || ch === '’') {
-      const closeQ = ch === '‘' ? '’' : "'"
-      const end = text.indexOf(closeQ, i + 1)
+
+    if (SQUOTES.includes(ch)) {
+      const end = findAny(text, SQUOTES, i + 1)
       if (end !== -1) {
         flushNarration()
         blocks.push({ type: 'thought', text: text.slice(i + 1, end) })
@@ -37,6 +46,7 @@ export function parseBlocks(text: string): Block[] {
         continue
       }
     }
+
     narration += ch
     i++
   }
@@ -66,14 +76,12 @@ export function parseNovelBlocks(text: string): Block[] {
       const speaker = match[1].trim()
       const content = match[2].trim()
 
-      if ((content.startsWith('"') && content.endsWith('"')) ||
-          (content.startsWith('“') && content.endsWith('”'))) {
+      if (DQUOTES.some(q => content.startsWith(q)) && DQUOTES.some(q => content.endsWith(q))) {
         flushNarration()
         blocks.push({ type: 'dialogue', speaker, text: content.slice(1, -1) })
         continue
       }
-      if ((content.startsWith("'") && content.endsWith("'")) ||
-          (content.startsWith('‘') && content.endsWith('’'))) {
+      if (SQUOTES.some(q => content.startsWith(q)) && SQUOTES.some(q => content.endsWith(q))) {
         flushNarration()
         blocks.push({ type: 'thought', speaker, text: content.slice(1, -1) })
         continue
