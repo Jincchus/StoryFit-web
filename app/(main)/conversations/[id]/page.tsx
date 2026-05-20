@@ -40,6 +40,7 @@ export default function ChatPage() {
   const [lorebookAdd, setLorebookAdd] = useState(false)
   const [lorebookEditId, setLorebookEditId] = useState<string | null>(null)
   const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
+  const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -54,7 +55,15 @@ export default function ChatPage() {
 
   useEffect(() => {
     api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => {})
+    api.get(`/api/conversations/${params.id}/memories`).then(setMemories).catch(() => {})
   }, [params.id])
+
+  const handleDeleteMemory = async (memoryId: string) => {
+    try {
+      await api.delete(`/api/conversations/${params.id}/memories`, { memoryId })
+      setMemories(prev => prev.filter(m => m.id !== memoryId))
+    } catch {}
+  }
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
@@ -513,7 +522,29 @@ export default function ChatPage() {
                   </div>
                 ))}
               </div>
+
+              <div className="side-section">
+                <div className="spread" style={{ marginBottom: 4 }}>
+                  <div className="label" style={{ marginBottom: 0 }}>장기 메모리</div>
+                  <span className="tiny muted">10턴마다 자동 요약</span>
+                </div>
+                <div className="tiny muted" style={{ marginBottom: 6 }}>대화 내용이 자동으로 요약되어 AI 컨텍스트에 유지됩니다.</div>
+                {memories.length === 0 ? (
+                  <div className="lorebook-placeholder"><span>아직 요약된 메모리가 없습니다</span></div>
+                ) : (
+                  memories.map((mem, i) => (
+                    <div key={mem.id} style={{ marginBottom: 6, padding: 6, background: 'var(--pane)', borderRadius: 'var(--radius)', border: '1px solid var(--chrome-border)' }}>
+                      <div className="spread" style={{ marginBottom: 2 }}>
+                        <div style={{ fontSize: 9, color: 'var(--ink-soft)' }}>요약 #{i + 1}</div>
+                        <button className="msg-action-btn danger" style={{ fontSize: 9 }} onClick={() => handleDeleteMemory(mem.id)}>✕</button>
+                      </div>
+                      <div className="tiny muted" style={{ lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{mem.summary}</div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
+          </div>
           )}
         </div>
       </div>

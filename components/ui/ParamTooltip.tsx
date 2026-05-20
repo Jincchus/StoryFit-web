@@ -17,14 +17,14 @@ export default function ParamTooltip({ text }: ParamTooltipProps) {
       >?</button>
       {show && (
         <div style={{
-          position: 'absolute', bottom: '120%', left: '50%', transform: 'translateX(-50%)',
+          position: 'absolute', bottom: '120%', left: 0, transform: 'none',
           background: 'var(--ink)', color: '#fff', borderRadius: 'var(--radius)',
           padding: '7px 10px', fontSize: 10, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-          width: 220, zIndex: 50, boxShadow: '2px 2px 0 rgba(0,0,0,.2)',
+          width: 220, maxWidth: 'calc(100vw - 24px)', zIndex: 50, boxShadow: '2px 2px 0 rgba(0,0,0,.2)',
           pointerEvents: 'none',
         }}>
           {text}
-          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: `5px solid var(--ink)` }} />
+          <div style={{ position: 'absolute', top: '100%', left: 7, transform: 'none', borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: `5px solid var(--ink)` }} />
         </div>
       )}
     </span>

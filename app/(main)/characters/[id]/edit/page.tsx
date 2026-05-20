@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { api } from '@/lib/api'
-import { DEFAULT_TAGS } from '@/lib/constants'
+import { DEFAULT_TAGS, RANDOM_NAMES } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AvatarPicker from '@/components/ui/AvatarPicker'
@@ -114,7 +114,10 @@ export default function CharacterEditPage() {
               <div className="form-grid">
                 <div>
                   <label className="label">이름 *</label>
-                  <input className="field" placeholder="캐릭터 이름" value={form.name} onChange={e => set('name', e.target.value)} />
+                  <div className="hstack" style={{ gap: 5 }}>
+                    <input className="field" style={{ flex: 1 }} placeholder="캐릭터 이름" value={form.name} onChange={e => set('name', e.target.value)} />
+                    <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => set('name', RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)])}>🎲</button>
+                  </div>
                 </div>
                 <div>
                   <label className="label">한 줄 설명 (직함)</label>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { RANDOM_NAMES } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 
@@ -13,12 +14,6 @@ interface Persona {
   additionalInfo: string
 }
 
-const RANDOM_NAMES = [
-  '이루리', '하이든', '세라', '나린', '유이', '아리엘', '카이', '레나',
-  '이안', '소라', '미루', '하루', '에린', '지온', '루나', '세이',
-  '아론', '비르', '다온', '루이', '제이', '미온', '하온', '솔이',
-  '카엘', '이든', '루카', '레오', '엘라', '미아', '다니', '노아',
-]
 
 export default function PersonasPage() {
   const router = useRouter()
