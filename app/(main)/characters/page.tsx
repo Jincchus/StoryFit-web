@@ -21,12 +21,20 @@ export default function CharactersPage() {
   const { draft, dispatch } = useApp()
   const [characters, setCharacters] = useState<Character[]>([])
   const [error, setError] = useState('')
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   useEffect(() => {
     api.get('/api/characters').then(setCharacters).catch(e => setError(e.message))
   }, [])
 
   const selectedChar = characters.find(c => c.id === draft.charId)
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    await api.delete(`/api/characters/${id}`)
+    setCharacters(prev => prev.filter(c => c.id !== id))
+    if (draft.charId === id) dispatch({ type: 'selectChar', id: '' })
+  }
 
   return (
     <Win title="캐릭터 선택 (Character Select)" icon={PixelIcons.user}>
@@ -49,6 +57,8 @@ export default function CharactersPage() {
           </div>
         </div>
 
+        {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
+
         {selectedChar && (
           <div className="char-preview-bar">
             <div className="thumb" style={{ width: 28, height: 28 }}>
@@ -67,14 +77,15 @@ export default function CharactersPage() {
           </div>
         )}
 
-        {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
-
         <div className="char-grid scroll">
           {characters.map(c => (
             <div
               key={c.id}
               className={`char-card ${draft.charId === c.id ? 'selected' : ''}`}
+              style={{ position: 'relative' }}
               onClick={e => { sparkleAt(e.clientX, e.clientY); dispatch({ type: 'selectChar', id: c.id }) }}
+              onMouseEnter={() => setHoveredId(c.id)}
+              onMouseLeave={() => setHoveredId(null)}
             >
               <div className="pic-wrap">
                 {c.avatarUrl
@@ -87,6 +98,12 @@ export default function CharactersPage() {
               <div className="tag-row">
                 {(c.tags ?? []).map(tag => <span className="tag" key={tag}>{tag}</span>)}
               </div>
+              {!c.isPreset && hoveredId === c.id && (
+                <div className="hstack" style={{ gap: 4, marginTop: 4, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
+                  <button className="msg-action-btn" style={{ fontSize: 9 }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>
+                  <button className="msg-action-btn danger" style={{ fontSize: 9 }} onClick={e => handleDelete(e, c.id)}>✕ 삭제</button>
+                </div>
+              )}
             </div>
           ))}
 

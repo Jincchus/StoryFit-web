@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { clearAccessToken } from '@/lib/authClient'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
@@ -19,10 +20,22 @@ export default function HomePage() {
   const router = useRouter()
   const [conversations, setConversations] = useState<ConvItem[]>([])
   const [error, setError] = useState('')
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   useEffect(() => {
     api.get('/api/conversations').then(setConversations).catch(e => setError(e.message))
   }, [])
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    await api.delete(`/api/conversations/${id}`)
+    setConversations(prev => prev.filter(c => c.id !== id))
+  }
+
+  const handleLogout = () => {
+    clearAccessToken()
+    router.replace('/login')
+  }
 
   return (
     <Win title="홈 (Home)" icon={PixelIcons.home}>
@@ -33,6 +46,7 @@ export default function HomePage() {
             <div className="tiny muted">{conversations.length}개의 진행 중인 롤플레이</div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
+            <button className="btn ghost" style={{ fontSize: 10 }} onClick={handleLogout}>로그아웃</button>
             <button className="btn" onClick={() => router.push('/personas')}>내 페르소나</button>
             <button className="btn primary" onClick={() => router.push('/characters')}>✦ 새 대화 시작</button>
           </div>
@@ -47,7 +61,14 @@ export default function HomePage() {
             const lastLine = conv.messages[0]?.content ?? ''
             const when = new Date(conv.updatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
             return (
-              <div className="row" key={conv.id} onClick={() => router.push(`/conversations/${conv.id}`)}>
+              <div
+                key={conv.id}
+                className="row"
+                style={{ position: 'relative' }}
+                onClick={() => router.push(`/conversations/${conv.id}`)}
+                onMouseEnter={() => setHoveredId(conv.id)}
+                onMouseLeave={() => setHoveredId(null)}
+              >
                 <div className="thumb">
                   {char?.avatarUrl
                     ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
@@ -67,6 +88,13 @@ export default function HomePage() {
                     {ai.short}
                   </span>
                   <span className="when">{when}</span>
+                  {hoveredId === conv.id && (
+                    <button
+                      className="msg-action-btn danger"
+                      style={{ fontSize: 9, padding: '1px 5px' }}
+                      onClick={e => handleDelete(e, conv.id)}
+                    >✕ 삭제</button>
+                  )}
                 </div>
               </div>
             )

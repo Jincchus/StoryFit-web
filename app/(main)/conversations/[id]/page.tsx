@@ -16,6 +16,7 @@ interface Conv {
   userPersona?: { name: string } | null
   messages: Msg[]
 }
+interface LbEntry { id: string; keyword: string[]; content: string; priority: number; scanDepth: number }
 
 export default function ChatPage() {
   const params = useParams<{ id: string }>()
@@ -31,6 +32,10 @@ export default function ChatPage() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [lorebooks, setLorebooks] = useState<LbEntry[]>([])
+  const [lorebookAdd, setLorebookAdd] = useState(false)
+  const [lorebookEditId, setLorebookEditId] = useState<string | null>(null)
+  const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0 })
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -42,6 +47,39 @@ export default function ChatPage() {
   }, [params.id])
 
   useEffect(() => { loadConv() }, [loadConv])
+
+  useEffect(() => {
+    api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => {})
+  }, [params.id])
+
+  const handleAddLorebook = async () => {
+    const keyword = lbForm.keywords.split(',').map(k => k.trim()).filter(Boolean)
+    if (!keyword.length || !lbForm.content.trim()) return
+    try {
+      const entry = await api.post('/api/lorebooks', {
+        keyword, content: lbForm.content, priority: lbForm.priority,
+        conversationId: params.id, scope: 'conversation', scopeId: params.id,
+      })
+      setLorebooks(prev => [...prev, entry])
+      setLbForm({ keywords: '', content: '', priority: 0 })
+      setLorebookAdd(false)
+    } catch {}
+  }
+
+  const handlePatchLorebook = async (id: string, data: Partial<LbEntry>) => {
+    try {
+      const updated = await api.patch(`/api/lorebooks/${id}`, data)
+      setLorebooks(prev => prev.map(e => e.id === id ? updated : e))
+      setLorebookEditId(null)
+    } catch {}
+  }
+
+  const handleDeleteLorebook = async (id: string) => {
+    try {
+      await api.delete(`/api/lorebooks/${id}`)
+      setLorebooks(prev => prev.filter(e => e.id !== id))
+    } catch {}
+  }
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
@@ -331,15 +369,79 @@ export default function ChatPage() {
               <div className="side-section">
                 <div className="spread" style={{ marginBottom: 4 }}>
                   <div className="label" style={{ marginBottom: 0 }}>로어북</div>
-                  <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }}>+ 추가</button>
+                  <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setLorebookAdd(a => !a); setLorebookEditId(null) }}>+ 추가</button>
                 </div>
-                <div className="tiny muted">키워드 감지 시 자동으로 세계관 정보를 AI에게 주입합니다.</div>
-                <div className="lorebook-placeholder"><span>로어북 항목이 없습니다</span></div>
+                <div className="tiny muted" style={{ marginBottom: 6 }}>키워드 감지 시 자동으로 세계관 정보를 AI에게 주입합니다.</div>
+
+                {lorebookAdd && (
+                  <div className="vstack" style={{ gap: 5, marginBottom: 8, padding: 6, background: 'var(--pane)', borderRadius: 'var(--radius)', border: '1px solid var(--chrome-border)' }}>
+                    <input
+                      className="field" style={{ fontSize: 10 }} placeholder="키워드 (쉼표 구분)"
+                      value={lbForm.keywords} onChange={e => setLbForm(f => ({ ...f, keywords: e.target.value }))}
+                    />
+                    <textarea
+                      className="field" rows={2} style={{ fontSize: 10 }} placeholder="세계관 정보 내용"
+                      value={lbForm.content} onChange={e => setLbForm(f => ({ ...f, content: e.target.value }))}
+                    />
+                    <div className="hstack" style={{ gap: 4 }}>
+                      <label className="tiny muted" style={{ flex: 1 }}>우선순위
+                        <input type="number" className="field" style={{ marginLeft: 4, width: 48, fontSize: 10, display: 'inline-block' }}
+                          value={lbForm.priority} onChange={e => setLbForm(f => ({ ...f, priority: parseInt(e.target.value) || 0 }))} />
+                      </label>
+                      <button className="btn primary" style={{ fontSize: 9, padding: '2px 7px' }} onClick={handleAddLorebook}>저장</button>
+                      <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => setLorebookAdd(false)}>취소</button>
+                    </div>
+                  </div>
+                )}
+
+                {lorebooks.length === 0 && !lorebookAdd && (
+                  <div className="lorebook-placeholder"><span>로어북 항목이 없습니다</span></div>
+                )}
+
+                {lorebooks.map(lb => (
+                  <div key={lb.id} style={{ marginBottom: 6, padding: 6, background: 'var(--pane)', borderRadius: 'var(--radius)', border: '1px solid var(--chrome-border)' }}>
+                    {lorebookEditId === lb.id ? (
+                      <LorebookEditForm entry={lb} onSave={data => handlePatchLorebook(lb.id, data)} onCancel={() => setLorebookEditId(null)} />
+                    ) : (
+                      <>
+                        <div className="spread" style={{ marginBottom: 2 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--pink)' }}>{lb.keyword.join(', ')}</div>
+                          <div className="hstack" style={{ gap: 3 }}>
+                            <button className="msg-action-btn" style={{ fontSize: 9 }} onClick={() => { setLorebookEditId(lb.id); setLorebookAdd(false) }}>✏</button>
+                            <button className="msg-action-btn danger" style={{ fontSize: 9 }} onClick={() => handleDeleteLorebook(lb.id)}>✕</button>
+                          </div>
+                        </div>
+                        <div className="tiny muted" style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{lb.content}</div>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
       </div>
     </Win>
+  )
+}
+
+function LorebookEditForm({ entry, onSave, onCancel }: { entry: LbEntry; onSave: (data: Partial<LbEntry>) => void; onCancel: () => void }) {
+  const [keywords, setKeywords] = useState(entry.keyword.join(', '))
+  const [content, setContent] = useState(entry.content)
+  const [priority, setPriority] = useState(entry.priority)
+  return (
+    <div className="vstack" style={{ gap: 5 }}>
+      <input className="field" style={{ fontSize: 10 }} placeholder="키워드 (쉼표 구분)" value={keywords} onChange={e => setKeywords(e.target.value)} />
+      <textarea className="field" rows={2} style={{ fontSize: 10 }} value={content} onChange={e => setContent(e.target.value)} />
+      <div className="hstack" style={{ gap: 4 }}>
+        <label className="tiny muted" style={{ flex: 1 }}>우선순위
+          <input type="number" className="field" style={{ marginLeft: 4, width: 48, fontSize: 10, display: 'inline-block' }}
+            value={priority} onChange={e => setPriority(parseInt(e.target.value) || 0)} />
+        </label>
+        <button className="btn primary" style={{ fontSize: 9, padding: '2px 7px' }}
+          onClick={() => onSave({ keyword: keywords.split(',').map(k => k.trim()).filter(Boolean), content, priority })}>저장</button>
+        <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={onCancel}>취소</button>
+      </div>
+    </div>
   )
 }
