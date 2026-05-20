@@ -10,7 +10,7 @@ import NovelScene from '@/components/ui/NovelScene'
 import AiPill from '@/components/ui/AiPill'
 import type { AIProvider } from '@/types'
 
-interface Msg { id: string; role: string; content: string; aiModel?: string }
+interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; parentId?: string | null }
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
   characters: { character: { id: string; name: string; kind: string; avatarUrl?: string } }[]
@@ -46,9 +46,12 @@ export default function ChatPage() {
   const abortRef = useRef<AbortController | null>(null)
 
   const loadConv = useCallback(async () => {
-    const data: Conv = await api.get(`/api/conversations/${params.id}`)
+    const [data, msgs]: [Conv, Msg[]] = await Promise.all([
+      api.get(`/api/conversations/${params.id}`),
+      api.get(`/api/conversations/${params.id}/messages`),
+    ])
     setConv(data)
-    setMessages(data.messages)
+    setMessages(msgs)
     setModel(data.currentAI as AIProvider)
   }, [params.id])
 
@@ -171,11 +174,57 @@ export default function ChatPage() {
 
   const handleRegenerate = async () => {
     if (typing) return
-    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')
-    if (!lastAssistant) return
-    await handleDelete(lastAssistant.id)
-    const lastUser = [...messages].reverse().find(m => m.role === 'user')
-    if (lastUser) await send(lastUser.content)
+    setText('')
+    setTyping(true)
+    setStreaming('')
+    setSendError('')
+
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+
+    try {
+      const res = await api.streamRegenerate(params.id, ctrl.signal)
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSendError(data.error || '재생성에 실패했습니다.')
+        setTyping(false)
+        return
+      }
+
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const json = JSON.parse(line.slice(6))
+            if (json.text) setStreaming(prev => prev + json.text)
+            if (json.done) { setStreaming(''); await loadConv() }
+            if (json.error) { setStreaming(''); setSendError(json.error); await loadConv() }
+          } catch {}
+        }
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        setStreaming('')
+        setSendError('연결이 끊어졌습니다. 다시 시도해주세요.')
+      }
+    } finally {
+      setTyping(false)
+      abortRef.current = null
+    }
+  }
+
+  const handleBranchSwitch = async (targetMessageId: string) => {
+    await api.patch(`/api/conversations/${params.id}/messages`, { targetMessageId })
+    await loadConv()
   }
 
   const startEdit = (id: string, content: string) => { setEditingId(id); setEditText(content) }
@@ -340,6 +389,25 @@ export default function ChatPage() {
                       <div className={`msg-actions ${isYou ? 'you' : ''}`}>
                         {isLast && isLastAssistant && !isYou && (
                           <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>
+                        )}
+                        {!isYou && (m.branchCount ?? 1) > 1 && (
+                          <div className="hstack" style={{ gap: 2, alignItems: 'center' }}>
+                            <button className="msg-action-btn" style={{ padding: '1px 5px' }}
+                              onClick={async () => {
+                                const siblings = messages.filter(s => s.parentId === m.parentId && s.role === 'assistant')
+                                const idx = siblings.findIndex(s => s.id === m.id)
+                                const prev = siblings[(idx - 1 + siblings.length) % siblings.length]
+                                if (prev) await handleBranchSwitch(prev.id)
+                              }}>←</button>
+                            <span className="tiny muted" style={{ fontSize: 9 }}>{m.branchIndex}/{m.branchCount}</span>
+                            <button className="msg-action-btn" style={{ padding: '1px 5px' }}
+                              onClick={async () => {
+                                const siblings = messages.filter(s => s.parentId === m.parentId && s.role === 'assistant')
+                                const idx = siblings.findIndex(s => s.id === m.id)
+                                const next = siblings[(idx + 1) % siblings.length]
+                                if (next) await handleBranchSwitch(next.id)
+                              }}>→</button>
+                          </div>
                         )}
                         {isYou && (
                           <button className="msg-action-btn" onClick={() => startEdit(m.id, m.content)}>✏ 편집</button>

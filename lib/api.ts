@@ -68,4 +68,25 @@ export const api = {
     }
     return res
   },
+
+  async streamRegenerate(convId: string, signal: AbortSignal) {
+    const res = await fetch(`/api/conversations/${convId}/regenerate`, {
+      method: 'POST',
+      headers: authHeaders(),
+      signal,
+    })
+    if (res.status === 401) {
+      const refreshed = await tryRefresh()
+      if (refreshed) {
+        return fetch(`/api/conversations/${convId}/regenerate`, {
+          method: 'POST',
+          headers: authHeaders(),
+          signal,
+        })
+      }
+      clearAccessToken()
+      if (typeof window !== 'undefined') window.location.href = '/login'
+    }
+    return res
+  },
 }

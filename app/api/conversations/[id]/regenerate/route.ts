@@ -7,12 +7,13 @@ import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
 import type { Message } from '@/types'
 
+async function authenticate(req: NextRequest) {
+  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
+}
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-
-  const { content } = await req.json()
-  if (!content?.trim()) return NextResponse.json({ error: '메시지 내용이 필요합니다.' }, { status: 400 })
 
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
@@ -29,17 +30,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const character = conv.characters[0]?.character
   if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
-  const lastSelectedMsg = conv.messages[conv.messages.length - 1] ?? null
+  const selectedMsgs = conv.messages
+  const lastAssistant = [...selectedMsgs].reverse().find(m => m.role === 'assistant')
+  if (!lastAssistant) return NextResponse.json({ error: '재생성할 응답이 없습니다.' }, { status: 400 })
 
-  const userMsg = await prisma.message.create({
-    data: {
-      conversationId: params.id,
-      role: 'user',
-      content,
-      isSelected: true,
-      parentId: lastSelectedMsg?.id ?? null,
-    },
-  })
+  // deselect the last assistant message (create branch sibling)
+  await prisma.message.update({ where: { id: lastAssistant.id }, data: { isSelected: false } })
+
+  // history = all selected messages BEFORE the deselected one
+  const historyMsgs = selectedMsgs.filter(m => m.id !== lastAssistant.id)
 
   const [globalRulesConfig, modeRulesConfig] = await Promise.all([
     prisma.globalConfig.findUnique({ where: { key: 'global_rules' } }),
@@ -48,10 +47,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const globalRules = globalRulesConfig?.value ?? ''
   const modeRules = modeRulesConfig?.value ?? ''
 
-  const recentMessages = conv.messages as unknown as Message[]
   const matchedLorebook = matchLorebook(
     conv.lorebooks.map(l => ({ ...l, keyword: l.keyword, content: l.content, priority: l.priority, scanDepth: l.scanDepth, isEnabled: l.isEnabled, scope: l.scope as 'conversation' | 'character', scopeId: l.scopeId, id: l.id })),
-    recentMessages,
+    historyMsgs as unknown as Message[],
   )
 
   const promptParams = {
@@ -81,7 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     ? buildNovelSystemPrompt(promptParams)
     : buildSystemPrompt(promptParams)
 
-  const history = [...conv.messages, userMsg].map(m => ({
+  const history = historyMsgs.map(m => ({
     role: m.role === 'user' ? 'user' as const : 'model' as const,
     parts: [{ text: m.content }],
   }))
@@ -89,8 +87,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const encoder = new TextEncoder()
   const abortController = new AbortController()
   req.signal.addEventListener('abort', () => abortController.abort())
-
-  let assistantMsgId: string | null = null
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -112,17 +108,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           abortController.signal,
         )
 
-        const assistantMsg = await prisma.message.create({
+        const newMsg = await prisma.message.create({
           data: {
             conversationId: params.id,
             role: 'assistant',
             content: fullText || '[응답 없음]',
             aiModel: conv.currentAI,
             isSelected: true,
-            parentId: userMsg.id,
+            parentId: lastAssistant.parentId,
           },
         })
-        assistantMsgId = assistantMsg.id
 
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
 
@@ -133,9 +128,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           console.error('[autoCoreMemory] error:', err),
         )
 
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: assistantMsgId })}\n\n`))
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: newMsg.id })}\n\n`))
       } catch (err: any) {
-        console.error('[chat] AI error:', err)
+        // restore deselected message on error
+        await prisma.message.update({ where: { id: lastAssistant.id }, data: { isSelected: true } }).catch(() => {})
+        console.error('[regenerate] AI error:', err)
         const status = err?.status ?? 500
         let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
         if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
@@ -154,8 +151,4 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       Connection: 'keep-alive',
     },
   })
-}
-
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
 }
