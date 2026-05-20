@@ -1,0 +1,41 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+
+async function authenticate(req: NextRequest) {
+  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
+}
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await authenticate(req)
+  if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+
+  const character = await prisma.character.findUnique({ where: { id: params.id } })
+  if (!character) return NextResponse.json({ error: '캐릭터를 찾을 수 없습니다.' }, { status: 404 })
+  return NextResponse.json(character)
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await authenticate(req)
+  if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+
+  const character = await prisma.character.findUnique({ where: { id: params.id } })
+  if (!character) return NextResponse.json({ error: '캐릭터를 찾을 수 없습니다.' }, { status: 404 })
+  if (character.isPreset || character.creatorId !== userId) return NextResponse.json({ error: '수정 권한이 없습니다.' }, { status: 403 })
+
+  const body = await req.json()
+  const updated = await prisma.character.update({ where: { id: params.id }, data: body })
+  return NextResponse.json(updated)
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await authenticate(req)
+  if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+
+  const character = await prisma.character.findUnique({ where: { id: params.id } })
+  if (!character) return NextResponse.json({ error: '캐릭터를 찾을 수 없습니다.' }, { status: 404 })
+  if (character.isPreset || character.creatorId !== userId) return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })
+
+  await prisma.character.delete({ where: { id: params.id } })
+  return new NextResponse(null, { status: 204 })
+}

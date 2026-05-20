@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  personas     UserPersona[]
+  characters   Character[]
+}
+
+model Character {
+  id                  String    @id @default(cuid())
+  name                String
+  title               String    @default("")
+  description         String    @default("")
+  systemPrompt        String
+  scenarioDescription String    @default("")
+  avatarUrl           String?
+  firstMessage        String    @default("")
+  alternateGreetings  String[]
+  exampleDialogues    String    @default("")
+  tags                String[]
+  safetyLevel         String    @default("standard")
+  temperature         Float     @default(0.9)
+  frequencyPenalty    Float     @default(0.3)
+  presencePenalty     Float     @default(0.3)
+  defaultAI           String    @default("gemini")
+  isPreset            Boolean   @default(false)
+  creatorId           String?
+  creator             User?     @relation(fields: [creatorId], references: [id])
+  conversations       ConversationCharacter[]
+  lorebooks           Lorebook[]
+}
+
+model UserPersona {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id])
+  name           String
+  description    String         @default("")
+  additionalInfo String         @default("")
+  conversations  Conversation[]
+}
+
+model Conversation {
+  id              String                  @id @default(cuid())
+  title           String
+  summary         String                  @default("")
+  currentAI       String                  @default("gemini")
+  userPersonaId   String?
+  userPersona     UserPersona?            @relation(fields: [userPersonaId], references: [id])
+  coreMemory      String                  @default("")
+  statusTimeline  String                  @default("")
+  isSummarizing   Boolean                 @default(false)
+  characters      ConversationCharacter[]
+  messages        Message[]
+  memories        Memory[]
+  lorebooks       Lorebook[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+}
+
+model ConversationCharacter {
+  conversationId String
+  characterId    String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  character      Character    @relation(fields: [characterId], references: [id])
+
+  @@id([conversationId, characterId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  aiModel        String?
+  characterId    String?
+  parentId       String?
+  isSelected     Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+}
+
+model Memory {
+  id                 String       @id @default(cuid())
+  conversationId     String
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  summary            String
+  messageRangeStart  String
+  messageRangeEnd    String
+  createdAt          DateTime     @default(now())
+}
+
+model Lorebook {
+  id             String       @id @default(cuid())
+  scope          String
+  scopeId        String
+  keyword        String[]
+  content        String
+  priority       Int          @default(0)
+  scanDepth      Int          @default(5)
+  isEnabled      Boolean      @default(true)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  characterId    String?
+  character      Character?   @relation(fields: [characterId], references: [id])
+}

@@ -1,0 +1,17 @@
+import type { AIProvider } from '@/types'
+import { streamGeminiChat, type GeminiChatParams } from './gemini'
+
+export type StreamChatParams = GeminiChatParams & { provider: AIProvider }
+
+export async function streamChat(
+  params: StreamChatParams,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<string> {
+  switch (params.provider) {
+    case 'gemini':
+      return streamGeminiChat(params, onChunk, signal)
+    default:
+      throw new Error(`AI provider '${params.provider}' is not available in v1`)
+  }
+}
