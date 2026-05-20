@@ -24,6 +24,7 @@ export default function CharacterNewPage() {
   const [error, setError] = useState('')
   const [namePool, setNamePool] = useState<{ name: string; category: string; gender: string }[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
+  const [tagPool, setTagPool] = useState<string[]>([])
   const [form, setForm] = useState<CharForm>({
     name: '', title: '', gender: '', description: '',
     systemPrompt: '', scenarioDescription: '',
@@ -36,6 +37,7 @@ export default function CharacterNewPage() {
 
   useEffect(() => {
     fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
+    fetch('/api/tags').then(r => r.json()).then(setTagPool).catch(() => {})
   }, [])
 
   const set = <K extends keyof CharForm>(key: K, val: CharForm[K]) => setForm(f => ({ ...f, [key]: val }))
@@ -157,7 +159,7 @@ export default function CharacterNewPage() {
             <div className="form-section">
               <div className="form-section-title">태그</div>
               <div className="tag-row" style={{ flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-                {DEFAULT_TAGS.map(tag => (
+                {(tagPool.length > 0 ? tagPool : DEFAULT_TAGS).map(tag => (
                   <span
                     key={tag}
                     className={`tag ${form.tags.includes(tag) ? 'tag-selected' : ''}`}

@@ -27,6 +27,12 @@ model RandomName {
   createdAt DateTime @default(now())
 }
 
+model CharacterTag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
 model GlobalConfig {
   key       String   @id
   value     String

@@ -29,9 +29,11 @@ export default function CharacterEditPage() {
   const [tagInput, setTagInput] = useState('')
   const [namePool, setNamePool] = useState<{ name: string; category: string; gender: string }[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
+  const [tagPool, setTagPool] = useState<string[]>([])
 
   useEffect(() => {
     fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
+    fetch('/api/tags').then(r => r.json()).then(setTagPool).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -186,7 +188,7 @@ export default function CharacterEditPage() {
             <div className="form-section">
               <div className="form-section-title">태그</div>
               <div className="tag-row" style={{ flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-                {DEFAULT_TAGS.map(tag => (
+                {(tagPool.length > 0 ? tagPool : DEFAULT_TAGS).map(tag => (
                   <span
                     key={tag}
                     className={`tag ${form.tags.includes(tag) ? 'tag-selected' : ''}`}
