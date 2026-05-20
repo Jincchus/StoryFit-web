@@ -125,7 +125,10 @@ export default function ChatPage() {
               setStreaming('')
               await loadConv()
             }
-            if (json.error) setStreaming('')
+            if (json.error) {
+              setStreaming('')
+              setSendError(json.error)
+            }
           } catch {}
         }
       }
@@ -305,7 +308,9 @@ export default function ChatPage() {
                       </div>
                       {streaming
                         ? <div className="bubble"><NovelText text={streaming} /></div>
-                        : <div className="bubble dots"><span>•</span><span>•</span><span>•</span></div>
+                        : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
+                            <span>•</span><span>•</span><span>•</span>
+                          </div>
                       }
                     </div>
                   </div>
