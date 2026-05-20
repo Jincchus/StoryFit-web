@@ -69,7 +69,7 @@ export default function ChatPage() {
         conversationId: params.id, scope: 'conversation', scopeId: params.id,
       })
       setLorebooks(prev => [...prev, entry])
-      setLbForm({ keywords: '', content: '', priority: 0 })
+      setLbForm({ keywords: '', content: '', priority: 0, scanDepth: 5 })
       setLorebookAdd(false)
     } catch {}
   }
