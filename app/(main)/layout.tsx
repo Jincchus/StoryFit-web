@@ -1,7 +1,9 @@
 'use client'
+import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { AppProvider } from '@/providers/AppProvider'
 import Dock from '@/components/shell/Dock'
+import { getAccessToken } from '@/lib/authClient'
 
 const SCREEN_LABELS: Record<string, string> = {
   '/': '홈',
@@ -16,6 +18,10 @@ function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const isChatPage = pathname.startsWith('/conversations/') && pathname !== '/conversations/new'
   const label = SCREEN_LABELS[pathname] ?? (isChatPage ? '채팅' : '')
+
+  useEffect(() => {
+    if (!getAccessToken()) router.replace('/login')
+  }, [router])
 
   return (
     <div className="shell-wrap">

@@ -11,8 +11,11 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const conversations = await prisma.conversation.findMany({
-    where: { characters: { some: { character: { creatorId: userId } } } },
-    include: { characters: { include: { character: true } }, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
+    where: { userId },
+    include: {
+      characters: { include: { character: true } },
+      messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+    },
     orderBy: { updatedAt: 'desc' },
   })
   return NextResponse.json(conversations)
@@ -27,10 +30,14 @@ export async function POST(req: NextRequest) {
 
   const conversation = await prisma.conversation.create({
     data: {
+      userId,
       title: body.title,
       currentAI: body.currentAI ?? 'gemini',
       userPersonaId: body.userPersonaId ?? null,
       characters: { create: { characterId: body.characterId } },
+      ...(body.firstMessage ? {
+        messages: { create: { role: 'assistant', content: body.firstMessage, isSelected: true, parentId: null } },
+      } : {}),
     },
     include: { characters: { include: { character: true } }, messages: true },
   })

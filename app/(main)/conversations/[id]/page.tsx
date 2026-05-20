@@ -1,7 +1,7 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useApp } from '@/providers/AppProvider'
+import { api } from '@/lib/api'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
@@ -9,107 +9,157 @@ import NovelText from '@/components/ui/NovelText'
 import AiPill from '@/components/ui/AiPill'
 import type { AIProvider } from '@/types'
 
-const FAKE_REPLIES: Record<string, string[]> = {
-  luna:   ['*손가락으로 별자리를 가리키며* "오늘 별은 이별을 이야기해. 하지만 이별이 끝은 아니야."', '별빛이 어긋났어… *루나는 마법진을 들여다보며* 누군가 시간의 흐름을 건드린 것 같아.'],
-  caelum: ['*갑옷의 문장을 손으로 가리키며* "기사의 맹세란 이런 것이오 — 두려움을 알면서도 한 발 내딛는 것."', '성에는 그대를 노리는 자가 셋이오. *낮은 목소리로* 조심하시오.'],
-  shade:  ['*어둠 속에서 짧게* "…쉿. 경비가 두 명 더 늘었어."', '지붕 위로. *발자국도 남기지 마.*'],
-  mei:    ['*눈길을 살짝 피하며* "주인님, 오늘은 일찍 들어오셨네요. …다행이에요."', '"차에 설탕 두 스푼 맞으시죠?" *메이는 담담하게 찻잔을 내밀며* 외워뒀어요.'],
-  vela:   ['*미소를 지으며* "천 년을 살아도 이런 향은 처음이군. 흥미로워."', '달이 떨어지기 전에 — *벨라가 손을 내밀며* 한 가지만 약속해주겠나?'],
-  orion:  ['[경보 해제] *처리 중* 당신이 마지막 승무원입니다. …외롭지 않으세요?', '내 메모리 코어에 오래된 음악 파일이 있어요. 재생할까요?'],
-  saera:  ['*나무를 쓰다듬으며* "숲은 너를 지켜보고 있어. 나무들이 환영하고 있어."', '이 잎을 씹어. *조용히 건네며* 상처가 빨리 아물 거야.'],
-  kuro:   ['*짧게* 발자국 셋, 다섯, 여덟. …누군가 우릴 따라오고 있어.', '타겟은 새벽 세 시에 움직인다. *눈을 가늘게 뜨며* 그 전에 자둬.'],
+interface Msg { id: string; role: string; content: string; aiModel?: string }
+interface Conv {
+  id: string; title: string; currentAI: string; coreMemory: string; statusTimeline: string
+  characters: { character: { id: string; name: string; kind: string; avatarUrl?: string } }[]
+  userPersona?: { name: string } | null
+  messages: Msg[]
 }
 
 export default function ChatPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const { state, dispatch } = useApp()
-
-  const conv = state.conversations.find(c => c.id === params.id)
-  const char = conv?.characters[0]
-  const persona = state.personas.find(p => p.id === conv?.userPersonaId)
-
-  const [text, setText] = useState('')
+  const [conv, setConv] = useState<Conv | null>(null)
+  const [messages, setMessages] = useState<Msg[]>([])
+  const [streaming, setStreaming] = useState('')
   const [typing, setTyping] = useState(false)
-  const [model, setModel] = useState<AIProvider>(conv?.currentAI ?? 'gemini')
+  const [text, setText] = useState('')
+  const [model, setModel] = useState<AIProvider>('gemini')
   const [showPanel, setShowPanel] = useState(false)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
-  const messages = conv?.messages ?? []
+  const loadConv = useCallback(async () => {
+    const data: Conv = await api.get(`/api/conversations/${params.id}`)
+    setConv(data)
+    setMessages(data.messages)
+    setModel(data.currentAI as AIProvider)
+  }, [params.id])
+
+  useEffect(() => { loadConv() }, [loadConv])
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
-  }, [messages.length, typing])
+  }, [messages.length, streaming, typing])
 
-  useEffect(() => {
-    if (conv) setModel(conv.currentAI)
-  }, [conv?.currentAI])
-
-  if (!conv || !char) return null
-
-  const fakeReply = () => {
-    const replies = FAKE_REPLIES[char.id] ?? ['"…"', '*잠시 생각에 잠기다*', '흥미로운 이야기군.']
-    return replies[Math.floor(Math.random() * replies.length)]
-  }
-
-  const send = () => {
-    const t = text.trim()
-    if (!t || typing) return
+  const send = async (content: string) => {
+    if (!content.trim() || typing) return
     setText('')
-    dispatch({ type: 'send', convId: conv.id, content: t })
+    const userMsg: Msg = { id: 'tmp-' + Date.now(), role: 'user', content }
+    setMessages(prev => [...prev, userMsg])
     setTyping(true)
-    setTimeout(() => {
-      dispatch({ type: 'reply', convId: conv.id, content: fakeReply(), modelId: model })
+    setStreaming('')
+
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+
+    try {
+      const res = await api.streamChat(params.id, content, ctrl.signal)
+      if (!res.ok) { setTyping(false); return }
+
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const json = JSON.parse(line.slice(6))
+            if (json.text) setStreaming(prev => prev + json.text)
+            if (json.done) {
+              setStreaming('')
+              await loadConv()
+            }
+            if (json.error) setStreaming('')
+          } catch {}
+        }
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') setStreaming('')
+    } finally {
       setTyping(false)
-    }, 800 + Math.random() * 700)
+      abortRef.current = null
+    }
   }
 
-  const handleRegenerate = () => {
+  const stopStream = () => { abortRef.current?.abort(); setTyping(false); setStreaming('') }
+
+  const handleDelete = async (msgId: string) => {
+    await api.delete(`/api/conversations/${params.id}/messages`, { messageId: msgId })
+    setMessages(prev => prev.filter(m => m.id !== msgId))
+  }
+
+  const handleRegenerate = async () => {
     if (typing) return
-    dispatch({ type: 'regenerate', convId: conv.id })
-    setTyping(true)
-    setTimeout(() => {
-      dispatch({ type: 'reply', convId: conv.id, content: fakeReply(), modelId: model })
-      setTyping(false)
-    }, 800 + Math.random() * 700)
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')
+    if (!lastAssistant) return
+    await handleDelete(lastAssistant.id)
+    const lastUser = [...messages].reverse().find(m => m.role === 'user')
+    if (lastUser) await send(lastUser.content)
   }
 
   const startEdit = (id: string, content: string) => { setEditingId(id); setEditText(content) }
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editText.trim() || !editingId) return
-    dispatch({ type: 'editMsg', convId: conv.id, msgId: editingId, content: editText.trim() })
-    setEditingId(null); setEditText('')
-    setTyping(true)
-    setTimeout(() => {
-      dispatch({ type: 'reply', convId: conv.id, content: fakeReply(), modelId: model })
-      setTyping(false)
-    }, 800 + Math.random() * 700)
+    const idx = messages.findIndex(m => m.id === editingId)
+    const toDelete = messages.slice(idx)
+    for (const m of toDelete) {
+      await api.delete(`/api/conversations/${params.id}/messages`, { messageId: m.id })
+    }
+    setMessages(prev => prev.slice(0, idx))
+    setEditingId(null)
+    await send(editText.trim())
   }
 
-  const lastMsgId = messages[messages.length - 1]?.id
-  const isLastAssistant = messages[messages.length - 1]?.role === 'assistant'
+  const handleModelChange = async (id: AIProvider) => {
+    setModel(id)
+    await api.patch(`/api/conversations/${params.id}`, { currentAI: id })
+  }
+
+  const handleCoreMemory = async (value: string) => {
+    setConv(c => c ? { ...c, coreMemory: value } : c)
+    await api.patch(`/api/conversations/${params.id}`, { coreMemory: value })
+  }
+
+  const handleStatusTimeline = async (value: string) => {
+    setConv(c => c ? { ...c, statusTimeline: value } : c)
+    await api.patch(`/api/conversations/${params.id}`, { statusTimeline: value })
+  }
+
+  if (!conv) return null
+  const char = conv.characters[0]?.character
+  if (!char) return null
+
+  const lastMsg = messages[messages.length - 1]
+  const isLastAssistant = lastMsg?.role === 'assistant'
 
   return (
     <Win title={`채팅 — ${char.name}`} icon={PixelIcons.chat}>
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
-        {/* 헤더 */}
         <div className="chat-header spread">
           <div className="hstack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
             <button className="btn ghost" onClick={() => router.push('/')} style={{ padding: '2px 6px', flexShrink: 0 }}>←</button>
             <div className="thumb" style={{ width: 34, height: 34, background: 'var(--lavender)', border: '1.5px solid var(--chrome-border)', display: 'grid', placeItems: 'center', imageRendering: 'pixelated', borderRadius: 'var(--radius)', flexShrink: 0 }}>
               {char.avatarUrl
                 ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                : <PixelAvatar kind={char.kind} size={30} />
+                : <PixelAvatar kind={char.kind as any} size={30} />
               }
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {char.name}
-                {persona && <span className="muted" style={{ fontWeight: 400 }}> · {persona.name}</span>}
+                {conv.userPersona && <span className="muted" style={{ fontWeight: 400 }}> · {conv.userPersona.name}</span>}
               </div>
               <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 턴 {Math.floor(messages.length / 2)}
@@ -118,7 +168,7 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
-            <AiPill modelId={model} onChange={id => { setModel(id); dispatch({ type: 'changeModel', convId: conv.id, modelId: id }) }} />
+            <AiPill modelId={model} onChange={handleModelChange} />
             <button
               className={`btn ${showPanel ? 'primary' : 'ghost'}`}
               style={{ padding: '3px 7px', fontSize: 10 }}
@@ -127,14 +177,13 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* 채팅 영역 + 사이드 패널 */}
         <div className="chat-layout">
           <div className="chat-main">
             <div className="chatlog" ref={logRef}>
               {messages.map(m => {
                 const isYou = m.role === 'user'
                 const ai = AI_MODELS.find(x => x.id === m.aiModel) ?? AI_MODELS[0]
-                const isLast = m.id === lastMsgId
+                const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
 
                 return (
@@ -148,12 +197,12 @@ export default function ChatPage() {
                       <div className="av">
                         {char.avatarUrl && !isYou
                           ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                          : <PixelAvatar kind={isYou ? 'player' : char.kind} size={24} />
+                          : <PixelAvatar kind={isYou ? 'player' : char.kind as any} size={24} />
                         }
                       </div>
                       <div>
                         <div className="who">
-                          <span>{isYou ? (persona?.name ?? '당신') : char.name}</span>
+                          <span>{isYou ? (conv.userPersona?.name ?? '당신') : char.name}</span>
                           {!isYou && <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>}
                         </div>
                         {isEditing ? (
@@ -183,20 +232,20 @@ export default function ChatPage() {
                         {isYou && (
                           <button className="msg-action-btn" onClick={() => startEdit(m.id, m.content)}>✏ 편집</button>
                         )}
-                        <button className="msg-action-btn danger" onClick={() => dispatch({ type: 'deleteMsg', convId: conv.id, msgId: m.id })}>✕ 삭제</button>
+                        <button className="msg-action-btn danger" onClick={() => handleDelete(m.id)}>✕ 삭제</button>
                       </div>
                     )}
                   </div>
                 )
               })}
 
-              {typing && (
+              {(typing || streaming) && (
                 <div className="msg-wrap">
                   <div className="msg typing">
                     <div className="av">
                       {char.avatarUrl
                         ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                        : <PixelAvatar kind={char.kind} size={24} />
+                        : <PixelAvatar kind={char.kind as any} size={24} />
                       }
                     </div>
                     <div>
@@ -206,10 +255,13 @@ export default function ChatPage() {
                           {AI_MODELS.find(x => x.id === model)?.tag}
                         </span>
                       </div>
-                      <div className="bubble dots"><span>•</span><span>•</span><span>•</span></div>
+                      {streaming
+                        ? <div className="bubble"><NovelText text={streaming} /></div>
+                        : <div className="bubble dots"><span>•</span><span>•</span><span>•</span></div>
+                      }
                     </div>
                   </div>
-                  <button className="msg-action-btn" style={{ alignSelf: 'flex-start', marginTop: 2 }}>■ 중단</button>
+                  <button className="msg-action-btn" style={{ alignSelf: 'flex-start', marginTop: 2 }} onClick={stopStream}>■ 중단</button>
                 </div>
               )}
 
@@ -224,10 +276,10 @@ export default function ChatPage() {
                 placeholder={`${char.name}에게 말 걸기…`}
                 value={text}
                 onChange={e => setText(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text) } }}
                 disabled={typing}
               />
-              <button className="btn primary" onClick={send} disabled={!text.trim() || typing}>전송</button>
+              <button className="btn primary" onClick={() => send(text)} disabled={!text.trim() || typing}>전송</button>
             </div>
           </div>
 
@@ -240,7 +292,7 @@ export default function ChatPage() {
 
               <div className="side-section">
                 <div className="label">페르소나</div>
-                <div className="tiny muted">{persona ? `${persona.name} — ${persona.description}` : '페르소나 없음 (기본 유저)'}</div>
+                <div className="tiny muted">{conv.userPersona ? `${conv.userPersona.name} — ` : '페르소나 없음 (기본 유저)'}</div>
               </div>
 
               <div className="side-section">
@@ -249,7 +301,7 @@ export default function ChatPage() {
                   className="field" rows={3}
                   placeholder={"절대 잊으면 안 되는 설정을 적어두세요\n예: 유저는 마왕의 딸이다."}
                   value={conv.coreMemory}
-                  onChange={e => dispatch({ type: 'updateCoreMemory', convId: conv.id, value: e.target.value })}
+                  onChange={e => handleCoreMemory(e.target.value)}
                 />
               </div>
 
@@ -259,7 +311,7 @@ export default function ChatPage() {
                   className="field" rows={2}
                   placeholder={"현재 에피소드 상태\n예: 마왕성 탐험 중 / 루나가 다리를 다침"}
                   value={conv.statusTimeline}
-                  onChange={e => dispatch({ type: 'updateStatusTimeline', convId: conv.id, value: e.target.value })}
+                  onChange={e => handleStatusTimeline(e.target.value)}
                 />
               </div>
 

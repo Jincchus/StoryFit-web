@@ -1,38 +1,52 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
+import { api } from '@/lib/api'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
-import type { AIProvider, Conversation } from '@/types'
+import type { AIProvider, Character } from '@/types'
+
+interface Persona { id: string; name: string; description: string; additionalInfo: string }
 
 export default function NewConversationPage() {
   const router = useRouter()
-  const { state, dispatch } = useApp()
-  const { draft, characters, personas } = state
-  const char = characters.find(c => c.id === draft.charId)
+  const { draft, dispatch } = useApp()
+  const [char, setChar] = useState<Character | null>(null)
+  const [personas, setPersonas] = useState<Persona[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const handleStart = () => {
-    if (!char) return
-    const greetings = [char.firstMessage, ...char.alternateGreetings].filter(Boolean)
-    const firstMsg = greetings[Math.floor(Math.random() * greetings.length)] ?? ''
-    const id = 'c' + Date.now()
-    const conv: Conversation = {
-      id, title: `${char.name}와의 대화`,
-      currentAI: draft.modelId,
-      userPersonaId: draft.personaId,
-      coreMemory: '', statusTimeline: '',
-      isSummarizing: false,
-      characters: [char],
-      lastLine: firstMsg || '[새 대화 시작]',
-      when: '방금 전',
-      messages: firstMsg
-        ? [{ id: 'm' + Date.now(), role: 'assistant', content: firstMsg, aiModel: draft.modelId, isSelected: true, parentId: null }]
-        : [],
+  useEffect(() => {
+    api.get('/api/personas').then(setPersonas).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!draft.charId) { router.replace('/characters'); return }
+    api.get(`/api/characters/${draft.charId}`).then(setChar).catch(() => {})
+  }, [draft.charId, router])
+
+  const handleStart = async () => {
+    if (!char || loading) return
+    setLoading(true)
+    try {
+      const greetings = [char.firstMessage, ...char.alternateGreetings].filter(Boolean)
+      const firstMessage = greetings[Math.floor(Math.random() * greetings.length)] ?? ''
+      const conv = await api.post('/api/conversations', {
+        characterId: char.id,
+        title: `${char.name}와의 대화`,
+        currentAI: draft.modelId,
+        userPersonaId: draft.personaId ?? null,
+        firstMessage: firstMessage || undefined,
+      })
+      dispatch({ type: 'resetDraft' })
+      router.push(`/conversations/${conv.id}`)
+    } catch {
+      setLoading(false)
     }
-    dispatch({ type: 'startNewConv', conv })
-    router.push(`/conversations/${id}`)
   }
+
+  if (!char) return null
 
   return (
     <Win title="새 대화 설정 (New Conversation)" icon={PixelIcons.chat}>
@@ -44,7 +58,9 @@ export default function NewConversationPage() {
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
             <button className="btn ghost" onClick={() => router.push('/characters')}>← 뒤로</button>
-            <button className="btn primary" disabled={!char} onClick={handleStart}>✦ 롤플레이 시작</button>
+            <button className="btn primary" disabled={loading} onClick={handleStart}>
+              {loading ? '...' : '✦ 롤플레이 시작'}
+            </button>
           </div>
         </div>
 
@@ -54,14 +70,14 @@ export default function NewConversationPage() {
               <div className="label">선택한 캐릭터</div>
               <div className="row" style={{ cursor: 'default' }}>
                 <div className="thumb">
-                  {char?.avatarUrl
+                  {char.avatarUrl
                     ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                    : <PixelAvatar kind={char?.kind} size={36} />
+                    : <PixelAvatar kind={char.kind} size={36} />
                   }
                 </div>
                 <div className="meta">
-                  <h4>{char?.name} <span className="muted" style={{ fontWeight: 400 }}>· {char?.title}</span></h4>
-                  <p style={{ fontStyle: 'italic' }}>&quot;{char?.firstMessage}&quot;</p>
+                  <h4>{char.name} <span className="muted" style={{ fontWeight: 400 }}>· {char.title}</span></h4>
+                  <p style={{ fontStyle: 'italic' }}>&quot;{char.firstMessage}&quot;</p>
                 </div>
               </div>
             </section>

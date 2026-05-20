@@ -1,30 +1,52 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useApp } from '@/providers/AppProvider'
+import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
-import type { UserPersona } from '@/types'
+
+interface Persona {
+  id: string
+  name: string
+  description: string
+  additionalInfo: string
+}
 
 export default function PersonasPage() {
   const router = useRouter()
-  const { state, dispatch } = useApp()
-  const { personas } = state
+  const [personas, setPersonas] = useState<Persona[]>([])
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', description: '', additionalInfo: '' })
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    api.get('/api/personas').then(setPersonas).catch(() => {})
+  }, [])
 
   const openCreate = () => { setForm({ name: '', description: '', additionalInfo: '' }); setCreating(true); setEditingId(null) }
-  const openEdit = (p: UserPersona) => { setForm({ name: p.name, description: p.description, additionalInfo: p.additionalInfo }); setEditingId(p.id); setCreating(false) }
+  const openEdit = (p: Persona) => { setForm({ name: p.name, description: p.description, additionalInfo: p.additionalInfo }); setEditingId(p.id); setCreating(false) }
 
-  const handleSave = () => {
-    if (!form.name.trim()) return
-    if (creating) {
-      dispatch({ type: 'addPersona', persona: { id: 'persona-' + Date.now(), ...form } })
-    } else if (editingId) {
-      dispatch({ type: 'editPersona', id: editingId, patch: { ...form } })
+  const handleSave = async () => {
+    if (!form.name.trim() || loading) return
+    setLoading(true)
+    try {
+      if (creating) {
+        const created = await api.post('/api/personas', form)
+        setPersonas(prev => [...prev, created])
+      } else if (editingId) {
+        const updated = await api.patch(`/api/personas/${editingId}`, form)
+        setPersonas(prev => prev.map(p => p.id === editingId ? updated : p))
+      }
+      setCreating(false); setEditingId(null)
+    } catch {} finally {
+      setLoading(false)
     }
-    setCreating(false); setEditingId(null)
+  }
+
+  const handleDelete = async (id: string) => {
+    await api.delete(`/api/personas/${id}`)
+    setPersonas(prev => prev.filter(p => p.id !== id))
   }
 
   const isFormOpen = creating || !!editingId
@@ -65,7 +87,7 @@ export default function PersonasPage() {
                 <textarea className="field" rows={2} placeholder="외모, 성격, 배경 등을 자유롭게 적어주세요" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
               <div className="hstack" style={{ gap: 6 }}>
-                <button className="btn primary" onClick={handleSave}>저장</button>
+                <button className="btn primary" onClick={handleSave} disabled={loading}>{loading ? '...' : '저장'}</button>
                 <button className="btn ghost" onClick={() => { setCreating(false); setEditingId(null) }}>취소</button>
               </div>
             </div>
@@ -85,7 +107,7 @@ export default function PersonasPage() {
               </div>
               <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
                 <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => openEdit(p)}>편집</button>
-                <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px', color: 'var(--hot-pink)' }} onClick={() => dispatch({ type: 'deletePersona', id: p.id })}>삭제</button>
+                <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px', color: 'var(--hot-pink)' }} onClick={() => handleDelete(p.id)}>삭제</button>
               </div>
             </div>
           ))}

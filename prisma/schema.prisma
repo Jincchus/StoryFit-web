@@ -8,11 +8,12 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  passwordHash String
-  personas     UserPersona[]
-  characters   Character[]
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  personas      UserPersona[]
+  characters    Character[]
+  conversations Conversation[]
 }
 
 model Character {
@@ -51,6 +52,8 @@ model UserPersona {
 
 model Conversation {
   id              String                  @id @default(cuid())
+  userId          String?
+  user            User?                   @relation(fields: [userId], references: [id])
   title           String
   summary         String                  @default("")
   currentAI       String                  @default("gemini")

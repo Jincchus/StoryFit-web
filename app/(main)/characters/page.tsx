@@ -1,8 +1,11 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
+import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
+import type { Character } from '@/types'
 
 function sparkleAt(x: number, y: number) {
   const el = document.createElement('div')
@@ -15,10 +18,14 @@ function sparkleAt(x: number, y: number) {
 
 export default function CharactersPage() {
   const router = useRouter()
-  const { state, dispatch } = useApp()
-  const { characters, draft } = state
-  const selectedId = draft.charId
-  const selectedChar = characters.find(c => c.id === selectedId)
+  const { draft, dispatch } = useApp()
+  const [characters, setCharacters] = useState<Character[]>([])
+
+  useEffect(() => {
+    api.get('/api/characters').then(setCharacters).catch(() => {})
+  }, [])
+
+  const selectedChar = characters.find(c => c.id === draft.charId)
 
   return (
     <Win title="캐릭터 선택 (Character Select)" icon={PixelIcons.user}>
@@ -33,7 +40,7 @@ export default function CharactersPage() {
             <button className="btn" onClick={() => router.push('/characters/new')}>+ 만들기</button>
             <button
               className="btn primary"
-              disabled={!selectedId}
+              disabled={!draft.charId}
               onClick={() => router.push('/conversations/new')}
             >
               다음 →
@@ -63,7 +70,7 @@ export default function CharactersPage() {
           {characters.map(c => (
             <div
               key={c.id}
-              className={`char-card ${selectedId === c.id ? 'selected' : ''}`}
+              className={`char-card ${draft.charId === c.id ? 'selected' : ''}`}
               onClick={e => { sparkleAt(e.clientX, e.clientY); dispatch({ type: 'selectChar', id: c.id }) }}
             >
               <div className="pic-wrap">

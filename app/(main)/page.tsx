@@ -1,15 +1,27 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useApp } from '@/providers/AppProvider'
+import { api } from '@/lib/api'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
-import PixelAvatar from '@/components/ui/PixelAvatar'
-import { PixelIcons } from '@/components/ui/PixelAvatar'
+import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
+
+interface ConvItem {
+  id: string
+  currentAI: string
+  updatedAt: string
+  characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
+  messages: { content: string }[]
+  userPersona?: { name: string } | null
+}
 
 export default function HomePage() {
   const router = useRouter()
-  const { state } = useApp()
-  const { conversations, characters, personas } = state
+  const [conversations, setConversations] = useState<ConvItem[]>([])
+
+  useEffect(() => {
+    api.get('/api/conversations').then(setConversations).catch(() => {})
+  }, [])
 
   return (
     <Win title="홈 (Home)" icon={PixelIcons.home}>
@@ -27,30 +39,31 @@ export default function HomePage() {
 
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           {conversations.map(conv => {
-            const char = conv.characters[0]
-            const persona = personas.find(p => p.id === conv.userPersonaId)
+            const char = conv.characters[0]?.character
             const ai = AI_MODELS.find(x => x.id === conv.currentAI) ?? AI_MODELS[0]
+            const lastLine = conv.messages[0]?.content ?? ''
+            const when = new Date(conv.updatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
             return (
               <div className="row" key={conv.id} onClick={() => router.push(`/conversations/${conv.id}`)}>
                 <div className="thumb">
                   {char?.avatarUrl
                     ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                    : <PixelAvatar kind={char?.kind} size={36} />
+                    : <PixelAvatar kind={char?.kind as any} size={36} />
                   }
                 </div>
                 <div className="meta">
                   <h4>
                     {char?.name}
-                    {persona && <span className="muted" style={{ fontWeight: 400 }}> · {persona.name}로 플레이</span>}
+                    {conv.userPersona && <span className="muted" style={{ fontWeight: 400 }}> · {conv.userPersona.name}로 플레이</span>}
                   </h4>
-                  <p>{conv.lastLine}</p>
+                  <p>{lastLine}</p>
                 </div>
                 <div className="vstack" style={{ alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
                   <span className="ai-pill" style={{ padding: '1px 5px', fontSize: 9, cursor: 'default' }}>
                     <span className="dot" style={{ background: ai.id === 'chatgpt' ? '#a3e0ff' : ai.id === 'gemini' ? '#c9b6ff' : '#b8f5d2' }} />
                     {ai.short}
                   </span>
-                  <span className="when">{conv.when}</span>
+                  <span className="when">{when}</span>
                 </div>
               </div>
             )
