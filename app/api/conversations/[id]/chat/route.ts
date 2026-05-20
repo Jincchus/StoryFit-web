@@ -47,7 +47,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
       defaultAI: character.defaultAI as 'gemini' | 'claude' | 'chatgpt',
       tags: character.tags,
-      alternateGreetings: character.alternateGreetings,
       avatarUrl: character.avatarUrl ?? undefined,
     },
     userPersona: conv.userPersona ? {
@@ -114,9 +113,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           console.error('[summarize] error:', err),
         )
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: assistantMsgId })}\n\n`))
-      } catch (err) {
+      } catch (err: any) {
         console.error('[chat] AI error:', err)
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: '응답 생성 중 오류가 발생했습니다.' })}\n\n`))
+        const status = err?.status ?? 500
+        let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
+        if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
+        else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg })}\n\n`))
       } finally {
         controller.close()
       }

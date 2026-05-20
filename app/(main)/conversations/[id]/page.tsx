@@ -136,6 +136,7 @@ export default function ChatPage() {
             if (json.error) {
               setStreaming('')
               setSendError(json.error)
+              await loadConv()
             }
           } catch {}
         }
@@ -354,13 +355,17 @@ export default function ChatPage() {
             </div>
 
             {sendError && (
-              <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 8px' }}>⚠ {sendError}</div>
+              <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>⚠ {sendError}</span>
+                <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setSendError('')}>닫기</button>
+              </div>
             )}
             <div className="composer">
               <input
                 className="field"
-                placeholder={`${char.name}에게 말 걸기…`}
+                placeholder={typing ? 'AI가 응답 중...' : `${char.name}에게 말 걸기…`}
                 value={text}
+                disabled={typing}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text) } }}
               />
