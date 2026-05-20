@@ -61,7 +61,7 @@ export default function NewConversationPage() {
                 </div>
                 <div className="meta">
                   <h4>{char?.name} <span className="muted" style={{ fontWeight: 400 }}>· {char?.title}</span></h4>
-                  <p style={{ fontStyle: 'italic' }}>"{char?.firstMessage}"</p>
+                  <p style={{ fontStyle: 'italic' }}>&quot;{char?.firstMessage}&quot;</p>
                 </div>
               </div>
             </section>

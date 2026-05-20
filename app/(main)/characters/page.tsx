@@ -54,7 +54,7 @@ export default function CharactersPage() {
               <span className="muted" style={{ marginLeft: 6, fontSize: 10 }}>{selectedChar.title}</span>
             </div>
             <div className="tiny muted" style={{ fontStyle: 'italic', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              "{selectedChar.firstMessage}"
+              &quot;{selectedChar.firstMessage}&quot;
             </div>
           </div>
         )}
