@@ -12,7 +12,7 @@ import type { SafetyLevel, AIProvider } from '@/types'
 interface CharForm {
   name: string; title: string; gender: string; description: string
   systemPrompt: string; scenarioDescription: string
-  firstMessage: string; exampleDialogues: string
+  exampleDialogues: string
   avatarUrl: string; tags: string[]
   safetyLevel: SafetyLevel; defaultAI: AIProvider
   temperature: number; frequencyPenalty: number; presencePenalty: number
@@ -25,7 +25,7 @@ export default function CharacterNewPage() {
   const [form, setForm] = useState<CharForm>({
     name: '', title: '', gender: '', description: '',
     systemPrompt: '', scenarioDescription: '',
-    firstMessage: '', exampleDialogues: '',
+    exampleDialogues: '',
     avatarUrl: '', tags: [],
     safetyLevel: 'standard', defaultAI: 'gemini',
     temperature: 0.9, frequencyPenalty: 0.3, presencePenalty: 0.3,
@@ -51,7 +51,7 @@ export default function CharacterNewPage() {
     setLoading(true)
     setError('')
     try {
-      await api.post('/api/characters', { ...form, alternateGreetings: [] })
+      await api.post('/api/characters', form)
       router.push('/characters')
     } catch (e: any) {
       setError(e.message)
@@ -126,14 +126,6 @@ export default function CharacterNewPage() {
               <div>
                 <label className="label">예시 대화 <span className="tiny muted">(2~3개 few-shot, 말투 고정용)</span></label>
                 <textarea className="field" rows={4} placeholder={"유저: 안녕?\n[이름]: *수줍게 웃으며* \"오랜만이야.\""} value={form.exampleDialogues} onChange={e => set('exampleDialogues', e.target.value)} />
-              </div>
-            </div>
-
-            <div className="form-section">
-              <div className="form-section-title">대화 시작 메시지</div>
-              <div>
-                <label className="label">첫 인사말 <span className="tiny muted">(대화 시작 시 자동 표시)</span></label>
-                <textarea className="field" rows={2} placeholder={'*캐릭터가 돌아보며* "오랫동안 기다렸어."'} value={form.firstMessage} onChange={e => set('firstMessage', e.target.value)} />
               </div>
             </div>
 

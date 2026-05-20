@@ -11,8 +11,6 @@ export interface Character {
   description: string
   systemPrompt: string
   scenarioDescription: string
-  firstMessage: string
-  alternateGreetings: string[]
   exampleDialogues: string
   avatarUrl?: string
   tags: string[]

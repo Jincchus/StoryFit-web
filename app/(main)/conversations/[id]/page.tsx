@@ -252,6 +252,15 @@ export default function ChatPage() {
         <div className="chat-layout">
           <div className="chat-main">
             <div className="chatlog" ref={logRef}>
+              {messages.length === 0 && !streaming && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
+                  <div style={{ fontSize: 24 }}>✦</div>
+                  <div className="tiny muted" style={{ textAlign: 'center', lineHeight: 1.6 }}>
+                    {char.name}와의 대화를 시작해보세요.<br />
+                    아래에 메시지를 입력하면 됩니다.
+                  </div>
+                </div>
+              )}
               {messages.map(m => {
                 const isYou = m.role === 'user'
                 const ai = AI_MODELS.find(x => x.id === m.aiModel) ?? AI_MODELS[0]

@@ -36,9 +36,6 @@ export async function POST(req: NextRequest) {
       currentAI: body.currentAI ?? 'gemini',
       userPersonaId: body.userPersonaId ?? null,
       characters: { create: { characterId: body.characterId } },
-      ...(body.firstMessage ? {
-        messages: { create: { role: 'assistant', content: body.firstMessage, isSelected: true, parentId: null } },
-      } : {}),
     },
     include: { characters: { include: { character: true } }, messages: true },
   })

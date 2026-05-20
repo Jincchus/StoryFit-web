@@ -29,8 +29,6 @@ export async function POST(req: NextRequest) {
       description: body.description ?? '',
       systemPrompt: body.systemPrompt,
       scenarioDescription: body.scenarioDescription ?? '',
-      firstMessage: body.firstMessage ?? '',
-      alternateGreetings: body.alternateGreetings ?? [],
       exampleDialogues: body.exampleDialogues ?? '',
       avatarUrl: body.avatarUrl,
       tags: body.tags ?? [],

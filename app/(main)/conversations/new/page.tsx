@@ -32,14 +32,11 @@ export default function NewConversationPage() {
     setLoading(true)
     startingRef.current = true
     try {
-      const greetings = [char.firstMessage, ...char.alternateGreetings].filter(Boolean)
-      const firstMessage = greetings[Math.floor(Math.random() * greetings.length)] ?? ''
       const conv = await api.post('/api/conversations', {
         characterId: char.id,
         title: `${char.name}와의 대화`,
         currentAI: draft.modelId,
         userPersonaId: draft.personaId ?? null,
-        firstMessage: firstMessage || undefined,
       })
       router.push(`/conversations/${conv.id}`)
       dispatch({ type: 'resetDraft' })
@@ -79,7 +76,6 @@ export default function NewConversationPage() {
                 </div>
                 <div className="meta">
                   <h4>{char.name} <span className="muted" style={{ fontWeight: 400 }}>· {char.title}</span></h4>
-                  <p style={{ fontStyle: 'italic' }}>&quot;{char.firstMessage}&quot;</p>
                 </div>
               </div>
             </section>

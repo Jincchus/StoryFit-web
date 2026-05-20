@@ -26,8 +26,6 @@ model Character {
   systemPrompt        String
   scenarioDescription String    @default("")
   avatarUrl           String?
-  firstMessage        String    @default("")
-  alternateGreetings  String[]
   exampleDialogues    String    @default("")
   tags                String[]
   safetyLevel         String    @default("standard")
