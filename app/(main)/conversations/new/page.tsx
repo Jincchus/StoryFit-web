@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
@@ -16,19 +16,21 @@ export default function NewConversationPage() {
   const [char, setChar] = useState<Character | null>(null)
   const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(false)
+  const startingRef = useRef(false)
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
   }, [])
 
   useEffect(() => {
-    if (!draft.charId) { router.replace('/characters'); return }
-    api.get(`/api/characters/${draft.charId}`).then(setChar).catch(() => {})
+    if (!draft.charId && !startingRef.current) { router.replace('/characters'); return }
+    if (draft.charId) api.get(`/api/characters/${draft.charId}`).then(setChar).catch(() => {})
   }, [draft.charId, router])
 
   const handleStart = async () => {
     if (!char || loading) return
     setLoading(true)
+    startingRef.current = true
     try {
       const greetings = [char.firstMessage, ...char.alternateGreetings].filter(Boolean)
       const firstMessage = greetings[Math.floor(Math.random() * greetings.length)] ?? ''
@@ -39,8 +41,8 @@ export default function NewConversationPage() {
         userPersonaId: draft.personaId ?? null,
         firstMessage: firstMessage || undefined,
       })
-      dispatch({ type: 'resetDraft' })
       router.push(`/conversations/${conv.id}`)
+      dispatch({ type: 'resetDraft' })
     } catch {
       setLoading(false)
     }
