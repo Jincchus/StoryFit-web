@@ -34,8 +34,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
 
   // Build system prompt
-  const globalRulesConfig = await prisma.globalConfig.findUnique({ where: { key: 'global_rules' } })
+  const [globalRulesConfig, modeRulesConfig] = await Promise.all([
+    prisma.globalConfig.findUnique({ where: { key: 'global_rules' } }),
+    prisma.globalConfig.findUnique({ where: { key: conv.mode === 'novel' ? 'novel_rules' : 'roleplay_rules' } }),
+  ])
   const globalRules = globalRulesConfig?.value ?? ''
+  const modeRules = modeRulesConfig?.value ?? ''
 
   const recentMessages = conv.messages as unknown as Message[]
   const matchedLorebook = matchLorebook(
@@ -63,6 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     lorebook: matchedLorebook,
     longTermMemory: conv.memories.map(m => m.summary),
     globalRules,
+    modeRules,
   }
   const systemPrompt = conv.mode === 'novel'
     ? buildNovelSystemPrompt(promptParams)

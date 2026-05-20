@@ -300,7 +300,7 @@ export default function ChatPage() {
                       </div>
                       <div>
                         <div className="who">
-                          <span>{isYou ? (conv.userPersona?.name ?? '당신') : char.name}</span>
+                          <span>{isYou ? (isNovel ? '작가' : (conv.userPersona?.name ?? '당신')) : char.name}</span>
                           {!isYou && <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>}
                         </div>
                         {isEditing ? (
@@ -325,7 +325,7 @@ export default function ChatPage() {
                             : <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                         ) : (
                           isNovel
-                            ? <NovelScene text={m.content} />
+                            ? <NovelScene text={m.content} personaName={conv.userPersona?.name ?? '주인공'} charName={char.name} />
                             : <MessageBlocks text={m.content} />
                         )}
                       </div>
@@ -364,7 +364,7 @@ export default function ChatPage() {
                       </div>
                       {streaming
                         ? isNovel
-                          ? <NovelScene text={streaming} />
+                          ? <NovelScene text={streaming} personaName={conv.userPersona?.name ?? '주인공'} charName={char.name} />
                           : <MessageBlocks text={streaming} />
                         : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
                             <span>•</span><span>•</span><span>•</span>

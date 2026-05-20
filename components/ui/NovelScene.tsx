@@ -14,7 +14,13 @@ function NarrationText({ text }: { text: string }) {
   )
 }
 
-export default function NovelScene({ text }: { text: string }) {
+interface Props {
+  text: string
+  personaName?: string
+  charName?: string
+}
+
+export default function NovelScene({ text, personaName, charName }: Props) {
   const blocks = parseNovelBlocks(text)
 
   return (
@@ -27,12 +33,22 @@ export default function NovelScene({ text }: { text: string }) {
             </div>
           )
         }
+
+        const isPersona = personaName && block.speaker === personaName
+        const isChar = charName && block.speaker === charName
+        const speakerClass = isPersona ? 'novel-speaker-persona' : isChar ? 'novel-speaker-char' : ''
+        const bubbleClass = [
+          'bubble',
+          block.type === 'thought' ? 'thought-bubble' : '',
+          isPersona ? 'bubble-persona' : isChar ? 'bubble-char' : '',
+        ].filter(Boolean).join(' ')
+
         return (
           <div key={i} className="novel-speech-wrap">
-            {block.speaker && <div className="novel-speaker">{block.speaker}</div>}
-            <div className={`bubble ${block.type === 'thought' ? 'thought-bubble' : ''}`}>
-              {block.text}
-            </div>
+            {block.speaker && (
+              <div className={`novel-speaker ${speakerClass}`}>{block.speaker}</div>
+            )}
+            <div className={bubbleClass}>{block.text}</div>
           </div>
         )
       })}

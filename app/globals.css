@@ -332,6 +332,10 @@ body[data-art="modern"] .thought-bubble { color: #a394c0 !important; }
 .novel-scene { display: flex; flex-direction: column; gap: 6px; width: 100%; }
 .novel-speech-wrap { display: flex; flex-direction: column; gap: 2px; }
 .novel-speaker { font-size: 10px; font-weight: 700; color: var(--purple); padding: 0 2px; }
+.novel-speaker-persona { color: var(--hot-pink) !important; }
+.novel-speaker-char { color: var(--purple) !important; }
+.bubble-persona { background: rgba(255,46,147,.08) !important; border-color: rgba(255,46,147,.25) !important; }
+.bubble-char { background: rgba(139,92,246,.1) !important; border-color: rgba(139,92,246,.3) !important; }
 .novel-direction { background: rgba(139,92,246,.07); border: 1px solid rgba(139,92,246,.2); padding: 8px 12px; font-size: 11px; color: var(--ink-soft); font-style: italic; white-space: pre-wrap; line-height: 1.6; }
 .novel-direction-label { font-size: 9px; font-weight: 700; color: var(--purple); margin-bottom: 4px; font-style: normal; }
 .mode-badge { font-size: 9px; padding: 1px 5px; background: rgba(139,92,246,.15); color: var(--purple); border: 1px solid rgba(139,92,246,.3); }

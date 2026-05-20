@@ -8,15 +8,23 @@ interface BuildSystemPromptParams {
   lorebook?: LorebookEntry[]
   longTermMemory?: string[]
   globalRules?: string
+  modeRules?: string
 }
 
-const BASE_RULES = `당신은 소설형 롤플레이 AI입니다. 다음 규칙을 반드시 따르세요:
+export const BASE_RULES = `당신은 소설형 롤플레이 AI입니다. 다음 규칙을 반드시 따르세요:
 - 1인칭 캐릭터 시점으로 대화합니다
 - 상황 묘사·행동·설명은 따옴표 없이 일반 텍스트로 씁니다 (예: 창문 밖을 바라보았다.)
 - 대사(말하는 내용)는 반드시 큰따옴표로 감쌉니다 (예: "안녕하세요.")
 - 내면의 생각은 반드시 작은따옴표로 감쌉니다 (예: '이 사람은 좋은 사람 같아.')
 - 유저의 입력에 자연스럽게 반응하며 대화를 이어갑니다
 - 캐릭터의 성격, 말투, 세계관을 일관되게 유지합니다`
+
+export const NOVEL_BASE_RULES = `당신은 소설 작가입니다. 반드시 다음 출력 형식을 지켜주세요:
+- 상황 묘사·행동·배경: 이름 없이 일반 텍스트 (예: 빗소리가 창문을 두드렸다.)
+- 대사: [이름] : "내용" (예: 캐릭터명 : "안녕하세요.")
+- 내면 생각: [이름] : '내용' (예: 페르소나명 : '왜 이렇게 떨리지...')
+- 사용 가능한 이름은 지정된 두 인물뿐입니다
+- 유저의 장면 지시를 바탕으로 두 인물이 자연스럽게 상호작용하는 장면을 만들어주세요`
 
 export function buildSystemPrompt({
   character,
@@ -26,14 +34,13 @@ export function buildSystemPrompt({
   lorebook = [],
   longTermMemory = [],
   globalRules,
+  modeRules,
 }: BuildSystemPromptParams): string {
   const parts: string[] = []
 
-  // -1. Global rules (admin-configured, prepended before everything)
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
-
-  // 0. Base rules
   parts.push(BASE_RULES)
+  if (modeRules?.trim()) parts.push(`[롤플레이 추가 규칙]\n${modeRules}`)
 
   // 1. UserPersona
   if (userPersona) {
@@ -93,23 +100,17 @@ export function buildNovelSystemPrompt({
   lorebook = [],
   longTermMemory = [],
   globalRules,
+  modeRules,
 }: BuildSystemPromptParams): string {
   const personaName = userPersona?.name ?? '주인공'
   const characterName = character.name
 
-  const NOVEL_BASE = `당신은 소설 작가입니다. ${personaName}과 ${characterName}이 함께 등장하는 장면을 써주세요.
-
-반드시 다음 출력 형식을 지켜주세요:
-- 상황 묘사·행동·배경: 이름 없이 일반 텍스트 (예: 빗소리가 창문을 두드렸다.)
-- 대사: [이름] : "내용" (예: ${characterName} : "안녕하세요.")
-- 내면 생각: [이름] : '내용' (예: ${personaName} : '왜 이렇게 떨리지...')
-
-사용 가능한 이름은 "${personaName}"과 "${characterName}"뿐입니다.
-유저의 장면 지시를 바탕으로 두 인물이 자연스럽게 상호작용하는 장면을 만들어주세요.`
+  const novelBase = `당신은 소설 작가입니다. ${personaName}과 ${characterName}이 함께 등장하는 장면을 써주세요.\n\n${NOVEL_BASE_RULES.replace('캐릭터명', characterName).replace('페르소나명', personaName)}\n\n사용 가능한 이름은 "${personaName}"과 "${characterName}"뿐입니다.`
 
   const parts: string[] = []
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
-  parts.push(NOVEL_BASE)
+  parts.push(novelBase)
+  if (modeRules?.trim()) parts.push(`[소설 추가 규칙]\n${modeRules}`)
 
   if (userPersona) {
     parts.push(`[${personaName} 설정]\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)
