@@ -64,6 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     } : null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
+    scenarioDescription: conv.scenarioDescription,
     lorebook: matchedLorebook,
     longTermMemory: conv.memories.map(m => m.summary),
     globalRules,

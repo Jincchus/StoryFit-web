@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       mode: body.mode ?? 'roleplay',
       currentAI: body.currentAI ?? 'gemini',
       userPersonaId: body.userPersonaId ?? null,
+      scenarioDescription: body.scenarioDescription ?? '',
       characters: { create: { characterId: body.characterId } },
     },
     include: { characters: { include: { character: true } }, messages: true },

@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
       gender: body.gender ?? '',
       description: body.description ?? '',
       systemPrompt: body.systemPrompt,
-      scenarioDescription: body.scenarioDescription ?? '',
       exampleDialogues: body.exampleDialogues ?? '',
       avatarUrl: body.avatarUrl,
       tags: body.tags ?? [],

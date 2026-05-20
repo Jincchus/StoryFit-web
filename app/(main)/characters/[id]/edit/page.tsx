@@ -11,8 +11,7 @@ import type { SafetyLevel, AIProvider } from '@/types'
 
 interface CharForm {
   name: string; title: string; gender: string; description: string
-  systemPrompt: string; scenarioDescription: string
-  exampleDialogues: string
+  systemPrompt: string; exampleDialogues: string
   avatarUrl: string; tags: string[]
   safetyLevel: SafetyLevel; defaultAI: AIProvider
   temperature: number; frequencyPenalty: number; presencePenalty: number
@@ -44,7 +43,6 @@ export default function CharacterEditPage() {
         gender: c.gender ?? '',
         description: c.description ?? '',
         systemPrompt: c.systemPrompt ?? '',
-        scenarioDescription: c.scenarioDescription ?? '',
         exampleDialogues: c.exampleDialogues ?? '',
         avatarUrl: c.avatarUrl ?? '',
         tags: c.tags ?? [],
@@ -174,10 +172,6 @@ export default function CharacterEditPage() {
               <div>
                 <label className="label">시스템 프롬프트 * <span className="tiny muted">(AI에게 전달되는 캐릭터 지시문)</span></label>
                 <textarea className="field" rows={4} placeholder="당신은 [이름]입니다. [성격, 말투, 행동 규칙 등을 구체적으로 서술하세요]" value={form.systemPrompt} onChange={e => set('systemPrompt', e.target.value)} />
-              </div>
-              <div>
-                <label className="label">시나리오 배경 <span className="tiny muted">(세계관·배경 묘사)</span></label>
-                <textarea className="field" rows={3} placeholder="이 세계는 어떤 곳인가요? 배경 상황, 장소 등을 서술하세요" value={form.scenarioDescription} onChange={e => set('scenarioDescription', e.target.value)} />
               </div>
               <div>
                 <label className="label">예시 대화 <span className="tiny muted">(2~3개 few-shot, 말투 고정용)</span></label>

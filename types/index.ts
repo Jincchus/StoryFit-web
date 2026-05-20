@@ -11,7 +11,6 @@ export interface Character {
   title: string
   description: string
   systemPrompt: string
-  scenarioDescription: string
   exampleDialogues: string
   avatarUrl?: string
   tags: string[]
@@ -48,6 +47,7 @@ export interface Conversation {
   userPersonaId: string | null
   coreMemory: string
   statusTimeline: string
+  scenarioDescription: string
   isSummarizing: boolean
   characters: Character[]
   messages: Message[]

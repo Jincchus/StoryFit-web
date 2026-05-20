@@ -12,7 +12,7 @@ import type { AIProvider } from '@/types'
 
 interface Msg { id: string; role: string; content: string; aiModel?: string }
 interface Conv {
-  id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string
+  id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
   characters: { character: { id: string; name: string; kind: string; avatarUrl?: string } }[]
   userPersona?: { id: string; name: string } | null
   messages: Msg[]
@@ -218,6 +218,11 @@ export default function ChatPage() {
   const handleStatusTimeline = async (value: string) => {
     setConv(c => c ? { ...c, statusTimeline: value } : c)
     await api.patch(`/api/conversations/${params.id}`, { statusTimeline: value })
+  }
+
+  const handleScenarioDescription = async (value: string) => {
+    setConv(c => c ? { ...c, scenarioDescription: value } : c)
+    await api.patch(`/api/conversations/${params.id}`, { scenarioDescription: value })
   }
 
   if (!conv) return null
@@ -457,6 +462,16 @@ export default function ChatPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="side-section">
+                <div className="label">시나리오 배경</div>
+                <textarea
+                  className="field" rows={3}
+                  placeholder={"이 대화의 세계관·배경을 설정하세요\n예: 마법 학원 천문대, 루나는 오늘 밤 예언을 완성해야 한다."}
+                  value={conv.scenarioDescription}
+                  onChange={e => handleScenarioDescription(e.target.value)}
+                />
               </div>
 
               <div className="side-section">

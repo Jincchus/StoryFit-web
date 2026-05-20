@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const body = await req.json()
-  const allowed = ['title', 'currentAI', 'userPersonaId', 'coreMemory', 'statusTimeline']
+  const allowed = ['title', 'currentAI', 'userPersonaId', 'coreMemory', 'statusTimeline', 'scenarioDescription']
   const data = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)))
 
   const conv = await prisma.conversation.update({ where: { id: params.id }, data })

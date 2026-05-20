@@ -5,6 +5,7 @@ interface BuildSystemPromptParams {
   userPersona?: UserPersona | null
   coreMemory?: string
   statusTimeline?: string
+  scenarioDescription?: string
   lorebook?: LorebookEntry[]
   longTermMemory?: string[]
   globalRules?: string
@@ -31,6 +32,7 @@ export function buildSystemPrompt({
   userPersona,
   coreMemory,
   statusTimeline,
+  scenarioDescription,
   lorebook = [],
   longTermMemory = [],
   globalRules,
@@ -59,8 +61,8 @@ export function buildSystemPrompt({
 
   // 4. Character system prompt + scenario description
   parts.push(`[캐릭터 설정]\n${character.systemPrompt}`)
-  if (character.scenarioDescription?.trim()) {
-    parts.push(`[시나리오 배경]\n${character.scenarioDescription}`)
+  if (scenarioDescription?.trim()) {
+    parts.push(`[시나리오 배경]\n${scenarioDescription}`)
   }
 
   // 5. Example dialogues
@@ -97,6 +99,7 @@ export function buildNovelSystemPrompt({
   userPersona,
   coreMemory,
   statusTimeline,
+  scenarioDescription,
   lorebook = [],
   longTermMemory = [],
   globalRules,
@@ -122,8 +125,8 @@ export function buildNovelSystemPrompt({
     parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
   }
   parts.push(`[${characterName} 설정]\n${character.systemPrompt}`)
-  if (character.scenarioDescription?.trim()) {
-    parts.push(`[시나리오 배경]\n${character.scenarioDescription}`)
+  if (scenarioDescription?.trim()) {
+    parts.push(`[시나리오 배경]\n${scenarioDescription}`)
   }
   if (character.exampleDialogues?.trim()) {
     parts.push(`[예시 대화 (참고용)]\n${character.exampleDialogues}`)

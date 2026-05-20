@@ -17,6 +17,7 @@ export default function NewConversationPage() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'roleplay' | 'novel'>('roleplay')
+  const [scenarioDescription, setScenarioDescription] = useState('')
   const startingRef = useRef(false)
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function NewConversationPage() {
         currentAI: draft.modelId,
         userPersonaId: draft.personaId ?? null,
         mode,
+        scenarioDescription,
       })
       router.push(`/conversations/${conv.id}`)
       dispatch({ type: 'resetDraft' })
@@ -101,6 +103,16 @@ export default function NewConversationPage() {
                   ? '나 ↔ 캐릭터 1:1 대화 형식'
                   : '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
               </div>
+            </section>
+
+            <section className="new-conv-section">
+              <div className="label">시나리오 배경 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
+              <textarea
+                className="field" rows={3}
+                placeholder={"이 대화의 세계관·배경을 설정하세요\n예: 마법 학원 천문대, 루나는 오늘 밤 예언을 완성해야 한다."}
+                value={scenarioDescription}
+                onChange={e => setScenarioDescription(e.target.value)}
+              />
             </section>
 
             <section className="new-conv-section">
