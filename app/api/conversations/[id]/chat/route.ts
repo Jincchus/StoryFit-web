@@ -47,6 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       defaultAI: character.defaultAI as 'gemini' | 'claude' | 'chatgpt',
       tags: character.tags,
       alternateGreetings: character.alternateGreetings,
+      avatarUrl: character.avatarUrl ?? undefined,
     },
     userPersona: conv.userPersona ? {
       id: conv.userPersona.id,
