@@ -15,7 +15,8 @@ async function apiFetch(path: string, options?: RequestInit) {
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.error || `HTTP ${res.status}`)
+    const msg = data.error || (res.status === 401 ? '로그인이 필요합니다.' : res.status === 403 ? '권한이 없습니다.' : res.status === 404 ? '데이터를 찾을 수 없습니다.' : '서버 오류가 발생했습니다.')
+    throw new Error(msg)
   }
   return res
 }

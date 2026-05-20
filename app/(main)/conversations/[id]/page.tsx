@@ -25,6 +25,7 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState('')
   const [typing, setTyping] = useState(false)
   const [text, setText] = useState('')
+  const [sendError, setSendError] = useState('')
   const [model, setModel] = useState<AIProvider>('gemini')
   const [showPanel, setShowPanel] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -57,9 +58,15 @@ export default function ChatPage() {
     const ctrl = new AbortController()
     abortRef.current = ctrl
 
+    setSendError('')
     try {
       const res = await api.streamChat(params.id, content, ctrl.signal)
-      if (!res.ok) { setTyping(false); return }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSendError(data.error || 'AI 응답 생성에 실패했습니다.')
+        setTyping(false)
+        return
+      }
 
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
@@ -85,7 +92,10 @@ export default function ChatPage() {
         }
       }
     } catch (e: any) {
-      if (e?.name !== 'AbortError') setStreaming('')
+      if (e?.name !== 'AbortError') {
+        setStreaming('')
+        setSendError('연결이 끊어졌습니다. 다시 시도해주세요.')
+      }
     } finally {
       setTyping(false)
       abortRef.current = null
@@ -270,6 +280,9 @@ export default function ChatPage() {
               )}
             </div>
 
+            {sendError && (
+              <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 8px' }}>⚠ {sendError}</div>
+            )}
             <div className="composer">
               <input
                 className="field"

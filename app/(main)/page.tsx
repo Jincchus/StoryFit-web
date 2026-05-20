@@ -18,9 +18,10 @@ interface ConvItem {
 export default function HomePage() {
   const router = useRouter()
   const [conversations, setConversations] = useState<ConvItem[]>([])
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    api.get('/api/conversations').then(setConversations).catch(() => {})
+    api.get('/api/conversations').then(setConversations).catch(e => setError(e.message))
   }, [])
 
   return (
@@ -36,6 +37,8 @@ export default function HomePage() {
             <button className="btn primary" onClick={() => router.push('/characters')}>✦ 새 대화 시작</button>
           </div>
         </div>
+
+        {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
 
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           {conversations.map(conv => {

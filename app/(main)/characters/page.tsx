@@ -20,9 +20,10 @@ export default function CharactersPage() {
   const router = useRouter()
   const { draft, dispatch } = useApp()
   const [characters, setCharacters] = useState<Character[]>([])
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    api.get('/api/characters').then(setCharacters).catch(() => {})
+    api.get('/api/characters').then(setCharacters).catch(e => setError(e.message))
   }, [])
 
   const selectedChar = characters.find(c => c.id === draft.charId)
@@ -65,6 +66,8 @@ export default function CharactersPage() {
             </div>
           </div>
         )}
+
+        {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
 
         <div className="char-grid scroll">
           {characters.map(c => (
