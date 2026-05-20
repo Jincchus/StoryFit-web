@@ -44,7 +44,7 @@ export async function streamGeminiChat(
 
   const rawHistory = params.messages.slice(0, -1)
   const firstUserIdx = rawHistory.findIndex(m => m.role === 'user')
-  const history = firstUserIdx > 0 ? rawHistory.slice(firstUserIdx) : rawHistory
+  const history = firstUserIdx >= 0 ? rawHistory.slice(firstUserIdx) : []
 
   const chat = model.startChat({ history })
   const lastMessage = params.messages[params.messages.length - 1]
