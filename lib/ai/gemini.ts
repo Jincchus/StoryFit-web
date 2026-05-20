@@ -33,7 +33,6 @@ export async function streamGeminiChat(
     systemInstruction: params.systemPrompt,
     generationConfig: {
       temperature: params.temperature ?? 0.9,
-      frequencyPenalty: params.frequencyPenalty ?? 0.3,
       maxOutputTokens: 2048,
     },
     safetySettings: HARM_CATEGORIES.map(category => ({
