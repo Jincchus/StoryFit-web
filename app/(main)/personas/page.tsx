@@ -6,6 +6,8 @@ import { RANDOM_NAMES } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 
+type NameEntry = { name: string; category: string; gender: string }
+
 interface Persona {
   id: string
   name: string
@@ -22,9 +24,12 @@ export default function PersonasPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', gender: '', description: '', additionalInfo: '' })
   const [loading, setLoading] = useState(false)
+  const [namePool, setNamePool] = useState<NameEntry[]>([])
+  const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
+    fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
   }, [])
 
   const openCreate = () => { setForm({ name: '', gender: '', description: '', additionalInfo: '' }); setCreating(true); setEditingId(null) }
@@ -80,10 +85,22 @@ export default function PersonasPage() {
                   <label className="label">이름 *</label>
                   <div className="hstack" style={{ gap: 4 }}>
                     <input className="field" style={{ flex: 1 }} placeholder="AI가 나를 부르는 이름" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-                    <button
-                      type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }}
-                      onClick={() => setForm(f => ({ ...f, name: RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] }))}
-                    >🎲</button>
+                    {(['all', 'korean', 'western'] as const).map(c => (
+                      <button key={c} type="button"
+                        className={`btn ${nameCat === c ? 'primary' : 'ghost'}`}
+                        style={{ fontSize: 9, padding: '3px 5px', flexShrink: 0 }}
+                        onClick={() => setNameCat(c)}
+                      >{c === 'all' ? '전체' : c === 'korean' ? '한국' : '서양'}</button>
+                    ))}
+                    <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={() => {
+                      const pool = nameCat === 'all' ? namePool : namePool.filter(n => n.category === nameCat)
+                      if (pool.length > 0) {
+                        const picked = pool[Math.floor(Math.random() * pool.length)]
+                        setForm(f => ({ ...f, name: picked.name, ...(picked.gender ? { gender: picked.gender } : {}) }))
+                      } else {
+                        setForm(f => ({ ...f, name: RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] }))
+                      }
+                    }}>🎲</button>
                   </div>
                 </div>
                 <div>
