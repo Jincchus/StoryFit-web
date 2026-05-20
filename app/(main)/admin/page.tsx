@@ -1,34 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
+import AdminNav from './_components/AdminNav'
 
 interface Stats { users: number; conversations: number; messages: number; recentConvs: number }
-
-const NAV = [
-  { href: '/admin', label: '대시보드' },
-  { href: '/admin/names', label: '랜덤 이름' },
-  { href: '/admin/config', label: '전역 설정' },
-  { href: '/admin/users', label: '유저 관리' },
-]
-
-export function AdminNav({ current }: { current: string }) {
-  const router = useRouter()
-  return (
-    <div className="hstack" style={{ gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
-      {NAV.map(n => (
-        <button
-          key={n.href}
-          className={`btn ${current === n.href ? 'primary' : 'ghost'}`}
-          style={{ fontSize: 10, padding: '3px 8px' }}
-          onClick={() => router.push(n.href)}
-        >{n.label}</button>
-      ))}
-    </div>
-  )
-}
 
 export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)

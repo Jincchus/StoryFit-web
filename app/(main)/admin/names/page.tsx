@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
-import { AdminNav } from '../page'
+import AdminNav from '../_components/AdminNav'
 
 interface NameEntry { id: string; name: string }
 
