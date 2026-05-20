@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
-import NovelText from '@/components/ui/NovelText'
+import MessageBlocks from '@/components/ui/MessageBlocks'
 import AiPill from '@/components/ui/AiPill'
 import type { AIProvider } from '@/types'
 
@@ -300,8 +300,10 @@ export default function ChatPage() {
                               <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
                             </div>
                           </div>
+                        ) : isYou ? (
+                          <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                         ) : (
-                          <div className="bubble"><NovelText text={m.content} /></div>
+                          <MessageBlocks text={m.content} />
                         )}
                       </div>
                     </div>
@@ -338,7 +340,7 @@ export default function ChatPage() {
                         </span>
                       </div>
                       {streaming
-                        ? <div className="bubble"><NovelText text={streaming} /></div>
+                        ? <MessageBlocks text={streaming} />
                         : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
                             <span>•</span><span>•</span><span>•</span>
                           </div>
