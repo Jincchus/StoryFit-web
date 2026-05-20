@@ -13,10 +13,11 @@ interface Msg { id: string; role: string; content: string; aiModel?: string }
 interface Conv {
   id: string; title: string; currentAI: string; coreMemory: string; statusTimeline: string
   characters: { character: { id: string; name: string; kind: string; avatarUrl?: string } }[]
-  userPersona?: { name: string } | null
+  userPersona?: { id: string; name: string } | null
   messages: Msg[]
 }
 interface LbEntry { id: string; keyword: string[]; content: string; priority: number; scanDepth: number }
+interface Persona { id: string; name: string; description: string }
 
 export default function ChatPage() {
   const params = useParams<{ id: string }>()
@@ -32,10 +33,13 @@ export default function ChatPage() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [personas, setPersonas] = useState<Persona[]>([])
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleInput, setTitleInput] = useState('')
   const [lorebooks, setLorebooks] = useState<LbEntry[]>([])
   const [lorebookAdd, setLorebookAdd] = useState(false)
   const [lorebookEditId, setLorebookEditId] = useState<string | null>(null)
-  const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0 })
+  const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -52,12 +56,16 @@ export default function ChatPage() {
     api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => {})
   }, [params.id])
 
+  useEffect(() => {
+    api.get('/api/personas').then(setPersonas).catch(() => {})
+  }, [])
+
   const handleAddLorebook = async () => {
     const keyword = lbForm.keywords.split(',').map(k => k.trim()).filter(Boolean)
     if (!keyword.length || !lbForm.content.trim()) return
     try {
       const entry = await api.post('/api/lorebooks', {
-        keyword, content: lbForm.content, priority: lbForm.priority,
+        keyword, content: lbForm.content, priority: lbForm.priority, scanDepth: lbForm.scanDepth,
         conversationId: params.id, scope: 'conversation', scopeId: params.id,
       })
       setLorebooks(prev => [...prev, entry])
@@ -176,6 +184,19 @@ export default function ChatPage() {
   const handleModelChange = async (id: AIProvider) => {
     setModel(id)
     await api.patch(`/api/conversations/${params.id}`, { currentAI: id })
+  }
+
+  const handleTitleSave = async () => {
+    if (!titleInput.trim() || !conv) return
+    await api.patch(`/api/conversations/${params.id}`, { title: titleInput.trim() })
+    setConv(c => c ? { ...c, title: titleInput.trim() } : c)
+    setEditingTitle(false)
+  }
+
+  const handlePersonaChange = async (personaId: string | null) => {
+    await api.patch(`/api/conversations/${params.id}`, { userPersonaId: personaId })
+    const found = personas.find(p => p.id === personaId) ?? null
+    setConv(c => c ? { ...c, userPersona: found ? { id: found.id, name: found.name } : null } : c)
   }
 
   const handleCoreMemory = async (value: string) => {
@@ -346,8 +367,58 @@ export default function ChatPage() {
               </div>
 
               <div className="side-section">
+                <div className="label">대화 제목</div>
+                {editingTitle ? (
+                  <div className="hstack" style={{ gap: 4 }}>
+                    <input
+                      className="field" style={{ flex: 1, fontSize: 11 }}
+                      value={titleInput}
+                      onChange={e => setTitleInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleTitleSave(); if (e.key === 'Escape') setEditingTitle(false) }}
+                      autoFocus
+                    />
+                    <button className="btn primary" style={{ fontSize: 9, padding: '2px 7px' }} onClick={handleTitleSave}>저장</button>
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => setEditingTitle(false)}>취소</button>
+                  </div>
+                ) : (
+                  <div className="spread" style={{ gap: 4 }}>
+                    <div className="tiny" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.title}</div>
+                    <button className="msg-action-btn" style={{ fontSize: 9 }} onClick={() => { setTitleInput(conv.title); setEditingTitle(true) }}>✏</button>
+                  </div>
+                )}
+              </div>
+
+              <div className="side-section">
                 <div className="label">페르소나</div>
-                <div className="tiny muted">{conv.userPersona ? `${conv.userPersona.name} — ` : '페르소나 없음 (기본 유저)'}</div>
+                <div className="vstack" style={{ gap: 4 }}>
+                  <div
+                    className={`persona-option${!conv.userPersona ? ' selected' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handlePersonaChange(null)}
+                  >
+                    <PixelAvatar kind="player" size={22} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 10 }}>페르소나 없음</div>
+                      <div className="tiny muted">기본 유저</div>
+                    </div>
+                    {!conv.userPersona && <span style={{ marginLeft: 'auto', color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>}
+                  </div>
+                  {personas.map(p => (
+                    <div
+                      key={p.id}
+                      className={`persona-option${conv.userPersona?.id === p.id ? ' selected' : ''}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handlePersonaChange(p.id)}
+                    >
+                      <PixelAvatar kind="player" size={22} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 10 }}>{p.name}</div>
+                        <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>
+                      </div>
+                      {conv.userPersona?.id === p.id && <span style={{ marginLeft: 'auto', color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="side-section">
@@ -388,9 +459,13 @@ export default function ChatPage() {
                       value={lbForm.content} onChange={e => setLbForm(f => ({ ...f, content: e.target.value }))}
                     />
                     <div className="hstack" style={{ gap: 4 }}>
-                      <label className="tiny muted" style={{ flex: 1 }}>우선순위
-                        <input type="number" className="field" style={{ marginLeft: 4, width: 48, fontSize: 10, display: 'inline-block' }}
+                      <label className="tiny muted">우선순위
+                        <input type="number" className="field" style={{ marginLeft: 4, width: 44, fontSize: 10, display: 'inline-block' }}
                           value={lbForm.priority} onChange={e => setLbForm(f => ({ ...f, priority: parseInt(e.target.value) || 0 }))} />
+                      </label>
+                      <label className="tiny muted">탐색깊이
+                        <input type="number" className="field" style={{ marginLeft: 4, width: 44, fontSize: 10, display: 'inline-block' }}
+                          min={1} max={20} value={lbForm.scanDepth} onChange={e => setLbForm(f => ({ ...f, scanDepth: parseInt(e.target.value) || 5 }))} />
                       </label>
                       <button className="btn primary" style={{ fontSize: 9, padding: '2px 7px' }} onClick={handleAddLorebook}>저장</button>
                       <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => setLorebookAdd(false)}>취소</button>
@@ -415,7 +490,8 @@ export default function ChatPage() {
                             <button className="msg-action-btn danger" style={{ fontSize: 9 }} onClick={() => handleDeleteLorebook(lb.id)}>✕</button>
                           </div>
                         </div>
-                        <div className="tiny muted" style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{lb.content}</div>
+                        <div className="tiny muted" style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: 2 }}>{lb.content}</div>
+                        <div className="tiny muted">우선순위 {lb.priority} · 탐색 {lb.scanDepth}턴</div>
                       </>
                     )}
                   </div>
@@ -433,17 +509,22 @@ function LorebookEditForm({ entry, onSave, onCancel }: { entry: LbEntry; onSave:
   const [keywords, setKeywords] = useState(entry.keyword.join(', '))
   const [content, setContent] = useState(entry.content)
   const [priority, setPriority] = useState(entry.priority)
+  const [scanDepth, setScanDepth] = useState(entry.scanDepth)
   return (
     <div className="vstack" style={{ gap: 5 }}>
       <input className="field" style={{ fontSize: 10 }} placeholder="키워드 (쉼표 구분)" value={keywords} onChange={e => setKeywords(e.target.value)} />
       <textarea className="field" rows={2} style={{ fontSize: 10 }} value={content} onChange={e => setContent(e.target.value)} />
       <div className="hstack" style={{ gap: 4 }}>
-        <label className="tiny muted" style={{ flex: 1 }}>우선순위
-          <input type="number" className="field" style={{ marginLeft: 4, width: 48, fontSize: 10, display: 'inline-block' }}
+        <label className="tiny muted">우선순위
+          <input type="number" className="field" style={{ marginLeft: 4, width: 44, fontSize: 10, display: 'inline-block' }}
             value={priority} onChange={e => setPriority(parseInt(e.target.value) || 0)} />
         </label>
+        <label className="tiny muted">탐색깊이
+          <input type="number" className="field" style={{ marginLeft: 4, width: 44, fontSize: 10, display: 'inline-block' }}
+            min={1} max={20} value={scanDepth} onChange={e => setScanDepth(parseInt(e.target.value) || 5)} />
+        </label>
         <button className="btn primary" style={{ fontSize: 9, padding: '2px 7px' }}
-          onClick={() => onSave({ keyword: keywords.split(',').map(k => k.trim()).filter(Boolean), content, priority })}>저장</button>
+          onClick={() => onSave({ keyword: keywords.split(',').map(k => k.trim()).filter(Boolean), content, priority, scanDepth })}>저장</button>
         <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={onCancel}>취소</button>
       </div>
     </div>

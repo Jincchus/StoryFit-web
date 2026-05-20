@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { clearAccessToken } from '@/lib/authClient'
+import { apiLogout } from '@/lib/authClient'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 
 interface ConvItem {
   id: string
+  title: string
   currentAI: string
   updatedAt: string
   characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
@@ -32,8 +33,8 @@ export default function HomePage() {
     setConversations(prev => prev.filter(c => c.id !== id))
   }
 
-  const handleLogout = () => {
-    clearAccessToken()
+  const handleLogout = async () => {
+    await apiLogout()
     router.replace('/login')
   }
 
@@ -77,9 +78,10 @@ export default function HomePage() {
                 </div>
                 <div className="meta">
                   <h4>
-                    {char?.name}
+                    {conv.title}
                     {conv.userPersona && <span className="muted" style={{ fontWeight: 400 }}> · {conv.userPersona.name}로 플레이</span>}
                   </h4>
+                  <p className="muted" style={{ fontSize: 10, marginBottom: 2 }}>{char?.name}</p>
                   <p>{lastLine}</p>
                 </div>
                 <div className="vstack" style={{ alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>

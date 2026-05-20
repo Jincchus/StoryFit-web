@@ -40,6 +40,7 @@ export async function streamGeminiChat(
       category,
       threshold: SAFETY_MAP[params.safetyLevel ?? 'standard'],
     })),
+    tools: [],
   })
 
   const rawHistory = params.messages.slice(0, -1)

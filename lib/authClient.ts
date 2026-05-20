@@ -16,6 +16,11 @@ export async function apiLogin(email: string, password: string) {
   return data
 }
 
+export async function apiLogout() {
+  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+  clearAccessToken()
+}
+
 export async function apiRegister(email: string, password: string) {
   const res = await fetch('/api/auth/register', {
     method: 'POST',

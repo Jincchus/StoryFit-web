@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     include: {
       characters: { include: { character: true } },
       messages: { orderBy: { createdAt: 'asc' }, where: { isSelected: true } },
-      userPersona: { select: { name: true } },
+      userPersona: { select: { id: true, name: true } },
     },
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
