@@ -20,35 +20,16 @@ export interface GeminiChatParams {
   temperature?: number
   frequencyPenalty?: number
   safetyLevel?: SafetyLevel
-  cacheId?: string
-}
-
-export async function createGeminiCache(
-  systemPrompt: string,
-): Promise<{ name: string; expiry: Date } | null> {
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const cache = await (genAI as any).caches.create({
-      model: 'models/gemini-2.5-flash',
-      systemInstruction: systemPrompt,
-      ttl: '3600s',
-    })
-    const expiry = cache.expireTime ? new Date(cache.expireTime) : new Date(Date.now() + 3_600_000)
-    return { name: cache.name as string, expiry }
-  } catch {
-    return null
-  }
 }
 
 export interface StreamResult { text: string; inputTokens: number; outputTokens: number }
 
-export async function streamGeminiChat(
+async function streamViaApiKey(
   params: GeminiChatParams,
   onChunk: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<StreamResult> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-
   const generationConfig = {
     temperature: params.temperature ?? 0.9,
     maxOutputTokens: 2048,
@@ -58,29 +39,13 @@ export async function streamGeminiChat(
     threshold: SAFETY_MAP[params.safetyLevel ?? 'standard'],
   }))
 
-  let model
-  if (params.cacheId) {
-    try {
-      const cachedContent = await (genAI as any).caches.get(params.cacheId)
-      model = (genAI as any).getGenerativeModelFromCachedContent(cachedContent, { generationConfig, safetySettings })
-    } catch {
-      model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
-        systemInstruction: params.systemPrompt,
-        generationConfig,
-        safetySettings,
-        tools: [],
-      })
-    }
-  } else {
-    model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: params.systemPrompt,
-      generationConfig,
-      safetySettings,
-      tools: [],
-    })
-  }
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    systemInstruction: params.systemPrompt,
+    generationConfig,
+    safetySettings,
+    tools: [],
+  })
 
   const rawHistory = params.messages.slice(0, -1)
   const firstUserIdx = rawHistory.findIndex(m => m.role === 'user')
@@ -107,4 +72,81 @@ export async function streamGeminiChat(
   } catch {}
 
   return { text: fullText, inputTokens, outputTokens }
+}
+
+async function streamViaVertex(
+  params: GeminiChatParams,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<StreamResult> {
+  const { VertexAI, HarmCategory: VHC, HarmBlockThreshold: VHBT } = await import('@google-cloud/vertexai')
+
+  const VERTEX_SAFETY_MAP = {
+    strict:   VHBT.BLOCK_LOW_AND_ABOVE,
+    standard: VHBT.BLOCK_MEDIUM_AND_ABOVE,
+    relaxed:  VHBT.BLOCK_ONLY_HIGH,
+  }
+
+  const vertexAI = new VertexAI({
+    project: process.env.GOOGLE_CLOUD_PROJECT!,
+    location: process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1',
+  })
+
+  const model = vertexAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    systemInstruction: params.systemPrompt,
+    generationConfig: {
+      temperature: params.temperature ?? 0.9,
+      maxOutputTokens: 2048,
+    },
+    safetySettings: [
+      VHC.HARM_CATEGORY_HARASSMENT,
+      VHC.HARM_CATEGORY_HATE_SPEECH,
+      VHC.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      VHC.HARM_CATEGORY_DANGEROUS_CONTENT,
+    ].map(category => ({
+      category,
+      threshold: VERTEX_SAFETY_MAP[params.safetyLevel ?? 'standard'],
+    })),
+  })
+
+  const rawHistory = params.messages.slice(0, -1)
+  const firstUserIdx = rawHistory.findIndex(m => m.role === 'user')
+  const history = firstUserIdx >= 0 ? rawHistory.slice(firstUserIdx) : []
+
+  const chat = model.startChat({
+    history: history.map(m => ({ role: m.role, parts: m.parts })),
+  })
+
+  const lastMessage = params.messages[params.messages.length - 1]
+  const result = await chat.sendMessageStream(lastMessage.parts[0].text)
+
+  let fullText = ''
+  for await (const chunk of result.stream) {
+    if (signal?.aborted) break
+    const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    fullText += text
+    if (text) onChunk(text)
+  }
+
+  let inputTokens = 0
+  let outputTokens = 0
+  try {
+    const response = await result.response
+    inputTokens = (response as any).usageMetadata?.promptTokenCount ?? 0
+    outputTokens = (response as any).usageMetadata?.candidatesTokenCount ?? 0
+  } catch {}
+
+  return { text: fullText, inputTokens, outputTokens }
+}
+
+export async function streamGeminiChat(
+  params: GeminiChatParams,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<StreamResult> {
+  if (process.env.GEMINI_PROVIDER === 'vertex') {
+    return streamViaVertex(params, onChunk, signal)
+  }
+  return streamViaApiKey(params, onChunk, signal)
 }
