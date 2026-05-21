@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticateAdmin } from '@/lib/adminAuth'
+import { logAdminAction } from '@/lib/adminLog'
 
 export async function GET(req: NextRequest) {
   if (!await authenticateAdmin(req)) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
@@ -11,7 +12,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!await authenticateAdmin(req)) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+  const adminId = await authenticateAdmin(req)
+  if (!adminId) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
   const body = await req.json()
   const updates = await Promise.all(
     Object.entries(body).map(([key, value]) =>
@@ -22,5 +24,6 @@ export async function PATCH(req: NextRequest) {
       })
     )
   )
+  await logAdminAction(adminId, '전역 설정 변경', Object.keys(body).join(', '))
   return NextResponse.json(updates)
 }

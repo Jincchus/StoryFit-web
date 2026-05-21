@@ -7,6 +7,8 @@ const NAV = [
   { href: '/admin/tags', label: '태그 관리' },
   { href: '/admin/config', label: '전역 설정' },
   { href: '/admin/users', label: '유저 관리' },
+  { href: '/admin/costs', label: 'AI 비용' },
+  { href: '/admin/logs', label: '활동 로그' },
 ]
 
 export default function AdminNav({ current }: { current: string }) {

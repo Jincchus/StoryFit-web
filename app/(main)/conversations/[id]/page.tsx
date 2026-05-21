@@ -577,7 +577,17 @@ export default function ChatPage() {
               </div>
 
               <div className="side-section">
-                <div className="label">핵심 메모리</div>
+                <div className="spread" style={{ marginBottom: 4 }}>
+                  <div className="label" style={{ marginBottom: 0 }}>핵심 메모리</div>
+                  <button
+                    className="btn ghost"
+                    style={{ fontSize: 9, padding: '1px 5px' }}
+                    onClick={async () => {
+                      const fresh = await api.get(`/api/conversations/${params.id}`).catch(() => null)
+                      if (fresh) setConv(c => c ? { ...c, coreMemory: fresh.coreMemory, statusTimeline: fresh.statusTimeline } : c)
+                    }}
+                  >↺ 새로고침</button>
+                </div>
                 <textarea
                   className="field" rows={3}
                   placeholder={"절대 잊으면 안 되는 설정을 적어두세요\n예: 유저는 마왕의 딸이다."}

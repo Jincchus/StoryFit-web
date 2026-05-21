@@ -40,11 +40,13 @@ export async function createGeminiCache(
   }
 }
 
+export interface StreamResult { text: string; inputTokens: number; outputTokens: number }
+
 export async function streamGeminiChat(
   params: GeminiChatParams,
   onChunk: (text: string) => void,
   signal?: AbortSignal,
-): Promise<string> {
+): Promise<StreamResult> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
   const generationConfig = {
@@ -95,5 +97,14 @@ export async function streamGeminiChat(
     fullText += text
     onChunk(text)
   }
-  return fullText
+
+  let inputTokens = 0
+  let outputTokens = 0
+  try {
+    const response = await result.response
+    inputTokens = response.usageMetadata?.promptTokenCount ?? 0
+    outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0
+  } catch {}
+
+  return { text: fullText, inputTokens, outputTokens }
 }

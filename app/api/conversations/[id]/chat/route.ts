@@ -110,8 +110,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const stream = new ReadableStream({
     async start(controller) {
       let fullText = ''
+      let inputTokens = 0
+      let outputTokens = 0
       try {
-        await streamChat(
+        const result = await streamChat(
           {
             provider: conv.currentAI as 'gemini',
             systemPrompt,
@@ -127,6 +129,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           },
           abortController.signal,
         )
+        inputTokens = result.inputTokens
+        outputTokens = result.outputTokens
 
         const assistantMsg = await prisma.message.create({
           data: {
@@ -136,6 +140,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             aiModel: conv.currentAI,
             isSelected: true,
             parentId: userMsg.id,
+            inputTokens,
+            outputTokens,
           },
         })
         assistantMsgId = assistantMsg.id
@@ -233,7 +239,7 @@ async function streamTikiTaka({
           let charText = ''
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ character: tChar.name, characterId: tChar.id })}\n\n`))
 
-          await streamChat(
+          const tikiResult = await streamChat(
             {
               provider: conv.currentAI as 'gemini',
               systemPrompt: tSystemPrompt,
@@ -262,6 +268,8 @@ async function streamTikiTaka({
               isSelected: true,
               parentId,
               characterId: tChar.id,
+              inputTokens: tikiResult.inputTokens,
+              outputTokens: tikiResult.outputTokens,
             },
           })
 

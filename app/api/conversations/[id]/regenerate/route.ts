@@ -99,7 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     async start(controller) {
       let fullText = ''
       try {
-        await streamChat(
+        const result = await streamChat(
           {
             provider: conv.currentAI as 'gemini',
             systemPrompt,
@@ -124,6 +124,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             aiModel: conv.currentAI,
             isSelected: true,
             parentId: lastAssistant.parentId,
+            inputTokens: result.inputTokens,
+            outputTokens: result.outputTokens,
           },
         })
 
