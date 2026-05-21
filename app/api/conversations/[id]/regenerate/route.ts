@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
 import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
-import { createGeminiCache } from '@/lib/ai/gemini'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
 import type { Message } from '@/types'
@@ -82,10 +81,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     ? buildNovelSystemPrompt(promptParams)
     : buildSystemPrompt(promptParams)
 
-  const now = new Date()
-  const validCache = conv.geminiCacheId && conv.geminiCacheExpiry && new Date(conv.geminiCacheExpiry) > now
-  const cacheId = validCache ? conv.geminiCacheId! : undefined
-
   const history = historyMsgs.map(m => ({
     role: m.role === 'user' ? 'user' as const : 'model' as const,
     parts: [{ text: m.content }],
@@ -107,7 +102,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             temperature: character.temperature,
             frequencyPenalty: character.frequencyPenalty,
             safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
-            cacheId,
           },
           chunk => {
             fullText += chunk
@@ -137,17 +131,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         triggerAutoCoreMemory(params.id, character.name, character.systemPrompt).catch(err =>
           console.error('[autoCoreMemory] error:', err),
         )
-
-        if (!validCache) {
-          createGeminiCache(systemPrompt).then(async result => {
-            if (result) {
-              await prisma.conversation.update({
-                where: { id: params.id },
-                data: { geminiCacheId: result.name, geminiCacheExpiry: result.expiry },
-              })
-            }
-          }).catch(() => {})
-        }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: newMsg.id })}\n\n`))
       } catch (err: any) {
