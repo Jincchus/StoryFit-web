@@ -1,5 +1,14 @@
 import type { Character, UserPersona, LorebookEntry, Message } from '@/types'
 
+function approxTokens(text: string): number {
+  let tokens = 0
+  for (const ch of text) {
+    const code = ch.charCodeAt(0)
+    tokens += code >= 0xAC00 && code <= 0xD7A3 ? 2 : 0.25
+  }
+  return Math.ceil(tokens)
+}
+
 interface BuildSystemPromptParams {
   character: Character
   userPersona?: UserPersona | null
@@ -76,10 +85,10 @@ export function buildSystemPrompt({
     const selected: string[] = []
     let tokenCount = 0
     for (const entry of sorted) {
-      const approxTokens = Math.ceil(entry.content.length / 4)
-      if (tokenCount + approxTokens > 1000) break
+      const entryTokens = approxTokens(entry.content)
+      if (tokenCount + entryTokens > 1000) break
       selected.push(entry.content)
-      tokenCount += approxTokens
+      tokenCount += entryTokens
     }
     if (selected.length > 0) {
       parts.push(`[세계관 정보]\n${selected.join('\n\n')}`)
@@ -136,10 +145,10 @@ export function buildNovelSystemPrompt({
     const selected: string[] = []
     let tokenCount = 0
     for (const entry of sorted) {
-      const approxTokens = Math.ceil(entry.content.length / 4)
-      if (tokenCount + approxTokens > 1000) break
+      const entryTokens = approxTokens(entry.content)
+      if (tokenCount + entryTokens > 1000) break
       selected.push(entry.content)
-      tokenCount += approxTokens
+      tokenCount += entryTokens
     }
     if (selected.length > 0) parts.push(`[세계관 정보]\n${selected.join('\n\n')}`)
   }

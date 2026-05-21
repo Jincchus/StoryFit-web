@@ -200,7 +200,7 @@ async function streamTikiTaka({
   encoder: TextEncoder
   abortController: AbortController
 }) {
-  const preTurnHistory = buildGeminiHistory(conv.messages)
+  const preTurnHistory = buildGeminiHistory(conv.messages.slice(-15))
 
   const stream = new ReadableStream({
     async start(controller) {
