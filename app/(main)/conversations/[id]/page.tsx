@@ -15,7 +15,7 @@ interface ConvChar { character: { id: string; name: string; kind: string; avatar
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
   characters: ConvChar[]
-  userPersona?: { id: string; name: string } | null
+  userPersona?: { id: string; name: string; description: string } | null
   messages: Msg[]
 }
 interface LbEntry { id: string; keyword: string[]; content: string; priority: number; scanDepth: number }
