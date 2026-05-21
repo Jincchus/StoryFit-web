@@ -2,7 +2,7 @@ export type BlockType = 'narration' | 'dialogue' | 'thought'
 export interface Block { type: BlockType; text: string; speaker?: string }
 
 const DQUOTES = ['"', '“', '”']
-const SQUOTES = ["'", '‘', '’']
+const SQUOTES = ['‘', '’']  // curly single quotes only — apostrophe (') excluded
 
 function findAny(text: string, chars: string[], from: number): number {
   let min = -1
@@ -15,42 +15,50 @@ function findAny(text: string, chars: string[], from: number): number {
 
 export function parseBlocks(text: string): Block[] {
   const blocks: Block[] = []
-  let i = 0
-  let narration = ''
 
-  const flushNarration = () => {
-    const t = narration.trim()
-    if (t) blocks.push({ type: 'narration', text: t })
-    narration = ''
-  }
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim()
+    if (!line) continue
 
-  while (i < text.length) {
-    const ch = text[i]
+    let i = 0
+    let narration = ''
 
-    if (DQUOTES.includes(ch)) {
-      const end = findAny(text, DQUOTES, i + 1)
-      if (end !== -1) {
-        flushNarration()
-        blocks.push({ type: 'dialogue', text: text.slice(i, end + 1) })
-        i = end + 1
-        continue
-      }
+    const flushNarration = () => {
+      const t = narration.trim()
+      if (t) blocks.push({ type: 'narration', text: t })
+      narration = ''
     }
 
-    if (SQUOTES.includes(ch)) {
-      const end = findAny(text, SQUOTES, i + 1)
-      if (end !== -1) {
-        flushNarration()
-        blocks.push({ type: 'thought', text: text.slice(i + 1, end) })
-        i = end + 1
-        continue
+    while (i < line.length) {
+      const ch = line[i]
+
+      if (DQUOTES.includes(ch)) {
+        const end = findAny(line, DQUOTES, i + 1)
+        if (end !== -1) {
+          flushNarration()
+          blocks.push({ type: 'dialogue', text: line.slice(i + 1, end) })
+          i = end + 1
+          continue
+        }
       }
+
+      if (SQUOTES.includes(ch)) {
+        const end = findAny(line, SQUOTES, i + 1)
+        if (end !== -1) {
+          flushNarration()
+          blocks.push({ type: 'thought', text: line.slice(i + 1, end) })
+          i = end + 1
+          continue
+        }
+      }
+
+      narration += ch
+      i++
     }
 
-    narration += ch
-    i++
+    flushNarration()
   }
-  flushNarration()
+
   return blocks
 }
 
