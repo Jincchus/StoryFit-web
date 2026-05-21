@@ -40,7 +40,7 @@ async function streamViaApiKey(
   }))
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.5-pro',
     systemInstruction: params.systemPrompt,
     generationConfig,
     safetySettings,
@@ -93,7 +93,7 @@ async function streamViaVertex(
   })
 
   const model = vertexAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.5-pro',
     systemInstruction: params.systemPrompt,
     generationConfig: {
       temperature: params.temperature ?? 0.9,
