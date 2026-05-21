@@ -73,7 +73,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,
     lorebook: matchedLorebook,
-    longTermMemory: conv.memories.map(m => m.summary),
+    longTermMemory: conv.memories.slice(-8).map(m => m.summary),
     globalRules,
     modeRules,
   }
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     ? buildNovelSystemPrompt(promptParams)
     : buildSystemPrompt(promptParams)
 
-  const history = historyMsgs.map(m => ({
+  const history = historyMsgs.slice(-15).map(m => ({
     role: m.role === 'user' ? 'user' as const : 'model' as const,
     parts: [{ text: m.content }],
   }))

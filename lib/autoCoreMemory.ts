@@ -33,30 +33,33 @@ export async function triggerAutoCoreMemory(
     .map(m => `${m.role === 'user' ? '유저' : characterName}: ${m.content}`)
     .join('\n')
 
-  const prompt = `캐릭터 설정: ${characterSystemPrompt}
+  const hasExisting = conv.coreMemory?.trim().length > 0
 
-기존 핵심 메모리:
-${conv.coreMemory?.trim() || '(없음)'}
+  const prompt = `캐릭터 설정: ${characterSystemPrompt}
 
 최근 대화:
 ${transcript}
 
-위 대화를 분석해서 핵심 메모리를 업데이트하세요.
+위 대화에서 절대 잊으면 안 되는 새로운 사실만 추출하세요.
 규칙:
 - 중요한 사실, 관계 변화, 감정 상태, 핵심 설정만 포함
-- 기존 핵심 메모리와 합쳐서 중복 없이 하나의 목록으로
-- 불릿 포인트(- ) 형식, 최대 10개
-- 대화에서 명확히 드러난 사실만 포함하고 추측 금지`
+- 불릿 포인트(- ) 형식, 최대 5개
+- 대화에서 명확히 드러난 사실만 포함하고 추측 금지
+- 새로 추가할 내용이 없으면 "(없음)"만 출력`
 
   try {
     const result = await model.generateContent(prompt)
-    const extracted = result.response.text().trim()
-    if (extracted) {
-      await prisma.conversation.update({
-        where: { id: conversationId },
-        data: { coreMemory: extracted, geminiCacheId: null, geminiCacheExpiry: null },
-      })
-    }
+    const newFacts = result.response.text().trim()
+    if (!newFacts || newFacts === '(없음)') return
+
+    const updated = hasExisting
+      ? `${conv.coreMemory.trim()}\n${newFacts}`
+      : newFacts
+
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { coreMemory: updated },
+    })
   } catch (err) {
     console.error('[autoCoreMemory] error:', err)
   }
