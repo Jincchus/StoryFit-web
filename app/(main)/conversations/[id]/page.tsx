@@ -297,7 +297,7 @@ export default function ChatPage() {
   const handlePersonaChange = async (personaId: string | null) => {
     await api.patch(`/api/conversations/${params.id}`, { userPersonaId: personaId })
     const found = personas.find(p => p.id === personaId) ?? null
-    setConv(c => c ? { ...c, userPersona: found ? { id: found.id, name: found.name } : null } : c)
+    setConv(c => c ? { ...c, userPersona: found ? { id: found.id, name: found.name, description: found.description ?? '' } : null } : c)
   }
 
   const handleCoreMemory = async (value: string) => {
