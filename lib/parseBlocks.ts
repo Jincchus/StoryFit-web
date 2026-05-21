@@ -2,7 +2,7 @@ export type BlockType = 'narration' | 'dialogue' | 'thought'
 export interface Block { type: BlockType; text: string; speaker?: string }
 
 const DQUOTES = ['"', '“', '”']
-const SQUOTES = ['‘', '’']  // curly single quotes only — apostrophe (') excluded
+const SQUOTES = ["'", '‘', '’']  // straight + curly single quotes
 
 function findAny(text: string, chars: string[], from: number): number {
   let min = -1
