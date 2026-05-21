@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     prisma.adminLog.count(),
   ])
 
-  const adminIds = [...new Set(logs.map(l => l.adminId))]
+  const adminIds = Array.from(new Set(logs.map(l => l.adminId)))
   const admins = await prisma.user.findMany({
     where: { id: { in: adminIds } },
     select: { id: true, email: true },
