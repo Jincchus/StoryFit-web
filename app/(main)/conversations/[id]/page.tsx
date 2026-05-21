@@ -44,6 +44,7 @@ export default function ChatPage() {
   const [lorebookEditId, setLorebookEditId] = useState<string | null>(null)
   const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
   const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
+  const [atBottom, setAtBottom] = useState(true)
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -104,9 +105,23 @@ export default function ChatPage() {
     } catch {}
   }
 
+  const scrollToBottom = () => {
+    if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setAtBottom(true) }
+  }
+
   useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
-  }, [messages.length, streaming, typing])
+    const el = logRef.current
+    if (!el) return
+    const onScroll = () => {
+      setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80)
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => { scrollToBottom() }, [messages.length])
+
+  useEffect(() => { if (!typing) scrollToBottom() }, [typing])
 
   const send = async (content: string) => {
     if (!content.trim() || typing) return
@@ -350,7 +365,18 @@ export default function ChatPage() {
         </div>
 
         <div className="chat-layout">
-          <div className="chat-main">
+          <div className="chat-main" style={{ position: 'relative' }}>
+            {!atBottom && (
+              <button
+                onClick={scrollToBottom}
+                style={{
+                  position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+                  zIndex: 10, background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+                  borderRadius: 20, padding: '4px 14px', fontSize: 11, cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(0,0,0,.2)', whiteSpace: 'nowrap',
+                }}
+              >↓ 최신 메시지</button>
+            )}
             <div className="chatlog" ref={logRef}>
               {messages.length === 0 && !streaming && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
@@ -534,36 +560,60 @@ export default function ChatPage() {
               </div>
 
               <div className="side-section">
-                <div className="label">페르소나</div>
+                <div className="label">대화 참여자</div>
                 <div className="vstack" style={{ gap: 4 }}>
-                  <div
-                    className={`persona-option${!conv.userPersona ? ' selected' : ''}`}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handlePersonaChange(null)}
-                  >
-                    <PixelAvatar kind="player" size={22} />
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 10 }}>페르소나 없음</div>
-                      <div className="tiny muted">기본 유저</div>
-                    </div>
-                    {!conv.userPersona && <span style={{ marginLeft: 'auto', color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>}
-                  </div>
-                  {personas.map(p => (
-                    <div
-                      key={p.id}
-                      className={`persona-option${conv.userPersona?.id === p.id ? ' selected' : ''}`}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handlePersonaChange(p.id)}
-                    >
-                      <PixelAvatar kind="player" size={22} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 10 }}>{p.name}</div>
-                        <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>
+                  {conv.characters.map(cc => (
+                    <div key={cc.character.id} className="hstack" style={{ gap: 6, padding: '4px 0' }}>
+                      <div className="thumb" style={{ width: 22, height: 22, flexShrink: 0 }}>
+                        {cc.character.avatarUrl
+                          ? <img src={cc.character.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                          : <PixelAvatar kind={cc.character.kind as any} size={22} />
+                        }
                       </div>
-                      {conv.userPersona?.id === p.id && <span style={{ marginLeft: 'auto', color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>}
+                      <div style={{ fontSize: 10, fontWeight: 700 }}>{cc.character.name}</div>
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="side-section">
+                <div className="label">페르소나</div>
+                {conv.userPersona ? (
+                  <div className="persona-option selected" style={{ cursor: 'default' }}>
+                    <PixelAvatar kind="player" size={22} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 10 }}>{conv.userPersona.name}</div>
+                      <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.userPersona.description}</div>
+                    </div>
+                    <span style={{ marginLeft: 'auto', color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>
+                  </div>
+                ) : (
+                  <div className="vstack" style={{ gap: 4 }}>
+                    <div className="persona-option selected" style={{ cursor: 'default' }}>
+                      <PixelAvatar kind="player" size={22} />
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 10 }}>페르소나 없음</div>
+                        <div className="tiny muted">기본 유저</div>
+                      </div>
+                      <span style={{ marginLeft: 'auto', color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>
+                    </div>
+                    <div className="tiny muted" style={{ paddingLeft: 2 }}>다른 페르소나로 변경:</div>
+                    {personas.map(p => (
+                      <div
+                        key={p.id}
+                        className="persona-option"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handlePersonaChange(p.id)}
+                      >
+                        <PixelAvatar kind="player" size={22} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 10 }}>{p.name}</div>
+                          <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="side-section">
