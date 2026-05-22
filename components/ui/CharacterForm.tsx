@@ -130,22 +130,24 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
             return (
               <div key={cat}>
                 <label className="label">{cat}</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 5 }}>
-                  {available.map(t => {
-                    const selected = form.tags.includes(t.name)
-                    return (
-                      <button key={t.id} type="button" onClick={() => toggleTag(t.name)}
-                        style={{
-                          padding: '3px 9px', fontSize: 11, borderRadius: 20,
-                          border: `1.5px solid ${selected ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
-                          background: selected ? 'var(--hot-pink)' : 'var(--chrome-face)',
-                          color: selected ? '#fff' : 'var(--ink)',
-                          cursor: 'pointer',
-                        }}
-                      >{t.name}</button>
-                    )
-                  })}
-                  {available.length === 0 && <div className="tiny muted">등록된 태그 없음 (어드민에서 추가)</div>}
+                <div style={{ overflowX: 'auto', paddingBottom: 4, marginBottom: 5 }}>
+                  <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 5, width: 'max-content' }}>
+                    {available.map(t => {
+                      const selected = form.tags.includes(t.name)
+                      return (
+                        <button key={t.id} type="button" onClick={() => toggleTag(t.name)}
+                          style={{
+                            padding: '3px 9px', fontSize: 11, borderRadius: 20,
+                            border: `1.5px solid ${selected ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
+                            background: selected ? 'var(--hot-pink)' : 'var(--chrome-face)',
+                            color: selected ? '#fff' : 'var(--ink)',
+                            cursor: 'pointer', whiteSpace: 'nowrap',
+                          }}
+                        >{t.name}</button>
+                      )
+                    })}
+                    {available.length === 0 && <div className="tiny muted">등록된 태그 없음 (어드민에서 추가)</div>}
+                  </div>
                 </div>
                 <div className="hstack" style={{ gap: 4 }}>
                   <input
