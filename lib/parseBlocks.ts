@@ -65,7 +65,52 @@ export function parseBlocks(text: string): Block[] {
   return blocks
 }
 
-const SPEAKER_RE = /^(.+?)\s*:\s*(.+)$/
+const SPEAKER_RE = /^(.{1,20}?)\s*:\s*(.+)$/
+
+function parseInlineContent(content: string, speaker: string): Block[] {
+  const result: Block[] = []
+  let i = 0
+  let narration = ''
+
+  const flushNarration = () => {
+    const t = narration.trim()
+    if (t) result.push({ type: 'narration', text: t })
+    narration = ''
+  }
+
+  while (i < content.length) {
+    const ch = content[i]
+
+    if (DQUOTES.includes(ch)) {
+      const end = findAny(content, DQUOTES, i + 1)
+      if (end !== -1) {
+        flushNarration()
+        result.push({ type: 'dialogue', speaker, text: content.slice(i + 1, end) })
+        i = end + 1
+        continue
+      }
+    }
+
+    if (SQUOTES.includes(ch)) {
+      const isApostrophe = ch === "'" && i > 0 && /[a-zA-Z]/.test(content[i - 1])
+      if (!isApostrophe) {
+        const end = findAny(content, SQUOTES, i + 1)
+        if (end !== -1) {
+          flushNarration()
+          result.push({ type: 'thought', speaker, text: content.slice(i + 1, end) })
+          i = end + 1
+          continue
+        }
+      }
+    }
+
+    narration += ch
+    i++
+  }
+
+  flushNarration()
+  return result
+}
 
 export function parseNovelBlocks(text: string): Block[] {
   const blocks: Block[] = []
@@ -87,14 +132,10 @@ export function parseNovelBlocks(text: string): Block[] {
       const speaker = match[1].trim()
       const content = match[2].trim()
 
-      if (DQUOTES.some(q => content.startsWith(q)) && DQUOTES.some(q => content.endsWith(q))) {
+      const inlineBlocks = parseInlineContent(content, speaker)
+      if (inlineBlocks.length > 0) {
         flushNarration()
-        blocks.push({ type: 'dialogue', speaker, text: content.slice(1, -1) })
-        continue
-      }
-      if (SQUOTES.some(q => content.startsWith(q)) && SQUOTES.some(q => content.endsWith(q))) {
-        flushNarration()
-        blocks.push({ type: 'thought', speaker, text: content.slice(1, -1) })
+        blocks.push(...inlineBlocks)
         continue
       }
     }

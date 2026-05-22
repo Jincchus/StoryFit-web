@@ -1,6 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { prisma } from '@/lib/prisma'
-import { GEMINI_UTILITY_MODEL } from '@/lib/constants'
+import { generateText } from '@/lib/ai/gemini'
 
 const EXTRACT_EVERY = 10
 
@@ -27,30 +26,17 @@ export async function triggerAutoCoreMemory(
   })
   if (messages.length === 0) return
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-  const model = genAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL })
-
   const transcript = [...messages].reverse()
     .map(m => `${m.role === 'user' ? '유저' : characterName}: ${m.content}`)
     .join('\n')
 
   const hasExisting = conv.coreMemory?.trim().length > 0
 
-  const prompt = `캐릭터 설정: ${characterSystemPrompt}
-
-최근 대화:
-${transcript}
-
-위 대화에서 절대 잊으면 안 되는 새로운 사실만 추출하세요.
-규칙:
-- 중요한 사실, 관계 변화, 감정 상태, 핵심 설정만 포함
-- 불릿 포인트(- ) 형식, 최대 5개
-- 대화에서 명확히 드러난 사실만 포함하고 추측 금지
-- 새로 추가할 내용이 없으면 "(없음)"만 출력`
+  const systemPrompt = `당신은 롤플레이 대화 분석 도우미입니다. 캐릭터 설정: ${characterSystemPrompt}`
+  const userPrompt = `최근 대화:\n${transcript}\n\n위 대화에서 절대 잊으면 안 되는 새로운 사실만 추출하세요.\n규칙:\n- 중요한 사실, 관계 변화, 감정 상태, 핵심 설정만 포함\n- 불릿 포인트(- ) 형식, 최대 5개\n- 대화에서 명확히 드러난 사실만 포함하고 추측 금지\n- 새로 추가할 내용이 없으면 "(없음)"만 출력`
 
   try {
-    const result = await model.generateContent(prompt)
-    const newFacts = result.response.text().trim()
+    const newFacts = await generateText(systemPrompt, userPrompt)
     if (!newFacts || newFacts === '(없음)') return
 
     const updated = hasExisting

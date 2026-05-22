@@ -1,6 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { prisma } from '@/lib/prisma'
-import { GEMINI_UTILITY_MODEL } from '@/lib/constants'
+import { generateText } from '@/lib/ai/gemini'
 
 const SUMMARIZE_EVERY = 10
 
@@ -8,21 +7,14 @@ async function summarizeMessages(
   messages: { role: string; content: string }[],
   characterSystemPrompt: string,
 ): Promise<string> {
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-  const model = genAI.getGenerativeModel({
-    model: GEMINI_UTILITY_MODEL,
-    tools: [],
-    systemInstruction: `당신은 롤플레이 대화 요약 도우미입니다. 캐릭터 설정: ${characterSystemPrompt}`,
-  })
-
   const transcript = messages
     .map(m => `${m.role === 'user' ? '유저' : '캐릭터'}: ${m.content}`)
     .join('\n')
 
-  const prompt = `아래 대화를 3~5개의 핵심 사실 중심 불릿 포인트로 요약하세요. 이름·행동·장소·감정 변화만 포함하고, 추측하지 마세요.\n\n${transcript}`
+  const systemPrompt = `당신은 롤플레이 대화 요약 도우미입니다. 캐릭터 설정: ${characterSystemPrompt}`
+  const userPrompt = `아래 대화를 3~5개의 핵심 사실 중심 불릿 포인트로 요약하세요. 이름·행동·장소·감정 변화만 포함하고, 추측하지 마세요.\n\n${transcript}`
 
-  const result = await model.generateContent(prompt)
-  return result.response.text().trim()
+  return generateText(systemPrompt, userPrompt)
 }
 
 export async function triggerMemorySummarization(

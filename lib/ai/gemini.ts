@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai'
 import type { SafetyLevel } from '@/types'
-import { GEMINI_CHAT_MODEL } from '@/lib/constants'
+import { GEMINI_CHAT_MODEL, GEMINI_UTILITY_MODEL } from '@/lib/constants'
 
 const SAFETY_MAP: Record<SafetyLevel, HarmBlockThreshold> = {
   strict:   HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
@@ -150,4 +150,21 @@ export async function streamGeminiChat(
     return streamViaVertex(params, onChunk, signal)
   }
   return streamViaApiKey(params, onChunk, signal)
+}
+
+export async function generateText(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (process.env.GEMINI_PROVIDER === 'vertex') {
+    const { VertexAI } = await import('@google-cloud/vertexai')
+    const vertexAI = new VertexAI({
+      project: process.env.GOOGLE_CLOUD_PROJECT!,
+      location: process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1',
+    })
+    const model = vertexAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL, systemInstruction: systemPrompt })
+    const result = await model.generateContent(userPrompt)
+    return (result.response.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
+  }
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const model = genAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL, systemInstruction: systemPrompt, tools: [] })
+  const result = await model.generateContent(userPrompt)
+  return result.response.text().trim()
 }

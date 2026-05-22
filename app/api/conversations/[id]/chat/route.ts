@@ -30,13 +30,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const character = conv.characters[0]?.character
   if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
-  const lastSelectedMsg = conv.messages[conv.messages.length - 1] ?? null
-
-  if (lastSelectedMsg?.role === 'user') {
-    await prisma.message.delete({ where: { id: lastSelectedMsg.id } })
-    conv.messages.pop()
-  }
-
   const prevMsg = conv.messages[conv.messages.length - 1] ?? null
 
   const userMsg = await prisma.message.create({
@@ -102,10 +95,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
   const recentMsgs = conv.messages.slice(-15)
-  const history = [...recentMsgs, userMsg].map(m => ({
-    role: m.role === 'user' ? 'user' as const : 'model' as const,
-    parts: [{ text: m.content }],
-  }))
+  const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
+    const role = m.role === 'user' ? 'user' as const : 'model' as const
+    const last = acc[acc.length - 1]
+    if (last && last.role === role && role === 'user') {
+      last.parts[0].text += '\n\n' + m.content
+    } else {
+      acc.push({ role, parts: [{ text: m.content }] })
+    }
+    return acc
+  }, [])
 
   let assistantMsgId: string | null = null
 
