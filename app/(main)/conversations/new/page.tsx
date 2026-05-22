@@ -72,12 +72,10 @@ export default function NewConversationPage() {
     setLoading(true)
     startingRef.current = true
     try {
-      const characterIds = mode === 'tikiTaka' ? tikiChars.map(c => c.id) : [char.id]
+      const characterIds = [char.id]
       const conv = await api.post('/api/conversations', {
         characterIds,
-        title: mode === 'tikiTaka'
-          ? `${tikiChars.map(c => c.name).join(', ')}과의 대화`
-          : `${char.name}와의 대화`,
+        title: `${char.name}와의 대화`,
         currentAI: draft.modelId,
         userPersonaId: draft.personaId ?? null,
         mode,
@@ -264,44 +262,6 @@ export default function NewConversationPage() {
               )}
             </section>
 
-            {mode === 'tikiTaka' && (
-              <section className="new-conv-section">
-                <div className="label">참여 캐릭터 <span className="muted" style={{ fontWeight: 400 }}>(순서 = 응답 순서)</span></div>
-                <div className="tiny muted" style={{ marginBottom: 8 }}>
-                  현재 선택: {tikiChars.map(c => c.name).join(' → ')}
-                  {tikiChars.length < 2 && <span style={{ color: '#ff6b8a', marginLeft: 6 }}>최소 2명 필요</span>}
-                </div>
-                <div className="vstack" style={{ gap: 5 }}>
-                  {allChars.map(c => {
-                    const isMain = c.id === char?.id
-                    const isIn = !!tikiChars.find(x => x.id === c.id)
-                    const order = tikiChars.findIndex(x => x.id === c.id)
-                    return (
-                      <div
-                        key={c.id}
-                        className={`persona-option ${isIn ? 'selected' : ''}`}
-                        style={{ cursor: isMain ? 'default' : 'pointer', opacity: isMain ? 0.8 : 1 }}
-                        onClick={() => toggleTikiChar(c)}
-                      >
-                        <div className="thumb" style={{ width: 28, height: 28 }}>
-                          {c.avatarUrl
-                            ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                            : <PixelAvatar kind={c.kind} size={28} />}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 11 }}>
-                            {c.name}
-                            {isMain && <span className="muted" style={{ fontWeight: 400, marginLeft: 4 }}>(주 캐릭터)</span>}
-                          </div>
-                          <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
-                        </div>
-                        {isIn && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>#{order + 1}</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-            )}
 
             {/* 5. 페르소나 */}
             <section className="new-conv-section">
