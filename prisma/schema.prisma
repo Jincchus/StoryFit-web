@@ -146,6 +146,7 @@ model Memory {
   summary            String
   messageRangeStart  String
   messageRangeEnd    String
+  embedding          Unsupported("vector(768)")?
   createdAt          DateTime     @default(now())
 }
 

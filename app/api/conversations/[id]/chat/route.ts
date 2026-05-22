@@ -6,6 +6,7 @@ import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
 import { checkRateLimit } from '@/lib/rateLimit'
+import { retrieveRelevantMemories } from '@/lib/ragMemory'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -22,12 +23,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       messages: { where: { isSelected: true }, orderBy: { createdAt: 'asc' } },
       userPersona: true,
       lorebooks: true,
-      memories: { orderBy: { createdAt: 'asc' } },
     },
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
   const character = conv.characters[0]?.character
+  const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(() => [])
   if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
   const prevMsg = conv.messages[conv.messages.length - 1] ?? null
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,
     lorebook: matchedLorebook,
-    longTermMemory: conv.memories.slice(-8).map(m => m.summary),
+    longTermMemory,
     globalRules,
     modeRules,
   }

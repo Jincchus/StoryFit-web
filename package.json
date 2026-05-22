@@ -19,7 +19,8 @@
     "bcryptjs": "^2.4.3",
     "jose": "^5.9.6",
     "@google/generative-ai": "^0.21.0",
-    "@google-cloud/vertexai": "^1.9.0"
+    "@google-cloud/vertexai": "^1.9.0",
+    "google-auth-library": "^9.0.0"
   },
   "devDependencies": {
     "typescript": "^5",

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { generateText } from '@/lib/ai/gemini'
+import { generateEmbedding } from '@/lib/embedding'
 
 const SUMMARIZE_EVERY = 10
 
@@ -47,7 +48,7 @@ export async function triggerMemorySummarization(
 
   try {
     const summary = await summarizeMessages(messages, characterSystemPrompt)
-    await prisma.memory.create({
+    const memory = await prisma.memory.create({
       data: {
         conversationId,
         summary,
@@ -55,6 +56,15 @@ export async function triggerMemorySummarization(
         messageRangeEnd: messages[messages.length - 1].id,
       },
     })
+
+    generateEmbedding(summary).then(embedding => {
+      const vector = `[${embedding.join(',')}]`
+      return prisma.$executeRawUnsafe(
+        `UPDATE "Memory" SET embedding = $1::vector WHERE id = $2`,
+        vector,
+        memory.id,
+      )
+    }).catch(err => console.error('[memorySummarization] embedding error:', err))
   } finally {
     await prisma.conversation.update({ where: { id: conversationId }, data: { isSummarizing: false } })
   }
