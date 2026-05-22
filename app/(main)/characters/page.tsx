@@ -88,9 +88,6 @@ export default function CharactersPage() {
               </div>
               <h4>{c.name}</h4>
               <p>{c.title}</p>
-              <div className="tag-row">
-                {(c.tags ?? []).map(tag => <span className="tag" key={tag}>{tag}</span>)}
-              </div>
               {!c.isPreset && (
                 <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
                   <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>

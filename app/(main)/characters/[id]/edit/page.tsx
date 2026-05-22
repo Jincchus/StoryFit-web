@@ -2,14 +2,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { api } from '@/lib/api'
-import { DEFAULT_TAGS, RANDOM_NAMES } from '@/lib/constants'
+import { RANDOM_NAMES } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AvatarPicker from '@/components/ui/AvatarPicker'
 interface CharForm {
   name: string; title: string; gender: string; description: string
   systemPrompt: string; exampleDialogues: string
-  avatarUrl: string; tags: string[]
+  avatarUrl: string
 }
 
 export default function CharacterEditPage() {
@@ -20,14 +20,11 @@ export default function CharacterEditPage() {
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
   const [form, setForm] = useState<CharForm | null>(null)
-  const [tagInput, setTagInput] = useState('')
   const [namePool, setNamePool] = useState<{ name: string; category: string; gender: string }[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
-  const [tagPool, setTagPool] = useState<string[]>([])
 
   useEffect(() => {
     fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
-    fetch('/api/tags').then(r => r.json()).then(setTagPool).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -40,7 +37,6 @@ export default function CharacterEditPage() {
         systemPrompt: c.systemPrompt ?? '',
         exampleDialogues: c.exampleDialogues ?? '',
         avatarUrl: c.avatarUrl ?? '',
-        tags: c.tags ?? [],
       }))
       .catch((e: any) => setFetchError(e.message))
   }, [id])
@@ -58,18 +54,6 @@ export default function CharacterEditPage() {
   )
 
   const set = <K extends keyof CharForm>(key: K, val: CharForm[K]) => setForm(f => f ? { ...f, [key]: val } : f)
-
-  const toggleTag = (tag: string) => setForm(f => {
-    if (!f) return f
-    return { ...f, tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag] }
-  })
-
-  const addCustomTag = () => {
-    const t = tagInput.trim()
-    if (!t || form.tags.includes(t)) return
-    setForm(f => f ? { ...f, tags: [...f.tags, t] } : f)
-    setTagInput('')
-  }
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.systemPrompt.trim() || loading) return
@@ -169,38 +153,6 @@ export default function CharacterEditPage() {
               </div>
             </div>
 
-            <div className="form-section">
-              <div className="form-section-title">태그</div>
-              <div className="tag-row" style={{ flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-                {(tagPool.length > 0 ? tagPool : DEFAULT_TAGS).map(tag => (
-                  <span
-                    key={tag}
-                    className={`tag ${form.tags.includes(tag) ? 'tag-selected' : ''}`}
-                    style={{ cursor: 'pointer', padding: '2px 7px', fontSize: 10 }}
-                    onClick={() => toggleTag(tag)}
-                  >
-                    {form.tags.includes(tag) ? '✓ ' : ''}{tag}
-                  </span>
-                ))}
-              </div>
-              <div className="hstack" style={{ gap: 6 }}>
-                <input
-                  className="field" style={{ flex: 1 }} placeholder="직접 입력..."
-                  value={tagInput} onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag() } }}
-                />
-                <button className="btn" onClick={addCustomTag}>추가</button>
-              </div>
-              {form.tags.length > 0 && (
-                <div className="tag-row" style={{ marginTop: 6, flexWrap: 'wrap', gap: 4 }}>
-                  {form.tags.map(t => (
-                    <span key={t} className="tag tag-selected" style={{ cursor: 'pointer' }} onClick={() => toggleTag(t)}>
-                      {t} ×
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
 
           </div>
         </div>

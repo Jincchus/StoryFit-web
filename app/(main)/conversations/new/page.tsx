@@ -20,6 +20,9 @@ export default function NewConversationPage() {
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'roleplay' | 'novel' | 'tikiTaka'>('roleplay')
   const [scenarioDescription, setScenarioDescription] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [tagPool, setTagPool] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
   const [charOpen, setCharOpen] = useState(false)
   const [personaOpen, setPersonaOpen] = useState(false)
   const [safetyLevel, setSafetyLevel] = useState<'strict' | 'standard' | 'relaxed'>('standard')
@@ -29,6 +32,7 @@ export default function NewConversationPage() {
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
+    fetch('/api/tags').then(r => r.json()).then(setTagPool).catch(() => {})
     api.get('/api/characters').then((chars: Character[]) => {
       setAllChars(chars)
       if (draft.charId) {
@@ -77,6 +81,7 @@ export default function NewConversationPage() {
         userPersonaId: draft.personaId ?? null,
         mode,
         scenarioDescription,
+        tags,
         safetyLevel,
         temperature,
         frequencyPenalty,
@@ -146,7 +151,53 @@ export default function NewConversationPage() {
               />
             </section>
 
-            {/* 3. 캐릭터 선택 */}
+            {/* 3. 태그 */}
+            <section className="new-conv-section">
+              <div className="label">세계관 태그 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
+              <div className="tag-row" style={{ flexWrap: 'wrap', gap: 5 }}>
+                {tagPool.map(tag => (
+                  <span
+                    key={tag}
+                    className={`tag ${tags.includes(tag) ? 'tag-selected' : ''}`}
+                    style={{ cursor: 'pointer', padding: '2px 7px', fontSize: 10 }}
+                    onClick={() => setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+                  >
+                    {tags.includes(tag) ? '✓ ' : ''}{tag}
+                  </span>
+                ))}
+              </div>
+              <div className="hstack" style={{ gap: 6 }}>
+                <input
+                  className="field" style={{ flex: 1 }} placeholder="직접 입력..."
+                  value={tagInput} onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const t = tagInput.trim()
+                      if (t && !tags.includes(t)) setTags(prev => [...prev, t])
+                      setTagInput('')
+                    }
+                  }}
+                />
+                <button className="btn" onClick={() => {
+                  const t = tagInput.trim()
+                  if (t && !tags.includes(t)) setTags(prev => [...prev, t])
+                  setTagInput('')
+                }}>추가</button>
+              </div>
+              {tags.length > 0 && (
+                <div className="tag-row" style={{ marginTop: 4, flexWrap: 'wrap', gap: 4 }}>
+                  {tags.map(t => (
+                    <span key={t} className="tag tag-selected" style={{ cursor: 'pointer' }}
+                      onClick={() => setTags(prev => prev.filter(x => x !== t))}>
+                      {t} ×
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* 4. 캐릭터 선택 */}
             <section className="new-conv-section">
               <div className="label">캐릭터 선택</div>
               <div
@@ -235,7 +286,7 @@ export default function NewConversationPage() {
               </section>
             )}
 
-            {/* 4. 페르소나 */}
+            {/* 5. 페르소나 */}
             <section className="new-conv-section">
               <div className="label">내 페르소나 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
               <div
@@ -298,7 +349,7 @@ export default function NewConversationPage() {
               </button>
             </section>
 
-            {/* 5. AI 설정 */}
+            {/* 6. AI 설정 */}
             <section className="new-conv-section">
               <div className="label">AI 설정</div>
               {/*

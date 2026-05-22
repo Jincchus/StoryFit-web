@@ -94,6 +94,7 @@ model Conversation {
   statusTimeline      String                  @default("")
   scenarioDescription String                  @default("")
   mode                String                  @default("roleplay")
+  tags                String[]
   temperature         Float                   @default(0.9)
   frequencyPenalty    Float                   @default(0.3)
   safetyLevel         String                  @default("standard")

@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       currentAI: body.currentAI ?? 'gemini',
       userPersonaId: body.userPersonaId ?? null,
       scenarioDescription: body.scenarioDescription ?? '',
+      tags: body.tags ?? [],
       temperature: body.temperature ?? 0.9,
       frequencyPenalty: body.frequencyPenalty ?? 0.3,
       safetyLevel: body.safetyLevel ?? 'standard',
