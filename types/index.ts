@@ -6,14 +6,13 @@ export type AvatarKind = 'wizard' | 'knight' | 'rogue' | 'maid' | 'vampire' | 'a
 
 export interface Character {
   id: string
-  kind: AvatarKind
+  kind?: AvatarKind
   name: string
-  title: string
   gender?: string
-  description: string
-  systemPrompt: string
-  exampleDialogues: string
   avatarUrl?: string
+  tags: string[]
+  additionalInfo: string
+  exampleDialogues: string
   safetyLevel: SafetyLevel
   temperature: number
   frequencyPenalty: number

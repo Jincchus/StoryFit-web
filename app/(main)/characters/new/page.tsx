@@ -9,19 +9,17 @@ import CharacterForm, { type CharFormData } from '@/components/ui/CharacterForm'
 export default function CharacterNewPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [drafting, setDrafting] = useState(false)
   const [error, setError] = useState('')
-  const [toast, setToast] = useState('')
   const [form, setForm] = useState<CharFormData>({
-    name: '', title: '', gender: '', description: '',
-    systemPrompt: '', exampleDialogues: '', avatarUrl: '',
+    name: '', gender: '', avatarUrl: '',
+    tags: [], additionalInfo: '', exampleDialogues: '',
   })
 
   const onChange = <K extends keyof CharFormData>(key: K, val: CharFormData[K]) =>
     setForm(f => ({ ...f, [key]: val }))
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.systemPrompt.trim() || loading) return
+    if (!form.name.trim() || loading) return
     setLoading(true)
     setError('')
     try {
@@ -31,19 +29,6 @@ export default function CharacterNewPage() {
       setError(e.message)
       setLoading(false)
     }
-  }
-
-  const handleDraftPrompt = async () => {
-    if (!form.name.trim() || drafting) return
-    setDrafting(true)
-    try {
-      const { systemPrompt } = await api.post('/api/characters/draft-prompt', {
-        name: form.name, title: form.title, gender: form.gender, description: form.description,
-      })
-      onChange('systemPrompt', systemPrompt)
-      setToast('초안이 생성되었습니다')
-    } catch { setError('초안 생성에 실패했습니다.') }
-    finally { setDrafting(false) }
   }
 
   return (
@@ -59,21 +44,14 @@ export default function CharacterNewPage() {
             {error && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {error}</div>}
             <button
               className="btn primary"
-              disabled={loading || !form.name.trim() || !form.systemPrompt.trim()}
+              disabled={loading || !form.name.trim()}
               onClick={handleSubmit}
             >{loading ? '저장 중...' : '✦ 캐릭터 저장'}</button>
           </div>
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0, paddingRight: 4 }}>
-          <CharacterForm
-            form={form}
-            onChange={onChange}
-            onDraftPrompt={handleDraftPrompt}
-            drafting={drafting}
-            toast={toast}
-            onToastDone={() => setToast('')}
-          />
+          <CharacterForm form={form} onChange={onChange} />
         </div>
       </div>
     </Win>

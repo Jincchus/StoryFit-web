@@ -11,22 +11,19 @@ export default function CharacterEditPage() {
   const params = useParams()
   const id = params.id as string
   const [loading, setLoading] = useState(false)
-  const [drafting, setDrafting] = useState(false)
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
-  const [toast, setToast] = useState('')
   const [form, setForm] = useState<CharFormData | null>(null)
 
   useEffect(() => {
     api.get(`/api/characters/${id}`)
       .then((c: any) => setForm({
         name: c.name ?? '',
-        title: c.title ?? '',
         gender: c.gender ?? '',
-        description: c.description ?? '',
-        systemPrompt: c.systemPrompt ?? '',
-        exampleDialogues: c.exampleDialogues ?? '',
         avatarUrl: c.avatarUrl ?? '',
+        tags: c.tags ?? [],
+        additionalInfo: c.additionalInfo ?? '',
+        exampleDialogues: c.exampleDialogues ?? '',
       }))
       .catch((e: any) => setFetchError(e.message))
   }, [id])
@@ -36,7 +33,6 @@ export default function CharacterEditPage() {
       <div className="tiny" style={{ color: '#ff6b8a', padding: 20 }}>⚠ {fetchError}</div>
     </Win>
   )
-
   if (!form) return (
     <Win title="캐릭터 수정" icon={PixelIcons.user}>
       <div className="tiny muted" style={{ padding: 20 }}>불러오는 중...</div>
@@ -47,7 +43,7 @@ export default function CharacterEditPage() {
     setForm(f => f ? { ...f, [key]: val } : f)
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.systemPrompt.trim() || loading) return
+    if (!form.name.trim() || loading) return
     setLoading(true)
     setError('')
     try {
@@ -57,19 +53,6 @@ export default function CharacterEditPage() {
       setError(e.message)
       setLoading(false)
     }
-  }
-
-  const handleDraftPrompt = async () => {
-    if (!form.name.trim() || drafting) return
-    setDrafting(true)
-    try {
-      const { systemPrompt } = await api.post('/api/characters/draft-prompt', {
-        name: form.name, title: form.title, gender: form.gender, description: form.description,
-      })
-      onChange('systemPrompt', systemPrompt)
-      setToast('초안이 생성되었습니다')
-    } catch { setError('초안 생성에 실패했습니다.') }
-    finally { setDrafting(false) }
   }
 
   return (
@@ -85,21 +68,14 @@ export default function CharacterEditPage() {
             {error && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {error}</div>}
             <button
               className="btn primary"
-              disabled={loading || !form.name.trim() || !form.systemPrompt.trim()}
+              disabled={loading || !form.name.trim()}
               onClick={handleSubmit}
             >{loading ? '저장 중...' : '✦ 저장'}</button>
           </div>
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0, paddingRight: 4 }}>
-          <CharacterForm
-            form={form}
-            onChange={onChange}
-            onDraftPrompt={handleDraftPrompt}
-            drafting={drafting}
-            toast={toast}
-            onToastDone={() => setToast('')}
-          />
+          <CharacterForm form={form} onChange={onChange} />
         </div>
       </div>
     </Win>

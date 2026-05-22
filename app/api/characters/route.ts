@@ -18,16 +18,16 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const body = await req.json()
-  if (!body.name?.trim() || !body.systemPrompt?.trim()) {
-    return NextResponse.json({ error: '이름과 시스템 프롬프트는 필수입니다.' }, { status: 400 })
+  if (!body.name?.trim()) {
+    return NextResponse.json({ error: '이름은 필수입니다.' }, { status: 400 })
   }
 
   const character = await prisma.character.create({
     data: {
-      name: body.name, title: body.title ?? '',
+      name: body.name,
       gender: body.gender ?? '',
-      description: body.description ?? '',
-      systemPrompt: body.systemPrompt,
+      tags: body.tags ?? [],
+      additionalInfo: body.additionalInfo ?? '',
       exampleDialogues: body.exampleDialogues ?? '',
       avatarUrl: body.avatarUrl,
       safetyLevel: body.safetyLevel ?? 'standard',

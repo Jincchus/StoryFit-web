@@ -113,9 +113,9 @@ export default function CharactersPage() {
               }
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div><span style={{ fontWeight: 700 }}>{selectedChar.name}</span><span className="muted" style={{ marginLeft: 6, fontSize: 10 }}>{selectedChar.title}</span></div>
-              {selectedChar.description && (
-                <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedChar.description}</div>
+              <div style={{ fontWeight: 700 }}>{selectedChar.name}{selectedChar.gender && <span className="muted" style={{ fontWeight: 400, marginLeft: 6, fontSize: 10 }}>{selectedChar.gender}</span>}</div>
+              {selectedChar.tags?.length > 0 && (
+                <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedChar.tags.join(' · ')}</div>
               )}
             </div>
           </div>
@@ -136,12 +136,10 @@ export default function CharactersPage() {
                 }
               </div>
               <h4>{c.name}</h4>
-              <p>{c.title}</p>
-              {c.description && (
-                <p className="tiny muted" style={{ marginTop: 3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', textAlign: 'left', lineHeight: 1.4 }}>
-                  {c.description}
-                </p>
-              )}
+              {c.tags?.length > 0
+                ? <p className="tiny muted" style={{ marginTop: 2 }}>{c.tags.slice(0, 3).join(' · ')}</p>
+                : <p style={{ opacity: 0 }}>—</p>
+              }
               {!c.isPreset && (
                 <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
                   <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>
@@ -156,7 +154,7 @@ export default function CharactersPage() {
               <PixelAvatar kind="custom" size={72} />
             </div>
             <h4>커스텀 만들기</h4>
-            <p>이름·성격·프롬프트<br />직접 설정</p>
+            <p>태그·추가정보로<br />직접 설정</p>
           </div>
         </div>
       </div>

@@ -4,6 +4,10 @@ import { authenticate } from '@/lib/apiAuth'
 
 export async function GET(req: NextRequest) {
   if (!await authenticate(req)) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-  const tags = await prisma.personaTag.findMany({ orderBy: [{ category: 'asc' }, { createdAt: 'asc' }] })
+  const scope = req.nextUrl.searchParams.get('scope') ?? undefined
+  const tags = await prisma.personaTag.findMany({
+    where: scope ? { scope } : undefined,
+    orderBy: [{ category: 'asc' }, { createdAt: 'asc' }],
+  })
   return NextResponse.json(tags)
 }

@@ -6,12 +6,16 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 interface TagEntry { id: string; name: string }
-interface PersonaTagEntry { id: string; name: string; category: string; gender: string }
+interface PersonaTagEntry { id: string; name: string; category: string; gender: string; scope: string }
 
-const PERSONA_CATEGORIES = ['관계', '성격', '외모'] as const
-const PERSONA_GENDERS = ['공통', '남', '여'] as const
+const CHAR_CATEGORIES = ['관계', '성격', '외모', '역할'] as const
+const PERSONA_CATEGORIES = ['관계', '성격', '외모', '역할'] as const
+const GENDERS = ['공통', '남', '여'] as const
+const GENDER_COLOR: Record<string, string> = { 공통: 'var(--ink-soft)', 남: '#6b9eff', 여: '#ff9eb5' }
 
 export default function AdminTagsPage() {
+  const [tab, setTab] = useState<'world' | 'persona' | 'character'>('world')
+
   const [tags, setTags] = useState<TagEntry[]>([])
   const [input, setInput] = useState('')
   const [bulkInput, setBulkInput] = useState('')
@@ -19,7 +23,7 @@ export default function AdminTagsPage() {
   const [error, setError] = useState('')
 
   const [personaTags, setPersonaTags] = useState<PersonaTagEntry[]>([])
-  const [ptForm, setPtForm] = useState({ name: '', category: '성격' as string, gender: '공통' as string })
+  const [ptForm, setPtForm] = useState({ name: '', category: '성격', gender: '공통', scope: 'persona' })
   const [ptBulkInput, setPtBulkInput] = useState('')
   const [showPtBulk, setShowPtBulk] = useState(false)
   const [ptError, setPtError] = useState('')
@@ -28,6 +32,11 @@ export default function AdminTagsPage() {
     api.get('/api/admin/tags').then(setTags).catch(() => {})
     api.get('/api/admin/persona-tags').then(setPersonaTags).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const defaultCat = tab === 'character' ? '성격' : '성격'
+    setPtForm(f => ({ ...f, scope: tab === 'character' ? 'character' : 'persona', category: defaultCat }))
+  }, [tab])
 
   const handleAdd = async () => {
     const name = input.trim()
@@ -66,7 +75,7 @@ export default function AdminTagsPage() {
     if (!name) return
     setPtError('')
     try {
-      const created = await api.post('/api/admin/persona-tags', { name, category: ptForm.category, gender: ptForm.gender })
+      const created = await api.post('/api/admin/persona-tags', ptForm)
       setPersonaTags(prev => [...prev, created])
       setPtForm(f => ({ ...f, name: '' }))
     } catch (e: any) { setPtError(e.message) }
@@ -79,7 +88,7 @@ export default function AdminTagsPage() {
     let skipped = 0
     for (const name of lines) {
       try {
-        const created = await api.post('/api/admin/persona-tags', { name, category: ptForm.category, gender: ptForm.gender })
+        const created = await api.post('/api/admin/persona-tags', { ...ptForm, name })
         setPersonaTags(prev => [...prev, created])
       } catch { skipped++ }
     }
@@ -93,8 +102,9 @@ export default function AdminTagsPage() {
     setPersonaTags(prev => prev.filter(t => t.id !== id))
   }
 
-  const GENDER_LABEL: Record<string, string> = { 공통: '공통', 남: '남', 여: '여' }
-  const GENDER_COLOR: Record<string, string> = { 공통: 'var(--ink-soft)', 남: '#6b9eff', 여: '#ff9eb5' }
+  const currentScope = tab === 'character' ? 'character' : 'persona'
+  const currentCategories = tab === 'character' ? CHAR_CATEGORIES : PERSONA_CATEGORIES
+  const scopedTags = personaTags.filter(t => t.scope === currentScope)
 
   return (
     <Win title="관리자 — 태그 관리" icon={PixelIcons.settings}>
@@ -103,12 +113,23 @@ export default function AdminTagsPage() {
           <AdminNav current="/admin/tags" />
         </div>
         <div className="scroll" style={{ flex: 1, minHeight: 0, padding: 4 }}>
-          <div className="vstack" style={{ gap: 20 }}>
+          <div className="vstack" style={{ gap: 12 }}>
 
-            {/* 세계관 태그 */}
-            <div className="vstack" style={{ gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700 }}>세계관 태그 (캐릭터용)</div>
-              <div className="vstack" style={{ gap: 6 }}>
+            {/* 탭 */}
+            <div className="hstack" style={{ gap: 4 }}>
+              {(['world', 'persona', 'character'] as const).map(t => (
+                <button
+                  key={t}
+                  className={`btn ${tab === t ? 'primary' : 'ghost'}`}
+                  style={{ fontSize: 11 }}
+                  onClick={() => setTab(t)}
+                >{t === 'world' ? '세계관 태그' : t === 'persona' ? '페르소나 태그' : '캐릭터 태그'}</button>
+              ))}
+            </div>
+
+            {tab === 'world' && (
+              <div className="vstack" style={{ gap: 8 }}>
+                <div className="tiny muted">캐릭터 선택 화면에서 세계관 필터링에 사용됩니다.</div>
                 <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
                   <input
                     className="field" style={{ flex: 1, minWidth: 120 }}
@@ -120,43 +141,35 @@ export default function AdminTagsPage() {
                   <button className="btn primary" onClick={handleAdd}>추가</button>
                   <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowBulk(s => !s)}>일괄</button>
                 </div>
-
                 {showBulk && (
                   <div className="vstack" style={{ gap: 6, padding: 8, background: 'var(--pane)', border: '1px solid var(--chrome-border)' }}>
-                    <textarea
-                      className="field" rows={6}
-                      placeholder={"태그를 한 줄에 하나씩 입력하세요\n예:\n판타지\nSF\n로맨스"}
-                      value={bulkInput} onChange={e => setBulkInput(e.target.value)}
-                    />
+                    <textarea className="field" rows={6} placeholder={"태그를 한 줄에 하나씩\n예:\n판타지\nSF\n로맨스"} value={bulkInput} onChange={e => setBulkInput(e.target.value)} />
                     <div className="hstack" style={{ gap: 4 }}>
                       <button className="btn primary" style={{ fontSize: 10 }} onClick={handleBulkAdd}>일괄 추가</button>
                       <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowBulk(false)}>취소</button>
                     </div>
                   </div>
                 )}
+                {error && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {error}</div>}
+                <div className="tiny muted">총 {tags.length}개</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {tags.map(t => (
+                    <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11 }}>
+                      <span>{t.name}</span>
+                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }} onClick={() => handleDelete(t.id)}>×</button>
+                    </div>
+                  ))}
+                  {tags.length === 0 && <div className="tiny muted">태그가 없습니다.</div>}
+                </div>
               </div>
+            )}
 
-              {error && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {error}</div>}
-              <div className="tiny muted">총 {tags.length}개</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {tags.map(t => (
-                  <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11 }}>
-                    <span>{t.name}</span>
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
-                      onClick={() => handleDelete(t.id)}>×</button>
-                  </div>
-                ))}
-                {tags.length === 0 && <div className="tiny muted">태그가 없습니다.</div>}
-              </div>
-            </div>
+            {(tab === 'persona' || tab === 'character') && (
+              <div className="vstack" style={{ gap: 8 }}>
+                <div className="tiny muted">
+                  {tab === 'persona' ? '페르소나 폼에서 관계/성격/외모/역할 칩으로 표시됩니다.' : '캐릭터 폼에서 관계/성격/외모/역할 칩으로 표시됩니다.'}
+                </div>
 
-            <div style={{ borderTop: '1.5px solid var(--chrome-border)' }} />
-
-            {/* 페르소나 태그 */}
-            <div className="vstack" style={{ gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700 }}>페르소나 태그 (관계/성격/외모)</div>
-
-              <div className="vstack" style={{ gap: 6 }}>
                 <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
                   <input
                     className="field" style={{ flex: 1, minWidth: 100 }}
@@ -166,10 +179,10 @@ export default function AdminTagsPage() {
                     onKeyDown={e => { if (e.key === 'Enter') handlePtAdd() }}
                   />
                   <select className="field" style={{ width: 72, fontSize: 11 }} value={ptForm.category} onChange={e => setPtForm(f => ({ ...f, category: e.target.value }))}>
-                    {PERSONA_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {currentCategories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <select className="field" style={{ width: 60, fontSize: 11 }} value={ptForm.gender} onChange={e => setPtForm(f => ({ ...f, gender: e.target.value }))}>
-                    {PERSONA_GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+                    {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                   <button className="btn primary" onClick={handlePtAdd}>추가</button>
                   <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowPtBulk(s => !s)}>일괄</button>
@@ -177,43 +190,38 @@ export default function AdminTagsPage() {
 
                 {showPtBulk && (
                   <div className="vstack" style={{ gap: 6, padding: 8, background: 'var(--pane)', border: '1px solid var(--chrome-border)' }}>
-                    <div className="tiny muted">현재 선택된 카테고리·성별로 일괄 추가됩니다: <b>{ptForm.category} / {ptForm.gender}</b></div>
-                    <textarea
-                      className="field" rows={6}
-                      placeholder={"태그를 한 줄에 하나씩 입력하세요\n예:\n햇살녀\n냉정남\n대형견남"}
-                      value={ptBulkInput} onChange={e => setPtBulkInput(e.target.value)}
-                    />
+                    <div className="tiny muted">현재 선택: <b>{ptForm.category} / {ptForm.gender}</b></div>
+                    <textarea className="field" rows={6} placeholder={"태그를 한 줄에 하나씩\n예:\n햇살녀\n냉정남\n대형견남"} value={ptBulkInput} onChange={e => setPtBulkInput(e.target.value)} />
                     <div className="hstack" style={{ gap: 4 }}>
                       <button className="btn primary" style={{ fontSize: 10 }} onClick={handlePtBulkAdd}>일괄 추가</button>
                       <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowPtBulk(false)}>취소</button>
                     </div>
                   </div>
                 )}
-              </div>
 
-              {ptError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {ptError}</div>}
+                {ptError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {ptError}</div>}
 
-              {PERSONA_CATEGORIES.map(cat => {
-                const catTags = personaTags.filter(t => t.category === cat)
-                if (catTags.length === 0) return null
-                return (
-                  <div key={cat} className="vstack" style={{ gap: 4 }}>
-                    <div className="tiny muted" style={{ fontWeight: 700 }}>{cat} ({catTags.length})</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                      {catTags.map(t => (
-                        <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11, borderRadius: 'var(--radius)' }}>
-                          <span style={{ fontSize: 9, color: GENDER_COLOR[t.gender] ?? 'var(--ink-soft)', fontWeight: 700 }}>{GENDER_LABEL[t.gender]}</span>
-                          <span>{t.name}</span>
-                          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
-                            onClick={() => handlePtDelete(t.id)}>×</button>
-                        </div>
-                      ))}
+                {currentCategories.map(cat => {
+                  const catTags = scopedTags.filter(t => t.category === cat)
+                  if (catTags.length === 0) return null
+                  return (
+                    <div key={cat} className="vstack" style={{ gap: 4 }}>
+                      <div className="tiny muted" style={{ fontWeight: 700 }}>{cat} ({catTags.length})</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                        {catTags.map(t => (
+                          <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11, borderRadius: 'var(--radius)' }}>
+                            <span style={{ fontSize: 9, color: GENDER_COLOR[t.gender] ?? 'var(--ink-soft)', fontWeight: 700 }}>{t.gender}</span>
+                            <span>{t.name}</span>
+                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }} onClick={() => handlePtDelete(t.id)}>×</button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-              {personaTags.length === 0 && <div className="tiny muted">페르소나 태그가 없습니다. 위에서 추가하세요.</div>}
-            </div>
+                  )
+                })}
+                {scopedTags.length === 0 && <div className="tiny muted">태그가 없습니다. 위에서 추가하세요.</div>}
+              </div>
+            )}
 
           </div>
         </div>

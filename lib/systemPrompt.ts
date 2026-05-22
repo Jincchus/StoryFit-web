@@ -71,8 +71,12 @@ export function buildSystemPrompt({
     parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
   }
 
-  // 4. Character system prompt + scenario description
-  parts.push(`[캐릭터 설정]\n${character.systemPrompt}`)
+  // 4. Character setting + scenario description
+  const charLines: string[] = [`이름: ${character.name}`]
+  if (character.gender) charLines.push(`성별: ${character.gender}`)
+  if (character.tags?.length) charLines.push(`태그: ${character.tags.join(', ')}`)
+  if (character.additionalInfo?.trim()) charLines.push(character.additionalInfo.trim())
+  parts.push(`[캐릭터 설정]\n${charLines.join('\n')}`)
   if (scenarioDescription?.trim()) {
     parts.push(`[시나리오 배경]\n${scenarioDescription}`)
   }
@@ -137,7 +141,11 @@ export function buildNovelSystemPrompt({
   if (statusTimeline?.trim()) {
     parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
   }
-  parts.push(`[${characterName} 설정]\n${character.systemPrompt}`)
+  const charLines2: string[] = [`이름: ${character.name}`]
+  if (character.gender) charLines2.push(`성별: ${character.gender}`)
+  if (character.tags?.length) charLines2.push(`태그: ${character.tags.join(', ')}`)
+  if (character.additionalInfo?.trim()) charLines2.push(character.additionalInfo.trim())
+  parts.push(`[${characterName} 설정]\n${charLines2.join('\n')}`)
   if (scenarioDescription?.trim()) {
     parts.push(`[시나리오 배경]\n${scenarioDescription}`)
   }

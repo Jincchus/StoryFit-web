@@ -7,32 +7,49 @@ import Toast from '@/components/ui/Toast'
 
 export interface CharFormData {
   name: string
-  title: string
   gender: string
-  description: string
-  systemPrompt: string
-  exampleDialogues: string
   avatarUrl: string
+  tags: string[]
+  additionalInfo: string
+  exampleDialogues: string
 }
 
 interface CharacterFormProps {
   form: CharFormData
   onChange: <K extends keyof CharFormData>(key: K, val: CharFormData[K]) => void
-  onDraftPrompt: () => Promise<void>
-  drafting: boolean
-  toast: string
-  onToastDone: () => void
+  toast?: string
+  onToastDone?: () => void
 }
 
 type NameEntry = { name: string; category: string; gender: string }
+interface TagEntry { id: string; name: string; category: string; gender: string; scope: string }
 
-export default function CharacterForm({ form, onChange, onDraftPrompt, drafting, toast, onToastDone }: CharacterFormProps) {
+const CATEGORIES = ['관계', '성격', '외모', '역할'] as const
+type Category = typeof CATEGORIES[number]
+
+function visibleTags(tags: TagEntry[], category: Category, gender: string): TagEntry[] {
+  return tags.filter(t => {
+    if (t.category !== category) return false
+    if (!gender || gender === '기타') return true
+    return t.gender === '공통' || t.gender === (gender === '남성' ? '남' : '여')
+  })
+}
+
+export default function CharacterForm({ form, onChange, toast, onToastDone }: CharacterFormProps) {
   const [namePool, setNamePool] = useState<NameEntry[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
+  const [charTags, setCharTags] = useState<TagEntry[]>([])
+  const [customInputs, setCustomInputs] = useState<Record<Category, string>>({ 관계: '', 성격: '', 외모: '', 역할: '' })
+  const [showDialogues, setShowDialogues] = useState(!!form.exampleDialogues)
 
   useEffect(() => {
     fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
+    api.get('/api/persona-tags?scope=character').then(setCharTags).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (form.exampleDialogues) setShowDialogues(true)
+  }, [form.exampleDialogues])
 
   const rollName = () => {
     const pool = nameCat === 'all' ? namePool : namePool.filter(n => n.category === nameCat)
@@ -45,10 +62,26 @@ export default function CharacterForm({ form, onChange, onDraftPrompt, drafting,
     }
   }
 
+  const toggleTag = (name: string) => {
+    const next = form.tags.includes(name)
+      ? form.tags.filter(t => t !== name)
+      : [...form.tags, name]
+    onChange('tags', next)
+  }
+
+  const addCustomTag = (cat: Category) => {
+    const val = customInputs[cat].trim()
+    if (!val || form.tags.includes(val)) return
+    onChange('tags', [...form.tags, val])
+    setCustomInputs(c => ({ ...c, [cat]: '' }))
+  }
+
   return (
     <>
-      {toast && <Toast message={toast} onDone={onToastDone} />}
-      <div className="vstack" style={{ gap: 12 }}>
+      {toast && <Toast message={toast} onDone={onToastDone ?? (() => {})} />}
+      <div className="vstack" style={{ gap: 14 }}>
+
+        {/* 기본 정보 */}
         <div className="form-section">
           <div className="form-section-title">기본 정보</div>
           <div className="form-grid">
@@ -56,47 +89,32 @@ export default function CharacterForm({ form, onChange, onDraftPrompt, drafting,
               <label className="label">이름 *</label>
               <div className="hstack" style={{ gap: 5 }}>
                 <input
-                  className="field"
-                  style={{ flex: 1 }}
+                  className="field" style={{ flex: 1 }}
                   placeholder="캐릭터 이름"
                   value={form.name}
                   onChange={e => onChange('name', e.target.value)}
                 />
                 {(['all', 'korean', 'western'] as const).map(c => (
-                  <button
-                    key={c}
-                    type="button"
+                  <button key={c} type="button"
                     className={`btn ${nameCat === c ? 'primary' : 'ghost'}`}
                     style={{ fontSize: 9, padding: '3px 5px', flexShrink: 0 }}
                     onClick={() => setNameCat(c)}
-                  >
-                    {c === 'all' ? '전체' : c === 'korean' ? '한국' : '서양'}
-                  </button>
+                  >{c === 'all' ? '전체' : c === 'korean' ? '한국' : '서양'}</button>
                 ))}
-                <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={rollName}>
-                  🎲
-                </button>
+                <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', flexShrink: 0 }} onClick={rollName}>🎲</button>
               </div>
             </div>
             <div>
-              <label className="label">한 줄 설명 (직함)</label>
-              <input className="field" placeholder="예: 별빛 마법사, 저택의 메이드" value={form.title} onChange={e => onChange('title', e.target.value)} />
+              <label className="label">성별</label>
+              <div className="hstack" style={{ gap: 10 }}>
+                {['', '남성', '여성', '기타'].map(g => (
+                  <label key={g} className="hstack" style={{ gap: 4, cursor: 'pointer', fontSize: 11 }}>
+                    <input type="radio" name="char-gender" value={g} checked={form.gender === g} onChange={() => onChange('gender', g)} />
+                    {g || '미설정'}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="label">성별</label>
-            <div className="hstack" style={{ gap: 10 }}>
-              {['', '남성', '여성', '기타'].map(g => (
-                <label key={g} className="hstack" style={{ gap: 4, cursor: 'pointer', fontSize: 11 }}>
-                  <input type="radio" name="char-gender" value={g} checked={form.gender === g} onChange={() => onChange('gender', g)} />
-                  {g || '미설정'}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="label">캐릭터 설명</label>
-            <textarea className="field" rows={2} placeholder="외모, 성격, 배경을 간략하게 적어주세요" value={form.description} onChange={e => onChange('description', e.target.value)} />
           </div>
           <div>
             <label className="label">아바타 이미지</label>
@@ -104,44 +122,91 @@ export default function CharacterForm({ form, onChange, onDraftPrompt, drafting,
           </div>
         </div>
 
+        {/* 태그 */}
         <div className="form-section">
-          <div className="form-section-title">AI 지시 설정</div>
-          <div>
-            <div className="spread" style={{ alignItems: 'center', marginBottom: 4 }}>
-              <label className="label" style={{ margin: 0 }}>
-                시스템 프롬프트 * <span className="tiny muted">(AI에게 전달되는 캐릭터 지시문)</span>
-              </label>
-              <button
-                type="button"
-                className="btn ghost"
-                style={{ fontSize: 10, padding: '2px 8px', flexShrink: 0 }}
-                disabled={!form.name.trim() || drafting}
-                onClick={onDraftPrompt}
-              >
-                {drafting ? '생성 중...' : '✨ 자동 초안'}
-              </button>
+          <div className="form-section-title">태그</div>
+          {CATEGORIES.map(cat => {
+            const available = visibleTags(charTags, cat, form.gender)
+            return (
+              <div key={cat}>
+                <label className="label">{cat}</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 5 }}>
+                  {available.map(t => {
+                    const selected = form.tags.includes(t.name)
+                    return (
+                      <button key={t.id} type="button" onClick={() => toggleTag(t.name)}
+                        style={{
+                          padding: '3px 9px', fontSize: 11, borderRadius: 20,
+                          border: `1.5px solid ${selected ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
+                          background: selected ? 'var(--hot-pink)' : 'var(--chrome-face)',
+                          color: selected ? '#fff' : 'var(--ink)',
+                          cursor: 'pointer',
+                        }}
+                      >{t.name}</button>
+                    )
+                  })}
+                  {available.length === 0 && <div className="tiny muted">등록된 태그 없음 (어드민에서 추가)</div>}
+                </div>
+                <div className="hstack" style={{ gap: 4 }}>
+                  <input
+                    className="field" style={{ flex: 1, fontSize: 11 }}
+                    placeholder={`${cat} 직접 입력 후 Enter`}
+                    value={customInputs[cat]}
+                    onChange={e => setCustomInputs(c => ({ ...c, [cat]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(cat) } }}
+                  />
+                  <button className="btn ghost" style={{ fontSize: 10, padding: '2px 7px' }} onClick={() => addCustomTag(cat)}>추가</button>
+                </div>
+              </div>
+            )
+          })}
+
+          {form.tags.length > 0 && (
+            <div>
+              <label className="label">선택된 태그</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {form.tags.map(t => (
+                  <span key={t} style={{ padding: '2px 8px', fontSize: 11, borderRadius: 20, background: 'var(--lavender)', border: '1px solid var(--chrome-border)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {t}
+                    <button type="button" onClick={() => onChange('tags', form.tags.filter(x => x !== t))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+                  </span>
+                ))}
+              </div>
             </div>
-            <textarea
-              className="field"
-              rows={4}
-              placeholder={drafting ? '✨ 초안 생성 중...' : '당신은 [이름]입니다. [성격, 말투, 행동 규칙 등을 구체적으로 서술하세요]'}
-              value={form.systemPrompt}
-              onChange={e => onChange('systemPrompt', e.target.value)}
-              disabled={drafting}
-              style={drafting ? { opacity: 0.5, cursor: 'wait' } : undefined}
-            />
+          )}
+        </div>
+
+        {/* 추가 정보 */}
+        <div className="form-section">
+          <div className="form-section-title">추가 정보</div>
+          <textarea
+            className="field" rows={3}
+            placeholder={"태그 외 세부 설정을 자유롭게 적어주세요\n예: 왼손잡이다. 절대 반말을 쓰지 않는다. 고어체를 사용한다."}
+            value={form.additionalInfo}
+            onChange={e => onChange('additionalInfo', e.target.value)}
+          />
+        </div>
+
+        {/* 예시 대화 (퓨샷) */}
+        <div className="form-section">
+          <div className="spread" style={{ alignItems: 'center' }}>
+            <div className="form-section-title" style={{ marginBottom: 0 }}>예시 대화 <span className="tiny muted">(말투 고정용, 선택)</span></div>
+            <button type="button" className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowDialogues(s => !s)}>
+              {showDialogues ? '접기' : '펼치기'}
+            </button>
           </div>
-          <div>
-            <label className="label">예시 대화 <span className="tiny muted">(2~3개 few-shot, 말투 고정용)</span></label>
+          {showDialogues && (
             <textarea
-              className="field"
-              rows={4}
-              placeholder={"유저: 안녕?\n[이름]: *수줍게 웃으며* \"오랜만이야.\""}
+              className="field" rows={5}
+              placeholder={"유저: 안녕?\n[이름]: *수줍게 웃으며* \"오랜만이야.\"\n\n유저: 요즘 어때?\n[이름]: \"...딱히 특별한 일은 없어.\""}
               value={form.exampleDialogues}
               onChange={e => onChange('exampleDialogues', e.target.value)}
+              style={{ marginTop: 6 }}
             />
-          </div>
+          )}
         </div>
+
       </div>
     </>
   )
