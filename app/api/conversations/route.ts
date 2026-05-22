@@ -40,6 +40,9 @@ export async function POST(req: NextRequest) {
       currentAI: body.currentAI ?? 'gemini',
       userPersonaId: body.userPersonaId ?? null,
       scenarioDescription: body.scenarioDescription ?? '',
+      temperature: body.temperature ?? 0.9,
+      frequencyPenalty: body.frequencyPenalty ?? 0.3,
+      safetyLevel: body.safetyLevel ?? 'standard',
       characters: {
         create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),
       },

@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
-import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
-import type { AIProvider, Character } from '@/types'
+import ParamTooltip from '@/components/ui/ParamTooltip'
+import type { Character } from '@/types'
 
 interface Persona { id: string; name: string; description: string; additionalInfo: string }
 
@@ -20,6 +20,11 @@ export default function NewConversationPage() {
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'roleplay' | 'novel' | 'tikiTaka'>('roleplay')
   const [scenarioDescription, setScenarioDescription] = useState('')
+  const [charOpen, setCharOpen] = useState(false)
+  const [personaOpen, setPersonaOpen] = useState(false)
+  const [safetyLevel, setSafetyLevel] = useState<'strict' | 'standard' | 'relaxed'>('standard')
+  const [temperature, setTemperature] = useState(0.9)
+  const [frequencyPenalty, setFrequencyPenalty] = useState(0.3)
   const startingRef = useRef(false)
 
   useEffect(() => {
@@ -28,15 +33,24 @@ export default function NewConversationPage() {
       setAllChars(chars)
       if (draft.charId) {
         const found = chars.find(c => c.id === draft.charId) ?? null
-        if (found) { setChar(found); setTikiChars([found]) }
+        if (found) {
+          setChar(found)
+          setTikiChars([found])
+          setSafetyLevel(found.safetyLevel ?? 'standard')
+          setTemperature(found.temperature ?? 0.9)
+          setFrequencyPenalty(found.frequencyPenalty ?? 0.3)
+        }
       }
     }).catch(() => {})
   }, [draft.charId])
 
-  const selectChar = (id: string) => {
-    const found = allChars.find(c => c.id === id) ?? null
-    setChar(found)
-    setTikiChars(found ? [found] : [])
+  const selectChar = (c: Character) => {
+    setChar(c)
+    setTikiChars([c])
+    setSafetyLevel(c.safetyLevel ?? 'standard')
+    setTemperature(c.temperature ?? 0.9)
+    setFrequencyPenalty(c.frequencyPenalty ?? 0.3)
+    setCharOpen(false)
   }
 
   const toggleTikiChar = (c: Character) => {
@@ -53,9 +67,7 @@ export default function NewConversationPage() {
     setLoading(true)
     startingRef.current = true
     try {
-      const characterIds = mode === 'tikiTaka'
-        ? tikiChars.map(c => c.id)
-        : [char.id]
+      const characterIds = mode === 'tikiTaka' ? tikiChars.map(c => c.id) : [char.id]
       const conv = await api.post('/api/conversations', {
         characterIds,
         title: mode === 'tikiTaka'
@@ -65,6 +77,9 @@ export default function NewConversationPage() {
         userPersonaId: draft.personaId ?? null,
         mode,
         scenarioDescription,
+        safetyLevel,
+        temperature,
+        frequencyPenalty,
       })
       router.push(`/conversations/${conv.id}`)
       dispatch({ type: 'resetDraft' })
@@ -72,6 +87,8 @@ export default function NewConversationPage() {
       setLoading(false)
     }
   }
+
+  const selectedPersona = personas.find(p => p.id === draft.personaId)
 
   return (
     <Win title="새 대화 설정 (New Conversation)" icon={PixelIcons.chat}>
@@ -95,31 +112,8 @@ export default function NewConversationPage() {
 
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           <div className="new-conv-grid">
-            <section className="new-conv-section">
-              <div className="label">캐릭터 선택</div>
-              <div className="hstack" style={{ gap: 8, alignItems: 'center' }}>
-                {char && (
-                  <div className="thumb" style={{ width: 36, height: 36, flexShrink: 0 }}>
-                    {char.avatarUrl
-                      ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                      : <PixelAvatar kind={char.kind} size={36} />
-                    }
-                  </div>
-                )}
-                <select
-                  className="field"
-                  style={{ flex: 1 }}
-                  value={char?.id ?? ''}
-                  onChange={e => selectChar(e.target.value)}
-                >
-                  <option value="">— 캐릭터를 선택하세요 —</option>
-                  {allChars.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}{c.title ? ` · ${c.title}` : ''}</option>
-                  ))}
-                </select>
-              </div>
-            </section>
 
+            {/* 1. 대화 모드 */}
             <section className="new-conv-section">
               <div className="label">대화 모드</div>
               <div className="hstack" style={{ gap: 8 }}>
@@ -139,6 +133,67 @@ export default function NewConversationPage() {
                 {mode === 'novel' && '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
                 {mode === 'tikiTaka' && '여러 캐릭터가 순서대로 번갈아 응답합니다 — 아래에서 참여 캐릭터를 선택하세요'}
               </div>
+            </section>
+
+            {/* 2. 배경 */}
+            <section className="new-conv-section">
+              <div className="label">시나리오 배경 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
+              <textarea
+                className="field" rows={3}
+                placeholder={"이 대화의 세계관·배경을 설정하세요\n예: 마법 학원 천문대, 루나는 오늘 밤 예언을 완성해야 한다."}
+                value={scenarioDescription}
+                onChange={e => setScenarioDescription(e.target.value)}
+              />
+            </section>
+
+            {/* 3. 캐릭터 선택 */}
+            <section className="new-conv-section">
+              <div className="label">캐릭터 선택</div>
+              <div
+                className={`persona-option ${char ? 'selected' : ''}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setCharOpen(o => !o)}
+              >
+                {char ? (
+                  <>
+                    <div className="thumb" style={{ width: 32, height: 32 }}>
+                      {char.avatarUrl
+                        ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                        : <PixelAvatar kind={char.kind} size={32} />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 11 }}>{char.name}</div>
+                      <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.title}</div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="tiny muted" style={{ flex: 1 }}>— 캐릭터를 선택하세요 —</div>
+                )}
+                <span style={{ fontSize: 9, color: 'var(--ink-soft)', flexShrink: 0 }}>{charOpen ? '▲' : '▼'}</span>
+              </div>
+              {charOpen && (
+                <div style={{ border: '1px solid var(--chrome-border)', background: 'var(--win-bg)', marginTop: 2, maxHeight: 200, overflowY: 'auto' }}>
+                  {allChars.map(c => (
+                    <div
+                      key={c.id}
+                      className={`persona-option ${char?.id === c.id ? 'selected' : ''}`}
+                      style={{ cursor: 'pointer', borderRadius: 0, borderBottom: '1px solid var(--chrome-border)' }}
+                      onClick={() => selectChar(c)}
+                    >
+                      <div className="thumb" style={{ width: 28, height: 28 }}>
+                        {c.avatarUrl
+                          ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                          : <PixelAvatar kind={c.kind} size={28} />}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
+                        <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
+                      </div>
+                      {char?.id === c.id && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             {mode === 'tikiTaka' && (
@@ -163,8 +218,7 @@ export default function NewConversationPage() {
                         <div className="thumb" style={{ width: 28, height: 28 }}>
                           {c.avatarUrl
                             ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                            : <PixelAvatar kind={c.kind} size={28} />
-                          }
+                            : <PixelAvatar kind={c.kind} size={28} />}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 11 }}>
@@ -181,67 +235,109 @@ export default function NewConversationPage() {
               </section>
             )}
 
-            <section className="new-conv-section">
-              <div className="label">시나리오 배경 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
-              <textarea
-                className="field" rows={3}
-                placeholder={"이 대화의 세계관·배경을 설정하세요\n예: 마법 학원 천문대, 루나는 오늘 밤 예언을 완성해야 한다."}
-                value={scenarioDescription}
-                onChange={e => setScenarioDescription(e.target.value)}
-              />
-            </section>
-
+            {/* 4. 페르소나 */}
             <section className="new-conv-section">
               <div className="label">내 페르소나 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
-              <div className="vstack" style={{ gap: 6 }}>
-                <div
-                  className={`persona-option ${!draft.personaId ? 'selected' : ''}`}
-                  onClick={() => dispatch({ type: 'selectPersona', id: null })}
-                >
-                  <div className="thumb" style={{ width: 32, height: 32 }}><PixelAvatar kind="player" size={32} /></div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 11 }}>페르소나 없음</div>
-                    <div className="tiny muted">기본 유저로 대화</div>
+              <div
+                className="persona-option"
+                style={{ cursor: 'pointer' }}
+                onClick={() => setPersonaOpen(o => !o)}
+              >
+                <div className="thumb" style={{ width: 32, height: 32, background: selectedPersona ? 'var(--lavender)' : undefined, display: 'grid', placeItems: 'center' }}>
+                  <PixelAvatar kind="player" size={28} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 11 }}>{selectedPersona ? selectedPersona.name : '페르소나 없음'}</div>
+                  <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedPersona ? selectedPersona.description : '기본 유저로 대화'}
                   </div>
                 </div>
-                {personas.map(p => (
+                <span style={{ fontSize: 9, color: 'var(--ink-soft)', flexShrink: 0 }}>{personaOpen ? '▲' : '▼'}</span>
+              </div>
+              {personaOpen && (
+                <div style={{ border: '1px solid var(--chrome-border)', background: 'var(--win-bg)', marginTop: 2, maxHeight: 200, overflowY: 'auto' }}>
                   <div
-                    key={p.id}
-                    className={`persona-option ${draft.personaId === p.id ? 'selected' : ''}`}
-                    onClick={() => dispatch({ type: 'selectPersona', id: p.id })}
+                    className={`persona-option ${!draft.personaId ? 'selected' : ''}`}
+                    style={{ cursor: 'pointer', borderRadius: 0, borderBottom: '1px solid var(--chrome-border)' }}
+                    onClick={() => { dispatch({ type: 'selectPersona', id: null }); setPersonaOpen(false) }}
                   >
-                    <div className="thumb" style={{ width: 32, height: 32, background: 'var(--lavender)', display: 'grid', placeItems: 'center' }}>
-                      <PixelAvatar kind="player" size={28} />
+                    <div className="thumb" style={{ width: 28, height: 28, display: 'grid', placeItems: 'center' }}>
+                      <PixelAvatar kind="player" size={24} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 11 }}>{p.name}</div>
-                      <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>
+                      <div style={{ fontWeight: 700, fontSize: 11 }}>페르소나 없음</div>
+                      <div className="tiny muted">기본 유저로 대화</div>
                     </div>
+                    {!draft.personaId && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
                   </div>
-                ))}
-                <button className="btn ghost" style={{ fontSize: 10, padding: '4px 8px', alignSelf: 'flex-start' }} onClick={() => router.push('/personas')}>
-                  + 페르소나 관리
-                </button>
+                  {personas.map(p => (
+                    <div
+                      key={p.id}
+                      className={`persona-option ${draft.personaId === p.id ? 'selected' : ''}`}
+                      style={{ cursor: 'pointer', borderRadius: 0, borderBottom: '1px solid var(--chrome-border)' }}
+                      onClick={() => { dispatch({ type: 'selectPersona', id: p.id }); setPersonaOpen(false) }}
+                    >
+                      <div className="thumb" style={{ width: 28, height: 28, background: 'var(--lavender)', display: 'grid', placeItems: 'center' }}>
+                        <PixelAvatar kind="player" size={24} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 11 }}>{p.name}</div>
+                        <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>
+                      </div>
+                      {draft.personaId === p.id && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                className="btn ghost"
+                style={{ fontSize: 10, padding: '4px 8px', alignSelf: 'flex-start', marginTop: 4 }}
+                onClick={() => router.push('/personas')}
+              >
+                + 페르소나 관리
+              </button>
+            </section>
+
+            {/* 5. AI 설정 */}
+            <section className="new-conv-section">
+              <div className="label">AI 설정</div>
+              {/*
+              AI 모델 선택 — 현재 Gemini 2.5 Pro 고정, v2에서 활성화
+              {AI_MODELS.map(m => (
+                <div key={m.id} ...>{m.name}</div>
+              ))}
+              */}
+              <div className="form-grid">
+                <div>
+                  <label className="label">
+                    안전 수준
+                    <ParamTooltip text={"AI가 민감한 내용을 얼마나 차단할지 결정합니다.\n\n엄격: 폭력·성인 표현 거의 차단\n표준: 일반적인 수준으로 차단 (기본값)\n완화: 성숙한 표현 일부 허용"} />
+                  </label>
+                  <select className="field" value={safetyLevel} onChange={e => setSafetyLevel(e.target.value as 'strict' | 'standard' | 'relaxed')}>
+                    <option value="strict">엄격 (Strict)</option>
+                    <option value="standard">표준 (Standard)</option>
+                    <option value="relaxed">완화 (Relaxed)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-grid" style={{ marginTop: 8 }}>
+                <div>
+                  <label className="label">
+                    창의성: {temperature.toFixed(1)}
+                    <ParamTooltip text={"AI 답변의 창의성·무작위성을 조절합니다.\n\n낮을수록 (0~0.5): 일관되고 예측 가능한 답변\n보통 (0.7~1.0): 자연스럽고 다양한 표현 (추천)\n높을수록 (1.5~2.0): 창의적이지만 가끔 엉뚱한 답변"} />
+                  </label>
+                  <input type="range" className="param-slider" min={0} max={2} step={0.1} value={temperature} onChange={e => setTemperature(parseFloat(e.target.value))} />
+                </div>
+                <div>
+                  <label className="label">
+                    반복 억제: {frequencyPenalty.toFixed(2)}
+                    <ParamTooltip text={"같은 단어나 표현이 반복되는 것을 억제합니다.\n\n낮을수록 (0~0.2): 반복 허용, 일관된 말투 유지\n보통 (0.3~0.5): 적당한 억제 (추천)\n높을수록 (0.8~): 다양한 어휘 사용, 말투 변할 수 있음"} />
+                  </label>
+                  <input type="range" className="param-slider" min={0} max={2} step={0.05} value={frequencyPenalty} onChange={e => setFrequencyPenalty(parseFloat(e.target.value))} />
+                </div>
               </div>
             </section>
 
-            <section className="new-conv-section">
-              <div className="label">AI 모델</div>
-              <div className="vstack" style={{ gap: 6 }}>
-                {AI_MODELS.map(m => (
-                  <div
-                    key={m.id}
-                    className={`ai-model-option ${draft.modelId === m.id ? 'selected' : ''} ${m.disabled ? 'disabled' : ''}`}
-                    onClick={() => { if (!m.disabled) dispatch({ type: 'selectModel', id: m.id as AIProvider }) }}
-                  >
-                    <span className="dot" style={{ width: 8, height: 8, borderRadius: 0, flexShrink: 0, background: m.id === 'chatgpt' ? '#a3e0ff' : m.id === 'gemini' ? '#c9b6ff' : '#b8f5d2', border: '1px solid var(--chrome-border)' }} />
-                    <span style={{ flex: 1, fontWeight: 700, fontSize: 11 }}>{m.name}</span>
-                    {m.disabled && <span className="tiny muted">v2에서 추가</span>}
-                    {draft.modelId === m.id && !m.disabled && <span style={{ color: 'var(--hot-pink)' }}>✓</span>}
-                  </div>
-                ))}
-              </div>
-            </section>
           </div>
         </div>
       </div>

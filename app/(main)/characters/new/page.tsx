@@ -6,15 +6,10 @@ import { DEFAULT_TAGS, RANDOM_NAMES } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AvatarPicker from '@/components/ui/AvatarPicker'
-import ParamTooltip from '@/components/ui/ParamTooltip'
-import type { SafetyLevel, AIProvider } from '@/types'
-
 interface CharForm {
   name: string; title: string; gender: string; description: string
   systemPrompt: string; exampleDialogues: string
   avatarUrl: string; tags: string[]
-  safetyLevel: SafetyLevel; defaultAI: AIProvider
-  temperature: number; frequencyPenalty: number; presencePenalty: number
 }
 
 export default function CharacterNewPage() {
@@ -28,8 +23,6 @@ export default function CharacterNewPage() {
     name: '', title: '', gender: '', description: '',
     systemPrompt: '', exampleDialogues: '',
     avatarUrl: '', tags: [],
-    safetyLevel: 'standard', defaultAI: 'gemini',
-    temperature: 0.9, frequencyPenalty: 0.3, presencePenalty: 0.3,
   })
   const [tagInput, setTagInput] = useState('')
 
@@ -183,46 +176,6 @@ export default function CharacterNewPage() {
               )}
             </div>
 
-            <div className="form-section">
-              <div className="form-section-title">AI 파라미터</div>
-              <div className="form-grid">
-                <div>
-                  <label className="label">
-                    안전 수준
-                    <ParamTooltip text={"AI가 민감한 내용을 얼마나 차단할지 결정합니다.\n\n엄격: 폭력·성인 표현 거의 차단\n표준: 일반적인 수준으로 차단 (기본값)\n완화: 성숙한 표현 일부 허용"} />
-                  </label>
-                  <select className="field" value={form.safetyLevel} onChange={e => set('safetyLevel', e.target.value as SafetyLevel)}>
-                    <option value="strict">엄격 (Strict)</option>
-                    <option value="standard">표준 (Standard)</option>
-                    <option value="relaxed">완화 (Relaxed)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">기본 AI</label>
-                  <select className="field" value={form.defaultAI} onChange={e => set('defaultAI', e.target.value as AIProvider)}>
-                    <option value="gemini">Gemini 2.5 Flash</option>
-                    <option value="claude" disabled>Claude (준비 중)</option>
-                    <option value="chatgpt" disabled>GPT-4o (준비 중)</option>
-                  </select>
-                </div>
-              </div>
-              <div className="form-grid" style={{ marginTop: 8 }}>
-                <div>
-                  <label className="label">
-                    창의성: {form.temperature.toFixed(1)}
-                    <ParamTooltip text={"AI 답변의 창의성·무작위성을 조절합니다.\n\n낮을수록 (0~0.5): 일관되고 예측 가능한 답변\n보통 (0.7~1.0): 자연스럽고 다양한 표현 (추천)\n높을수록 (1.5~2.0): 창의적이지만 가끔 엉뚱한 답변"} />
-                  </label>
-                  <input type="range" className="param-slider" min={0} max={2} step={0.1} value={form.temperature} onChange={e => set('temperature', parseFloat(e.target.value))} />
-                </div>
-                <div>
-                  <label className="label">
-                    반복 억제: {form.frequencyPenalty.toFixed(2)}
-                    <ParamTooltip text={"같은 단어나 표현이 반복되는 것을 억제합니다.\n\n낮을수록 (0~0.2): 반복 허용, 일관된 말투 유지\n보통 (0.3~0.5): 적당한 억제 (추천)\n높을수록 (0.8~): 다양한 어휘 사용, 말투 변할 수 있음"} />
-                  </label>
-                  <input type="range" className="param-slider" min={0} max={2} step={0.05} value={form.frequencyPenalty} onChange={e => set('frequencyPenalty', parseFloat(e.target.value))} />
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

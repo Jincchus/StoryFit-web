@@ -45,6 +45,15 @@ export default function Dock() {
       <div ref={startRef} style={{ position: 'relative' }}>
         {showStart && (
           <div className="start-menu">
+            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/chatlist') }}>
+              💬 채팅 목록
+            </button>
+            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/conversations/new') }}>
+              ✦ 새 대화
+            </button>
+            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/characters') }}>
+              🎭 캐릭터
+            </button>
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/personas') }}>
               👤 내 페르소나
             </button>

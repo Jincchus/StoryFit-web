@@ -121,9 +121,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             provider: conv.currentAI as 'gemini',
             systemPrompt,
             messages: history,
-            temperature: character.temperature,
-            frequencyPenalty: character.frequencyPenalty,
-            safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
+            temperature: conv.temperature,
+            frequencyPenalty: conv.frequencyPenalty,
+            safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
           },
           chunk => {
             fullText += chunk
@@ -235,9 +235,9 @@ async function streamTikiTaka({
               provider: conv.currentAI as 'gemini',
               systemPrompt: tSystemPrompt,
               messages,
-              temperature: tChar.temperature,
-              frequencyPenalty: tChar.frequencyPenalty,
-              safetyLevel: tChar.safetyLevel as 'strict' | 'standard' | 'relaxed',
+              temperature: conv.temperature,
+              frequencyPenalty: conv.frequencyPenalty,
+              safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
             },
             chunk => {
               charText += chunk
