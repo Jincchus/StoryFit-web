@@ -99,7 +99,7 @@ export default function NewConversationPage() {
               <div className="label">캐릭터 선택</div>
               <div className="hstack" style={{ gap: 8, alignItems: 'center' }}>
                 {char && (
-                  <div className="thumb" style={{ flexShrink: 0 }}>
+                  <div className="thumb" style={{ width: 36, height: 36, flexShrink: 0 }}>
                     {char.avatarUrl
                       ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                       : <PixelAvatar kind={char.kind} size={36} />
