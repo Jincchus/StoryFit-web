@@ -62,7 +62,16 @@ export function parseBlocks(text: string): Block[] {
     flushNarration()
   }
 
-  return blocks
+  const merged: Block[] = []
+  for (const block of blocks) {
+    const last = merged[merged.length - 1]
+    if (block.type === 'narration' && last?.type === 'narration') {
+      last.text += '\n' + block.text
+    } else {
+      merged.push(block)
+    }
+  }
+  return merged
 }
 
 const SPEAKER_RE = /^(.{1,20}?)\s*:\s*(.+)$/
