@@ -34,7 +34,7 @@ export default function Dock() {
     router.replace('/login')
   }
 
-  const isHome = pathname === '/'
+  const isHome = pathname === '/' || pathname === '/chatlist'
   const isChat = pathname.startsWith('/conversations/') && pathname !== '/conversations/new'
   const isNewConv = pathname === '/characters' || pathname === '/conversations/new'
   const isCharCreate = pathname === '/characters/new'

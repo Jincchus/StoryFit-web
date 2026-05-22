@@ -7,6 +7,7 @@ import { getAccessToken } from '@/lib/authClient'
 
 const SCREEN_LABELS: Record<string, string> = {
   '/': '홈',
+  '/chatlist': '채팅 목록',
   '/characters': '캐릭터 선택',
   '/characters/new': '캐릭터 만들기',
   '/personas': '내 페르소나',
