@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
     signRefreshToken(user.id),
   ])
 
-  const res = NextResponse.json({ accessToken, userId: user.id, isAdmin: user.isAdmin })
+  const res = NextResponse.json({ userId: user.id, isAdmin: user.isAdmin })
+  res.cookies.set('accessToken', accessToken, { httpOnly: true, sameSite: 'strict', maxAge: 60 * 60 })
   res.cookies.set('refreshToken', refreshToken, { httpOnly: true, sameSite: 'strict', maxAge: 60 * 60 * 24 * 30 })
   return res
 }

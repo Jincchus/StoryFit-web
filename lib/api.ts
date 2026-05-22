@@ -1,20 +1,11 @@
-import { getAccessToken, setAccessToken, clearAccessToken } from './authClient'
+import { clearAccessToken } from './authClient'
 
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken()
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }
-}
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
 async function tryRefresh(): Promise<boolean> {
   try {
-    const res = await fetch('/api/auth/refresh', { method: 'POST' })
-    if (!res.ok) return false
-    const data = await res.json()
-    setAccessToken(data.accessToken)
-    return true
+    const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
+    return res.ok
   } catch {
     return false
   }
@@ -23,7 +14,8 @@ async function tryRefresh(): Promise<boolean> {
 async function apiFetch(path: string, options?: RequestInit, isRetry = false): Promise<Response> {
   const res = await fetch(path, {
     ...options,
-    headers: { ...authHeaders(), ...(options?.headers as Record<string, string> ?? {}) },
+    credentials: 'include',
+    headers: { ...JSON_HEADERS, ...(options?.headers as Record<string, string> ?? {}) },
   })
   if (res.status === 401 && !isRetry) {
     const refreshed = await tryRefresh()
@@ -49,7 +41,8 @@ export const api = {
   async streamChat(convId: string, content: string, signal: AbortSignal) {
     const res = await fetch(`/api/conversations/${convId}/chat`, {
       method: 'POST',
-      headers: authHeaders(),
+      headers: JSON_HEADERS,
+      credentials: 'include',
       body: JSON.stringify({ content }),
       signal,
     })
@@ -58,7 +51,8 @@ export const api = {
       if (refreshed) {
         return fetch(`/api/conversations/${convId}/chat`, {
           method: 'POST',
-          headers: authHeaders(),
+          headers: JSON_HEADERS,
+          credentials: 'include',
           body: JSON.stringify({ content }),
           signal,
         })
@@ -72,7 +66,8 @@ export const api = {
   async streamRegenerate(convId: string, signal: AbortSignal) {
     const res = await fetch(`/api/conversations/${convId}/regenerate`, {
       method: 'POST',
-      headers: authHeaders(),
+      headers: JSON_HEADERS,
+      credentials: 'include',
       signal,
     })
     if (res.status === 401) {
@@ -80,7 +75,8 @@ export const api = {
       if (refreshed) {
         return fetch(`/api/conversations/${convId}/regenerate`, {
           method: 'POST',
-          headers: authHeaders(),
+          headers: JSON_HEADERS,
+          credentials: 'include',
           signal,
         })
       }

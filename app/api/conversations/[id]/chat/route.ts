@@ -5,11 +5,13 @@ import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/
 import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
+import { checkRateLimit } from '@/lib/rateLimit'
 import type { Message } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+  if (!checkRateLimit(userId)) return NextResponse.json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 })
 
   const { content } = await req.json()
   if (!content?.trim()) return NextResponse.json({ error: '메시지 내용이 필요합니다.' }, { status: 400 })
