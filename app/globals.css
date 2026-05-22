@@ -328,8 +328,7 @@ body[data-art="modern"] .novel-action { color: #a394c0 }
 .msg-blocks { display: flex; flex-direction: column; gap: 4px; }
 .narration-block { text-align: center; color: #9d8bba; font-style: italic; font-size: 11px; padding: 2px 12px; line-height: 1.6; }
 body[data-art="modern"] .narration-block { color: #a394c0; }
-.thought-bubble { color: #9d8bba !important; background: rgba(157,139,186,.1) !important; border-color: rgba(157,139,186,.3) !important; }
-body[data-art="modern"] .thought-bubble { color: #a394c0 !important; }
+.thought-bubble { font-style: italic !important; }
 
 /* ─── Novel mode ──────────────────────────────────────────────────────── */
 .novel-scene { display: flex; flex-direction: column; gap: 6px; width: 100%; }
@@ -337,8 +336,15 @@ body[data-art="modern"] .thought-bubble { color: #a394c0 !important; }
 .novel-speaker { font-size: 10px; font-weight: 700; color: var(--purple); padding: 0 2px; }
 .novel-speaker-persona { color: var(--hot-pink) !important; }
 .novel-speaker-char { color: var(--purple) !important; }
-.bubble-persona { background: rgba(255,46,147,.08) !important; border-color: rgba(255,46,147,.25) !important; }
-.bubble-char { background: rgba(139,92,246,.1) !important; border-color: rgba(139,92,246,.3) !important; }
+/* ─── 버블 색상 ────────────────────────────────────────────────────────── */
+.bubble-char    { background: rgba(139, 92,246,.13) !important; border-color: rgba(139, 92,246,.35) !important; }
+.bubble-third   { background: rgba( 34,160,107,.11) !important; border-color: rgba( 34,160,107,.30) !important; }
+.bubble-persona { background: rgba(255, 46,147,.10) !important; border-color: rgba(255, 46,147,.28) !important; }
+.bubble-author  { background: rgba(245,158, 11,.10) !important; border-color: rgba(245,158, 11,.28) !important; }
+/* 생각 버블 — 같은 색 계열에서 연하게 */
+.bubble-char.thought-bubble    { background: rgba(139, 92,246,.05) !important; border-color: rgba(139, 92,246,.15) !important; }
+.bubble-third.thought-bubble   { background: rgba( 34,160,107,.04) !important; border-color: rgba( 34,160,107,.13) !important; }
+.bubble-persona.thought-bubble { background: rgba(255, 46,147,.04) !important; border-color: rgba(255, 46,147,.13) !important; }
 .novel-direction { background: rgba(139,92,246,.07); border: 1px solid rgba(139,92,246,.2); padding: 8px 12px; font-size: 11px; color: var(--ink-soft); font-style: italic; white-space: pre-wrap; line-height: 1.6; }
 .novel-direction-label { font-size: 9px; font-weight: 700; color: var(--purple); margin-bottom: 4px; font-style: normal; }
 .mode-badge { font-size: 9px; padding: 1px 5px; background: rgba(139,92,246,.15); color: var(--purple); border: 1px solid rgba(139,92,246,.3); }

@@ -437,13 +437,8 @@ export default function ChatPage() {
                               <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
                             </div>
                           </div>
-                        ) : isNovel ? (
-                          <div className="novel-direction">
-                            <div className="novel-direction-label">장면 지시</div>
-                            {m.content}
-                          </div>
                         ) : (
-                          <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+                          <div className={`bubble ${isNovel ? 'bubble-author' : 'bubble-persona'}`} style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                         )}
                       </div>
                     ) : isEditing ? (
@@ -478,13 +473,14 @@ export default function ChatPage() {
                           }
                           const speaker = b.speaker || msgChar.name
                           const isMainChar = speaker === msgChar.name
+                          const bubbleColor = isMainChar ? 'bubble-char' : 'bubble-third'
                           return (
                             <div key={i} className="seq-block seq-left">
                               <div className="seq-speaker">
                                 <span>{speaker}</span>
                                 {isMainChar && <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>}
                               </div>
-                              <div className={`bubble ${b.type === 'thought' ? 'thought-bubble' : ''}`}>{b.text}</div>
+                              <div className={`bubble ${bubbleColor}${b.type === 'thought' ? ' thought-bubble' : ''}`}>{b.text}</div>
                             </div>
                           )
                         })}
@@ -496,7 +492,7 @@ export default function ChatPage() {
                           <span>{msgChar.name}</span>
                           <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>
                         </div>
-                        <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+                        <div className="bubble bubble-char" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                       </div>
                     )}
 
