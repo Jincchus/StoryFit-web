@@ -14,6 +14,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(memories)
 }
 
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await authenticate(req)
+  if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+
+  const { memoryId, summary } = await req.json()
+  if (!memoryId || !summary?.trim()) return NextResponse.json({ error: 'memoryId와 summary가 필요합니다.' }, { status: 400 })
+
+  const updated = await prisma.memory.update({
+    where: { id: memoryId, conversationId: params.id },
+    data: { summary },
+  })
+  return NextResponse.json(updated)
+}
+
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })

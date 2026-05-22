@@ -4,7 +4,6 @@ import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
-import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import type { Message } from '@/types'
@@ -121,9 +120,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         triggerMemorySummarization(params.id, character.systemPrompt).catch(err =>
           console.error('[summarize] error:', err),
-        )
-        triggerAutoCoreMemory(params.id, character.name, character.systemPrompt).catch(err =>
-          console.error('[autoCoreMemory] error:', err),
         )
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: newMsg.id })}\n\n`))
