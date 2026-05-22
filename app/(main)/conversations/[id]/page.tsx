@@ -6,9 +6,22 @@ import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import MessageBlocks from '@/components/ui/MessageBlocks'
-import NovelScene from '@/components/ui/NovelScene'
 import AiPill from '@/components/ui/AiPill'
+import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
 import type { AIProvider } from '@/types'
+
+function ChatNarration({ text }: { text: string }) {
+  const parts = text.split(/(\*[^*]+\*)/)
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith('*') && p.endsWith('*')
+          ? <em key={i}>{p.slice(1, -1)}</em>
+          : <span key={i}>{p}</span>
+      )}
+    </>
+  )
+}
 
 interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; parentId?: string | null; characterId?: string | null }
 interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string } }
@@ -397,115 +410,164 @@ export default function ChatPage() {
                 const ai = AI_MODELS.find(x => x.id === m.aiModel) ?? AI_MODELS[0]
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
+                const blocks = isYou ? [] : (isNovel ? parseNovelBlocks(m.content) : parseBlocks(m.content))
+                const dialogueBlocks = blocks.filter(b => b.type !== 'narration')
+                const narrationBlocks = blocks.filter(b => b.type === 'narration')
 
                 return (
                   <div
                     key={m.id}
-                    className={`msg-wrap ${isYou ? 'you' : ''}`}
+                    className="chat-row"
                     onMouseEnter={() => setHoveredId(m.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
-                    <div className={`msg ${isYou ? 'you' : ''}`}>
-                      <div className="av">
-                        {msgChar.avatarUrl && !isYou
-                          ? <img src={msgChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                          : <PixelAvatar kind={isYou ? 'player' : msgChar.kind as any} size={24} />
-                        }
-                      </div>
-                      <div>
-                        <div className="who">
-                          <span>{isYou ? (isNovel ? '작가' : (conv.userPersona?.name ?? '당신')) : msgChar.name}</span>
-                          {!isYou && <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>}
-                        </div>
-                        {isEditing ? (
-                          <div className="vstack" style={{ gap: 4 }}>
-                            <textarea
-                              className="field" rows={3} value={editText}
-                              onChange={e => setEditText(e.target.value)}
-                              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() } }}
-                              style={{ minWidth: 200 }} autoFocus
-                            />
-                            <div className="hstack" style={{ gap: 4 }}>
-                              <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEdit}>저장 + 재생성</button>
-                              <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
+                    <div className="chat-col-left">
+                      {!isYou && (
+                        <>
+                          <div className="hstack" style={{ gap: 6, marginBottom: 2 }}>
+                            <div className="av">
+                              {msgChar.avatarUrl
+                                ? <img src={msgChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                                : <PixelAvatar kind={msgChar.kind as any} size={24} />
+                              }
+                            </div>
+                            <div className="who">
+                              <span>{msgChar.name}</span>
+                              <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>
                             </div>
                           </div>
-                        ) : isYou ? (
-                          isNovel
-                            ? <div className="novel-direction">
-                                <div className="novel-direction-label">장면 지시</div>
-                                {m.content}
+                          {isEditing ? (
+                            <div className="vstack" style={{ gap: 4 }}>
+                              <textarea
+                                className="field" rows={3} value={editText}
+                                onChange={e => setEditText(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() } }}
+                                style={{ minWidth: 0 }} autoFocus
+                              />
+                              <div className="hstack" style={{ gap: 4 }}>
+                                <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEdit}>저장 + 재생성</button>
+                                <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
                               </div>
-                            : <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
-                        ) : (
-                          isNovel
-                            ? <NovelScene text={m.content} personaName={conv.userPersona?.name ?? '주인공'} charName={msgChar.name} />
-                            : <MessageBlocks text={m.content} />
-                        )}
-                      </div>
+                            </div>
+                          ) : dialogueBlocks.length > 0 ? (
+                            <div className="vstack" style={{ gap: 4 }}>
+                              {dialogueBlocks.map((b, i) => (
+                                <div key={i} className="novel-speech-wrap">
+                                  {b.speaker && (
+                                    <div className="novel-speaker">{b.speaker}</div>
+                                  )}
+                                  <div className={`bubble ${b.type === 'thought' ? 'thought-bubble' : ''}`}>{b.text}</div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                          {!isEditing && hoveredId === m.id && (
+                            <div className="msg-actions">
+                              {isLast && isLastAssistant && (
+                                <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>
+                              )}
+                              {(m.branchCount ?? 1) > 1 && (
+                                <div className="hstack" style={{ gap: 2, alignItems: 'center' }}>
+                                  <button className="msg-action-btn" style={{ padding: '1px 5px' }}
+                                    onClick={async () => {
+                                      const siblings = messages.filter(s => s.parentId === m.parentId && s.role === 'assistant')
+                                      const idx = siblings.findIndex(s => s.id === m.id)
+                                      const prev = siblings[(idx - 1 + siblings.length) % siblings.length]
+                                      if (prev) await handleBranchSwitch(prev.id)
+                                    }}>←</button>
+                                  <span className="tiny muted" style={{ fontSize: 9 }}>{m.branchIndex}/{m.branchCount}</span>
+                                  <button className="msg-action-btn" style={{ padding: '1px 5px' }}
+                                    onClick={async () => {
+                                      const siblings = messages.filter(s => s.parentId === m.parentId && s.role === 'assistant')
+                                      const idx = siblings.findIndex(s => s.id === m.id)
+                                      const next = siblings[(idx + 1) % siblings.length]
+                                      if (next) await handleBranchSwitch(next.id)
+                                    }}>→</button>
+                                </div>
+                              )}
+                              <button className="msg-action-btn danger" onClick={() => handleDelete(m.id)}>✕ 삭제</button>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
 
-                    {!isEditing && hoveredId === m.id && (
-                      <div className={`msg-actions ${isYou ? 'you' : ''}`}>
-                        {isLast && isLastAssistant && !isYou && (
-                          <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>
-                        )}
-                        {!isYou && (m.branchCount ?? 1) > 1 && (
-                          <div className="hstack" style={{ gap: 2, alignItems: 'center' }}>
-                            <button className="msg-action-btn" style={{ padding: '1px 5px' }}
-                              onClick={async () => {
-                                const siblings = messages.filter(s => s.parentId === m.parentId && s.role === 'assistant')
-                                const idx = siblings.findIndex(s => s.id === m.id)
-                                const prev = siblings[(idx - 1 + siblings.length) % siblings.length]
-                                if (prev) await handleBranchSwitch(prev.id)
-                              }}>←</button>
-                            <span className="tiny muted" style={{ fontSize: 9 }}>{m.branchIndex}/{m.branchCount}</span>
-                            <button className="msg-action-btn" style={{ padding: '1px 5px' }}
-                              onClick={async () => {
-                                const siblings = messages.filter(s => s.parentId === m.parentId && s.role === 'assistant')
-                                const idx = siblings.findIndex(s => s.id === m.id)
-                                const next = siblings[(idx + 1) % siblings.length]
-                                if (next) await handleBranchSwitch(next.id)
-                              }}>→</button>
+                    <div className="chat-col-mid">
+                      {!isYou && narrationBlocks.map((b, i) => (
+                        <div key={i} className="narration-block">
+                          <ChatNarration text={b.text} />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="chat-col-right">
+                      {isYou && (
+                        <>
+                          <div className="hstack" style={{ gap: 6, marginBottom: 2, justifyContent: 'flex-end' }}>
+                            <div className="who">{isNovel ? '작가' : (conv.userPersona?.name ?? '당신')}</div>
+                            <div className="av"><PixelAvatar kind="player" size={24} /></div>
                           </div>
-                        )}
-                        {isYou && (
-                          <button className="msg-action-btn" onClick={() => startEdit(m.id, m.content)}>✏ 편집</button>
-                        )}
-                        <button className="msg-action-btn danger" onClick={() => handleDelete(m.id)}>✕ 삭제</button>
-                      </div>
-                    )}
+                          {isEditing ? (
+                            <div className="vstack" style={{ gap: 4 }}>
+                              <textarea
+                                className="field" rows={3} value={editText}
+                                onChange={e => setEditText(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() } }}
+                                autoFocus
+                              />
+                              <div className="hstack" style={{ gap: 4, justifyContent: 'flex-end' }}>
+                                <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEdit}>저장 + 재생성</button>
+                                <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
+                              </div>
+                            </div>
+                          ) : isNovel ? (
+                            <div className="novel-direction">
+                              <div className="novel-direction-label">장면 지시</div>
+                              {m.content}
+                            </div>
+                          ) : (
+                            <div className="bubble" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+                          )}
+                          {!isEditing && hoveredId === m.id && (
+                            <div className="msg-actions you">
+                              <button className="msg-action-btn" onClick={() => startEdit(m.id, m.content)}>✏ 편집</button>
+                              <button className="msg-action-btn danger" onClick={() => handleDelete(m.id)}>✕ 삭제</button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 )
               })}
 
               {(typing || streaming) && (
-                <div className="msg-wrap">
-                  <div className="msg typing">
-                    <div className="av">
-                      {streamingChar.avatarUrl
-                        ? <img src={streamingChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                        : <PixelAvatar kind={streamingChar.kind as any} size={24} />
-                      }
-                    </div>
-                    <div>
+                <div className="chat-row">
+                  <div className="chat-col-left">
+                    <div className="hstack" style={{ gap: 6, marginBottom: 2 }}>
+                      <div className="av">
+                        {streamingChar.avatarUrl
+                          ? <img src={streamingChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                          : <PixelAvatar kind={streamingChar.kind as any} size={24} />
+                        }
+                      </div>
                       <div className="who">
                         <span>{streamingChar.name}</span>
                         <span className={`ai-tag ${AI_MODELS.find(x => x.id === model)?.className ?? ''}`}>
                           {AI_MODELS.find(x => x.id === model)?.tag}
                         </span>
                       </div>
-                      {streaming
-                        ? isNovel
-                          ? <NovelScene text={streaming} personaName={conv.userPersona?.name ?? '주인공'} charName={streamingChar.name} />
-                          : <MessageBlocks text={streaming} />
-                        : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
-                            <span>•</span><span>•</span><span>•</span>
-                          </div>
-                      }
                     </div>
+                    {streaming
+                      ? <MessageBlocks text={streaming} />
+                      : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
+                          <span>•</span><span>•</span><span>•</span>
+                        </div>
+                    }
+                    <button className="msg-action-btn" style={{ alignSelf: 'flex-start', marginTop: 2 }} onClick={stopStream}>■ 중단</button>
                   </div>
-                  <button className="msg-action-btn" style={{ alignSelf: 'flex-start', marginTop: 2 }} onClick={stopStream}>■ 중단</button>
+                  <div className="chat-col-mid" />
+                  <div className="chat-col-right" />
                 </div>
               )}
 

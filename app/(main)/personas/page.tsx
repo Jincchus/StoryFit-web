@@ -61,7 +61,7 @@ export default function PersonasPage() {
 
   return (
     <Win title="내 페르소나 (My Persona)" icon={PixelIcons.user}>
-      <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0 }}>
+      <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700 }}>내 페르소나</div>

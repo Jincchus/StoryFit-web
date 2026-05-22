@@ -209,6 +209,7 @@ body[data-art="retro"] .row { box-shadow: 3px 3px 0 rgba(43,31,85,.25); }
 body[data-art="modern"] .row { border: 1.5px solid #ecdcf3; box-shadow: 0 1px 0 #ecdcf3; }
 .row:hover { background: var(--paper-2) }
 .row + .row { margin-top: 8px }
+.thumb { overflow: hidden; }
 .row .thumb { width: 44px; height: 44px; flex-shrink: 0; background: var(--lavender); border: 2px solid var(--chrome-border); display: grid; place-items: center; image-rendering: pixelated; overflow: hidden; }
 body[data-art="modern"] .row .thumb { border: 1.5px solid #ecdcf3; border-radius: 10px }
 .row .meta { flex: 1; min-width: 0 }
@@ -269,7 +270,7 @@ body[data-art="modern"] .chatlog { border: 1.5px solid #ecdcf3; background: #fff
 
 .msg { display: flex; gap: 8px; align-items: flex-start; max-width: 100% }
 .msg.you { flex-direction: row-reverse; align-self: flex-end }
-.msg .av { width: 28px; height: 28px; border: 1.5px solid var(--chrome-border); flex-shrink: 0; image-rendering: pixelated; background: var(--lavender); display: grid; place-items: center; border-radius: var(--radius); }
+.msg .av { width: 28px; height: 28px; border: 1.5px solid var(--chrome-border); flex-shrink: 0; image-rendering: pixelated; background: var(--lavender); display: grid; place-items: center; border-radius: var(--radius); overflow: hidden; }
 body[data-art="modern"] .msg .av { border-radius: 50% }
 .msg .bubble { max-width: 78%; padding: 7px 10px; background: var(--paper-2); border: 1.5px solid var(--chrome-border); border-radius: var(--radius); position: relative; word-wrap: break-word; }
 body[data-art="retro"] .msg .bubble { box-shadow: 2px 2px 0 rgba(43,31,85,.2); }
@@ -295,7 +296,7 @@ body[data-art="modern"] .char-card { border: 1.5px solid #ecdcf3; box-shadow: 0 
 .char-card:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 rgba(43,31,85,.3) }
 body[data-art="modern"] .char-card:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #d8c3e8 }
 .char-card.selected { outline: 2px dashed var(--hot-pink); outline-offset: 2px; background: var(--paper-2); }
-.char-card .pic-wrap { width: 84px; height: 84px; background: linear-gradient(180deg, var(--lavender), #fff); border: 1.5px solid var(--chrome-border); display: grid; place-items: center; image-rendering: pixelated; border-radius: var(--radius); }
+.char-card .pic-wrap { width: 84px; height: 84px; background: linear-gradient(180deg, var(--lavender), #fff); border: 1.5px solid var(--chrome-border); display: grid; place-items: center; image-rendering: pixelated; border-radius: var(--radius); overflow: hidden; }
 body[data-art="modern"] .char-card .pic-wrap { border-radius: 50%; border: 1.5px solid #ecdcf3; }
 .char-card h4 { margin: 0; font-size: 12px; font-weight: 700 }
 .char-card p { margin: 0; font-size: 10.5px; color: var(--ink-soft); line-height: 1.3 }
@@ -370,6 +371,18 @@ body[data-art="modern"] .ai-dropdown { border: 1.5px solid #e8d6ee; border-radiu
 .chat-main { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; min-height: 0; }
 .chat-header { padding: 6px 8px; background: var(--paper-2); border: 1.5px solid var(--chrome-border); border-radius: var(--radius); flex-shrink: 0; }
 body[data-art="modern"] .chat-header { border-color: #ecdcf3 }
+
+/* ─── Desktop icons sidebar ──────────────────────────────────────────────── */
+.di { display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--font-body); font-size: 10px; font-weight: 700; color: var(--ink); text-align: center; line-height: 1.2; cursor: pointer; user-select: none; padding: 4px; border-radius: var(--radius); }
+.di:hover { background: rgba(43,31,85,.1); outline: 1px dotted rgba(43,31,85,.4); }
+.di .di-pic { width: 38px; height: 38px; image-rendering: pixelated; display: grid; place-items: center; filter: drop-shadow(2px 2px 0 rgba(43,31,85,.35)); }
+
+/* ─── 3-column chat rows ─────────────────────────────────────────────── */
+.chat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: start; }
+.chat-col-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.chat-col-mid { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.chat-col-right { display: flex; flex-direction: column; gap: 4px; min-width: 0; align-items: flex-end; }
+.chat-col-mid .narration-block { text-align: center; font-style: italic; font-size: 11px; color: var(--ink-soft); line-height: 1.6; padding: 2px 4px; }
 
 /* ─── Side panel ──────────────────────────────────────────────────────── */
 .side-panel { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; background: var(--paper); border: 2px solid var(--chrome-border); border-radius: var(--radius); padding: 8px; }
