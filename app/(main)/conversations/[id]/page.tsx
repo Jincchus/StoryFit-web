@@ -668,7 +668,7 @@ export default function ChatPage() {
                 className="field"
                 rows={1}
                 style={{ resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
-                placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요… (Shift+Enter 줄바꿈)' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다… (Shift+Enter 줄바꿈)' : `${char.name}에게 말 걸기… (Shift+Enter 줄바꿈)`}
+                placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요…' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : `${char.name}에게 말 걸기…`}
                 value={text}
                 disabled={typing}
                 onChange={e => { setText(e.target.value); autoResize() }}

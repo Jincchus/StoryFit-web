@@ -18,7 +18,7 @@ export default function NewConversationPage() {
   const [tikiChars, setTikiChars] = useState<Character[]>([])
   const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<'roleplay' | 'novel' | 'tikiTaka'>('roleplay')
+  const [mode, setMode] = useState<'roleplay' | 'novel' /* | 'tikiTaka' */>('roleplay')
   const [scenarioDescription, setScenarioDescription] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [tagPool, setTagPool] = useState<string[]>([])
@@ -107,15 +107,12 @@ export default function NewConversationPage() {
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <button className="btn ghost" onClick={() => router.back()}>← 뒤로</button>
             {!char && <span className="tiny muted">캐릭터를 선택하세요</span>}
-            {char && mode === 'tikiTaka' && tikiChars.length < 2 && (
-              <span className="tiny muted">티키타카는 2명 이상 필요해요</span>
-            )}
             <button
               className="btn primary"
-              disabled={!char || loading || (mode === 'tikiTaka' && tikiChars.length < 2)}
+              disabled={!char || loading}
               onClick={handleStart}
             >
-              {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : mode === 'tikiTaka' ? '✦ 티키타카 시작' : '✦ 롤플레이 시작'}
+              {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : '✦ 롤플레이 시작'}
             </button>
           </div>
         </div>
@@ -127,21 +124,21 @@ export default function NewConversationPage() {
             <section className="new-conv-section">
               <div className="label">대화 모드</div>
               <div className="hstack" style={{ gap: 8 }}>
-                {(['roleplay', 'novel', 'tikiTaka'] as const).map(m => (
+                {/* 티키타카는 v2에서 활성화 예정 */}
+                {(['roleplay', 'novel'] as const).map(m => (
                   <button
                     key={m}
                     className={`btn ${mode === m ? 'primary' : 'ghost'}`}
                     onClick={() => setMode(m)}
                     style={{ fontSize: 11 }}
                   >
-                    {m === 'roleplay' ? '⚔ 롤플레이' : m === 'novel' ? '✍ 소설' : '⟳ 티키타카'}
+                    {m === 'roleplay' ? '⚔ 롤플레이' : '✍ 소설'}
                   </button>
                 ))}
               </div>
               <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
                 {mode === 'roleplay' && '나 ↔ 캐릭터 1:1 대화 형식'}
                 {mode === 'novel' && '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
-                {mode === 'tikiTaka' && '여러 캐릭터가 순서대로 번갈아 응답합니다 — 아래에서 참여 캐릭터를 선택하세요'}
               </div>
             </section>
 
@@ -172,17 +169,19 @@ export default function NewConversationPage() {
             {/* 태그 */}
             <section className="new-conv-section">
               <div className="label">세계관 태그 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
-              <div className="tag-row" style={{ flexWrap: 'wrap', gap: 5 }}>
-                {tagPool.map(tag => (
-                  <span
-                    key={tag}
-                    className={`tag ${tags.includes(tag) ? 'tag-selected' : ''}`}
-                    style={{ cursor: 'pointer', padding: '2px 7px', fontSize: 10 }}
-                    onClick={() => setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
-                  >
-                    {tags.includes(tag) ? '✓ ' : ''}{tag}
-                  </span>
-                ))}
+              <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
+                <div className="tag-row" style={{ flexWrap: 'nowrap', gap: 5, width: 'max-content' }}>
+                  {[...tagPool].sort((a, b) => a.localeCompare(b, 'ko')).map(tag => (
+                    <span
+                      key={tag}
+                      className={`tag ${tags.includes(tag) ? 'tag-selected' : ''}`}
+                      style={{ cursor: 'pointer', padding: '2px 7px', fontSize: 10, whiteSpace: 'nowrap' }}
+                      onClick={() => setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+                    >
+                      {tags.includes(tag) ? '✓ ' : ''}{tag}
+                    </span>
+                  ))}
+                </div>
               </div>
               <div className="hstack" style={{ gap: 6 }}>
                 <input
