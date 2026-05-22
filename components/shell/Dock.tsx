@@ -36,7 +36,8 @@ export default function Dock() {
 
   const isHome = pathname === '/' || pathname === '/chatlist'
   const isChat = pathname.startsWith('/conversations/') && pathname !== '/conversations/new'
-  const isNewConv = pathname === '/characters' || pathname === '/conversations/new'
+  const isCharSelect = pathname === '/characters'
+  const isNewConv = pathname === '/conversations/new'
   const isCharCreate = pathname === '/characters/new'
 
   return (
@@ -74,6 +75,7 @@ export default function Dock() {
       <div style={{ display: 'flex', gap: 4, overflow: 'hidden', flex: 1 }}>
         <button className={`dock-tab ${isHome ? 'active' : ''}`} onClick={() => router.push('/')}>홈</button>
         {isChat && <button className="dock-tab active">▸ 채팅</button>}
+        {isCharSelect && <button className="dock-tab active">▸ 캐릭터 선택</button>}
         {isNewConv && <button className="dock-tab active">▸ 새 대화</button>}
         {isCharCreate && <button className="dock-tab active">▸ 캐릭터 만들기</button>}
       </div>
