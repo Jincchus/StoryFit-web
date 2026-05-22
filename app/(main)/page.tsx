@@ -4,7 +4,7 @@ import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 
 const ICONS = [
   { label: '채팅 목록', icon: PixelIcons.chat, href: '/chatlist' },
-  { label: '캐릭터', icon: <PixelAvatar kind="ai" size={38} />, href: '/characters' },
+  { label: '새 대화', icon: <PixelAvatar kind="ai" size={38} />, href: '/conversations/new' },
   { label: '페르소나', icon: PixelIcons.user, href: '/personas' },
 ]
 

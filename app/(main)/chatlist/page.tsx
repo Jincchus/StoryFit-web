@@ -100,7 +100,7 @@ export default function HomePage() {
                 {conversations.length > 0 && (
                   <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setSelecting(true)}>☑ 선택</button>
                 )}
-                <button className="btn primary" onClick={() => router.push('/characters')}>✦ 새 대화 시작</button>
+                <button className="btn primary" onClick={() => router.push('/conversations/new')}>✦ 새 대화 시작</button>
               </>
             )}
           </div>

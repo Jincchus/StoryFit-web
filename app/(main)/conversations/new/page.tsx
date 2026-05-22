@@ -24,18 +24,20 @@ export default function NewConversationPage() {
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
-    api.get('/api/characters').then(setAllChars).catch(() => {})
-  }, [])
+    api.get('/api/characters').then((chars: Character[]) => {
+      setAllChars(chars)
+      if (draft.charId) {
+        const found = chars.find(c => c.id === draft.charId) ?? null
+        if (found) { setChar(found); setTikiChars([found]) }
+      }
+    }).catch(() => {})
+  }, [draft.charId])
 
-  useEffect(() => {
-    if (!draft.charId && !startingRef.current) { router.replace('/characters'); return }
-    if (draft.charId) {
-      api.get(`/api/characters/${draft.charId}`).then((c: Character) => {
-        setChar(c)
-        setTikiChars([c])
-      }).catch(() => {})
-    }
-  }, [draft.charId, router])
+  const selectChar = (id: string) => {
+    const found = allChars.find(c => c.id === id) ?? null
+    setChar(found)
+    setTikiChars(found ? [found] : [])
+  }
 
   const toggleTikiChar = (c: Character) => {
     if (c.id === char?.id) return
@@ -71,19 +73,21 @@ export default function NewConversationPage() {
     }
   }
 
-  if (!char) return null
-
   return (
     <Win title="새 대화 설정 (New Conversation)" icon={PixelIcons.chat}>
       <div className="vstack" style={{ gap: 12, flex: 1, minHeight: 0 }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700 }}>대화를 시작하기 전에</div>
-            <div className="tiny muted">페르소나와 AI 모델을 선택하세요</div>
+            <div className="tiny muted">캐릭터와 설정을 선택하세요</div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
-            <button className="btn ghost" onClick={() => router.push('/characters')}>← 뒤로</button>
-            <button className="btn primary" disabled={loading || (mode === 'tikiTaka' && tikiChars.length < 2)} onClick={handleStart}>
+            <button className="btn ghost" onClick={() => router.back()}>← 뒤로</button>
+            <button
+              className="btn primary"
+              disabled={!char || loading || (mode === 'tikiTaka' && tikiChars.length < 2)}
+              onClick={handleStart}
+            >
               {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : mode === 'tikiTaka' ? '✦ 티키타카 시작' : '✦ 롤플레이 시작'}
             </button>
           </div>
@@ -92,38 +96,43 @@ export default function NewConversationPage() {
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           <div className="new-conv-grid">
             <section className="new-conv-section">
-              <div className="label">선택한 캐릭터</div>
-              <div className="row" style={{ cursor: 'default' }}>
-                <div className="thumb">
-                  {char.avatarUrl
-                    ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                    : <PixelAvatar kind={char.kind} size={36} />
-                  }
-                </div>
-                <div className="meta">
-                  <h4>{char.name} <span className="muted" style={{ fontWeight: 400 }}>· {char.title}</span></h4>
-                </div>
+              <div className="label">캐릭터 선택</div>
+              <div className="hstack" style={{ gap: 8, alignItems: 'center' }}>
+                {char && (
+                  <div className="thumb" style={{ flexShrink: 0 }}>
+                    {char.avatarUrl
+                      ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      : <PixelAvatar kind={char.kind} size={36} />
+                    }
+                  </div>
+                )}
+                <select
+                  className="field"
+                  style={{ flex: 1 }}
+                  value={char?.id ?? ''}
+                  onChange={e => selectChar(e.target.value)}
+                >
+                  <option value="">— 캐릭터를 선택하세요 —</option>
+                  {allChars.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.title ? ` · ${c.title}` : ''}</option>
+                  ))}
+                </select>
               </div>
             </section>
 
             <section className="new-conv-section">
               <div className="label">대화 모드</div>
               <div className="hstack" style={{ gap: 8 }}>
-                <button
-                  className={`btn ${mode === 'roleplay' ? 'primary' : 'ghost'}`}
-                  onClick={() => setMode('roleplay')}
-                  style={{ fontSize: 11 }}
-                >⚔ 롤플레이</button>
-                <button
-                  className={`btn ${mode === 'novel' ? 'primary' : 'ghost'}`}
-                  onClick={() => setMode('novel')}
-                  style={{ fontSize: 11 }}
-                >✍ 소설</button>
-                <button
-                  className={`btn ${mode === 'tikiTaka' ? 'primary' : 'ghost'}`}
-                  onClick={() => setMode('tikiTaka')}
-                  style={{ fontSize: 11 }}
-                >⟳ 티키타카</button>
+                {(['roleplay', 'novel', 'tikiTaka'] as const).map(m => (
+                  <button
+                    key={m}
+                    className={`btn ${mode === m ? 'primary' : 'ghost'}`}
+                    onClick={() => setMode(m)}
+                    style={{ fontSize: 11 }}
+                  >
+                    {m === 'roleplay' ? '⚔ 롤플레이' : m === 'novel' ? '✍ 소설' : '⟳ 티키타카'}
+                  </button>
+                ))}
               </div>
               <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
                 {mode === 'roleplay' && '나 ↔ 캐릭터 1:1 대화 형식'}
@@ -141,7 +150,7 @@ export default function NewConversationPage() {
                 </div>
                 <div className="vstack" style={{ gap: 5 }}>
                   {allChars.map(c => {
-                    const isMain = c.id === char.id
+                    const isMain = c.id === char?.id
                     const isIn = !!tikiChars.find(x => x.id === c.id)
                     const order = tikiChars.findIndex(x => x.id === c.id)
                     return (
