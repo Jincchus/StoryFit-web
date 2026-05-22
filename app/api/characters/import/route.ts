@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
   const name = card.name?.trim()
   if (!name) return NextResponse.json({ error: '카드에 이름이 없습니다.' }, { status: 400 })
 
-  const systemPrompt = buildSystemPromptFromCard(card)
-  if (!systemPrompt.trim()) return NextResponse.json({ error: '캐릭터 설명이 없습니다.' }, { status: 400 })
+  const additionalInfo = buildSystemPromptFromCard(card)
+  if (!additionalInfo.trim()) return NextResponse.json({ error: '캐릭터 설명이 없습니다.' }, { status: 400 })
 
   const filename = `${randomUUID()}.png`
   await mkdir(UPLOAD_DIR, { recursive: true })
@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
   const character = await prisma.character.create({
     data: {
       name,
-      description: card.description?.trim() ?? '',
-      systemPrompt,
+      additionalInfo,
+      tags: [],
       exampleDialogues: card.mes_example?.trim() ?? '',
       avatarUrl: `/api/uploads/${filename}`,
       creatorId: userId,
