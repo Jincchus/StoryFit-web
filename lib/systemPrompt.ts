@@ -1,4 +1,4 @@
-import type { Character, UserPersona, LorebookEntry, Message } from '@/types'
+import type { Character, UserPersona, LorebookEntry } from '@/types'
 
 function approxTokens(text: string): number {
   let tokens = 0
@@ -161,7 +161,7 @@ export function buildNovelSystemPrompt({
   return parts.join('\n\n---\n\n')
 }
 
-export function matchLorebook(entries: LorebookEntry[], recentMessages: Message[], scanDepth: number = 5): LorebookEntry[] {
+export function matchLorebook(entries: LorebookEntry[], recentMessages: { content: string }[], scanDepth: number = 5): LorebookEntry[] {
   const recent = recentMessages.slice(-scanDepth).map(m => m.content.toLowerCase())
   return entries.filter(entry => {
     if (!entry.isEnabled) return false

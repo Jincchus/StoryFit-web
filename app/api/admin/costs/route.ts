@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticateAdmin } from '@/lib/adminAuth'
 
-const INPUT_PER_M = 0.15
-const OUTPUT_PER_M = 0.60
+const INPUT_PER_M = 1.25
+const OUTPUT_PER_M = 10.00
 const KRW_PER_USD = 1380
 
 function calcCost(input: number, output: number) {
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     krwPerUsd: KRW_PER_USD,
-    pricing: { inputPerM: INPUT_PER_M, outputPerM: OUTPUT_PER_M, model: 'Gemini 2.5 Flash' },
+    pricing: { inputPerM: INPUT_PER_M, outputPerM: OUTPUT_PER_M, model: 'Gemini 2.5 Pro' },
     total: { ...toRow({ input: BigInt(totals._sum.inputTokens ?? 0), output: BigInt(totals._sum.outputTokens ?? 0), count: BigInt(totals._count.id) }) },
     thisMonth: {
       ...toRow({ input: BigInt(thisMonth._sum.inputTokens ?? 0), output: BigInt(thisMonth._sum.outputTokens ?? 0), count: BigInt(thisMonth._count.id) }),

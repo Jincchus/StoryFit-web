@@ -6,7 +6,6 @@ import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
 import { checkRateLimit } from '@/lib/rateLimit'
-import type { Message } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -57,10 +56,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const globalRules = globalRulesConfig?.value ?? ''
   const modeRules = modeRulesConfig?.value ?? ''
 
-  const recentMessages = conv.messages as unknown as Message[]
   const matchedLorebook = matchLorebook(
     conv.lorebooks.map(l => ({ ...l, keyword: l.keyword, content: l.content, priority: l.priority, scanDepth: l.scanDepth, isEnabled: l.isEnabled, scope: l.scope as 'conversation' | 'character', scopeId: l.scopeId, id: l.id })),
-    recentMessages,
+    conv.messages,
   )
 
   const basePromptParams = {
@@ -274,8 +272,12 @@ async function streamTikiTaka({
 
         const firstChar = conv.characters[0]?.character
         if (firstChar) {
-          triggerMemorySummarization(params.id, firstChar.systemPrompt).catch(() => {})
-          triggerAutoCoreMemory(params.id, firstChar.name, firstChar.systemPrompt).catch(() => {})
+          triggerMemorySummarization(params.id, firstChar.systemPrompt).catch(err =>
+            console.error('[tikiTaka:summarize] error:', err),
+          )
+          triggerAutoCoreMemory(params.id, firstChar.name, firstChar.systemPrompt).catch(err =>
+            console.error('[tikiTaka:autoCoreMemory] error:', err),
+          )
         }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ allDone: true })}\n\n`))

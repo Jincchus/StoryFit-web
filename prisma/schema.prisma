@@ -99,8 +99,6 @@ model Conversation {
   frequencyPenalty    Float                   @default(0.3)
   safetyLevel         String                  @default("standard")
   isSummarizing       Boolean                 @default(false)
-  geminiCacheId       String?
-  geminiCacheExpiry   DateTime?
   characters      ConversationCharacter[]
   messages        Message[]
   memories        Memory[]
