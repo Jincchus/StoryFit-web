@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 
 type NameEntry = { name: string; category: string; gender: string }
+interface PersonaTagEntry { id: string; name: string; category: string; gender: string }
 
 interface Persona {
   id: string
@@ -16,30 +17,66 @@ interface Persona {
   gender: string
   description: string
   additionalInfo: string
+  tags: string[]
 }
 
+const CATEGORIES = ['관계', '성격', '외모'] as const
+type Category = typeof CATEGORIES[number]
+
+function visibleTags(tags: PersonaTagEntry[], category: Category, gender: string): PersonaTagEntry[] {
+  return tags.filter(t => {
+    if (t.category !== category) return false
+    if (!gender || gender === '기타') return true
+    return t.gender === '공통' || t.gender === (gender === '남성' ? '남' : '여')
+  })
+}
 
 export default function PersonasPage() {
   const router = useRouter()
   const [personas, setPersonas] = useState<Persona[]>([])
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', gender: '', description: '', additionalInfo: '' })
+  const [form, setForm] = useState({ name: '', gender: '', description: '', additionalInfo: '', tags: [] as string[] })
   const [loading, setLoading] = useState(false)
   const [namePool, setNamePool] = useState<NameEntry[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
+  const [personaTags, setPersonaTags] = useState<PersonaTagEntry[]>([])
+  const [customInputs, setCustomInputs] = useState<Record<Category, string>>({ 관계: '', 성격: '', 외모: '' })
   const formRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
     fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
+    api.get('/api/persona-tags').then(setPersonaTags).catch(() => {})
   }, [])
 
   const scrollToForm = () => setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
-  const openCreate = () => { setForm({ name: '', gender: '', description: '', additionalInfo: '' }); setCreating(true); setEditingId(null); scrollToForm() }
-  const openEdit = (p: Persona) => { setForm({ name: p.name, gender: p.gender ?? '', description: p.description, additionalInfo: p.additionalInfo }); setEditingId(p.id); setCreating(false); scrollToForm() }
+  const openCreate = () => {
+    setForm({ name: '', gender: '', description: '', additionalInfo: '', tags: [] })
+    setCustomInputs({ 관계: '', 성격: '', 외모: '' })
+    setCreating(true); setEditingId(null); scrollToForm()
+  }
+  const openEdit = (p: Persona) => {
+    setForm({ name: p.name, gender: p.gender ?? '', description: p.description, additionalInfo: p.additionalInfo, tags: p.tags ?? [] })
+    setCustomInputs({ 관계: '', 성격: '', 외모: '' })
+    setEditingId(p.id); setCreating(false); scrollToForm()
+  }
+
+  const toggleTag = (name: string) => {
+    setForm(f => ({
+      ...f,
+      tags: f.tags.includes(name) ? f.tags.filter(t => t !== name) : [...f.tags, name],
+    }))
+  }
+
+  const addCustomTag = (cat: Category) => {
+    const val = customInputs[cat].trim()
+    if (!val || form.tags.includes(val)) return
+    setForm(f => ({ ...f, tags: [...f.tags, val] }))
+    setCustomInputs(c => ({ ...c, [cat]: '' }))
+  }
 
   const handleSave = async () => {
     if (!form.name.trim() || loading) return
@@ -96,7 +133,9 @@ export default function PersonasPage() {
               <div className="win-title-l"><span>{creating ? '새 페르소나 만들기' : '페르소나 편집'}</span></div>
               <div className="win-controls"><button onClick={() => { setCreating(false); setEditingId(null) }}>×</button></div>
             </div>
-            <div className="win-body vstack" style={{ gap: 8 }}>
+            <div className="win-body vstack" style={{ gap: 10 }}>
+
+              {/* 이름 + 성별 */}
               <div className="form-grid">
                 <div>
                   <label className="label">이름 *</label>
@@ -132,16 +171,75 @@ export default function PersonasPage() {
                   </div>
                 </div>
               </div>
-              <div className="form-grid">
+
+              {/* 태그 섹션 */}
+              {CATEGORIES.map(cat => {
+                const available = visibleTags(personaTags, cat, form.gender)
+                return (
+                  <div key={cat}>
+                    <label className="label">{cat}</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 5 }}>
+                      {available.map(t => {
+                        const selected = form.tags.includes(t.name)
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => toggleTag(t.name)}
+                            style={{
+                              padding: '3px 9px', fontSize: 11, borderRadius: 20,
+                              border: `1.5px solid ${selected ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
+                              background: selected ? 'var(--hot-pink)' : 'var(--chrome-face)',
+                              color: selected ? '#fff' : 'var(--ink)',
+                              cursor: 'pointer',
+                            }}
+                          >{t.name}</button>
+                        )
+                      })}
+                      {available.length === 0 && <div className="tiny muted">등록된 태그가 없습니다.</div>}
+                    </div>
+                    <div className="hstack" style={{ gap: 4 }}>
+                      <input
+                        className="field" style={{ flex: 1, fontSize: 11 }}
+                        placeholder={`${cat} 직접 입력 후 Enter`}
+                        value={customInputs[cat]}
+                        onChange={e => setCustomInputs(c => ({ ...c, [cat]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(cat) } }}
+                      />
+                      <button className="btn ghost" style={{ fontSize: 10, padding: '2px 7px' }} onClick={() => addCustomTag(cat)}>추가</button>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* 선택된 태그 전체 표시 */}
+              {form.tags.length > 0 && (
                 <div>
-                  <label className="label">추가 정보</label>
-                  <input className="field" placeholder="직업, 관계 등" value={form.additionalInfo} onChange={e => setForm(f => ({ ...f, additionalInfo: e.target.value }))} />
+                  <label className="label">선택된 태그</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {form.tags.map(t => (
+                      <span
+                        key={t}
+                        style={{ padding: '2px 8px', fontSize: 11, borderRadius: 20, background: 'var(--lavender)', border: '1px solid var(--chrome-border)', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      >
+                        {t}
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) }))}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 12, lineHeight: 1 }}
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* 추가 정보 (자유 텍스트) */}
               <div>
-                <label className="label">설명</label>
-                <textarea className="field" rows={2} placeholder="외모, 성격, 배경 등을 자유롭게 적어주세요" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                <label className="label">추가 정보</label>
+                <input className="field" placeholder="태그 외 추가로 적고 싶은 내용" value={form.additionalInfo} onChange={e => setForm(f => ({ ...f, additionalInfo: e.target.value }))} />
               </div>
+
               <div className="hstack" style={{ gap: 6 }}>
                 <button className="btn primary" onClick={handleSave} disabled={loading}>{loading ? '...' : '저장'}</button>
                 <button className="btn ghost" onClick={() => { setCreating(false); setEditingId(null) }}>취소</button>
@@ -158,7 +256,13 @@ export default function PersonasPage() {
               </div>
               <div className="meta">
                 <h4>{p.name}{p.gender && <span className="muted" style={{ fontWeight: 400, fontSize: 10 }}> · {p.gender}</span>}</h4>
-                <p>{p.description}</p>
+                {p.tags?.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '2px 0' }}>
+                    {p.tags.map(t => (
+                      <span key={t} style={{ padding: '1px 6px', fontSize: 10, borderRadius: 10, background: 'var(--lavender)', border: '1px solid var(--chrome-border)' }}>{t}</span>
+                    ))}
+                  </div>
+                )}
                 {p.additionalInfo && <p className="tiny muted">{p.additionalInfo}</p>}
               </div>
               <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>

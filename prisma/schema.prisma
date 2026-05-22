@@ -33,6 +33,16 @@ model CharacterTag {
   createdAt DateTime @default(now())
 }
 
+model PersonaTag {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  gender    String   @default("공통")
+  createdAt DateTime @default(now())
+
+  @@unique([name, category])
+}
+
 model GlobalConfig {
   key       String   @id
   value     String
@@ -77,6 +87,7 @@ model UserPersona {
   gender         String         @default("")
   description    String         @default("")
   additionalInfo String         @default("")
+  tags           String[]       @default([])
   conversations  Conversation[]
 }
 

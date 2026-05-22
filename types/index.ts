@@ -27,6 +27,7 @@ export interface UserPersona {
   name: string
   description: string
   additionalInfo: string
+  tags: string[]
 }
 
 export interface Message {

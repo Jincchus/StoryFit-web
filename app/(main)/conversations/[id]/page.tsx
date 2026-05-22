@@ -88,6 +88,7 @@ export default function ChatPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
+  const [infoTip, setInfoTip] = useState<string | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const typingRef = useRef(false)
@@ -770,7 +771,13 @@ export default function ChatPage() {
               </div>
 
               <div className="side-section">
-                <div className="label">시나리오 배경</div>
+                <div className="spread" style={{ marginBottom: 4 }}>
+                  <div className="label" style={{ marginBottom: 0 }}>시나리오 배경</div>
+                  <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'scenario' ? null : 'scenario')}>?</button>
+                </div>
+                {infoTip === 'scenario' && (
+                  <div className="info-tip">이 대화의 세계관·장소·상황을 설명합니다. AI가 대화를 시작하기 전에 읽는 배경 정보입니다.{'\n\n'}예: "현대 판타지 세계. 주인공은 마법 고등학교 3학년이다. 오늘은 수능 전날 밤."</div>
+                )}
                 <textarea
                   className="field" rows={3}
                   placeholder={"이 대화의 세계관·배경을 설정하세요\n예: 마법 학원 천문대, 루나는 오늘 밤 예언을 완성해야 한다."}
@@ -781,7 +788,10 @@ export default function ChatPage() {
 
               <div className="side-section">
                 <div className="spread" style={{ marginBottom: 4 }}>
-                  <div className="label" style={{ marginBottom: 0 }}>핵심 메모리</div>
+                  <div className="hstack" style={{ gap: 4, alignItems: 'center' }}>
+                    <div className="label" style={{ marginBottom: 0 }}>핵심 메모리</div>
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'core' ? null : 'core')}>?</button>
+                  </div>
                   <button
                     className="btn ghost"
                     style={{ fontSize: 9, padding: '1px 5px' }}
@@ -791,6 +801,9 @@ export default function ChatPage() {
                     }}
                   >↺ 새로고침</button>
                 </div>
+                {infoTip === 'core' && (
+                  <div className="info-tip">대화 내내 AI가 절대 잊으면 안 되는 사실을 저장합니다. 직접 입력하거나, 아래 장기 메모리에서 항목을 선택해 올릴 수 있습니다.{'\n\n'}예: "유저의 이름은 하루. 쌍둥이 동생 미래가 있다. 마법을 쓸 수 없다."</div>
+                )}
                 <textarea
                   className="field" rows={3}
                   placeholder={"절대 잊으면 안 되는 설정을 적어두세요\n예: 유저는 마왕의 딸이다."}
@@ -800,7 +813,13 @@ export default function ChatPage() {
               </div>
 
               <div className="side-section">
-                <div className="label">타임라인 상태</div>
+                <div className="spread" style={{ marginBottom: 4 }}>
+                  <div className="label" style={{ marginBottom: 0 }}>타임라인 상태</div>
+                  <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'timeline' ? null : 'timeline')}>?</button>
+                </div>
+                {infoTip === 'timeline' && (
+                  <div className="info-tip">현재 에피소드의 상태나 진행 상황을 기록합니다. 채팅 헤더에도 표시되며 AI의 상황 인식에 활용됩니다.{'\n\n'}예: "마왕성 2층 탐험 중 / 루나가 발목을 다침"</div>
+                )}
                 <textarea
                   className="field" rows={2}
                   placeholder={"현재 에피소드 상태\n예: 마왕성 탐험 중 / 루나가 다리를 다침"}
@@ -811,12 +830,18 @@ export default function ChatPage() {
 
               <div className="side-section">
                 <div className="spread" style={{ marginBottom: 4 }}>
-                  <div className="label" style={{ marginBottom: 0 }}>로어북 <span className="tiny muted">({lorebooks.length}/20)</span></div>
+                  <div className="hstack" style={{ gap: 4, alignItems: 'center' }}>
+                    <div className="label" style={{ marginBottom: 0 }}>로어북 <span className="tiny muted">({lorebooks.length}/20)</span></div>
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'lorebook' ? null : 'lorebook')}>?</button>
+                  </div>
                   {lorebooks.length < 20
                     ? <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setLorebookAdd(a => !a); setLorebookEditId(null) }}>+ 추가</button>
                     : <span className="tiny muted" style={{ fontSize: 9 }}>최대 20개</span>
                   }
                 </div>
+                {infoTip === 'lorebook' && (
+                  <div className="info-tip">특정 키워드가 대화에 등장하면 관련 세계관 정보를 AI에게 자동 주입합니다. 최근 N턴(탐색깊이)만 스캔하며, 우선순위 높은 항목부터 최대 1,000 토큰까지 포함됩니다.{'\n\n'}예: 키워드 "마왕성" → "마왕성은 100년 전 악마왕이 건설한 요새로, 총 7개 층이다."</div>
+                )}
                 <div className="tiny muted" style={{ marginBottom: 6 }}>키워드 감지 시 자동으로 세계관 정보를 AI에게 주입합니다.</div>
 
                 {lorebookAdd && (
@@ -871,9 +896,15 @@ export default function ChatPage() {
 
               <div className="side-section">
                 <div className="spread" style={{ marginBottom: 4 }}>
-                  <div className="label" style={{ marginBottom: 0 }}>장기 메모리</div>
+                  <div className="hstack" style={{ gap: 4, alignItems: 'center' }}>
+                    <div className="label" style={{ marginBottom: 0 }}>장기 메모리</div>
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'memory' ? null : 'memory')}>?</button>
+                  </div>
                   <span className="tiny muted">10턴마다 자동 요약</span>
                 </div>
+                {infoTip === 'memory' && (
+                  <div className="info-tip">10턴마다 대화 내용을 자동으로 요약해 저장합니다. 오래된 내용도 AI가 기억할 수 있도록 도와줍니다. 체크박스로 선택해 핵심 메모리로 올릴 수 있습니다.</div>
+                )}
                 <div className="tiny muted" style={{ marginBottom: 6 }}>항목을 선택해 핵심 메모리로 올릴 수 있습니다.</div>
                 {selectedMemoryIds.size > 0 && (
                   <button

@@ -57,7 +57,8 @@ export function buildSystemPrompt({
 
   // 1. UserPersona
   if (userPersona) {
-    parts.push(`[유저 페르소나]\n이름: ${userPersona.name}\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)
+    const tagLine = userPersona.tags?.length ? `\n태그: ${userPersona.tags.join(', ')}` : ''
+    parts.push(`[유저 페르소나]\n이름: ${userPersona.name}${tagLine}\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)
   }
 
   // 2. Core memory
@@ -127,7 +128,8 @@ export function buildNovelSystemPrompt({
   if (modeRules?.trim()) parts.push(`[소설 추가 규칙]\n${modeRules}`)
 
   if (userPersona) {
-    parts.push(`[${personaName} 설정]\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)
+    const tagLine = userPersona.tags?.length ? `\n태그: ${userPersona.tags.join(', ')}` : ''
+    parts.push(`[${personaName} 설정]${tagLine}\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)
   }
   if (coreMemory?.trim()) {
     parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)

@@ -6,6 +6,10 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 interface TagEntry { id: string; name: string }
+interface PersonaTagEntry { id: string; name: string; category: string; gender: string }
+
+const PERSONA_CATEGORIES = ['관계', '성격', '외모'] as const
+const PERSONA_GENDERS = ['공통', '남', '여'] as const
 
 export default function AdminTagsPage() {
   const [tags, setTags] = useState<TagEntry[]>([])
@@ -14,8 +18,15 @@ export default function AdminTagsPage() {
   const [showBulk, setShowBulk] = useState(false)
   const [error, setError] = useState('')
 
+  const [personaTags, setPersonaTags] = useState<PersonaTagEntry[]>([])
+  const [ptForm, setPtForm] = useState({ name: '', category: '성격' as string, gender: '공통' as string })
+  const [ptBulkInput, setPtBulkInput] = useState('')
+  const [showPtBulk, setShowPtBulk] = useState(false)
+  const [ptError, setPtError] = useState('')
+
   useEffect(() => {
     api.get('/api/admin/tags').then(setTags).catch(() => {})
+    api.get('/api/admin/persona-tags').then(setPersonaTags).catch(() => {})
   }, [])
 
   const handleAdd = async () => {
@@ -50,6 +61,41 @@ export default function AdminTagsPage() {
     setTags(prev => prev.filter(t => t.id !== id))
   }
 
+  const handlePtAdd = async () => {
+    const name = ptForm.name.trim()
+    if (!name) return
+    setPtError('')
+    try {
+      const created = await api.post('/api/admin/persona-tags', { name, category: ptForm.category, gender: ptForm.gender })
+      setPersonaTags(prev => [...prev, created])
+      setPtForm(f => ({ ...f, name: '' }))
+    } catch (e: any) { setPtError(e.message) }
+  }
+
+  const handlePtBulkAdd = async () => {
+    const lines = ptBulkInput.split('\n').map(l => l.trim()).filter(Boolean)
+    if (!lines.length) return
+    setPtError('')
+    let skipped = 0
+    for (const name of lines) {
+      try {
+        const created = await api.post('/api/admin/persona-tags', { name, category: ptForm.category, gender: ptForm.gender })
+        setPersonaTags(prev => [...prev, created])
+      } catch { skipped++ }
+    }
+    setPtBulkInput('')
+    setShowPtBulk(false)
+    if (skipped > 0) setPtError(`${skipped}개는 중복이어서 건너뜀`)
+  }
+
+  const handlePtDelete = async (id: string) => {
+    await api.delete(`/api/admin/persona-tags/${id}`)
+    setPersonaTags(prev => prev.filter(t => t.id !== id))
+  }
+
+  const GENDER_LABEL: Record<string, string> = { 공통: '공통', 남: '남', 여: '여' }
+  const GENDER_COLOR: Record<string, string> = { 공통: 'var(--ink-soft)', 남: '#6b9eff', 여: '#ff9eb5' }
+
   return (
     <Win title="관리자 — 태그 관리" icon={PixelIcons.settings}>
       <div className="vstack" style={{ gap: 0, flex: 1, minHeight: 0 }}>
@@ -57,50 +103,118 @@ export default function AdminTagsPage() {
           <AdminNav current="/admin/tags" />
         </div>
         <div className="scroll" style={{ flex: 1, minHeight: 0, padding: 4 }}>
-          <div className="vstack" style={{ gap: 12 }}>
+          <div className="vstack" style={{ gap: 20 }}>
 
-            <div className="vstack" style={{ gap: 6 }}>
-              <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
-                <input
-                  className="field" style={{ flex: 1, minWidth: 120 }}
-                  placeholder="태그 이름 입력"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-                />
-                <button className="btn primary" onClick={handleAdd}>추가</button>
-                <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowBulk(s => !s)}>일괄</button>
+            {/* 세계관 태그 */}
+            <div className="vstack" style={{ gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700 }}>세계관 태그 (캐릭터용)</div>
+              <div className="vstack" style={{ gap: 6 }}>
+                <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <input
+                    className="field" style={{ flex: 1, minWidth: 120 }}
+                    placeholder="태그 이름 입력"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                  />
+                  <button className="btn primary" onClick={handleAdd}>추가</button>
+                  <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowBulk(s => !s)}>일괄</button>
+                </div>
+
+                {showBulk && (
+                  <div className="vstack" style={{ gap: 6, padding: 8, background: 'var(--pane)', border: '1px solid var(--chrome-border)' }}>
+                    <textarea
+                      className="field" rows={6}
+                      placeholder={"태그를 한 줄에 하나씩 입력하세요\n예:\n판타지\nSF\n로맨스"}
+                      value={bulkInput} onChange={e => setBulkInput(e.target.value)}
+                    />
+                    <div className="hstack" style={{ gap: 4 }}>
+                      <button className="btn primary" style={{ fontSize: 10 }} onClick={handleBulkAdd}>일괄 추가</button>
+                      <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowBulk(false)}>취소</button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {showBulk && (
-                <div className="vstack" style={{ gap: 6, padding: 8, background: 'var(--pane)', border: '1px solid var(--chrome-border)' }}>
-                  <textarea
-                    className="field" rows={6}
-                    placeholder={"태그를 한 줄에 하나씩 입력하세요\n예:\n판타지\nSF\n로맨스"}
-                    value={bulkInput} onChange={e => setBulkInput(e.target.value)}
-                  />
-                  <div className="hstack" style={{ gap: 4 }}>
-                    <button className="btn primary" style={{ fontSize: 10 }} onClick={handleBulkAdd}>일괄 추가</button>
-                    <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowBulk(false)}>취소</button>
+              {error && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {error}</div>}
+              <div className="tiny muted">총 {tags.length}개</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {tags.map(t => (
+                  <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11 }}>
+                    <span>{t.name}</span>
+                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
+                      onClick={() => handleDelete(t.id)}>×</button>
                   </div>
-                </div>
-              )}
+                ))}
+                {tags.length === 0 && <div className="tiny muted">태그가 없습니다.</div>}
+              </div>
             </div>
 
-            {error && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {error}</div>}
+            <div style={{ borderTop: '1.5px solid var(--chrome-border)' }} />
 
-            <div className="tiny muted">총 {tags.length}개</div>
+            {/* 페르소나 태그 */}
+            <div className="vstack" style={{ gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700 }}>페르소나 태그 (관계/성격/외모)</div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {tags.map(t => (
-                <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11 }}>
-                  <span>{t.name}</span>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
-                    onClick={() => handleDelete(t.id)}>×</button>
+              <div className="vstack" style={{ gap: 6 }}>
+                <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <input
+                    className="field" style={{ flex: 1, minWidth: 100 }}
+                    placeholder="태그 이름"
+                    value={ptForm.name}
+                    onChange={e => setPtForm(f => ({ ...f, name: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') handlePtAdd() }}
+                  />
+                  <select className="field" style={{ width: 72, fontSize: 11 }} value={ptForm.category} onChange={e => setPtForm(f => ({ ...f, category: e.target.value }))}>
+                    {PERSONA_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select className="field" style={{ width: 60, fontSize: 11 }} value={ptForm.gender} onChange={e => setPtForm(f => ({ ...f, gender: e.target.value }))}>
+                    {PERSONA_GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <button className="btn primary" onClick={handlePtAdd}>추가</button>
+                  <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowPtBulk(s => !s)}>일괄</button>
                 </div>
-              ))}
-              {tags.length === 0 && <div className="tiny muted">태그가 없습니다. 위에서 추가하세요.</div>}
+
+                {showPtBulk && (
+                  <div className="vstack" style={{ gap: 6, padding: 8, background: 'var(--pane)', border: '1px solid var(--chrome-border)' }}>
+                    <div className="tiny muted">현재 선택된 카테고리·성별로 일괄 추가됩니다: <b>{ptForm.category} / {ptForm.gender}</b></div>
+                    <textarea
+                      className="field" rows={6}
+                      placeholder={"태그를 한 줄에 하나씩 입력하세요\n예:\n햇살녀\n냉정남\n대형견남"}
+                      value={ptBulkInput} onChange={e => setPtBulkInput(e.target.value)}
+                    />
+                    <div className="hstack" style={{ gap: 4 }}>
+                      <button className="btn primary" style={{ fontSize: 10 }} onClick={handlePtBulkAdd}>일괄 추가</button>
+                      <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setShowPtBulk(false)}>취소</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {ptError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {ptError}</div>}
+
+              {PERSONA_CATEGORIES.map(cat => {
+                const catTags = personaTags.filter(t => t.category === cat)
+                if (catTags.length === 0) return null
+                return (
+                  <div key={cat} className="vstack" style={{ gap: 4 }}>
+                    <div className="tiny muted" style={{ fontWeight: 700 }}>{cat} ({catTags.length})</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {catTags.map(t => (
+                        <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11, borderRadius: 'var(--radius)' }}>
+                          <span style={{ fontSize: 9, color: GENDER_COLOR[t.gender] ?? 'var(--ink-soft)', fontWeight: 700 }}>{GENDER_LABEL[t.gender]}</span>
+                          <span>{t.name}</span>
+                          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
+                            onClick={() => handlePtDelete(t.id)}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+              {personaTags.length === 0 && <div className="tiny muted">페르소나 태그가 없습니다. 위에서 추가하세요.</div>}
             </div>
+
           </div>
         </div>
       </div>
