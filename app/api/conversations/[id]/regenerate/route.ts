@@ -119,7 +119,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
 
-        triggerMemorySummarization(params.id, character.systemPrompt).catch(err =>
+        triggerMemorySummarization(params.id, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err =>
           console.error('[summarize] error:', err),
         )
 

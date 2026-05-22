@@ -145,7 +145,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
 
-        triggerMemorySummarization(params.id, character.systemPrompt).catch(err =>
+        triggerMemorySummarization(params.id, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err =>
           console.error('[summarize] error:', err),
         )
 
@@ -264,7 +264,7 @@ async function streamTikiTaka({
 
         const firstChar = conv.characters[0]?.character
         if (firstChar) {
-          triggerMemorySummarization(params.id, firstChar.systemPrompt).catch(err =>
+          triggerMemorySummarization(params.id, [firstChar.tags?.join(', '), firstChar.additionalInfo].filter(Boolean).join('\n')).catch(err =>
             console.error('[tikiTaka:summarize] error:', err),
           )
         }
