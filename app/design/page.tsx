@@ -4,8 +4,9 @@ import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 
 function Clock() {
   const fmt = () => new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
-  const [time, setTime] = useState(fmt)
+  const [time, setTime] = useState('')
   useEffect(() => {
+    setTime(fmt())
     const id = setInterval(() => setTime(fmt()), 30000)
     return () => clearInterval(id)
   }, [])
