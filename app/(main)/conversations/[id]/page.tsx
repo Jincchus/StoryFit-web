@@ -11,6 +11,27 @@ import AiPill from '@/components/ui/AiPill'
 import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
 import type { AIProvider } from '@/types'
 
+function editDistance(a: string, b: string): number {
+  const m = a.length, n = b.length
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  )
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+  return dp[m][n]
+}
+
+function isSamePerson(a: string, b: string): boolean {
+  if (!a || !b) return false
+  const na = a.trim(), nb = b.trim()
+  if (na === nb) return true
+  if (Math.abs(na.length - nb.length) > 4) return false
+  return editDistance(na, nb) <= 2
+}
+
 function ChatNarration({ text }: { text: string }) {
   const parts = text.split(/(\*[^*]+\*|\n)/)
   return (
@@ -473,7 +494,7 @@ export default function ChatPage() {
                           }
                           const speaker = b.speaker || msgChar.name
                           const isMainChar = speaker === msgChar.name
-                          const isPersona = !!conv.userPersona && speaker === conv.userPersona.name
+                          const isPersona = !!conv.userPersona && isSamePerson(speaker, conv.userPersona.name)
                           const thought = b.type === 'thought' ? ' thought-bubble' : ''
                           if (isPersona) {
                             return (
