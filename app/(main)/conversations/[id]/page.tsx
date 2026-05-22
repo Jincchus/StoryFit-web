@@ -7,7 +7,6 @@ import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import MessageBlocks from '@/components/ui/MessageBlocks'
 import NovelScene from '@/components/ui/NovelScene'
-import AiPill from '@/components/ui/AiPill'
 import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
@@ -465,7 +464,6 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
-            <AiPill modelId={model} onChange={handleModelChange} />
             <button
               className={`btn ${showPanel ? 'primary' : 'ghost'}`}
               style={{ padding: '3px 7px', fontSize: 10 }}

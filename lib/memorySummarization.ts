@@ -3,6 +3,7 @@ import { generateText } from '@/lib/ai/gemini'
 import { generateEmbedding } from '@/lib/embedding'
 
 const SUMMARIZE_EVERY = 10
+const inProgress = new Set<string>()
 
 async function summarizeMessages(
   messages: { role: string; content: string }[],
@@ -22,11 +23,7 @@ export async function triggerMemorySummarization(
   conversationId: string,
   characterSystemPrompt: string,
 ): Promise<void> {
-  const conv = await prisma.conversation.findUnique({
-    where: { id: conversationId },
-    select: { isSummarizing: true },
-  })
-  if (!conv || conv.isSummarizing) return
+  if (inProgress.has(conversationId)) return
 
   const totalMessages = await prisma.message.count({
     where: { conversationId, isSelected: true },
@@ -34,8 +31,10 @@ export async function triggerMemorySummarization(
   if (totalMessages % SUMMARIZE_EVERY !== 0) return
 
   const existingMemoryCount = await prisma.memory.count({ where: { conversationId } })
-  const skipCount = existingMemoryCount * SUMMARIZE_EVERY
+  const expectedCount = Math.floor(totalMessages / SUMMARIZE_EVERY)
+  if (existingMemoryCount >= expectedCount) return
 
+  const skipCount = existingMemoryCount * SUMMARIZE_EVERY
   const messages = await prisma.message.findMany({
     where: { conversationId, isSelected: true },
     orderBy: { createdAt: 'asc' },
@@ -44,8 +43,7 @@ export async function triggerMemorySummarization(
   })
   if (messages.length < SUMMARIZE_EVERY) return
 
-  await prisma.conversation.update({ where: { id: conversationId }, data: { isSummarizing: true } })
-
+  inProgress.add(conversationId)
   try {
     const summary = await summarizeMessages(messages, characterSystemPrompt)
     const memory = await prisma.memory.create({
@@ -66,6 +64,6 @@ export async function triggerMemorySummarization(
       )
     }).catch(err => console.error('[memorySummarization] embedding error:', err))
   } finally {
-    await prisma.conversation.update({ where: { id: conversationId }, data: { isSummarizing: false } })
+    inProgress.delete(conversationId)
   }
 }
