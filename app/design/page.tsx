@@ -119,9 +119,6 @@ export default function DesignPreviewPage() {
 
         <div className="shell-body" style={{ flexDirection: 'row', gap: 12 }}>
           <DesktopIcons />
-          <div className="workwin">
-            <HomeScreen />
-          </div>
         </div>
 
         <div className="dock">
