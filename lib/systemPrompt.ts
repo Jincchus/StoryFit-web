@@ -1,4 +1,4 @@
-import type { Character, UserPersona, LorebookEntry } from '@/types'
+import type { Character, LorebookEntry } from '@/types'
 
 function approxTokens(text: string): number {
   let tokens = 0
@@ -9,9 +9,11 @@ function approxTokens(text: string): number {
   return Math.ceil(tokens)
 }
 
+type PersonaCharacter = { name: string; tags?: string[]; additionalInfo?: string } | null | undefined
+
 interface BuildSystemPromptParams {
   character: Character
-  userPersona?: UserPersona | null
+  personaCharacter?: PersonaCharacter
   coreMemory?: string
   statusTimeline?: string
   scenarioDescription?: string
@@ -40,7 +42,7 @@ export const NOVEL_BASE_RULES = `당신은 소설 작가입니다. 반드시 다
 
 export function buildSystemPrompt({
   character,
-  userPersona,
+  personaCharacter,
   coreMemory,
   statusTimeline,
   scenarioDescription,
@@ -55,10 +57,10 @@ export function buildSystemPrompt({
   parts.push(BASE_RULES)
   if (modeRules?.trim()) parts.push(`[롤플레이 추가 규칙]\n${modeRules}`)
 
-  // 1. UserPersona
-  if (userPersona) {
-    const tagLine = userPersona.tags?.length ? `\n태그: ${userPersona.tags.join(', ')}` : ''
-    parts.push(`[유저 페르소나]\n이름: ${userPersona.name}${tagLine}\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)
+  // 1. PersonaCharacter
+  if (personaCharacter) {
+    const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
+    parts.push(`[유저 페르소나]\n이름: ${personaCharacter.name}${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
 
   // 2. Core memory
@@ -112,7 +114,7 @@ export function buildSystemPrompt({
 
 export function buildNovelSystemPrompt({
   character,
-  userPersona,
+  personaCharacter,
   coreMemory,
   statusTimeline,
   scenarioDescription,
@@ -121,7 +123,7 @@ export function buildNovelSystemPrompt({
   globalRules,
   modeRules,
 }: BuildSystemPromptParams): string {
-  const personaName = userPersona?.name ?? '주인공'
+  const personaName = personaCharacter?.name ?? '주인공'
   const characterName = character.name
 
   const novelBase = `당신은 소설 작가입니다. ${personaName}과 ${characterName}이 주인공으로 등장하는 장면을 써주세요.\n\n${NOVEL_BASE_RULES.replace('캐릭터명', characterName).replace('페르소나명', personaName)}\n\n주인공은 "${personaName}"과 "${characterName}"이며, 장면에 필요한 제3의 인물은 자유롭게 등장시킬 수 있습니다.`
@@ -131,9 +133,9 @@ export function buildNovelSystemPrompt({
   parts.push(novelBase)
   if (modeRules?.trim()) parts.push(`[소설 추가 규칙]\n${modeRules}`)
 
-  if (userPersona) {
-    const tagLine = userPersona.tags?.length ? `\n태그: ${userPersona.tags.join(', ')}` : ''
-    parts.push(`[${personaName} 설정]${tagLine}\n${userPersona.description}${userPersona.additionalInfo ? `\n${userPersona.additionalInfo}` : ''}`)
+  if (personaCharacter) {
+    const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
+    parts.push(`[${personaName} 설정]${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
   if (coreMemory?.trim()) {
     parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)

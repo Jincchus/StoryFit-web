@@ -21,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     include: {
       characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
       messages: { where: { isSelected: true }, orderBy: { createdAt: 'asc' } },
-      userPersona: true,
+      personaCharacter: true,
       lorebooks: true,
     },
   })
@@ -51,13 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   )
 
   const basePromptParams = {
-    userPersona: conv.userPersona ? {
-      id: conv.userPersona.id,
-      name: conv.userPersona.name,
-      description: conv.userPersona.description,
-      additionalInfo: conv.userPersona.additionalInfo,
-      tags: conv.userPersona.tags,
-    } : null,
+    personaCharacter: conv.personaCharacter ?? null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,

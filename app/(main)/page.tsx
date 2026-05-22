@@ -8,15 +8,13 @@ const BASE_ICONS = [
   { label: '채팅 목록', icon: PixelIcons.chat, href: '/chatlist' },
   { label: '새 대화', icon: <PixelAvatar kind="ai" size={38} />, href: '/conversations/new' },
   { label: '캐릭터', icon: <PixelAvatar kind="custom" size={38} />, href: '/characters' },
-  { label: '페르소나', icon: PixelIcons.user, href: '/personas' },
 ]
 
 const ADMIN_ICON = { label: '관리자 패널', icon: PixelIcons.settings, href: '/admin' }
 
 const STEPS = [
-  { num: 1, label: '페르소나 설정', desc: 'AI가 나를 어떻게 부를지', href: '/personas', icon: PixelIcons.user },
-  { num: 2, label: '캐릭터 선택', desc: '대화 상대를 고르세요', href: '/characters', icon: <PixelAvatar kind="custom" size={20} /> },
-  { num: 3, label: '대화 시작', desc: '모드를 정하고 시작!', href: '/conversations/new', icon: PixelIcons.chat },
+  { num: 1, label: '캐릭터 만들기', desc: '대화 상대 & 내 역할 설정', href: '/characters', icon: <PixelAvatar kind="custom" size={20} /> },
+  { num: 2, label: '대화 시작', desc: '캐릭터를 골라 시작!', href: '/conversations/new', icon: PixelIcons.chat },
 ]
 
 export default function HomePage() {

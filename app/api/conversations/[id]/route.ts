@@ -12,7 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     include: {
       characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
       messages: { orderBy: { createdAt: 'asc' }, where: { isSelected: true } },
-      userPersona: { select: { id: true, name: true } },
+      personaCharacter: { select: { id: true, name: true, avatarUrl: true, tags: true, additionalInfo: true } },
     },
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const body = await req.json()
-  const allowed = ['title', 'currentAI', 'userPersonaId', 'coreMemory', 'statusTimeline', 'scenarioDescription']
+  const allowed = ['title', 'currentAI', 'personaCharacterId', 'coreMemory', 'statusTimeline', 'scenarioDescription']
   const data: Record<string, unknown> = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)))
 
   const conv = await prisma.conversation.update({ where: { id: params.id }, data })

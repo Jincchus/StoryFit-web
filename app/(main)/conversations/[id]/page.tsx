@@ -53,11 +53,10 @@ interface ConvChar { character: { id: string; name: string; kind: string; avatar
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
   characters: ConvChar[]
-  userPersona?: { id: string; name: string; description: string } | null
+  personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
   messages: Msg[]
 }
 interface LbEntry { id: string; keyword: string[]; content: string; priority: number; scanDepth: number }
-interface Persona { id: string; name: string; description: string }
 
 export default function ChatPage() {
   const params = useParams<{ id: string }>()
@@ -75,7 +74,7 @@ export default function ChatPage() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
-  const [personas, setPersonas] = useState<Persona[]>([])
+  const [allChars, setAllChars] = useState<{ id: string; name: string; avatarUrl?: string | null; tags: string[]; kind?: string }[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
   const [lorebooks, setLorebooks] = useState<LbEntry[]>([])
@@ -151,7 +150,7 @@ export default function ChatPage() {
   }
 
   useEffect(() => {
-    api.get('/api/personas').then(setPersonas).catch(() => {})
+    api.get('/api/characters').then(setAllChars).catch(() => {})
   }, [])
 
   const handleAddLorebook = async () => {
@@ -388,10 +387,10 @@ export default function ChatPage() {
     setEditingTitle(false)
   }
 
-  const handlePersonaChange = async (personaId: string | null) => {
-    await api.patch(`/api/conversations/${params.id}`, { userPersonaId: personaId })
-    const found = personas.find(p => p.id === personaId) ?? null
-    setConv(c => c ? { ...c, userPersona: found ? { id: found.id, name: found.name, description: found.description ?? '' } : null } : c)
+  const handlePersonaChange = async (charId: string | null) => {
+    await api.patch(`/api/conversations/${params.id}`, { personaCharacterId: charId })
+    const found = allChars.find(c => c.id === charId) ?? null
+    setConv(c => c ? { ...c, personaCharacter: found ? { id: found.id, name: found.name, avatarUrl: found.avatarUrl ?? null, tags: found.tags ?? [], additionalInfo: '' } : null } : c)
   }
 
   const handleCoreMemory = async (value: string) => {
@@ -454,7 +453,7 @@ export default function ChatPage() {
               <div className="hstack" style={{ gap: 5, overflow: 'hidden' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {isTikiTaka ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
-                  {conv.userPersona && <span className="muted" style={{ fontWeight: 400 }}> · {conv.userPersona.name}</span>}
+                  {conv.personaCharacter && <span className="muted" style={{ fontWeight: 400 }}> · {conv.personaCharacter.name}</span>}
                 </span>
                 <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '티키타카' : '롤플레이'}</span>
               </div>
@@ -519,7 +518,16 @@ export default function ChatPage() {
                     {isYou ? (
                       /* ── 유저 메시지: 오른쪽 ── */
                       <div className="seq-block seq-right">
-                        <div className="seq-speaker">{isNovel ? '작가' : (conv.userPersona?.name ?? '당신')}</div>
+                        <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                          {isNovel ? '작가' : (conv.personaCharacter?.name ?? '당신')}
+                          {conv.personaCharacter && (
+                            <div className="thumb" style={{ width: 18, height: 18, flexShrink: 0 }}>
+                              {conv.personaCharacter.avatarUrl
+                                ? <img src={conv.personaCharacter.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} alt="" />
+                                : <PixelAvatar kind="player" size={18} />}
+                            </div>
+                          )}
+                        </div>
                         {isEditing ? (
                           <div className="vstack" style={{ gap: 4, alignItems: 'flex-end' }}>
                             <textarea className="field" rows={3} value={editText}
@@ -570,7 +578,7 @@ export default function ChatPage() {
                           const rawSpeaker = b.speaker || msgChar.name
                           const speaker = rawSpeaker.replace(/^\[|\]$/g, '').trim()
                           const isMainChar = isSamePerson(speaker, msgChar.name)
-                          const isPersona = !!conv.userPersona && isSamePerson(speaker, conv.userPersona.name)
+                          const isPersona = !!conv.personaCharacter && isSamePerson(speaker, conv.personaCharacter.name)
                           const thought = b.type === 'thought' ? ' thought-bubble' : ''
                           if (isPersona) {
                             return (
@@ -644,7 +652,7 @@ export default function ChatPage() {
                     </div>
                     {streaming
                       ? isNovel
-                        ? <NovelScene text={streaming} personaName={conv?.userPersona?.name ?? '주인공'} charName={streamingChar.name} />
+                        ? <NovelScene text={streaming} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
                         : <MessageBlocks text={streaming} />
                       : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
                           <span>•</span><span>•</span><span>•</span>
@@ -731,43 +739,42 @@ export default function ChatPage() {
               </div>
 
               <div className="side-section">
-                <div className="label">페르소나</div>
-                {conv.userPersona ? (
-                  <div className="persona-option selected" style={{ cursor: 'default' }}>
-                    <PixelAvatar kind="player" size={22} />
+                <div className="label">내 역할</div>
+                <div className="vstack" style={{ gap: 4 }}>
+                  <div
+                    className={`persona-option ${!conv.personaCharacter ? 'selected' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handlePersonaChange(null)}
+                  >
+                    <div className="thumb" style={{ width: 22, height: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <PixelAvatar kind="player" size={20} />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 10 }}>{conv.userPersona.name}</div>
-                      <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.userPersona.description}</div>
+                      <div style={{ fontWeight: 700, fontSize: 10 }}>없음</div>
+                      <div className="tiny muted">기본 유저</div>
                     </div>
-                    <span style={{ marginLeft: 'auto', color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>
+                    {!conv.personaCharacter && <span style={{ color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>}
                   </div>
-                ) : (
-                  <div className="vstack" style={{ gap: 4 }}>
-                    <div className="persona-option selected" style={{ cursor: 'default' }}>
-                      <PixelAvatar kind="player" size={22} />
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 10 }}>페르소나 없음</div>
-                        <div className="tiny muted">기본 유저</div>
+                  {allChars.map(c => (
+                    <div
+                      key={c.id}
+                      className={`persona-option ${conv.personaCharacter?.id === c.id ? 'selected' : ''}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handlePersonaChange(c.id)}
+                    >
+                      <div className="thumb" style={{ width: 22, height: 22, flexShrink: 0 }}>
+                        {c.avatarUrl
+                          ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} alt="" />
+                          : <PixelAvatar kind={c.kind as any} size={20} />}
                       </div>
-                      <span style={{ marginLeft: 'auto', color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 10 }}>{c.name}</div>
+                        <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tags?.slice(0, 2).join(' · ')}</div>
+                      </div>
+                      {conv.personaCharacter?.id === c.id && <span style={{ color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>}
                     </div>
-                    <div className="tiny muted" style={{ paddingLeft: 2 }}>다른 페르소나로 변경:</div>
-                    {personas.map(p => (
-                      <div
-                        key={p.id}
-                        className="persona-option"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handlePersonaChange(p.id)}
-                      >
-                        <PixelAvatar kind="player" size={22} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 10 }}>{p.name}</div>
-                          <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
 
               <div className="side-section">

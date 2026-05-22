@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     include: {
       characters: { include: { character: true } },
       messages: { orderBy: { createdAt: 'desc' }, take: 1 },
-      userPersona: { select: { name: true } },
+      personaCharacter: { select: { name: true } },
     },
     orderBy: { updatedAt: 'desc' },
   })
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       title: body.title,
       mode: body.mode ?? 'roleplay',
       currentAI: body.currentAI ?? 'gemini',
-      userPersonaId: body.userPersonaId ?? null,
+      personaCharacterId: body.personaCharacterId ?? null,
       scenarioDescription: body.scenarioDescription ?? '',
       tags: body.tags ?? [],
       temperature: body.temperature ?? 0.9,

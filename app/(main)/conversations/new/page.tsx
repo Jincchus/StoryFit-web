@@ -8,15 +8,12 @@ import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import ParamTooltip from '@/components/ui/ParamTooltip'
 import type { Character } from '@/types'
 
-interface Persona { id: string; name: string; description: string; additionalInfo: string }
-
 export default function NewConversationPage() {
   const router = useRouter()
   const { draft, dispatch } = useApp()
   const [char, setChar] = useState<Character | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [tikiChars, setTikiChars] = useState<Character[]>([])
-  const [personas, setPersonas] = useState<Persona[]>([])
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'roleplay' | 'novel' /* | 'tikiTaka' */>('roleplay')
   const [scenarioDescription, setScenarioDescription] = useState('')
@@ -32,7 +29,6 @@ export default function NewConversationPage() {
   const startingRef = useRef(false)
 
   useEffect(() => {
-    api.get('/api/personas').then(setPersonas).catch(() => {})
     fetch('/api/tags').then(r => r.json()).then(setTagPool).catch(() => {})
     api.get('/api/characters').then((chars: Character[]) => {
       setAllChars(chars)
@@ -77,7 +73,7 @@ export default function NewConversationPage() {
         characterIds,
         title: `${char.name}와의 대화`,
         currentAI: draft.modelId,
-        userPersonaId: draft.personaId ?? null,
+        personaCharacterId: draft.personaId ?? null,
         mode,
         scenarioDescription,
         tags,
@@ -92,7 +88,7 @@ export default function NewConversationPage() {
     }
   }
 
-  const selectedPersona = personas.find(p => p.id === draft.personaId)
+  const selectedPersona = allChars.find(c => c.id === draft.personaId)
 
   return (
     <Win title="새 대화 설정 (New Conversation)" icon={PixelIcons.chat}>
@@ -263,23 +259,37 @@ export default function NewConversationPage() {
             </section>
 
 
-            {/* 5. 페르소나 */}
+            {/* 5. 내 역할 (페르소나) */}
             <section className="new-conv-section">
-              <div className="label">내 페르소나 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
+              <div className="label">내 역할 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
               <div
                 className="persona-option"
                 style={{ cursor: 'pointer' }}
                 onClick={() => setPersonaOpen(o => !o)}
               >
-                <div className="thumb" style={{ width: 32, height: 32, background: selectedPersona ? 'var(--lavender)' : undefined, display: 'grid', placeItems: 'center' }}>
-                  <PixelAvatar kind="player" size={28} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 11 }}>{selectedPersona ? selectedPersona.name : '페르소나 없음'}</div>
-                  <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {selectedPersona ? selectedPersona.description : '기본 유저로 대화'}
-                  </div>
-                </div>
+                {selectedPersona ? (
+                  <>
+                    <div className="thumb" style={{ width: 32, height: 32 }}>
+                      {selectedPersona.avatarUrl
+                        ? <img src={selectedPersona.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                        : <PixelAvatar kind={selectedPersona.kind} size={28} />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 11 }}>{selectedPersona.name}</div>
+                      <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedPersona.tags?.slice(0, 3).join(' · ')}</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="thumb" style={{ width: 32, height: 32, display: 'grid', placeItems: 'center' }}>
+                      <PixelAvatar kind="player" size={28} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 11 }}>없음</div>
+                      <div className="tiny muted">기본 유저로 대화</div>
+                    </div>
+                  </>
+                )}
                 <span style={{ fontSize: 9, color: 'var(--ink-soft)', flexShrink: 0 }}>{personaOpen ? '▲' : '▼'}</span>
               </div>
               {personaOpen && (
@@ -293,37 +303,32 @@ export default function NewConversationPage() {
                       <PixelAvatar kind="player" size={24} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 11 }}>페르소나 없음</div>
+                      <div style={{ fontWeight: 700, fontSize: 11 }}>없음</div>
                       <div className="tiny muted">기본 유저로 대화</div>
                     </div>
                     {!draft.personaId && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
                   </div>
-                  {personas.map(p => (
+                  {allChars.map(c => (
                     <div
-                      key={p.id}
-                      className={`persona-option ${draft.personaId === p.id ? 'selected' : ''}`}
+                      key={c.id}
+                      className={`persona-option ${draft.personaId === c.id ? 'selected' : ''}`}
                       style={{ cursor: 'pointer', borderRadius: 0, borderBottom: '1px solid var(--chrome-border)' }}
-                      onClick={() => { dispatch({ type: 'selectPersona', id: p.id }); setPersonaOpen(false) }}
+                      onClick={() => { dispatch({ type: 'selectPersona', id: c.id }); setPersonaOpen(false) }}
                     >
-                      <div className="thumb" style={{ width: 28, height: 28, background: 'var(--lavender)', display: 'grid', placeItems: 'center' }}>
-                        <PixelAvatar kind="player" size={24} />
+                      <div className="thumb" style={{ width: 28, height: 28 }}>
+                        {c.avatarUrl
+                          ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                          : <PixelAvatar kind={c.kind} size={24} />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 11 }}>{p.name}</div>
-                        <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>
+                        <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
+                        <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tags?.slice(0, 3).join(' · ')}</div>
                       </div>
-                      {draft.personaId === p.id && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
+                      {draft.personaId === c.id && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
                     </div>
                   ))}
                 </div>
               )}
-              <button
-                className="btn ghost"
-                style={{ fontSize: 10, padding: '4px 8px', alignSelf: 'flex-start', marginTop: 4 }}
-                onClick={() => router.push('/personas')}
-              >
-                + 페르소나 관리
-              </button>
             </section>
 
             {/* 6. AI 설정 */}

@@ -21,13 +21,6 @@ export interface Character {
   isPreset: boolean
 }
 
-export interface UserPersona {
-  id: string
-  name: string
-  description: string
-  additionalInfo: string
-  tags: string[]
-}
 
 export interface Message {
   id: string
@@ -45,7 +38,8 @@ export interface Conversation {
   title: string
   mode: ConvMode
   currentAI: AIProvider
-  userPersonaId: string | null
+  personaCharacterId: string | null
+  personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
   coreMemory: string
   statusTimeline: string
   scenarioDescription: string
