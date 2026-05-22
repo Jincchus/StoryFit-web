@@ -32,7 +32,7 @@ async function streamViaApiKey(
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   const generationConfig = {
     temperature: params.temperature ?? 0.9,
-    maxOutputTokens: 2048,
+    maxOutputTokens: 8192,
   }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
@@ -97,7 +97,7 @@ async function streamViaVertex(
     systemInstruction: params.systemPrompt,
     generationConfig: {
       temperature: params.temperature ?? 0.9,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 8192,
     },
     safetySettings: [
       VHC.HARM_CATEGORY_HARASSMENT,
