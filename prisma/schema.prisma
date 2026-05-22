@@ -48,7 +48,6 @@ model Character {
   systemPrompt        String
   avatarUrl           String?
   exampleDialogues    String    @default("")
-  tags                String[]
   safetyLevel         String    @default("standard")
   temperature         Float     @default(0.9)
   frequencyPenalty    Float     @default(0.3)

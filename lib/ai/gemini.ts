@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai'
 import type { SafetyLevel } from '@/types'
+import { GEMINI_CHAT_MODEL } from '@/lib/constants'
 
 const SAFETY_MAP: Record<SafetyLevel, HarmBlockThreshold> = {
   strict:   HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
@@ -40,7 +41,7 @@ async function streamViaApiKey(
   }))
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-pro',
+    model: GEMINI_CHAT_MODEL,
     systemInstruction: params.systemPrompt,
     generationConfig,
     safetySettings,
@@ -93,7 +94,7 @@ async function streamViaVertex(
   })
 
   const model = vertexAI.getGenerativeModel({
-    model: 'gemini-2.5-pro',
+    model: GEMINI_CHAT_MODEL,
     systemInstruction: params.systemPrompt,
     generationConfig: {
       temperature: params.temperature ?? 0.9,

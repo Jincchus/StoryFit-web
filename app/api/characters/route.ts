@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
       systemPrompt: body.systemPrompt,
       exampleDialogues: body.exampleDialogues ?? '',
       avatarUrl: body.avatarUrl,
-      tags: body.tags ?? [],
       safetyLevel: body.safetyLevel ?? 'standard',
       temperature: body.temperature ?? 0.9,
       frequencyPenalty: body.frequencyPenalty ?? 0.3,

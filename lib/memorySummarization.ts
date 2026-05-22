@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { prisma } from '@/lib/prisma'
+import { GEMINI_UTILITY_MODEL } from '@/lib/constants'
 
 const SUMMARIZE_EVERY = 10
 
@@ -9,7 +10,7 @@ async function summarizeMessages(
 ): Promise<string> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: GEMINI_UTILITY_MODEL,
     tools: [],
     systemInstruction: `당신은 롤플레이 대화 요약 도우미입니다. 캐릭터 설정: ${characterSystemPrompt}`,
   })

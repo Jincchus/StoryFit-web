@@ -13,7 +13,6 @@ export interface Character {
   systemPrompt: string
   exampleDialogues: string
   avatarUrl?: string
-  tags: string[]
   safetyLevel: SafetyLevel
   temperature: number
   frequencyPenalty: number

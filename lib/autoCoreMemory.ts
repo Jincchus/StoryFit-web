@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { prisma } from '@/lib/prisma'
+import { GEMINI_UTILITY_MODEL } from '@/lib/constants'
 
 const EXTRACT_EVERY = 10
 
@@ -27,7 +28,7 @@ export async function triggerAutoCoreMemory(
   if (messages.length === 0) return
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+  const model = genAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL })
 
   const transcript = [...messages].reverse()
     .map(m => `${m.role === 'user' ? '유저' : characterName}: ${m.content}`)

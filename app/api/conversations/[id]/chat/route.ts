@@ -83,7 +83,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       kind: 'custom' as const,
       safetyLevel: c.safetyLevel as 'strict' | 'standard' | 'relaxed',
       defaultAI: c.defaultAI as 'gemini' | 'claude' | 'chatgpt',
-      tags: c.tags,
       avatarUrl: c.avatarUrl ?? undefined,
     }
   }

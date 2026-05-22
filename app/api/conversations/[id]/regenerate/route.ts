@@ -60,7 +60,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       kind: 'custom' as const,
       safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
       defaultAI: character.defaultAI as 'gemini' | 'claude' | 'chatgpt',
-      tags: character.tags,
       avatarUrl: character.avatarUrl ?? undefined,
     },
     userPersona: conv.userPersona ? {
