@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
@@ -21,9 +21,39 @@ export default function CharactersPage() {
   const { draft, dispatch } = useApp()
   const [characters, setCharacters] = useState<Character[]>([])
   const [error, setError] = useState('')
+  const [importing, setImporting] = useState(false)
+  const importRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     api.get('/api/characters').then(setCharacters).catch(e => setError(e.message))
   }, [])
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setImporting(true)
+    setError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const char = await fetch('/api/characters/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      }).then(async r => {
+        const json = await r.json()
+        if (!r.ok) throw new Error(json.error ?? '가져오기 실패')
+        return json as Character
+      })
+      setCharacters(prev => [...prev, char])
+      dispatch({ type: 'selectChar', id: char.id })
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const selectedChar = characters.find(c => c.id === draft.charId)
 
@@ -44,6 +74,10 @@ export default function CharactersPage() {
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
             <button className="btn ghost" onClick={() => router.push('/')}>← 뒤로</button>
+            <input ref={importRef} type="file" accept=".png" style={{ display: 'none' }} onChange={handleImport} />
+            <button className="btn ghost" disabled={importing} onClick={() => importRef.current?.click()}>
+              {importing ? '...' : '↓ 카드'}
+            </button>
             <button className="btn" onClick={() => router.push('/characters/new')}>+ 만들기</button>
             <button
               className="btn primary"
