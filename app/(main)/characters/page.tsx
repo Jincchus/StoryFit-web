@@ -100,8 +100,10 @@ export default function CharactersPage() {
               }
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontWeight: 700 }}>{selectedChar.name}</span>
-              <span className="muted" style={{ marginLeft: 6, fontSize: 10 }}>{selectedChar.title}</span>
+              <div><span style={{ fontWeight: 700 }}>{selectedChar.name}</span><span className="muted" style={{ marginLeft: 6, fontSize: 10 }}>{selectedChar.title}</span></div>
+              {selectedChar.description && (
+                <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedChar.description}</div>
+              )}
             </div>
           </div>
         )}
@@ -122,6 +124,11 @@ export default function CharactersPage() {
               </div>
               <h4>{c.name}</h4>
               <p>{c.title}</p>
+              {c.description && (
+                <p className="tiny muted" style={{ marginTop: 3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', textAlign: 'left', lineHeight: 1.4 }}>
+                  {c.description}
+                </p>
+              )}
               {!c.isPreset && (
                 <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
                   <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>

@@ -9,6 +9,7 @@ import MessageBlocks from '@/components/ui/MessageBlocks'
 import NovelScene from '@/components/ui/NovelScene'
 import AiPill from '@/components/ui/AiPill'
 import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import type { AIProvider } from '@/types'
 
 function editDistance(a: string, b: string): number {
@@ -81,9 +82,11 @@ export default function ChatPage() {
   const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
   const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
   const [atBottom, setAtBottom] = useState(true)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const typingRef = useRef(false)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => { typingRef.current = typing }, [typing])
 
@@ -266,6 +269,14 @@ export default function ChatPage() {
   const handleDelete = async (msgId: string) => {
     await api.delete(`/api/conversations/${params.id}/messages`, { messageId: msgId })
     setMessages(prev => prev.filter(m => m.id !== msgId))
+    setConfirmDeleteId(null)
+  }
+
+  const autoResize = () => {
+    const el = composerRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
   }
 
   const handleRegenerate = async () => {
@@ -384,6 +395,14 @@ export default function ChatPage() {
   const streamingChar = streamingCharId ? charMap.get(streamingCharId) ?? char : char
 
   return (
+    <>
+    {confirmDeleteId && (
+      <ConfirmDialog
+        message="이 메시지를 삭제할까요? 복구할 수 없습니다."
+        onConfirm={() => handleDelete(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+    )}
     <Win title={isTikiTaka ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat}>
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
         <div className="chat-header spread">
@@ -575,7 +594,7 @@ export default function ChatPage() {
                         {isYou && (
                           <button className="msg-action-btn" onClick={() => startEdit(m.id, m.content)}>✏ 편집</button>
                         )}
-                        <button className="msg-action-btn danger" onClick={() => handleDelete(m.id)}>✕ 삭제</button>
+                        <button className="msg-action-btn danger" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
                       </div>
                     )}
                   </div>
@@ -612,13 +631,16 @@ export default function ChatPage() {
                 <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setSendError('')}>닫기</button>
               </div>
             )}
-            <div className="composer">
-              <input
+            <div className="composer" style={{ alignItems: 'flex-end' }}>
+              <textarea
+                ref={composerRef}
                 className="field"
-                placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요… (예: 두 사람이 처음 만나는 장면)' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : `${char.name}에게 말 걸기…`}
+                rows={1}
+                style={{ resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
+                placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요… (Shift+Enter 줄바꿈)' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다… (Shift+Enter 줄바꿈)' : `${char.name}에게 말 걸기… (Shift+Enter 줄바꿈)`}
                 value={text}
                 disabled={typing}
-                onChange={e => setText(e.target.value)}
+                onChange={e => { setText(e.target.value); autoResize() }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text) } }}
               />
               <button className="btn primary" onClick={() => send(text)} disabled={!text.trim() || typing}>전송</button>
@@ -833,6 +855,7 @@ export default function ChatPage() {
         </div>
       </div>
     </Win>
+    </>
   )
 }
 

@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface ConvItem {
   id: string
@@ -30,6 +31,8 @@ export default function HomePage() {
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   useEffect(() => {
     api.get('/api/conversations').then(setConversations).catch(e => setError(e.message))
@@ -56,6 +59,7 @@ export default function HomePage() {
   const handleDeleteSelected = async () => {
     if (selected.size === 0 || deleting) return
     setDeleting(true)
+    setConfirmBulk(false)
     try {
       await Promise.all(Array.from(selected).map(id => api.delete(`/api/conversations/${id}`)))
       setConversations(prev => prev.filter(c => !selected.has(c.id)))
@@ -65,13 +69,28 @@ export default function HomePage() {
     }
   }
 
-  const handleDeleteOne = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
+  const handleDeleteOne = async (id: string) => {
     await api.delete(`/api/conversations/${id}`)
     setConversations(prev => prev.filter(c => c.id !== id))
+    setConfirmDeleteId(null)
   }
 
   return (
+    <>
+    {confirmDeleteId && (
+      <ConfirmDialog
+        message="이 대화를 삭제할까요? 복구할 수 없습니다."
+        onConfirm={() => handleDeleteOne(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+    )}
+    {confirmBulk && (
+      <ConfirmDialog
+        message={`선택한 대화 ${selected.size}개를 삭제할까요?`}
+        onConfirm={handleDeleteSelected}
+        onCancel={() => setConfirmBulk(false)}
+      />
+    )}
     <Win title="채팅 목록 (Chat List)" icon={PixelIcons.chat}>
       <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0 }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
@@ -89,7 +108,7 @@ export default function HomePage() {
                   className="btn danger"
                   style={{ fontSize: 10 }}
                   disabled={selected.size === 0 || deleting}
-                  onClick={handleDeleteSelected}
+                  onClick={() => setConfirmBulk(true)}
                 >
                   {deleting ? '삭제 중...' : `✕ 삭제 (${selected.size})`}
                 </button>
@@ -163,7 +182,7 @@ export default function HomePage() {
                     <button
                       className="btn danger"
                       style={{ fontSize: 10, padding: '3px 8px', minWidth: 44 }}
-                      onClick={e => handleDeleteOne(e, conv.id)}
+                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(conv.id) }}
                     >✕ 삭제</button>
                   )}
                 </div>
@@ -181,5 +200,7 @@ export default function HomePage() {
         </div>
       </div>
     </Win>
+    </>
+
   )
 }

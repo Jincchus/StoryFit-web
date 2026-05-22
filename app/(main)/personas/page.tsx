@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { RANDOM_NAMES } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 type NameEntry = { name: string; category: string; gender: string }
 
@@ -26,6 +27,7 @@ export default function PersonasPage() {
   const [loading, setLoading] = useState(false)
   const [namePool, setNamePool] = useState<NameEntry[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
@@ -55,11 +57,20 @@ export default function PersonasPage() {
   const handleDelete = async (id: string) => {
     await api.delete(`/api/personas/${id}`)
     setPersonas(prev => prev.filter(p => p.id !== id))
+    setConfirmDeleteId(null)
   }
 
   const isFormOpen = creating || !!editingId
 
   return (
+    <>
+    {confirmDeleteId && (
+      <ConfirmDialog
+        message="이 페르소나를 삭제할까요?"
+        onConfirm={() => handleDelete(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+    )}
     <Win title="내 페르소나 (My Persona)" icon={PixelIcons.user}>
       <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
@@ -146,7 +157,7 @@ export default function PersonasPage() {
               </div>
               <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
                 <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => openEdit(p)}>편집</button>
-                <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px', color: 'var(--hot-pink)' }} onClick={() => handleDelete(p.id)}>삭제</button>
+                <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px', color: 'var(--hot-pink)' }} onClick={() => setConfirmDeleteId(p.id)}>삭제</button>
               </div>
             </div>
           ))}
@@ -161,5 +172,6 @@ export default function PersonasPage() {
         </div>
       </div>
     </Win>
+    </>
   )
 }
