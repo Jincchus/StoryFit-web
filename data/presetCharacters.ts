@@ -68,6 +68,6 @@ export const PRESET_CHARS: Character[] = [
 ]
 
 export const PRESET_PERSONAS: UserPersona[] = [
-  { id: 'persona-1', name: '이루리', description: '20대 초반, 마법 학원생. 호기심 많고 용감하다.', additionalInfo: '' },
-  { id: 'persona-2', name: '아론 블레이크', description: '냉소적인 탐정. 진실만을 추구한다.', additionalInfo: '직업: 사립탐정' },
+  { id: 'persona-1', name: '이루리', description: '20대 초반, 마법 학원생. 호기심 많고 용감하다.', additionalInfo: '', tags: [] },
+  { id: 'persona-2', name: '아론 블레이크', description: '냉소적인 탐정. 진실만을 추구한다.', additionalInfo: '직업: 사립탐정', tags: [] },
 ]

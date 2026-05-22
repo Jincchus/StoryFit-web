@@ -56,6 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       name: conv.userPersona.name,
       description: conv.userPersona.description,
       additionalInfo: conv.userPersona.additionalInfo,
+      tags: conv.userPersona.tags,
     } : null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
