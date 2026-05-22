@@ -83,6 +83,9 @@ export default function ChatPage() {
   const [atBottom, setAtBottom] = useState(true)
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const typingRef = useRef(false)
+
+  useEffect(() => { typingRef.current = typing }, [typing])
 
   const loadConv = useCallback(async () => {
     const [data, msgs]: [Conv, Msg[]] = await Promise.all([
@@ -95,6 +98,22 @@ export default function ChatPage() {
   }, [params.id])
 
   useEffect(() => { loadConv() }, [loadConv])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      if (typingRef.current) {
+        abortRef.current?.abort()
+        setTyping(false)
+        setStreaming('')
+        setStreamingCharId(null)
+        setSendError('')
+      }
+      loadConv()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [loadConv])
 
   useEffect(() => {
     api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => {})
