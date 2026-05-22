@@ -45,5 +45,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(character, { status: 201 })
 }
-
-}

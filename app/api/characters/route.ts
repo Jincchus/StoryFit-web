@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     orderBy: [{ isPreset: 'desc' }, { createdAt: 'asc' }],
   })
   return NextResponse.json(characters)
+}
 
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
@@ -38,6 +39,4 @@ export async function POST(req: NextRequest) {
     },
   })
   return NextResponse.json(character, { status: 201 })
-}
-
 }

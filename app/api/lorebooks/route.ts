@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     orderBy: { priority: 'desc' },
   })
   return NextResponse.json(lorebooks)
+}
 
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)

@@ -26,6 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const branchIndex = siblings.findIndex(s => s.id === m.id) + 1
     return { ...m, branchCount: siblings.length, branchIndex }
   }))
+}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -65,6 +66,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   ])
 
   return NextResponse.json({ ok: true })
+}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)

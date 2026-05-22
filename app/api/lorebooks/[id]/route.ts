@@ -10,6 +10,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json()
   const lorebook = await prisma.lorebook.update({ where: { id: params.id }, data: body })
   return NextResponse.json(lorebook)
+}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)

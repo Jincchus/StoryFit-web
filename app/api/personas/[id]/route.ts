@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 
-}
-
 async function getOwnedPersona(userId: string, id: string) {
   const persona = await prisma.userPersona.findUnique({ where: { id } })
   if (!persona) return null
   if (persona.userId !== userId) return null
   return persona
+}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -20,6 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json()
   const updated = await prisma.userPersona.update({ where: { id: params.id }, data: body })
   return NextResponse.json(updated)
+}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)

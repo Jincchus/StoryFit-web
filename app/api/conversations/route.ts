@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     orderBy: { updatedAt: 'desc' },
   })
   return NextResponse.json(conversations)
+}
 
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)

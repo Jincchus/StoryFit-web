@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
 
   const personas = await prisma.userPersona.findMany({ where: { userId } })
   return NextResponse.json(personas)
+}
 
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)

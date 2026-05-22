@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json({ url: `/api/uploads/${filename}`, id: record.id }, { status: 201 })
+}
 
 export async function GET() {
   const images = await prisma.uploadedImage.findMany({

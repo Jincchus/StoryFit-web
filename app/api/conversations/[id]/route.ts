@@ -17,6 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
   return NextResponse.json(conv)
+}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -28,6 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const conv = await prisma.conversation.update({ where: { id: params.id }, data })
   return NextResponse.json(conv)
+}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
