@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -152,7 +151,6 @@ export default function HomePage() {
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           {filtered.map(conv => {
             const char = conv.characters[0]?.character
-            const ai = AI_MODELS.find(x => x.id === conv.currentAI) ?? AI_MODELS[0]
             const lastLine = conv.messages[0]?.content ?? ''
             const when = new Date(conv.updatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
             const isChecked = selected.has(conv.id)
@@ -194,10 +192,6 @@ export default function HomePage() {
                 <div className="vstack" style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                   <div className="hstack" style={{ gap: 4 }}>
                     <span className="mode-badge" style={{ fontSize: 8 }}>{MODE_LABEL[conv.mode] ?? conv.mode}</span>
-                    <span className="ai-pill" style={{ padding: '1px 5px', fontSize: 9, cursor: 'default' }}>
-                      <span className="dot" style={{ background: ai.id === 'chatgpt' ? '#a3e0ff' : ai.id === 'gemini' ? '#c9b6ff' : '#b8f5d2' }} />
-                      {ai.short}
-                    </span>
                   </div>
                   <span className="when">{when}</span>
                   {!selecting && (
