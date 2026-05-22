@@ -543,7 +543,6 @@ export default function ChatPage() {
                       <div className="seq-block seq-left">
                         <div className="seq-speaker">
                           <span>{msgChar.name}</span>
-                          <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>
                         </div>
                         <div className="vstack" style={{ gap: 4 }}>
                           <textarea className="field" rows={3} value={editText}
@@ -587,7 +586,6 @@ export default function ChatPage() {
                             <div key={i} className="seq-block seq-left">
                               <div className="seq-speaker">
                                 <span>{speaker}</span>
-                                {isMainChar && <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>}
                               </div>
                               <div className={`bubble ${bubbleColor}${thought}`}>{b.text}</div>
                             </div>
@@ -599,7 +597,6 @@ export default function ChatPage() {
                       <div className="seq-block seq-left">
                         <div className="seq-speaker">
                           <span>{msgChar.name}</span>
-                          <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>
                         </div>
                         <div className="bubble bubble-char" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                       </div>
@@ -645,9 +642,6 @@ export default function ChatPage() {
                   <div className="seq-block seq-left">
                     <div className="seq-speaker">
                       <span>{streamingChar.name}</span>
-                      <span className={`ai-tag ${AI_MODELS.find(x => x.id === model)?.className ?? ''}`}>
-                        {AI_MODELS.find(x => x.id === model)?.tag}
-                      </span>
                     </div>
                     {streaming
                       ? isNovel
