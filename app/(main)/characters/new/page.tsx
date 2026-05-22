@@ -14,26 +14,9 @@ export default function CharacterNewPage() {
     name: '', gender: '', avatarUrl: '',
     tags: [], additionalInfo: '', exampleDialogues: '',
   })
-  const [aiStyle, setAiStyle] = useState<'eastern' | 'western'>('eastern')
-  const [aiTheme, setAiTheme] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError] = useState('')
 
   const onChange = <K extends keyof CharFormData>(key: K, val: CharFormData[K]) =>
     setForm(f => ({ ...f, [key]: val }))
-
-  const handleGenerate = async () => {
-    setAiLoading(true)
-    setAiError('')
-    try {
-      const result = await api.post('/api/characters/generate', { style: aiStyle, theme: aiTheme })
-      setForm(f => ({ ...f, ...result, avatarUrl: f.avatarUrl }))
-    } catch (e: any) {
-      setAiError(e.message ?? '생성 실패')
-    } finally {
-      setAiLoading(false)
-    }
-  }
 
   const handleSubmit = async () => {
     if (!form.name.trim() || loading) return
@@ -68,42 +51,6 @@ export default function CharacterNewPage() {
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0, paddingRight: 4 }}>
-          {/* AI 자동생성 */}
-          <div className="form-section" style={{ marginBottom: 14 }}>
-            <div className="form-section-title">✦ AI 자동생성</div>
-            <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
-              {(['eastern', 'western'] as const).map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  className={`btn ${aiStyle === s ? 'primary' : 'ghost'}`}
-                  style={{ fontSize: 11 }}
-                  onClick={() => setAiStyle(s)}
-                >
-                  {s === 'eastern' ? '동양풍' : '서양풍'}
-                </button>
-              ))}
-              <input
-                className="field"
-                style={{ flex: 1, minWidth: 100, fontSize: 11 }}
-                placeholder="테마 (선택) — 예: 냉정한 검사, 밝은 마법사"
-                value={aiTheme}
-                onChange={e => setAiTheme(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleGenerate() } }}
-              />
-              <button
-                type="button"
-                className="btn primary"
-                style={{ fontSize: 11, flexShrink: 0 }}
-                disabled={aiLoading}
-                onClick={handleGenerate}
-              >
-                {aiLoading ? '생성 중...' : '✦ 생성'}
-              </button>
-            </div>
-            {aiError && <div className="tiny" style={{ color: '#ff6b8a', marginTop: 4 }}>⚠ {aiError}</div>}
-          </div>
-
           <CharacterForm form={form} onChange={onChange} />
         </div>
       </div>

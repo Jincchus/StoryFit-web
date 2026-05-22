@@ -5,6 +5,8 @@ import { RANDOM_NAMES } from '@/lib/constants'
 import AvatarPicker from '@/components/ui/AvatarPicker'
 import Toast from '@/components/ui/Toast'
 
+type AiStyle = 'eastern' | 'western'
+
 export interface CharFormData {
   name: string
   gender: string
@@ -41,6 +43,9 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
   const [charTags, setCharTags] = useState<TagEntry[]>([])
   const [customInputs, setCustomInputs] = useState<Record<Category, string>>({ 관계: '', 성격: '', 외모: '', 역할: '' })
   const [showDialogues, setShowDialogues] = useState(!!form.exampleDialogues)
+  const [aiStyle, setAiStyle] = useState<AiStyle>('eastern')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
 
   useEffect(() => {
     fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
@@ -74,6 +79,28 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
     if (!val || form.tags.includes(val)) return
     onChange('tags', [...form.tags, val])
     setCustomInputs(c => ({ ...c, [cat]: '' }))
+  }
+
+  const handleAiFill = async () => {
+    setAiLoading(true)
+    setAiError('')
+    try {
+      const result = await api.post('/api/characters/generate', {
+        style: aiStyle,
+        gender: form.gender,
+        tags: form.tags,
+        name: form.name,
+        additionalInfo: form.additionalInfo,
+        exampleDialogues: form.exampleDialogues,
+      })
+      if (result.name) onChange('name', result.name)
+      if (result.additionalInfo) onChange('additionalInfo', result.additionalInfo)
+      if (result.exampleDialogues) { onChange('exampleDialogues', result.exampleDialogues); setShowDialogues(true) }
+    } catch (e: any) {
+      setAiError(e.message ?? '생성 실패')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   return (
@@ -177,6 +204,30 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
               </div>
             </div>
           )}
+        </div>
+
+        {/* AI 채우기 */}
+        <div className="form-section">
+          <div className="spread" style={{ alignItems: 'center', marginBottom: 6 }}>
+            <div className="form-section-title" style={{ marginBottom: 0 }}>✦ AI로 빈 항목 채우기</div>
+            <div className="hstack" style={{ gap: 4 }}>
+              {(['eastern', 'western'] as const).map(s => (
+                <button key={s} type="button"
+                  className={`btn ${aiStyle === s ? 'primary' : 'ghost'}`}
+                  style={{ fontSize: 10, padding: '2px 8px' }}
+                  onClick={() => setAiStyle(s)}
+                >{s === 'eastern' ? '동양풍' : '서양풍'}</button>
+              ))}
+            </div>
+          </div>
+          <div className="tiny muted" style={{ marginBottom: 6 }}>
+            이름·추가정보·예시대화 중 비어있는 항목만 채웁니다. 성별·태그를 먼저 선택하면 더 정확합니다.
+          </div>
+          <button type="button" className="btn primary" style={{ fontSize: 11, alignSelf: 'flex-start' }}
+            disabled={aiLoading} onClick={handleAiFill}>
+            {aiLoading ? '생성 중...' : '✦ 채우기'}
+          </button>
+          {aiError && <div className="tiny" style={{ color: '#ff6b8a', marginTop: 4 }}>⚠ {aiError}</div>}
         </div>
 
         {/* 추가 정보 */}
