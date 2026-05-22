@@ -8,7 +8,12 @@ import { parsePngTavernCard, buildSystemPromptFromCard } from '@/lib/tavernCard'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'avatars')
 
-function parseTavernJson(json: any) {
+interface CardShape {
+  name: string; description: string; personality: string; scenario: string
+  first_mes: string; mes_example: string; system_prompt?: string
+}
+
+function parseTavernJson(json: any): CardShape {
   const data = json?.spec === 'chara_card_v2' ? json.data : json
   return {
     name: data?.name ?? '',
@@ -43,7 +48,7 @@ export async function POST(req: NextRequest) {
   const contentType = res.headers.get('content-type') ?? ''
   const buf = Buffer.from(await res.arrayBuffer())
 
-  let card: ReturnType<typeof parseTavernJson> | null = null
+  let card: CardShape | null = null
   let isPng = false
 
   if (contentType.includes('json') || url.endsWith('.json')) {
