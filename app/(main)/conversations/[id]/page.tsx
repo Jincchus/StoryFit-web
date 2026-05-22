@@ -6,16 +6,18 @@ import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import MessageBlocks from '@/components/ui/MessageBlocks'
+import NovelScene from '@/components/ui/NovelScene'
 import AiPill from '@/components/ui/AiPill'
 import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
 import type { AIProvider } from '@/types'
 
 function ChatNarration({ text }: { text: string }) {
-  const parts = text.split(/(\*[^*]+\*)/)
+  const parts = text.split(/(\*[^*]+\*|\n)/)
   return (
     <>
       {parts.map((p, i) =>
-        p.startsWith('*') && p.endsWith('*')
+        p === '\n' ? <br key={i} />
+        : p.startsWith('*') && p.endsWith('*')
           ? <em key={i}>{p.slice(1, -1)}</em>
           : <span key={i}>{p}</span>
       )}
@@ -543,7 +545,9 @@ export default function ChatPage() {
                       </span>
                     </div>
                     {streaming
-                      ? <MessageBlocks text={streaming} />
+                      ? isNovel
+                        ? <NovelScene text={streaming} personaName={conv?.userPersona?.name ?? '주인공'} charName={streamingChar.name} />
+                        : <MessageBlocks text={streaming} />
                       : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
                           <span>•</span><span>•</span><span>•</span>
                         </div>

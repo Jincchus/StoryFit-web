@@ -43,12 +43,15 @@ export function parseBlocks(text: string): Block[] {
       }
 
       if (SQUOTES.includes(ch)) {
-        const end = findAny(line, SQUOTES, i + 1)
-        if (end !== -1) {
-          flushNarration()
-          blocks.push({ type: 'thought', text: line.slice(i + 1, end) })
-          i = end + 1
-          continue
+        const isApostrophe = ch === "'" && i > 0 && /[a-zA-Z]/.test(line[i - 1])
+        if (!isApostrophe) {
+          const end = findAny(line, SQUOTES, i + 1)
+          if (end !== -1) {
+            flushNarration()
+            blocks.push({ type: 'thought', text: line.slice(i + 1, end) })
+            i = end + 1
+            continue
+          }
         }
       }
 
