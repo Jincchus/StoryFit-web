@@ -317,7 +317,7 @@ body[data-art="modern"] .char-card .pic-wrap { border-radius: 50%; border: 1.5px
 .mono { font-family: var(--font-mono) }
 .fill { flex: 1; min-width: 0 }
 .center { display: grid; place-items: center }
-.scroll { overflow-y: auto; min-height: 0 }
+.scroll { overflow-y: auto; overflow-x: hidden; min-height: 0 }
 
 /* ─── Novel rendering ─────────────────────────────────────────────────── */
 .novel-action { color: #9d8bba; font-style: italic }

@@ -34,7 +34,8 @@ export default function Dock() {
     router.replace('/login')
   }
 
-  const isHome = pathname === '/' || pathname === '/chatlist'
+  const isHome = pathname === '/'
+  const isChatList = pathname === '/chatlist'
   const isChat = pathname.startsWith('/conversations/') && pathname !== '/conversations/new'
   const isCharSelect = pathname === '/characters'
   const isNewConv = pathname === '/conversations/new'
@@ -83,6 +84,7 @@ export default function Dock() {
       </div>
       <div style={{ display: 'flex', gap: 4, overflow: 'hidden', flex: 1 }}>
         <button className={`dock-tab ${isHome ? 'active' : ''}`} onClick={() => router.push('/')}>홈</button>
+        {isChatList && <button className="dock-tab active">▸ 채팅 목록</button>}
         {isChat && <button className="dock-tab active">▸ 채팅</button>}
         {isCharSelect && <button className="dock-tab active">▸ 캐릭터 선택</button>}
         {isNewConv && <button className="dock-tab active">▸ 새 대화</button>}

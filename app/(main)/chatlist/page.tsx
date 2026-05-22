@@ -72,7 +72,7 @@ export default function HomePage() {
   }
 
   return (
-    <Win title="홈 (Home)" icon={PixelIcons.home}>
+    <Win title="채팅 목록 (Chat List)" icon={PixelIcons.chat}>
       <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0 }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0, flex: '1 1 auto' }}>
