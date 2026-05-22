@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
@@ -27,32 +27,23 @@ export default function CharactersPage() {
   const [error, setError] = useState('')
   const [importing, setImporting] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const importRef = useRef<HTMLInputElement>(null)
+  const [showUrlInput, setShowUrlInput] = useState(false)
+  const [importUrl, setImportUrl] = useState('')
 
   useEffect(() => {
     api.get('/api/characters').then(setCharacters).catch(e => setError(e.message))
   }, [])
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
+  const handleImport = async () => {
+    if (!importUrl.trim() || importing) return
     setImporting(true)
     setError('')
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const char = await fetch('/api/characters/import', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      }).then(async r => {
-        const json = await r.json()
-        if (!r.ok) throw new Error(json.error ?? '가져오기 실패')
-        return json as Character
-      })
+      const char = await api.post('/api/characters/import', { url: importUrl.trim() })
       setCharacters(prev => [...prev, char])
       dispatch({ type: 'selectChar', id: char.id })
+      setImportUrl('')
+      setShowUrlInput(false)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -87,10 +78,7 @@ export default function CharactersPage() {
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
             <button className="btn ghost" onClick={() => router.push('/')}>← 뒤로</button>
-            <input ref={importRef} type="file" accept=".png" style={{ display: 'none' }} onChange={handleImport} />
-            <button className="btn ghost" disabled={importing} onClick={() => importRef.current?.click()}>
-              {importing ? '가져오는 중...' : '↓ 카드 가져오기'}
-            </button>
+            <button className="btn ghost" onClick={() => setShowUrlInput(v => !v)}>↓ 카드 가져오기</button>
             <button className="btn" onClick={() => router.push('/characters/new')}>+ 만들기</button>
             <button
               className="btn primary"
@@ -103,6 +91,24 @@ export default function CharactersPage() {
         </div>
 
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
+
+        {showUrlInput && (
+          <div className="hstack" style={{ gap: 6 }}>
+            <input
+              className="field"
+              style={{ flex: 1, fontSize: 11 }}
+              placeholder="Tavern Card URL (.png 또는 .json)"
+              value={importUrl}
+              onChange={e => setImportUrl(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleImport() }}
+              autoFocus
+            />
+            <button className="btn primary" style={{ fontSize: 11, flexShrink: 0 }} disabled={importing || !importUrl.trim()} onClick={handleImport}>
+              {importing ? '가져오는 중...' : '가져오기'}
+            </button>
+            <button className="btn ghost" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => { setShowUrlInput(false); setImportUrl('') }}>취소</button>
+          </div>
+        )}
 
         {selectedChar && (
           <div className="char-preview-bar">

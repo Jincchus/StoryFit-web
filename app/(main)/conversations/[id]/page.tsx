@@ -755,7 +755,7 @@ export default function ChatPage() {
                     </div>
                     {!conv.personaCharacter && <span style={{ color: 'var(--hot-pink)', fontSize: 10 }}>✓</span>}
                   </div>
-                  {allChars.map(c => (
+                  {allChars.filter(c => !conv.characters.some(cc => cc.character.id === c.id)).map(c => (
                     <div
                       key={c.id}
                       className={`persona-option ${conv.personaCharacter?.id === c.id ? 'selected' : ''}`}

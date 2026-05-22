@@ -235,7 +235,7 @@ export default function NewConversationPage() {
               </div>
               {charOpen && (
                 <div style={{ border: '1px solid var(--chrome-border)', background: 'var(--win-bg)', marginTop: 2, maxHeight: 200, overflowY: 'auto' }}>
-                  {allChars.map(c => (
+                  {allChars.filter(c => c.id !== draft.personaId).map(c => (
                     <div
                       key={c.id}
                       className={`persona-option ${char?.id === c.id ? 'selected' : ''}`}
@@ -308,7 +308,7 @@ export default function NewConversationPage() {
                     </div>
                     {!draft.personaId && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
                   </div>
-                  {allChars.map(c => (
+                  {allChars.filter(c => c.id !== char?.id).map(c => (
                     <div
                       key={c.id}
                       className={`persona-option ${draft.personaId === c.id ? 'selected' : ''}`}
