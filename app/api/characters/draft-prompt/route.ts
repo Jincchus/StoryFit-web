@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 import { generateText } from '@/lib/ai/gemini'
 
 export async function POST(req: NextRequest) {
-  try { await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') }
-  catch { return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 }) }
+  const userId = await authenticate(req)
+  if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const { name, title, gender, description } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: '이름이 필요합니다.' }, { status: 400 })

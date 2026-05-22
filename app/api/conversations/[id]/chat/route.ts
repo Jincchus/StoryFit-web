@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
+import { loadGlobalRules } from '@/lib/globalConfig'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -43,15 +44,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
 
-  const [globalRulesConfig, modeRulesConfig] = await Promise.all([
-    prisma.globalConfig.findUnique({ where: { key: 'global_rules' } }),
-    prisma.globalConfig.findUnique({ where: { key: conv.mode === 'novel' ? 'novel_rules' : 'roleplay_rules' } }),
-  ])
-  const globalRules = globalRulesConfig?.value ?? ''
-  const modeRules = modeRulesConfig?.value ?? ''
+  const { globalRules, modeRules } = await loadGlobalRules(conv.mode)
 
   const matchedLorebook = matchLorebook(
-    conv.lorebooks.map(l => ({ ...l, keyword: l.keyword, content: l.content, priority: l.priority, scanDepth: l.scanDepth, isEnabled: l.isEnabled, scope: l.scope as 'conversation' | 'character', scopeId: l.scopeId, id: l.id })),
+    conv.lorebooks.map(l => ({ ...l, scope: l.scope as 'conversation' | 'character' })),
     conv.messages,
   )
 
@@ -300,8 +296,4 @@ async function streamTikiTaka({
       Connection: 'keep-alive',
     },
   })
-}
-
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
 }

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
-}
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -15,7 +12,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     orderBy: { createdAt: 'asc' },
   })
   return NextResponse.json(memories)
-}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)

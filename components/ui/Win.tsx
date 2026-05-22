@@ -22,8 +22,6 @@ export default function Win({ title, icon, controls = true, onClose, children, c
         {titlebarExtra}
         {controls && (
           <div className="win-controls">
-            <button title="최소화">_</button>
-            <button title="최대화">▢</button>
             <button title="닫기" onClick={onClose}>×</button>
           </div>
         )}

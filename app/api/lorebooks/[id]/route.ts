@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
-}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -13,7 +10,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json()
   const lorebook = await prisma.lorebook.update({ where: { id: params.id }, data: body })
   return NextResponse.json(lorebook)
-}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)

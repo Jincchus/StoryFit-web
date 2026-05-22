@@ -3,7 +3,7 @@ import { writeFile, mkdir } from 'fs/promises'
 import { randomUUID } from 'crypto'
 import path from 'path'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 import { parsePngTavernCard, buildSystemPromptFromCard } from '@/lib/tavernCard'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'avatars')
@@ -46,6 +46,4 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(character, { status: 201 })
 }
 
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
 }

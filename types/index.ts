@@ -9,6 +9,7 @@ export interface Character {
   kind: AvatarKind
   name: string
   title: string
+  gender: string
   description: string
   systemPrompt: string
   exampleDialogues: string

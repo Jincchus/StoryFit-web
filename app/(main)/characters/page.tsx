@@ -5,15 +5,19 @@ import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import type { Character } from '@/types'
 
+let sparkleCount = 0
 function sparkleAt(x: number, y: number) {
+  if (sparkleCount >= 3) return
+  sparkleCount++
   const el = document.createElement('div')
   el.style.cssText = `position:fixed;left:${x}px;top:${y}px;font-size:18px;pointer-events:none;z-index:99;animation:pop .5s ease-out forwards`
   el.textContent = ['✦', '✧', '♡', '✿'][Math.floor(Math.random() * 4)]
   el.style.color = ['#ff2e93', '#8b5cf6', '#ff8fcf', '#ffd1ee'][Math.floor(Math.random() * 4)]
   document.body.appendChild(el)
-  setTimeout(() => el.remove(), 600)
+  setTimeout(() => { el.remove(); sparkleCount-- }, 600)
 }
 
 export default function CharactersPage() {
@@ -22,6 +26,7 @@ export default function CharactersPage() {
   const [characters, setCharacters] = useState<Character[]>([])
   const [error, setError] = useState('')
   const [importing, setImporting] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -57,14 +62,22 @@ export default function CharactersPage() {
 
   const selectedChar = characters.find(c => c.id === draft.charId)
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
+  const handleDelete = async (id: string) => {
     await api.delete(`/api/characters/${id}`)
     setCharacters(prev => prev.filter(c => c.id !== id))
     if (draft.charId === id) dispatch({ type: 'selectChar', id: '' })
+    setConfirmDeleteId(null)
   }
 
   return (
+    <>
+    {confirmDeleteId && (
+      <ConfirmDialog
+        message="이 캐릭터를 삭제할까요? 복구할 수 없습니다."
+        onConfirm={() => handleDelete(confirmDeleteId)}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+    )}
     <Win title="캐릭터 선택 (Character Select)" icon={PixelIcons.user}>
       <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0 }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
@@ -76,7 +89,7 @@ export default function CharactersPage() {
             <button className="btn ghost" onClick={() => router.push('/')}>← 뒤로</button>
             <input ref={importRef} type="file" accept=".png" style={{ display: 'none' }} onChange={handleImport} />
             <button className="btn ghost" disabled={importing} onClick={() => importRef.current?.click()}>
-              {importing ? '...' : '↓ 카드'}
+              {importing ? '가져오는 중...' : '↓ 카드 가져오기'}
             </button>
             <button className="btn" onClick={() => router.push('/characters/new')}>+ 만들기</button>
             <button
@@ -132,7 +145,7 @@ export default function CharactersPage() {
               {!c.isPreset && (
                 <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
                   <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>
-                  <button className="btn danger" style={{ fontSize: 10, padding: '3px 8px' }} onClick={e => handleDelete(e, c.id)}>✕ 삭제</button>
+                  <button className="btn danger" style={{ fontSize: 10, padding: '3px 8px' }} onClick={e => { e.stopPropagation(); setConfirmDeleteId(c.id) }}>✕ 삭제</button>
                 </div>
               )}
             </div>
@@ -148,5 +161,6 @@ export default function CharactersPage() {
         </div>
       </div>
     </Win>
+    </>
   )
 }

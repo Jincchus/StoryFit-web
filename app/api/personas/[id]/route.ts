@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
 }
 
 async function getOwnedPersona(userId: string, id: string) {
@@ -11,7 +9,6 @@ async function getOwnedPersona(userId: string, id: string) {
   if (!persona) return null
   if (persona.userId !== userId) return null
   return persona
-}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -23,7 +20,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json()
   const updated = await prisma.userPersona.update({ where: { id: params.id }, data: body })
   return NextResponse.json(updated)
-}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)

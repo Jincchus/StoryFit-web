@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
-}
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -29,7 +26,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const branchIndex = siblings.findIndex(s => s.id === m.id) + 1
     return { ...m, branchCount: siblings.length, branchIndex }
   }))
-}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -69,7 +65,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   ])
 
   return NextResponse.json({ ok: true })
-}
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)

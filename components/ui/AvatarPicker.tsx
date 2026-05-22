@@ -52,6 +52,9 @@ export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
       if (isShared) setSharedImages(prev => [...prev, { id: data.id, url: data.url }])
     } catch (e: any) {
       setUploadError(e.message)
+      setSelectedFile(null)
+      setPreview('')
+      if (fileRef.current) fileRef.current.value = ''
     } finally {
       setUploading(false)
     }

@@ -63,6 +63,7 @@ export default function ChatPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const [conv, setConv] = useState<Conv | null>(null)
+  const [loadingConv, setLoadingConv] = useState(true)
   const [messages, setMessages] = useState<Msg[]>([])
   const [streaming, setStreaming] = useState('')
   const [typing, setTyping] = useState(false)
@@ -94,13 +95,17 @@ export default function ChatPage() {
   useEffect(() => { typingRef.current = typing }, [typing])
 
   const loadConv = useCallback(async () => {
-    const [data, msgs]: [Conv, Msg[]] = await Promise.all([
-      api.get(`/api/conversations/${params.id}`),
-      api.get(`/api/conversations/${params.id}/messages`),
-    ])
-    setConv(data)
-    setMessages(msgs)
-    setModel(data.currentAI as AIProvider)
+    try {
+      const [data, msgs]: [Conv, Msg[]] = await Promise.all([
+        api.get(`/api/conversations/${params.id}`),
+        api.get(`/api/conversations/${params.id}/messages`),
+      ])
+      setConv(data)
+      setMessages(msgs)
+      setModel(data.currentAI as AIProvider)
+    } finally {
+      setLoadingConv(false)
+    }
   }, [params.id])
 
   useEffect(() => { loadConv() }, [loadConv])
@@ -392,6 +397,13 @@ export default function ChatPage() {
     await api.patch(`/api/conversations/${params.id}`, { scenarioDescription: value })
   }
 
+  if (loadingConv) return (
+    <Win title="채팅" icon={PixelIcons.chat}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4 }}>
+        <div className="tiny muted">대화 불러오는 중...</div>
+      </div>
+    </Win>
+  )
   if (!conv) return null
   const char = conv.characters[0]?.character
   if (!char) return null
@@ -663,7 +675,12 @@ export default function ChatPage() {
           </div>
 
           {showPanel && (
-            <div className="side-panel">
+            <>
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 9 }}
+              onClick={() => setShowPanel(false)}
+            />
+            <div className="side-panel" style={{ zIndex: 10 }}>
               <div className="side-panel-header spread">
                 <span style={{ fontWeight: 700, fontSize: 11 }}>대화 설정</span>
                 <button className="btn ghost" style={{ padding: '1px 5px', fontSize: 11 }} onClick={() => setShowPanel(false)}>×</button>
@@ -790,8 +807,11 @@ export default function ChatPage() {
 
               <div className="side-section">
                 <div className="spread" style={{ marginBottom: 4 }}>
-                  <div className="label" style={{ marginBottom: 0 }}>로어북</div>
-                  <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setLorebookAdd(a => !a); setLorebookEditId(null) }}>+ 추가</button>
+                  <div className="label" style={{ marginBottom: 0 }}>로어북 <span className="tiny muted">({lorebooks.length}/20)</span></div>
+                  {lorebooks.length < 20
+                    ? <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setLorebookAdd(a => !a); setLorebookEditId(null) }}>+ 추가</button>
+                    : <span className="tiny muted" style={{ fontSize: 9 }}>최대 20개</span>
+                  }
                 </div>
                 <div className="tiny muted" style={{ marginBottom: 6 }}>키워드 감지 시 자동으로 세계관 정보를 AI에게 주입합니다.</div>
 
@@ -866,6 +886,7 @@ export default function ChatPage() {
                 )}
               </div>
             </div>
+            </>
           )}
         </div>
       </div>

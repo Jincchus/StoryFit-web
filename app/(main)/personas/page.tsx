@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { RANDOM_NAMES } from '@/lib/constants'
@@ -30,14 +30,16 @@ export default function PersonasPage() {
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
+  const formRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
     fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
   }, [])
 
-  const openCreate = () => { setForm({ name: '', gender: '', description: '', additionalInfo: '' }); setCreating(true); setEditingId(null) }
-  const openEdit = (p: Persona) => { setForm({ name: p.name, gender: p.gender ?? '', description: p.description, additionalInfo: p.additionalInfo }); setEditingId(p.id); setCreating(false) }
+  const scrollToForm = () => setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  const openCreate = () => { setForm({ name: '', gender: '', description: '', additionalInfo: '' }); setCreating(true); setEditingId(null); scrollToForm() }
+  const openEdit = (p: Persona) => { setForm({ name: p.name, gender: p.gender ?? '', description: p.description, additionalInfo: p.additionalInfo }); setEditingId(p.id); setCreating(false); scrollToForm() }
 
   const handleSave = async () => {
     if (!form.name.trim() || loading) return
@@ -89,7 +91,7 @@ export default function PersonasPage() {
         </div>
 
         {isFormOpen && (
-          <div className="win" style={{ flexShrink: 0 }}>
+          <div ref={formRef} className="win" style={{ flexShrink: 0 }}>
             <div className="win-title">
               <div className="win-title-l"><span>{creating ? '새 페르소나 만들기' : '페르소나 편집'}</span></div>
               <div className="win-controls"><button onClick={() => { setCreating(false); setEditingId(null) }}>×</button></div>

@@ -136,13 +136,18 @@ export default function HomePage() {
 
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
 
-        <input
-          className="field"
-          placeholder="대화 제목 또는 캐릭터명 검색..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          style={{ flexShrink: 0 }}
-        />
+        <div className="hstack" style={{ flexShrink: 0, gap: 6 }}>
+          <input
+            className="field"
+            placeholder="대화 제목 또는 캐릭터명 검색..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            style={{ flex: 1 }}
+          />
+          {query && (
+            <button className="btn ghost" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => setQuery('')}>✕ 지우기</button>
+          )}
+        </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           {filtered.map(conv => {

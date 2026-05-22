@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerAutoCoreMemory } from '@/lib/autoCoreMemory'
+import { retrieveRelevantMemories } from '@/lib/ragMemory'
+import { loadGlobalRules } from '@/lib/globalConfig'
 import type { Message } from '@/types'
-
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
-}
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -22,13 +20,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       messages: { where: { isSelected: true }, orderBy: { createdAt: 'asc' } },
       userPersona: true,
       lorebooks: true,
-      memories: { orderBy: { createdAt: 'asc' } },
     },
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
   const selectedMsgs = conv.messages
   const lastAssistant = [...selectedMsgs].reverse().find(m => m.role === 'assistant')
+  const lastUserMsg = [...selectedMsgs].reverse().find(m => m.role === 'user')
   if (!lastAssistant) return NextResponse.json({ error: '재생성할 응답이 없습니다.' }, { status: 400 })
 
   const character = (lastAssistant.characterId
@@ -42,15 +40,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // history = all selected messages BEFORE the deselected one
   const historyMsgs = selectedMsgs.filter(m => m.id !== lastAssistant.id)
 
-  const [globalRulesConfig, modeRulesConfig] = await Promise.all([
-    prisma.globalConfig.findUnique({ where: { key: 'global_rules' } }),
-    prisma.globalConfig.findUnique({ where: { key: conv.mode === 'novel' ? 'novel_rules' : 'roleplay_rules' } }),
-  ])
-  const globalRules = globalRulesConfig?.value ?? ''
-  const modeRules = modeRulesConfig?.value ?? ''
+  const longTermMemory = await retrieveRelevantMemories(params.id, lastUserMsg?.content ?? '', 6).catch(() => [])
+
+  const { globalRules, modeRules } = await loadGlobalRules(conv.mode)
 
   const matchedLorebook = matchLorebook(
-    conv.lorebooks.map(l => ({ ...l, keyword: l.keyword, content: l.content, priority: l.priority, scanDepth: l.scanDepth, isEnabled: l.isEnabled, scope: l.scope as 'conversation' | 'character', scopeId: l.scopeId, id: l.id })),
+    conv.lorebooks.map(l => ({ ...l, scope: l.scope as 'conversation' | 'character' })),
     historyMsgs as unknown as Message[],
   )
 
@@ -72,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,
     lorebook: matchedLorebook,
-    longTermMemory: conv.memories.slice(-8).map(m => m.summary),
+    longTermMemory,
     globalRules,
     modeRules,
   }

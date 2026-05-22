@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
-}
 
 export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
@@ -24,7 +21,6 @@ export async function GET(req: NextRequest) {
     orderBy: { priority: 'desc' },
   })
   return NextResponse.json(lorebooks)
-}
 
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)

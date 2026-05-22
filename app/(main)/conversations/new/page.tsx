@@ -104,8 +104,12 @@ export default function NewConversationPage() {
             <div style={{ fontSize: 13, fontWeight: 700 }}>대화를 시작하기 전에</div>
             <div className="tiny muted">캐릭터와 설정을 선택하세요</div>
           </div>
-          <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
+          <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             <button className="btn ghost" onClick={() => router.back()}>← 뒤로</button>
+            {!char && <span className="tiny muted">캐릭터를 선택하세요</span>}
+            {char && mode === 'tikiTaka' && tikiChars.length < 2 && (
+              <span className="tiny muted">티키타카는 2명 이상 필요해요</span>
+            )}
             <button
               className="btn primary"
               disabled={!char || loading || (mode === 'tikiTaka' && tikiChars.length < 2)}
@@ -392,6 +396,10 @@ export default function NewConversationPage() {
                     <ParamTooltip text={"AI 답변의 창의성·무작위성을 조절합니다.\n\n낮을수록 (0~0.5): 일관되고 예측 가능한 답변\n보통 (0.7~1.0): 자연스럽고 다양한 표현 (추천)\n높을수록 (1.5~2.0): 창의적이지만 가끔 엉뚱한 답변"} />
                   </label>
                   <input type="range" className="param-slider" min={0} max={2} step={0.1} value={temperature} onChange={e => setTemperature(parseFloat(e.target.value))} />
+                  <div className="spread" style={{ marginTop: 2 }}>
+                    <span className="tiny muted">일관됨</span>
+                    <span className="tiny muted">창의적</span>
+                  </div>
                 </div>
                 <div>
                   <label className="label">
@@ -399,6 +407,10 @@ export default function NewConversationPage() {
                     <ParamTooltip text={"같은 단어나 표현이 반복되는 것을 억제합니다.\n\n낮을수록 (0~0.2): 반복 허용, 일관된 말투 유지\n보통 (0.3~0.5): 적당한 억제 (추천)\n높을수록 (0.8~): 다양한 어휘 사용, 말투 변할 수 있음"} />
                   </label>
                   <input type="range" className="param-slider" min={0} max={2} step={0.05} value={frequencyPenalty} onChange={e => setFrequencyPenalty(parseFloat(e.target.value))} />
+                  <div className="spread" style={{ marginTop: 2 }}>
+                    <span className="tiny muted">반복 허용</span>
+                    <span className="tiny muted">강하게 억제</span>
+                  </div>
                 </div>
               </div>
             </section>

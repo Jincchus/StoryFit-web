@@ -88,6 +88,16 @@ export default function HomePage() {
           <span>{label}</span>
         </div>
       ))}
+
+      {!showGuide && (
+        <button
+          className="btn ghost"
+          style={{ fontSize: 10, marginTop: 4, alignSelf: 'flex-start' }}
+          onClick={() => setShowGuide(true)}
+        >
+          ? 시작 가이드 보기
+        </button>
+      )}
     </div>
   )
 }

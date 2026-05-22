@@ -3,15 +3,12 @@ import { writeFile, mkdir } from 'fs/promises'
 import { randomUUID } from 'crypto'
 import path from 'path'
 import { prisma } from '@/lib/prisma'
-import { verifyAccessToken, getTokenFromHeader } from '@/lib/auth'
+import { authenticate } from '@/lib/apiAuth'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'avatars')
 const MAX_SIZE = 5 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
-async function authenticate(req: NextRequest) {
-  try { return await verifyAccessToken(getTokenFromHeader(req.headers.get('authorization')) ?? '') } catch { return null }
-}
 
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
@@ -36,7 +33,6 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json({ url: `/api/uploads/${filename}`, id: record.id }, { status: 201 })
-}
 
 export async function GET() {
   const images = await prisma.uploadedImage.findMany({
