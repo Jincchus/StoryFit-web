@@ -31,13 +31,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const lastSelectedMsg = conv.messages[conv.messages.length - 1] ?? null
 
+  if (lastSelectedMsg?.role === 'user') {
+    await prisma.message.delete({ where: { id: lastSelectedMsg.id } })
+    conv.messages.pop()
+  }
+
+  const prevMsg = conv.messages[conv.messages.length - 1] ?? null
+
   const userMsg = await prisma.message.create({
     data: {
       conversationId: params.id,
       role: 'user',
       content,
       isSelected: true,
-      parentId: lastSelectedMsg?.id ?? null,
+      parentId: prevMsg?.id ?? null,
     },
   })
 

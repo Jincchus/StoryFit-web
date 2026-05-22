@@ -473,6 +473,16 @@ export default function ChatPage() {
                           }
                           const speaker = b.speaker || msgChar.name
                           const isMainChar = speaker === msgChar.name
+                          const isPersona = !!conv.userPersona && speaker === conv.userPersona.name
+                          const thought = b.type === 'thought' ? ' thought-bubble' : ''
+                          if (isPersona) {
+                            return (
+                              <div key={i} className="seq-block seq-right">
+                                <div className="seq-speaker">{speaker}</div>
+                                <div className={`bubble bubble-persona${thought}`}>{b.text}</div>
+                              </div>
+                            )
+                          }
                           const bubbleColor = isMainChar ? 'bubble-char' : 'bubble-third'
                           return (
                             <div key={i} className="seq-block seq-left">
@@ -480,7 +490,7 @@ export default function ChatPage() {
                                 <span>{speaker}</span>
                                 {isMainChar && <span className={`ai-tag ${ai.className}`}>{ai.tag}</span>}
                               </div>
-                              <div className={`bubble ${bubbleColor}${b.type === 'thought' ? ' thought-bubble' : ''}`}>{b.text}</div>
+                              <div className={`bubble ${bubbleColor}${thought}`}>{b.text}</div>
                             </div>
                           )
                         })}
