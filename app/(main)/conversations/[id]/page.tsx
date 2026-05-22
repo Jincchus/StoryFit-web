@@ -492,8 +492,9 @@ export default function ChatPage() {
                               </div>
                             )
                           }
-                          const speaker = b.speaker || msgChar.name
-                          const isMainChar = speaker === msgChar.name
+                          const rawSpeaker = b.speaker || msgChar.name
+                          const speaker = rawSpeaker.replace(/^\[|\]$/g, '').trim()
+                          const isMainChar = isSamePerson(speaker, msgChar.name)
                           const isPersona = !!conv.userPersona && isSamePerson(speaker, conv.userPersona.name)
                           const thought = b.type === 'thought' ? ' thought-bubble' : ''
                           if (isPersona) {
