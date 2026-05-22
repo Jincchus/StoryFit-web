@@ -30,8 +30,9 @@ function isSamePerson(a: string, b: string): boolean {
   if (!a || !b) return false
   const na = a.trim(), nb = b.trim()
   if (na === nb) return true
-  if (Math.abs(na.length - nb.length) > 4) return false
-  return editDistance(na, nb) <= 2
+  if (Math.abs(na.length - nb.length) > 2) return false
+  const maxDist = Math.floor(Math.min(na.length, nb.length) / 4)
+  return maxDist > 0 && editDistance(na, nb) <= maxDist
 }
 
 function ChatNarration({ text }: { text: string }) {
