@@ -6,6 +6,7 @@ import { RANDOM_NAMES } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AvatarPicker from '@/components/ui/AvatarPicker'
+import Toast from '@/components/ui/Toast'
 interface CharForm {
   name: string; title: string; gender: string; description: string
   systemPrompt: string; exampleDialogues: string
@@ -15,7 +16,9 @@ interface CharForm {
 export default function CharacterNewPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [drafting, setDrafting] = useState(false)
   const [error, setError] = useState('')
+  const [toast, setToast] = useState('')
   const [namePool, setNamePool] = useState<{ name: string; category: string; gender: string }[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
   const [form, setForm] = useState<CharForm>({
@@ -43,7 +46,22 @@ export default function CharacterNewPage() {
     }
   }
 
+  const handleDraftPrompt = async () => {
+    if (!form.name.trim() || drafting) return
+    setDrafting(true)
+    try {
+      const { systemPrompt } = await api.post('/api/characters/draft-prompt', {
+        name: form.name, title: form.title, gender: form.gender, description: form.description,
+      })
+      set('systemPrompt', systemPrompt)
+      setToast('초안이 생성되었습니다')
+    } catch { setError('초안 생성에 실패했습니다.') }
+    finally { setDrafting(false) }
+  }
+
   return (
+    <>
+    {toast && <Toast message={toast} onDone={() => setToast('')} />}
     <Win title="캐릭터 만들기 (Create Character)" icon={PixelIcons.user}>
       <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0 }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
@@ -119,7 +137,15 @@ export default function CharacterNewPage() {
             <div className="form-section">
               <div className="form-section-title">AI 지시 설정</div>
               <div>
-                <label className="label">시스템 프롬프트 * <span className="tiny muted">(AI에게 전달되는 캐릭터 지시문)</span></label>
+                <div className="spread" style={{ alignItems: 'center', marginBottom: 4 }}>
+                  <label className="label" style={{ margin: 0 }}>시스템 프롬프트 * <span className="tiny muted">(AI에게 전달되는 캐릭터 지시문)</span></label>
+                  <button
+                    type="button" className="btn ghost"
+                    style={{ fontSize: 10, padding: '2px 8px', flexShrink: 0 }}
+                    disabled={!form.name.trim() || drafting}
+                    onClick={handleDraftPrompt}
+                  >{drafting ? '생성 중...' : '✨ 자동 초안'}</button>
+                </div>
                 <textarea className="field" rows={4} placeholder="당신은 [이름]입니다. [성격, 말투, 행동 규칙 등을 구체적으로 서술하세요]" value={form.systemPrompt} onChange={e => set('systemPrompt', e.target.value)} />
               </div>
               <div>
@@ -133,5 +159,6 @@ export default function CharacterNewPage() {
         </div>
       </div>
     </Win>
+    </>
   )
 }

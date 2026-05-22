@@ -33,6 +33,7 @@ export default function HomePage() {
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [confirmBulk, setConfirmBulk] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     api.get('/api/conversations').then(setConversations).catch(e => setError(e.message))
@@ -55,6 +56,14 @@ export default function HomePage() {
   }
 
   const exitSelect = () => { setSelecting(false); setSelected(new Set()) }
+
+  const filtered = query.trim()
+    ? conversations.filter(c => {
+        const q = query.toLowerCase()
+        return c.title.toLowerCase().includes(q) ||
+          c.characters.some(cc => cc.character.name.toLowerCase().includes(q))
+      })
+    : conversations
 
   const handleDeleteSelected = async () => {
     if (selected.size === 0 || deleting) return
@@ -127,8 +136,16 @@ export default function HomePage() {
 
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
 
+        <input
+          className="field"
+          placeholder="대화 제목 또는 캐릭터명 검색..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          style={{ flexShrink: 0 }}
+        />
+
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
-          {conversations.map(conv => {
+          {filtered.map(conv => {
             const char = conv.characters[0]?.character
             const ai = AI_MODELS.find(x => x.id === conv.currentAI) ?? AI_MODELS[0]
             const lastLine = conv.messages[0]?.content ?? ''
@@ -190,11 +207,16 @@ export default function HomePage() {
             )
           })}
 
-          {conversations.length === 0 && (
+          {filtered.length === 0 && (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
               <div style={{ fontSize: 32 }}>♡</div>
-              <div style={{ marginTop: 8 }}>아직 시작한 롤플레이가 없어요</div>
-              <div className="tiny" style={{ marginTop: 4 }}>위의 <b>새 대화 시작</b> 버튼을 눌러보세요</div>
+              {query.trim()
+                ? <div style={{ marginTop: 8 }}>검색 결과가 없어요</div>
+                : <>
+                    <div style={{ marginTop: 8 }}>아직 시작한 롤플레이가 없어요</div>
+                    <div className="tiny" style={{ marginTop: 4 }}>위의 <b>새 대화 시작</b> 버튼을 눌러보세요</div>
+                  </>
+              }
             </div>
           )}
         </div>

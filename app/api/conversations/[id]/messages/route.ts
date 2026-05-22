@@ -31,12 +31,27 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }))
 }
 
-// switch branch: deselect current sibling, select target
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const { targetMessageId } = await req.json()
+  const body = await req.json()
+
+  // content-only edit (저장만)
+  if (body.messageId && body.content !== undefined) {
+    const msg = await prisma.message.findUnique({ where: { id: body.messageId } })
+    if (!msg || msg.conversationId !== params.id) {
+      return NextResponse.json({ error: '메시지를 찾을 수 없습니다.' }, { status: 404 })
+    }
+    const updated = await prisma.message.update({
+      where: { id: body.messageId },
+      data: { content: body.content },
+    })
+    return NextResponse.json(updated)
+  }
+
+  // branch switch
+  const { targetMessageId } = body
   if (!targetMessageId) return NextResponse.json({ error: 'targetMessageId가 필요합니다.' }, { status: 400 })
 
   const target = await prisma.message.findUnique({ where: { id: targetMessageId } })
@@ -44,7 +59,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: '메시지를 찾을 수 없습니다.' }, { status: 404 })
   }
 
-  // deselect all siblings (same parentId), select target
   const siblings = await prisma.message.findMany({
     where: { conversationId: params.id, parentId: target.parentId },
   })

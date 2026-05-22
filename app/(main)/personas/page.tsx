@@ -6,6 +6,7 @@ import { RANDOM_NAMES } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import Toast from '@/components/ui/Toast'
 
 type NameEntry = { name: string; category: string; gender: string }
 
@@ -28,6 +29,7 @@ export default function PersonasPage() {
   const [namePool, setNamePool] = useState<NameEntry[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [toast, setToast] = useState('')
 
   useEffect(() => {
     api.get('/api/personas').then(setPersonas).catch(() => {})
@@ -49,6 +51,7 @@ export default function PersonasPage() {
         setPersonas(prev => prev.map(p => p.id === editingId ? updated : p))
       }
       setCreating(false); setEditingId(null)
+      setToast('저장 완료')
     } catch {} finally {
       setLoading(false)
     }
@@ -64,6 +67,7 @@ export default function PersonasPage() {
 
   return (
     <>
+    {toast && <Toast message={toast} onDone={() => setToast('')} />}
     {confirmDeleteId && (
       <ConfirmDialog
         message="이 페르소나를 삭제할까요?"

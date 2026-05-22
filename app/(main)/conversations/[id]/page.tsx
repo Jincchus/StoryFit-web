@@ -10,6 +10,7 @@ import NovelScene from '@/components/ui/NovelScene'
 import AiPill from '@/components/ui/AiPill'
 import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import Toast from '@/components/ui/Toast'
 import type { AIProvider } from '@/types'
 
 function editDistance(a: string, b: string): number {
@@ -83,6 +84,8 @@ export default function ChatPage() {
   const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
   const [atBottom, setAtBottom] = useState(true)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [toast, setToast] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const typingRef = useRef(false)
@@ -272,6 +275,14 @@ export default function ChatPage() {
     setConfirmDeleteId(null)
   }
 
+  const saveEditOnly = async () => {
+    if (!editText.trim() || !editingId) return
+    await api.patch(`/api/conversations/${params.id}/messages`, { messageId: editingId, content: editText.trim() })
+    setMessages(prev => prev.map(m => m.id === editingId ? { ...m, content: editText.trim() } : m))
+    setEditingId(null)
+    setToast('저장 완료')
+  }
+
   const autoResize = () => {
     const el = composerRef.current
     if (!el) return
@@ -396,6 +407,7 @@ export default function ChatPage() {
 
   return (
     <>
+    {toast && <Toast message={toast} onDone={() => setToast('')} />}
     {confirmDeleteId && (
       <ConfirmDialog
         message="이 메시지를 삭제할까요? 복구할 수 없습니다."
@@ -479,6 +491,7 @@ export default function ChatPage() {
                     className="msg-seq"
                     onMouseEnter={() => setHoveredId(m.id)}
                     onMouseLeave={() => setHoveredId(null)}
+                    onClick={() => setActiveId(prev => prev === m.id ? null : m.id)}
                   >
                     {isYou ? (
                       /* ── 유저 메시지: 오른쪽 ── */
@@ -493,6 +506,7 @@ export default function ChatPage() {
                             />
                             <div className="hstack" style={{ gap: 4 }}>
                               <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEdit}>저장 + 재생성</button>
+                              <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEditOnly}>저장만</button>
                               <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
                             </div>
                           </div>
@@ -514,6 +528,7 @@ export default function ChatPage() {
                             style={{ minWidth: 0 }} autoFocus
                           />
                           <div className="hstack" style={{ gap: 4 }}>
+                            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEditOnly}>저장만</button>
                             <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEdit}>저장 + 재생성</button>
                             <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
                           </div>
@@ -566,8 +581,8 @@ export default function ChatPage() {
                       </div>
                     )}
 
-                    {/* ── 호버 액션 ── */}
-                    {!isEditing && hoveredId === m.id && (
+                    {/* ── 호버/탭 액션 ── */}
+                    {!isEditing && (hoveredId === m.id || activeId === m.id) && (
                       <div className={`msg-actions ${isYou ? 'you' : ''}`}>
                         {isLast && isLastAssistant && !isYou && (
                           <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>
