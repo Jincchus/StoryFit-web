@@ -83,8 +83,7 @@ export default function ChatPage() {
   const [lorebookEditId, setLorebookEditId] = useState<string | null>(null)
   const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
   const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
-  const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null)
-  const [editMemoryText, setEditMemoryText] = useState('')
+  const [selectedMemoryIds, setSelectedMemoryIds] = useState<Set<string>>(new Set())
   const [atBottom, setAtBottom] = useState(true)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -140,13 +139,14 @@ export default function ChatPage() {
     } catch {}
   }
 
-  const handleEditMemory = async (memoryId: string) => {
-    if (!editMemoryText.trim()) return
-    try {
-      const updated = await api.patch(`/api/conversations/${params.id}/memories`, { memoryId, summary: editMemoryText.trim() })
-      setMemories(prev => prev.map(m => m.id === memoryId ? { ...m, summary: updated.summary } : m))
-      setEditingMemoryId(null)
-    } catch {}
+  const handlePromoteMemories = async () => {
+    const selected = memories.filter(m => selectedMemoryIds.has(m.id))
+    if (!selected.length || !conv) return
+    const added = selected.map(m => m.summary).join('\n\n')
+    const updated = conv.coreMemory.trim() ? conv.coreMemory.trim() + '\n\n' + added : added
+    await handleCoreMemory(updated)
+    setSelectedMemoryIds(new Set())
+    setToast('핵심 메모리에 추가됐습니다')
   }
 
   useEffect(() => {
@@ -874,39 +874,44 @@ export default function ChatPage() {
                   <div className="label" style={{ marginBottom: 0 }}>장기 메모리</div>
                   <span className="tiny muted">10턴마다 자동 요약</span>
                 </div>
-                <div className="tiny muted" style={{ marginBottom: 6 }}>대화 내용이 자동으로 요약되어 AI 컨텍스트에 유지됩니다. 내용을 직접 수정할 수 있습니다.</div>
+                <div className="tiny muted" style={{ marginBottom: 6 }}>항목을 선택해 핵심 메모리로 올릴 수 있습니다.</div>
+                {selectedMemoryIds.size > 0 && (
+                  <button
+                    className="btn primary"
+                    style={{ fontSize: 10, padding: '3px 8px', width: '100%', marginBottom: 6 }}
+                    onClick={handlePromoteMemories}
+                  >↑ 선택한 항목 핵심 메모리로 올리기 ({selectedMemoryIds.size})</button>
+                )}
                 {memories.length === 0 ? (
                   <div className="lorebook-placeholder"><span>아직 요약된 메모리가 없습니다</span></div>
                 ) : (
-                  memories.map((mem, i) => (
-                    <div key={mem.id} style={{ marginBottom: 6, padding: 6, background: 'var(--pane)', borderRadius: 'var(--radius)', border: '1px solid var(--chrome-border)' }}>
-                      <div className="spread" style={{ marginBottom: 4 }}>
-                        <div style={{ fontSize: 9, color: 'var(--ink-soft)' }}>요약 #{i + 1}</div>
-                        <div className="hstack" style={{ gap: 3 }}>
-                          {editingMemoryId !== mem.id && (
-                            <button className="msg-action-btn" style={{ fontSize: 9 }} onClick={() => { setEditingMemoryId(mem.id); setEditMemoryText(mem.summary) }}>✏</button>
-                          )}
-                          <button className="msg-action-btn danger" style={{ fontSize: 9 }} onClick={() => handleDeleteMemory(mem.id)}>✕</button>
-                        </div>
-                      </div>
-                      {editingMemoryId === mem.id ? (
-                        <div className="vstack" style={{ gap: 4 }}>
-                          <textarea
-                            className="field" rows={4} style={{ fontSize: 10, lineHeight: 1.5 }}
-                            value={editMemoryText}
-                            onChange={e => setEditMemoryText(e.target.value)}
-                            autoFocus
-                          />
-                          <div className="hstack" style={{ gap: 4 }}>
-                            <button className="btn primary" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => handleEditMemory(mem.id)}>저장</button>
-                            <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => setEditingMemoryId(null)}>취소</button>
+                  memories.map((mem, i) => {
+                    const checked = selectedMemoryIds.has(mem.id)
+                    return (
+                      <div
+                        key={mem.id}
+                        style={{ marginBottom: 6, padding: 6, background: checked ? 'var(--lavender)' : 'var(--pane)', borderRadius: 'var(--radius)', border: `1px solid ${checked ? 'var(--pink)' : 'var(--chrome-border)'}`, cursor: 'pointer' }}
+                        onClick={() => setSelectedMemoryIds(prev => {
+                          const next = new Set(prev)
+                          next.has(mem.id) ? next.delete(mem.id) : next.add(mem.id)
+                          return next
+                        })}
+                      >
+                        <div className="spread" style={{ marginBottom: 4 }}>
+                          <div className="hstack" style={{ gap: 5 }}>
+                            <input type="checkbox" checked={checked} onChange={() => {}} style={{ cursor: 'pointer' }} />
+                            <div style={{ fontSize: 9, color: 'var(--ink-soft)' }}>요약 #{i + 1}</div>
                           </div>
+                          <button
+                            className="msg-action-btn danger"
+                            style={{ fontSize: 9 }}
+                            onClick={e => { e.stopPropagation(); handleDeleteMemory(mem.id) }}
+                          >✕</button>
                         </div>
-                      ) : (
                         <div className="tiny muted" style={{ lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{mem.summary}</div>
-                      )}
-                    </div>
-                  ))
+                      </div>
+                    )
+                  })
                 )}
               </div>
             </div>
