@@ -34,6 +34,18 @@ function isSamePerson(a: string, b: string): boolean {
   return maxDist > 0 && editDistance(na, nb) <= maxDist
 }
 
+function parseStoryChoices(content: string): { body: string; choices: string[] } {
+  const lines = content.split('\n')
+  let sepIdx = -1
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].trim() === '---') { sepIdx = i; break }
+  }
+  if (sepIdx === -1) return { body: content, choices: [] }
+  const body = lines.slice(0, sepIdx).join('\n').trim()
+  const choices = lines.slice(sepIdx + 1).map(l => l.replace(/^\d+[\.\)]\s*/, '').trim()).filter(Boolean)
+  return { body, choices }
+}
+
 async function* readSseStream(res: Response) {
   const reader = res.body!.getReader()
   const decoder = new TextDecoder()
@@ -69,6 +81,7 @@ interface Msg { id: string; role: string; content: string; aiModel?: string; bra
 interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string } }
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
+  statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
   characters: ConvChar[]
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
   messages: Msg[]
@@ -88,6 +101,7 @@ export default function ChatPage() {
   const [sendError, setSendError] = useState('')
   const [model, setModel] = useState<AIProvider>('gemini')
   const [showPanel, setShowPanel] = useState(false)
+  const [showStats, setShowStats] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
@@ -416,6 +430,7 @@ export default function ChatPage() {
 
   const isNovel = conv.mode === 'novel'
   const isTikiTaka = conv.mode === 'tikiTaka'
+  const isStory = conv.mode === 'story'
   const lastMsg = messages[messages.length - 1]
   const isLastAssistant = lastMsg?.role === 'assistant'
 
@@ -450,7 +465,7 @@ export default function ChatPage() {
                   {isTikiTaka ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
                   {conv.personaCharacter && <span className="muted" style={{ fontWeight: 400 }}> · {conv.personaCharacter.name}</span>}
                 </span>
-                <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '티키타카' : '롤플레이'}</span>
+                <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '티키타카' : isStory ? '스토리' : '롤플레이'}</span>
               </div>
               <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 턴 {Math.floor(messages.length / 2)}
@@ -459,6 +474,13 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
+            {isStory && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
+              <button
+                className={`btn ${showStats ? 'primary' : 'ghost'}`}
+                style={{ padding: '3px 7px', fontSize: 10 }}
+                onClick={() => setShowStats(p => !p)}
+              >STAT</button>
+            )}
             <button
               className={`btn ${showPanel ? 'primary' : 'ghost'}`}
               style={{ padding: '3px 7px', fontSize: 10 }}
@@ -483,13 +505,15 @@ export default function ChatPage() {
             <div className="chatlog" ref={logRef}>
               {messages.length === 0 && !streaming && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
-                  <div style={{ fontSize: 24 }}>{isNovel ? '✍' : '✦'}</div>
+                  <div style={{ fontSize: 24 }}>{isNovel ? '✍' : isStory ? '📖' : '✦'}</div>
                   <div className="tiny muted" style={{ textAlign: 'center', lineHeight: 1.6 }}>
                     {isNovel
                       ? <>장면을 지시해보세요.<br />예: "{char.name}와 처음 만나는 장면"</>
                       : isTikiTaka
                         ? <>{conv.characters.map(cc => cc.character.name).join(', ')}와의 대화를 시작해보세요.<br />메시지를 보내면 캐릭터들이 순서대로 응답합니다.</>
-                        : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
+                        : isStory
+                          ? <>스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
+                          : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
                     }
                   </div>
                 </div>
@@ -500,7 +524,8 @@ export default function ChatPage() {
                 const ai = AI_MODELS.find(x => x.id === m.aiModel) ?? AI_MODELS[0]
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
-                const blocks = isYou ? [] : (isNovel ? parseNovelBlocks(m.content) : parseBlocks(m.content))
+                const storyParsed = isStory && !isYou ? parseStoryChoices(m.content) : null
+                const blocks = isYou ? [] : (isNovel ? parseNovelBlocks(m.content) : parseBlocks(storyParsed ? storyParsed.body : m.content))
 
                 return (
                   <div
@@ -604,6 +629,22 @@ export default function ChatPage() {
                       </div>
                     )}
 
+                    {/* ── 스토리 선택지 ── */}
+                    {isStory && !isYou && isLast && !typing && storyParsed && storyParsed.choices.length > 0 && (
+                      <div className="vstack" style={{ gap: 5, marginTop: 8, paddingLeft: 4 }}>
+                        {storyParsed.choices.map((choice, i) => (
+                          <button
+                            key={i}
+                            className="btn ghost"
+                            style={{ textAlign: 'left', fontSize: 11, padding: '5px 10px', lineHeight: 1.5, whiteSpace: 'normal' }}
+                            onClick={() => send(choice)}
+                          >
+                            {i + 1}. {choice}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     {/* ── 호버/탭 액션 ── */}
                     {!isEditing && (hoveredId === m.id || activeId === m.id) && (
                       <div className={`msg-actions ${isYou ? 'you' : ''}`}>
@@ -672,7 +713,7 @@ export default function ChatPage() {
                 className="field"
                 rows={1}
                 style={{ resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
-                placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요…' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : `${char.name}에게 말 걸기…`}
+                placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요…' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : isStory ? '직접 입력하거나 선택지를 클릭하세요…' : `${char.name}에게 말 걸기…`}
                 value={text}
                 disabled={typing}
                 onChange={e => { setText(e.target.value); autoResize() }}
@@ -681,6 +722,37 @@ export default function ChatPage() {
               <button className="btn primary" onClick={() => send(text)} disabled={!text.trim() || typing}>전송</button>
             </div>
           </div>
+
+          {showStats && conv.statsConfig && (
+            <>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setShowStats(false)} />
+            <div style={{
+              position: 'fixed', top: 56, right: 12, zIndex: 10,
+              background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+              borderRadius: 'var(--radius)', padding: '12px 14px', minWidth: 200, maxWidth: 260,
+              boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 10 }}>📊 스탯</div>
+              <div className="vstack" style={{ gap: 8 }}>
+                {conv.statsConfig.map(stat => {
+                  const pct = Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)
+                  const color = pct >= 70 ? 'var(--pink)' : pct >= 40 ? 'var(--lavender)' : 'var(--ink-soft)'
+                  return (
+                    <div key={stat.name}>
+                      <div className="spread" style={{ marginBottom: 3 }}>
+                        <span className="tiny" style={{ fontWeight: 700 }}>{stat.name}</span>
+                        <span className="tiny muted">{stat.value} / {stat.max}</span>
+                      </div>
+                      <div style={{ height: 6, background: 'var(--chrome-border)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.4s' }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            </>
+          )}
 
           {showPanel && (
             <>

@@ -14,13 +14,17 @@ const GENDERS = ['공통', '남', '여'] as const
 const GENDER_COLOR: Record<string, string> = { 공통: 'var(--ink-soft)', 남: '#6b9eff', 여: '#ff9eb5' }
 
 export default function AdminTagsPage() {
-  const [tab, setTab] = useState<'world' | 'persona' | 'character'>('world')
+  const [tab, setTab] = useState<'world' | 'persona' | 'character' | 'stat'>('world')
 
   const [tags, setTags] = useState<TagEntry[]>([])
   const [input, setInput] = useState('')
   const [bulkInput, setBulkInput] = useState('')
   const [showBulk, setShowBulk] = useState(false)
   const [error, setError] = useState('')
+
+  const [statTags, setStatTags] = useState<TagEntry[]>([])
+  const [statInput, setStatInput] = useState('')
+  const [statError, setStatError] = useState('')
 
   const [personaTags, setPersonaTags] = useState<PersonaTagEntry[]>([])
   const [ptForm, setPtForm] = useState({ name: '', category: '성격', gender: '공통', scope: 'persona' })
@@ -31,6 +35,7 @@ export default function AdminTagsPage() {
   useEffect(() => {
     api.get('/api/admin/tags').then(setTags).catch(() => {})
     api.get('/api/admin/persona-tags').then(setPersonaTags).catch(() => {})
+    api.get('/api/admin/stat-tags').then(setStatTags).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -116,14 +121,14 @@ export default function AdminTagsPage() {
           <div className="vstack" style={{ gap: 12 }}>
 
             {/* 탭 */}
-            <div className="hstack" style={{ gap: 4 }}>
-              {(['world', 'persona', 'character'] as const).map(t => (
+            <div className="hstack" style={{ gap: 4, flexWrap: 'wrap' }}>
+              {(['world', 'persona', 'character', 'stat'] as const).map(t => (
                 <button
                   key={t}
                   className={`btn ${tab === t ? 'primary' : 'ghost'}`}
                   style={{ fontSize: 11 }}
                   onClick={() => setTab(t)}
-                >{t === 'world' ? '세계관 태그' : t === 'persona' ? '페르소나 태그' : '캐릭터 태그'}</button>
+                >{t === 'world' ? '세계관 태그' : t === 'persona' ? '페르소나 태그' : t === 'character' ? '캐릭터 태그' : '스탯 태그'}</button>
               ))}
             </div>
 
@@ -220,6 +225,52 @@ export default function AdminTagsPage() {
                   )
                 })}
                 {scopedTags.length === 0 && <div className="tiny muted">태그가 없습니다. 위에서 추가하세요.</div>}
+              </div>
+            )}
+
+            {tab === 'stat' && (
+              <div className="vstack" style={{ gap: 8 }}>
+                <div className="tiny muted">스토리 모드에서 관계·능력치 스탯으로 사용됩니다. 예: 호감도, 힘, 지력, HP</div>
+                <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <input
+                    className="field" style={{ flex: 1, minWidth: 120 }}
+                    placeholder="스탯 이름 입력 (예: 호감도, 힘)"
+                    value={statInput}
+                    onChange={e => setStatInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const name = statInput.trim()
+                        if (!name) return
+                        setStatError('')
+                        api.post('/api/admin/stat-tags', { name })
+                          .then(created => { setStatTags(prev => [...prev, created]); setStatInput('') })
+                          .catch((e: any) => setStatError(e.message))
+                      }
+                    }}
+                  />
+                  <button className="btn primary" onClick={() => {
+                    const name = statInput.trim()
+                    if (!name) return
+                    setStatError('')
+                    api.post('/api/admin/stat-tags', { name })
+                      .then(created => { setStatTags(prev => [...prev, created]); setStatInput('') })
+                      .catch((e: any) => setStatError(e.message))
+                  }}>추가</button>
+                </div>
+                {statError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {statError}</div>}
+                <div className="tiny muted">총 {statTags.length}개</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {statTags.map(t => (
+                    <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11 }}>
+                      <span>{t.name}</span>
+                      <button
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
+                        onClick={() => api.delete(`/api/admin/stat-tags/${t.id}`).then(() => setStatTags(prev => prev.filter(s => s.id !== t.id))).catch(() => {})}
+                      >×</button>
+                    </div>
+                  ))}
+                  {statTags.length === 0 && <div className="tiny muted">스탯 태그가 없습니다.</div>}
+                </div>
               </div>
             )}
 

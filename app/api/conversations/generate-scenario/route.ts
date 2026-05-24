@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const { charName, charTags, charInfo, personaName, personaTags, mode, hint, worldTags } = await req.json()
   if (!charName?.trim()) return NextResponse.json({ error: '캐릭터 이름이 필요합니다.' }, { status: 400 })
 
-  const modeLabel = mode === 'novel' ? '소설 (작가 시점)' : '롤플레이 (1:1 대화)'
+  const modeLabel = mode === 'novel' ? '소설 (작가 시점)' : mode === 'story' ? '인터랙티브 스토리 (선택지 기반)' : '롤플레이 (1:1 대화)'
   const charContext = [
     `캐릭터: ${charName}`,
     charTags?.length ? `태그: ${charTags.join(', ')}` : '',

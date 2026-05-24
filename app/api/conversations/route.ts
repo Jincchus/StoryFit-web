@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
       temperature: body.temperature ?? 0.9,
       frequencyPenalty: body.frequencyPenalty ?? 0.3,
       safetyLevel: body.safetyLevel ?? 'standard',
+      statsEnabled: body.statsEnabled ?? false,
+      statsConfig: body.statsConfig ?? null,
       characters: {
         create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),
       },

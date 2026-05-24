@@ -14,7 +14,10 @@ export default function NewConversationPage() {
   const [char, setChar] = useState<Character | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<'roleplay' | 'novel'>('roleplay')
+  const [mode, setMode] = useState<'roleplay' | 'novel' | 'story'>('roleplay')
+  const [statsEnabled, setStatsEnabled] = useState(false)
+  const [statTagPool, setStatTagPool] = useState<string[]>([])
+  const [selectedStats, setSelectedStats] = useState<string[]>([])
   const [scenarioDescription, setScenarioDescription] = useState('')
   const [scenarioLoading, setScenarioLoading] = useState(false)
   const [scenarioHint, setScenarioHint] = useState('')
@@ -31,6 +34,7 @@ export default function NewConversationPage() {
 
   useEffect(() => {
     fetch('/api/tags').then(r => r.json()).then(setTagPool).catch(() => {})
+    fetch('/api/stat-tags').then(r => r.json()).then(setStatTagPool).catch(() => {})
     api.get('/api/characters').then((chars: Character[]) => {
       setAllChars(chars)
       if (draft.charId) {
@@ -81,6 +85,9 @@ export default function NewConversationPage() {
     if (!char || loading) return
     setLoading(true)
     try {
+      const statsConfig = (mode === 'story' && statsEnabled && selectedStats.length > 0)
+        ? selectedStats.map(name => ({ name, value: 50, min: 0, max: 100 }))
+        : null
       const conv = await api.post('/api/conversations', {
         characterIds: [char.id],
         title: `${char.name}와의 대화`,
@@ -92,6 +99,8 @@ export default function NewConversationPage() {
         safetyLevel,
         temperature,
         frequencyPenalty,
+        statsEnabled: mode === 'story' && statsEnabled && selectedStats.length > 0,
+        statsConfig,
       })
       router.push(`/conversations/${conv.id}`)
       dispatch({ type: 'resetDraft' })
@@ -116,7 +125,7 @@ export default function NewConversationPage() {
               disabled={!char || loading}
               onClick={handleStart}
             >
-              {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : '✦ 롤플레이 시작'}
+              {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : mode === 'story' ? '✦ 스토리 시작' : '✦ 롤플레이 시작'}
             </button>
           </div>
         </div>
@@ -250,21 +259,63 @@ export default function NewConversationPage() {
             <section className="new-conv-section">
               <div className="label">대화 모드</div>
               <div className="hstack" style={{ gap: 8 }}>
-                {(['roleplay', 'novel'] as const).map(m => (
+                {(['roleplay', 'novel', 'story'] as const).map(m => (
                   <button
                     key={m}
                     className={`btn ${mode === m ? 'primary' : 'ghost'}`}
                     onClick={() => setMode(m)}
                     style={{ fontSize: 11 }}
                   >
-                    {m === 'roleplay' ? '⚔ 롤플레이' : '✍ 소설'}
+                    {m === 'roleplay' ? '⚔ 롤플레이' : m === 'novel' ? '✍ 소설' : '📖 스토리'}
                   </button>
                 ))}
               </div>
               <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
                 {mode === 'roleplay' && '나 ↔ 캐릭터 1:1 대화 형식'}
                 {mode === 'novel' && '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
+                {mode === 'story' && '선택지 기반 인터랙티브 스토리 — AI가 장면을 쓰고 선택지를 제시합니다'}
               </div>
+              {mode === 'story' && (
+                <div className="vstack" style={{ gap: 6, marginTop: 8, padding: '8px 10px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>
+                  <div className="spread" style={{ alignItems: 'center' }}>
+                    <div className="tiny" style={{ fontWeight: 700 }}>관계·능력치 스탯</div>
+                    <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={statsEnabled}
+                        onChange={e => { setStatsEnabled(e.target.checked); if (!e.target.checked) setSelectedStats([]) }}
+                      />
+                      <span className="tiny">{statsEnabled ? 'ON' : 'OFF'}</span>
+                    </label>
+                  </div>
+                  {statsEnabled && (
+                    <>
+                      <div className="tiny muted">스탯을 선택하면 대화 중 AI가 자동으로 수치를 조정합니다. (초기값 50/100)</div>
+                      {statTagPool.length === 0 ? (
+                        <div className="tiny muted">관리자가 등록한 스탯 태그가 없습니다.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                          {statTagPool.map(name => (
+                            <span
+                              key={name}
+                              className={`tag ${selectedStats.includes(name) ? 'tag-selected' : ''}`}
+                              style={{ cursor: 'pointer', padding: '2px 8px', fontSize: 10 }}
+                              onClick={() => setSelectedStats(prev =>
+                                prev.includes(name) ? prev.filter(s => s !== name) : [...prev, name]
+                              )}
+                            >
+                              {selectedStats.includes(name) ? '✓ ' : ''}{name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {selectedStats.length > 0 && (
+                        <div className="tiny muted">선택됨: {selectedStats.join(', ')}</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </section>
 
             {/* 4. 세계관 태그 */}

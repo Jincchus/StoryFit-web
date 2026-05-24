@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
+import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
@@ -67,7 +67,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   const systemPrompt = conv.mode === 'novel'
     ? buildNovelSystemPrompt(promptParams)
-    : buildSystemPrompt(promptParams)
+    : conv.mode === 'story'
+      ? buildStorySystemPrompt(promptParams)
+      : buildSystemPrompt(promptParams)
 
   const history = historyMsgs.slice(-15).map(m => ({
     role: m.role === 'user' ? 'user' as const : 'model' as const,

@@ -33,6 +33,12 @@ model CharacterTag {
   createdAt DateTime @default(now())
 }
 
+model StatTag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
 model PersonaTag {
   id        String   @id @default(cuid())
   name      String
@@ -98,6 +104,8 @@ model Conversation {
   frequencyPenalty    Float                   @default(0.3)
   safetyLevel         String                  @default("standard")
   isSummarizing       Boolean                 @default(false)
+  statsEnabled        Boolean                 @default(false)
+  statsConfig         Json?
   characters      ConversationCharacter[]
   messages        Message[]
   memories        Memory[]

@@ -1,6 +1,7 @@
 export type SafetyLevel = 'strict' | 'standard' | 'relaxed'
+export type StatEntry = { name: string; value: number; min: number; max: number }
 export type AIProvider = 'gemini' | 'claude' | 'chatgpt'
-export type ConvMode = 'roleplay' | 'novel' | 'tikiTaka'
+export type ConvMode = 'roleplay' | 'novel' | 'tikiTaka' | 'story'
 export type MessageRole = 'user' | 'assistant'
 export type AvatarKind = 'wizard' | 'knight' | 'rogue' | 'maid' | 'vampire' | 'ai' | 'elf' | 'ninja' | 'player' | 'custom'
 

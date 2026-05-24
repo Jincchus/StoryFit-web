@@ -173,6 +173,73 @@ export function buildNovelSystemPrompt({
   return parts.join('\n\n---\n\n')
 }
 
+export const STORY_BASE_RULES = `당신은 인터랙티브 스토리 작가입니다. 매 응답마다 반드시 아래 형식을 지켜주세요.
+
+[출력 형식]
+- 장면 묘사·캐릭터 행동·대사를 2~4문단으로 작성합니다.
+- 대사는 큰따옴표("") 안에 작성합니다.
+- 내면 생각은 작은따옴표('') 안에 작성합니다.
+- 마지막에 반드시 "---" 구분선을 넣고, 그 아래에 유저가 선택할 수 있는 선택지 2~3개를 번호로 나열합니다.
+- 선택지는 반드시 유저의 행동이나 대사여야 합니다. "직접 입력" 같은 메타 선택지는 절대 포함하지 마세요.
+
+[출력 예시]
+루나가 천천히 고개를 들었다. 어두운 천문대 안, 별빛만이 그녀의 얼굴을 비추고 있었다.
+
+"오래 기다렸나요?" 그녀의 목소리가 조용히 울렸다. '이 분은 어떤 사람일까.'
+
+---
+1. "아니, 괜찮아요. 오히려 경치가 좋았어요."
+2. "솔직히 말하면… 조금 걱정했어요."
+3. 말없이 그녀 옆자리에 앉는다.`
+
+export function buildStorySystemPrompt({
+  character,
+  personaCharacter,
+  coreMemory,
+  statusTimeline,
+  scenarioDescription,
+  lorebook = [],
+  longTermMemory = [],
+  globalRules,
+}: BuildSystemPromptParams): string {
+  const parts: string[] = []
+
+  if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
+  parts.push(STORY_BASE_RULES)
+
+  if (personaCharacter) {
+    const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
+    parts.push(`[유저 역할]\n이름: ${personaCharacter.name}${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
+  }
+  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)
+  if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}`)
+
+  const charLines: string[] = [`이름: ${character.name}`]
+  if (character.gender) charLines.push(`성별: ${character.gender}`)
+  if (character.tags?.length) charLines.push(`태그: ${character.tags.join(', ')}`)
+  if (character.additionalInfo?.trim()) charLines.push(character.additionalInfo.trim())
+  parts.push(`[캐릭터 설정]\n${charLines.join('\n')}`)
+
+  if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
+  if (character.exampleDialogues?.trim()) parts.push(`[예시 대화]\n${character.exampleDialogues}`)
+
+  if (lorebook.length > 0) {
+    const sorted = [...lorebook].sort((a, b) => b.priority - a.priority)
+    const selected: string[] = []
+    let tokenCount = 0
+    for (const entry of sorted) {
+      const t = approxTokens(entry.content)
+      if (tokenCount + t > 1000) break
+      selected.push(entry.content)
+      tokenCount += t
+    }
+    if (selected.length > 0) parts.push(`[세계관 정보]\n${selected.join('\n\n')}`)
+  }
+  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
+
+  return parts.join('\n\n---\n\n')
+}
+
 export function matchLorebook(entries: LorebookEntry[], recentMessages: { content: string }[], scanDepth: number = 5): LorebookEntry[] {
   const recent = recentMessages.slice(-scanDepth).map(m => m.content.toLowerCase())
   return entries.filter(entry => {

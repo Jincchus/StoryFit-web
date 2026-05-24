@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { buildSystemPrompt, buildNovelSystemPrompt, matchLorebook } from '@/lib/systemPrompt'
+import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
+import { triggerStatsEvaluation } from '@/lib/statsEval'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
@@ -83,7 +84,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const systemPrompt = conv.mode === 'novel'
     ? buildNovelSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
-    : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
+    : conv.mode === 'story'
+      ? buildStorySystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
+      : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
   const recentMsgs = conv.messages.slice(-15)
   const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
@@ -142,6 +145,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         triggerMemorySummarization(params.id, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err =>
           console.error('[summarize] error:', err),
         )
+
+        if (conv.mode === 'story' && conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0) {
+          triggerStatsEvaluation(params.id, content, fullText, conv.statsConfig as any)
+        }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: assistantMsgId })}\n\n`))
       } catch (err: any) {
