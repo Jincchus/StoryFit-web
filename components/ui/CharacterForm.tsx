@@ -59,7 +59,7 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
     if (_cachedCharTags !== null) {
       setCharTags(_cachedCharTags)
     } else {
-      api.get('/api/persona-tags').then((data: TagEntry[]) => { _cachedCharTags = data; setCharTags(data) }).catch(() => {})
+      api.get('/api/character-tags').then((data: TagEntry[]) => { _cachedCharTags = data; setCharTags(data) }).catch(() => {})
     }
   }, [])
 
