@@ -5,7 +5,7 @@ import { requireAdmin } from '@/lib/adminAuth'
 export async function GET(req: NextRequest) {
   const _auth = await requireAdmin(req)
   if (_auth instanceof NextResponse) return _auth
-  const tags = await prisma.worldTag.findMany({ orderBy: { createdAt: 'asc' }, take: 500 })
+  const tags = await prisma.worldTag.findMany({ orderBy: { name: 'asc' }, take: 500 })
   return NextResponse.json(tags)
 }
 
