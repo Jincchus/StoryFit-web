@@ -13,6 +13,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (!user.isApproved) {
+    if (user.rejectionReason) {
+      return NextResponse.json({ error: 'REJECTED', reason: user.rejectionReason }, { status: 403 })
+    }
     return NextResponse.json({ error: 'PENDING_APPROVAL' }, { status: 403 })
   }
 

@@ -16,7 +16,10 @@ export async function apiLogin(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+  if (!res.ok) {
+    if (data.error === 'REJECTED') throw new Error('REJECTED:' + (data.reason ?? ''))
+    throw new Error(data.error || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+  }
   setAccessToken('')
   setIsAdmin(!!data.isAdmin)
   return data

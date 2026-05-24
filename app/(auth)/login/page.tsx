@@ -12,20 +12,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password.trim()) return
-    setError('')
-    setPending(false)
+    setError(''); setPending(false); setRejectionReason('')
     setLoading(true)
     try {
       await apiLogin(email, password)
       router.push('/')
     } catch (err) {
       const msg = err instanceof Error ? err.message : '로그인 실패'
-      if (msg === 'PENDING_APPROVAL') { setPending(true) } else { setError(msg) }
+      if (msg === 'PENDING_APPROVAL') {
+        setPending(true)
+      } else if (msg.startsWith('REJECTED:')) {
+        setRejectionReason(msg.slice('REJECTED:'.length) || '사유 없음')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
@@ -88,6 +94,16 @@ export default function LoginPage() {
                   <div style={{ background: 'var(--lemon)', border: '1px solid var(--chrome-border)', borderRadius: 4, padding: '8px 12px' }}>
                     <div className="tiny" style={{ color: '#7a6200', lineHeight: 1.6 }}>
                       ✦ 관리자 승인 대기 중입니다.<br />승인 완료 후 로그인하실 수 있습니다.
+                    </div>
+                  </div>
+                )}
+                {rejectionReason && (
+                  <div style={{ background: '#fff0f0', border: '1px solid #ffb3b3', borderRadius: 4, padding: '8px 12px' }}>
+                    <div className="tiny" style={{ color: '#a00', lineHeight: 1.6, fontWeight: 700, marginBottom: 2 }}>
+                      ✕ 가입이 거절되었습니다.
+                    </div>
+                    <div className="tiny" style={{ color: '#c00', lineHeight: 1.6 }}>
+                      사유: {rejectionReason}
                     </div>
                   </div>
                 )}
