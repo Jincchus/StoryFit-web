@@ -2,6 +2,10 @@ import { prisma } from '@/lib/prisma'
 import { generateText } from '@/lib/ai/gemini'
 import type { InventoryItem } from '@/types'
 
+function stripJsonFences(raw: string): string {
+  return raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
+}
+
 export function triggerInventoryEvaluation(
   convId: string,
   userMsg: string,
@@ -40,7 +44,7 @@ async function evalAndUpdate(
 
   try {
     const raw = await generateText(systemPrompt, userPrompt)
-    const jsonStr = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
+    const jsonStr = stripJsonFences(raw)
     const delta: { add: InventoryItem[]; remove: { name: string; qty: number }[] } = JSON.parse(jsonStr)
 
     let updated = [...currentInventory]

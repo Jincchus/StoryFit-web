@@ -41,6 +41,27 @@ export const NOVEL_BASE_RULES = `당신은 소설 작가입니다. 반드시 다
 - 주요 인물 외 제3의 인물도 동일한 이름 : "대사" 형식으로 표현하세요
 - 유저의 장면 지시를 바탕으로 인물들이 자연스럽게 상호작용하는 장면을 만들어주세요`
 
+function buildCharLines(character: Character): string {
+  const lines: string[] = [`이름: ${character.name}`]
+  if (character.gender) lines.push(`성별: ${character.gender}`)
+  if (character.tags?.length) lines.push(`태그: ${character.tags.join(', ')}`)
+  if (character.additionalInfo?.trim()) lines.push(character.additionalInfo.trim())
+  return lines.join('\n')
+}
+
+function buildLorebookSection(lorebook: LorebookEntry[]): string {
+  const sorted = [...lorebook].sort((a, b) => b.priority - a.priority)
+  const selected: string[] = []
+  let tokenCount = 0
+  for (const entry of sorted) {
+    const t = approxTokens(entry.content)
+    if (tokenCount + t > 1000) break
+    selected.push(entry.content)
+    tokenCount += t
+  }
+  return selected.length > 0 ? `[세계관 정보]\n${selected.join('\n\n')}` : ''
+}
+
 export function buildSystemPrompt({
   character,
   personaCharacter,
@@ -60,57 +81,19 @@ export function buildSystemPrompt({
   parts.push(BASE_RULES)
   if (modeRules?.trim()) parts.push(`[롤플레이 추가 규칙]\n${modeRules}`)
 
-  // 1. PersonaCharacter
   if (personaCharacter) {
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
     parts.push(`[유저 페르소나]\n이름: ${personaCharacter.name}${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
+  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)
+  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
+  parts.push(`[캐릭터 설정]\n${buildCharLines(character)}`)
+  if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
+  if (character.exampleDialogues?.trim()) parts.push(`[예시 대화]\n${character.exampleDialogues}`)
 
-  // 2. Core memory
-  if (coreMemory?.trim()) {
-    parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)
-  }
-
-  // 3. Status timeline
-  if (statusTimeline?.trim()) {
-    parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
-  }
-
-  // 4. Character setting + scenario description
-  const charLines: string[] = [`이름: ${character.name}`]
-  if (character.gender) charLines.push(`성별: ${character.gender}`)
-  if (character.tags?.length) charLines.push(`태그: ${character.tags.join(', ')}`)
-  if (character.additionalInfo?.trim()) charLines.push(character.additionalInfo.trim())
-  parts.push(`[캐릭터 설정]\n${charLines.join('\n')}`)
-  if (scenarioDescription?.trim()) {
-    parts.push(`[시나리오 배경]\n${scenarioDescription}`)
-  }
-
-  // 5. Example dialogues
-  if (character.exampleDialogues?.trim()) {
-    parts.push(`[예시 대화]\n${character.exampleDialogues}`)
-  }
-
-  // 6. Lorebook (matched entries, priority desc, ≤1000 tokens)
-  if (lorebook.length > 0) {
-    const sorted = [...lorebook].sort((a, b) => b.priority - a.priority)
-    const selected: string[] = []
-    let tokenCount = 0
-    for (const entry of sorted) {
-      const entryTokens = approxTokens(entry.content)
-      if (tokenCount + entryTokens > 1000) break
-      selected.push(entry.content)
-      tokenCount += entryTokens
-    }
-    if (selected.length > 0) {
-      parts.push(`[세계관 정보]\n${selected.join('\n\n')}`)
-    }
-  }
-
-  // 7. Long-term memory summaries
-  if (longTermMemory.length > 0) {
-    parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
-  }
+  const lorebookSection = buildLorebookSection(lorebook)
+  if (lorebookSection) parts.push(lorebookSection)
+  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
 
   return parts.join('\n\n---\n\n')
 }
@@ -142,38 +125,15 @@ export function buildNovelSystemPrompt({
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
     parts.push(`[${personaName} 설정]${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
-  if (coreMemory?.trim()) {
-    parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)
-  }
-  if (statusTimeline?.trim()) {
-    parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
-  }
-  const charLines2: string[] = [`이름: ${character.name}`]
-  if (character.gender) charLines2.push(`성별: ${character.gender}`)
-  if (character.tags?.length) charLines2.push(`태그: ${character.tags.join(', ')}`)
-  if (character.additionalInfo?.trim()) charLines2.push(character.additionalInfo.trim())
-  parts.push(`[${characterName} 설정]\n${charLines2.join('\n')}`)
-  if (scenarioDescription?.trim()) {
-    parts.push(`[시나리오 배경]\n${scenarioDescription}`)
-  }
-  if (character.exampleDialogues?.trim()) {
-    parts.push(`[예시 대화 (참고용)]\n${character.exampleDialogues}`)
-  }
-  if (lorebook.length > 0) {
-    const sorted = [...lorebook].sort((a, b) => b.priority - a.priority)
-    const selected: string[] = []
-    let tokenCount = 0
-    for (const entry of sorted) {
-      const entryTokens = approxTokens(entry.content)
-      if (tokenCount + entryTokens > 1000) break
-      selected.push(entry.content)
-      tokenCount += entryTokens
-    }
-    if (selected.length > 0) parts.push(`[세계관 정보]\n${selected.join('\n\n')}`)
-  }
-  if (longTermMemory.length > 0) {
-    parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
-  }
+  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)
+  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
+  parts.push(`[${characterName} 설정]\n${buildCharLines(character)}`)
+  if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
+  if (character.exampleDialogues?.trim()) parts.push(`[예시 대화 (참고용)]\n${character.exampleDialogues}`)
+
+  const lorebookSection = buildLorebookSection(lorebook)
+  if (lorebookSection) parts.push(lorebookSection)
+  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
 
   return parts.join('\n\n---\n\n')
 }
@@ -212,11 +172,11 @@ export function buildStorySystemPrompt({
   modeRules,
   personalRules,
 }: BuildSystemPromptParams): string {
+  const personaName = personaCharacter?.name ?? '유저'
   const parts: string[] = []
 
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
   if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
-  const personaName = personaCharacter?.name ?? '유저'
   parts.push(buildStoryBaseRules(character.name, personaName))
   if (modeRules?.trim()) parts.push(`[스토리 추가 규칙]\n${modeRules}`)
 
@@ -226,28 +186,12 @@ export function buildStorySystemPrompt({
   }
   if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 잊지 마세요]\n${coreMemory}`)
   if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}`)
-
-  const charLines: string[] = [`이름: ${character.name}`]
-  if (character.gender) charLines.push(`성별: ${character.gender}`)
-  if (character.tags?.length) charLines.push(`태그: ${character.tags.join(', ')}`)
-  if (character.additionalInfo?.trim()) charLines.push(character.additionalInfo.trim())
-  parts.push(`[캐릭터 설정]\n${charLines.join('\n')}`)
-
+  parts.push(`[캐릭터 설정]\n${buildCharLines(character)}`)
   if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
   if (character.exampleDialogues?.trim()) parts.push(`[예시 대화]\n${character.exampleDialogues}`)
 
-  if (lorebook.length > 0) {
-    const sorted = [...lorebook].sort((a, b) => b.priority - a.priority)
-    const selected: string[] = []
-    let tokenCount = 0
-    for (const entry of sorted) {
-      const t = approxTokens(entry.content)
-      if (tokenCount + t > 1000) break
-      selected.push(entry.content)
-      tokenCount += t
-    }
-    if (selected.length > 0) parts.push(`[세계관 정보]\n${selected.join('\n\n')}`)
-  }
+  const lorebookSection = buildLorebookSection(lorebook)
+  if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
 
   return parts.join('\n\n---\n\n')

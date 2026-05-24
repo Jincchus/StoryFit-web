@@ -2,6 +2,10 @@ import { prisma } from '@/lib/prisma'
 import { generateText } from '@/lib/ai/gemini'
 import type { StatEntry } from '@/types'
 
+function stripJsonFences(raw: string): string {
+  return raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
+}
+
 export function triggerStatsEvaluation(
   convId: string,
   userMsg: string,
@@ -37,7 +41,7 @@ AI 반응 (요약): ${aiMsg.slice(0, 400)}
   let raw = ''
   try {
     raw = await generateText(systemPrompt, userPrompt)
-    const jsonStr = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
+    const jsonStr = stripJsonFences(raw)
     const deltas: Record<string, number> = JSON.parse(jsonStr)
 
     const updated = currentStats.map(s => {
