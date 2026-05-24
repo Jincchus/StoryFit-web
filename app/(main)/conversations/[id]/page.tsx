@@ -185,15 +185,30 @@ export default function ChatPage() {
   }, [params.id])
 
   useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState !== 'visible') return
-      if (!getConvStream(params.id)) {
+    let streamTextAtHide = ''
+    const onVisChange = () => {
+      if (document.visibilityState === 'hidden') {
+        streamTextAtHide = getConvStream(params.id)?.text ?? ''
+        return
+      }
+      const stream = getConvStream(params.id)
+      if (stream && !stream.done) {
+        if (stream.text === streamTextAtHide) {
+          stream.abort.abort()
+          clearConvStream(params.id)
+          setTyping(false)
+          setStreaming('')
+          setStreamingCharId(null)
+          setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
+          loadConv().catch(() => {})
+        }
+      } else if (!stream) {
         setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
-        loadConv()
+        loadConv().catch(() => {})
       }
     }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
+    document.addEventListener('visibilitychange', onVisChange)
+    return () => document.removeEventListener('visibilitychange', onVisChange)
   }, [loadConv, params.id])
 
   useEffect(() => {
