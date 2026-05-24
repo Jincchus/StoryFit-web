@@ -12,6 +12,7 @@ interface ConvItem {
   mode: string
   currentAI: string
   updatedAt: string
+  isPinned: boolean
   characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
   messages: { content: string }[]
   personaCharacter?: { name: string } | null
@@ -28,9 +29,20 @@ const MODE_LABEL: Record<string, string> = {
   roleplay: '⚔ 롤플레이',
   novel: '✍ 소설',
   tikiTaka: '⟳ 티키타카',
+  story: '📖 스토리',
 }
 
-export default function HomePage() {
+const MODE_FILTERS = [
+  { key: 'all', label: '전체' },
+  { key: 'roleplay', label: '⚔ 롤플레이' },
+  { key: 'novel', label: '✍ 소설' },
+  { key: 'tikiTaka', label: '⟳ 티키타카' },
+  { key: 'story', label: '📖 스토리' },
+] as const
+
+type ModeFilter = typeof MODE_FILTERS[number]['key']
+
+export default function ChatListPage() {
   const router = useRouter()
   const [conversations, setConversations] = useState<ConvItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,6 +53,7 @@ export default function HomePage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [query, setQuery] = useState('')
+  const [modeFilter, setModeFilter] = useState<ModeFilter>('all')
 
   useEffect(() => {
     api.get('/api/conversations')
@@ -58,22 +71,35 @@ export default function HomePage() {
   }
 
   const toggleAll = () => {
-    if (selected.size === conversations.length) {
+    if (selected.size === filtered.length) {
       setSelected(new Set())
     } else {
-      setSelected(new Set(conversations.map(c => c.id)))
+      setSelected(new Set(filtered.map(c => c.id)))
     }
   }
 
   const exitSelect = () => { setSelecting(false); setSelected(new Set()) }
 
-  const filtered = query.trim()
-    ? conversations.filter(c => {
-        const q = query.toLowerCase()
-        return c.title.toLowerCase().includes(q) ||
-          c.characters.some(cc => cc.character.name.toLowerCase().includes(q))
+  const togglePin = async (e: React.MouseEvent, conv: ConvItem) => {
+    e.stopPropagation()
+    const next = !conv.isPinned
+    setConversations(prev => {
+      const updated = prev.map(c => c.id === conv.id ? { ...c, isPinned: next } : c)
+      return [...updated].sort((a, b) => {
+        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       })
-    : conversations
+    })
+    await api.patch(`/api/conversations/${conv.id}`, { isPinned: next })
+  }
+
+  const filtered = conversations.filter(c => {
+    if (modeFilter !== 'all' && c.mode !== modeFilter) return false
+    if (!query.trim()) return true
+    const q = query.toLowerCase()
+    return c.title.toLowerCase().includes(q) ||
+      c.characters.some(cc => cc.character.name.toLowerCase().includes(q))
+  })
 
   const handleDeleteSelected = async () => {
     if (selected.size === 0 || deleting) return
@@ -121,7 +147,7 @@ export default function HomePage() {
             {selecting ? (
               <>
                 <button className="btn ghost" style={{ fontSize: 10 }} onClick={toggleAll}>
-                  {selected.size === conversations.length ? '전체 해제' : '전체 선택'}
+                  {selected.size === filtered.length ? '전체 해제' : '전체 선택'}
                 </button>
                 <button
                   className="btn danger"
@@ -157,6 +183,17 @@ export default function HomePage() {
           )}
         </div>
 
+        <div className="hstack" style={{ flexShrink: 0, gap: 4, flexWrap: 'wrap' }}>
+          {MODE_FILTERS.map(f => (
+            <button
+              key={f.key}
+              className={`btn ${modeFilter === f.key ? 'primary' : 'ghost'}`}
+              style={{ fontSize: 10, padding: '2px 8px' }}
+              onClick={() => setModeFilter(f.key)}
+            >{f.label}</button>
+          ))}
+        </div>
+
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           {loading ? (
             <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink-soft)' }}>
@@ -171,7 +208,7 @@ export default function HomePage() {
           ) : filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
               <div style={{ fontSize: 32 }}>♡</div>
-              {query.trim()
+              {query.trim() || modeFilter !== 'all'
                 ? <div style={{ marginTop: 8 }}>검색 결과가 없어요</div>
                 : <>
                     <div style={{ marginTop: 8 }}>아직 시작한 롤플레이가 없어요</div>
@@ -189,7 +226,12 @@ export default function HomePage() {
               <div
                 key={conv.id}
                 className="row"
-                style={{ position: 'relative', cursor: selecting ? 'pointer' : undefined, background: isChecked ? 'var(--lavender)' : undefined }}
+                style={{
+                  position: 'relative',
+                  cursor: selecting ? 'pointer' : undefined,
+                  background: isChecked ? 'var(--lavender)' : conv.isPinned ? 'var(--pane)' : undefined,
+                  borderLeft: conv.isPinned ? '2px solid var(--hot-pink)' : undefined,
+                }}
                 onClick={() => selecting ? toggleSelect(conv.id) : router.push(`/conversations/${conv.id}`)}
               >
                 {selecting && (
@@ -214,6 +256,7 @@ export default function HomePage() {
                 </div>
                 <div className="meta">
                   <h4>
+                    {conv.isPinned && <span style={{ color: 'var(--hot-pink)', marginRight: 4, fontSize: 10 }}>📌</span>}
                     {conv.title}
                     {conv.personaCharacter && <span className="muted" style={{ fontWeight: 400 }}> · {conv.personaCharacter.name}로 플레이</span>}
                   </h4>
@@ -226,11 +269,19 @@ export default function HomePage() {
                   </div>
                   <span className="when">{when}</span>
                   {!selecting && (
-                    <button
-                      className="btn danger"
-                      style={{ fontSize: 10, padding: '3px 8px', minWidth: 44 }}
-                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(conv.id) }}
-                    >✕ 삭제</button>
+                    <div className="hstack" style={{ gap: 4 }}>
+                      <button
+                        className={`btn ${conv.isPinned ? 'primary' : 'ghost'}`}
+                        style={{ fontSize: 10, padding: '3px 8px' }}
+                        onClick={e => togglePin(e, conv)}
+                        title={conv.isPinned ? '핀 해제' : '상단 고정'}
+                      >📌</button>
+                      <button
+                        className="btn danger"
+                        style={{ fontSize: 10, padding: '3px 8px', minWidth: 44 }}
+                        onClick={e => { e.stopPropagation(); setConfirmDeleteId(conv.id) }}
+                      >✕ 삭제</button>
+                    </div>
                   )}
                 </div>
               </div>

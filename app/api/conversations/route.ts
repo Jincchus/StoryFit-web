@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       messages: { orderBy: { createdAt: 'desc' }, take: 1 },
       personaCharacter: { select: { name: true } },
     },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
   })
   return NextResponse.json(conversations)
 }

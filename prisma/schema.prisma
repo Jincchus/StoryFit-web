@@ -110,6 +110,7 @@ model Conversation {
   temperature         Float                   @default(0.9)
   frequencyPenalty    Float                   @default(0.3)
   safetyLevel         String                  @default("standard")
+  isPinned            Boolean                 @default(false)
   isSummarizing       Boolean                 @default(false)
   statsEnabled        Boolean                 @default(false)
   statsConfig         Json?
