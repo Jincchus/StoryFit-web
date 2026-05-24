@@ -51,12 +51,12 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
   const [aiError, setAiError] = useState('')
 
   useEffect(() => {
-    if (_cachedNamePool) {
+    if (_cachedNamePool !== null) {
       setNamePool(_cachedNamePool)
     } else {
       fetch('/api/names').then(r => r.json()).then((data: NameEntry[]) => { _cachedNamePool = data; setNamePool(data) }).catch(() => {})
     }
-    if (_cachedCharTags) {
+    if (_cachedCharTags !== null) {
       setCharTags(_cachedCharTags)
     } else {
       api.get('/api/persona-tags?scope=character').then((data: TagEntry[]) => { _cachedCharTags = data; setCharTags(data) }).catch(() => {})
