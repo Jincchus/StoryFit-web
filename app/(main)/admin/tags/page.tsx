@@ -75,7 +75,7 @@ export default function AdminTagsPage() {
     setCtError('')
     try {
       const created = await api.post('/api/admin/character-tags', ctForm)
-      setPersonaTags(prev => [...prev, created])
+      setCharacterTags(prev => [...prev, created])
       setCtForm(f => ({ ...f, name: '' }))
     } catch (e: any) { setCtError(e.message) }
   }
@@ -88,7 +88,7 @@ export default function AdminTagsPage() {
     for (const name of lines) {
       try {
         const created = await api.post('/api/admin/character-tags', { ...ctForm, name })
-        setPersonaTags(prev => [...prev, created])
+        setCharacterTags(prev => [...prev, created])
       } catch { skipped++ }
     }
     setCtBulkInput('')
@@ -98,7 +98,7 @@ export default function AdminTagsPage() {
 
   const handleCtDelete = async (id: string) => {
     await api.delete(`/api/admin/character-tags/${id}`)
-    setPersonaTags(prev => prev.filter(t => t.id !== id))
+    setCharacterTags(prev => prev.filter(t => t.id !== id))
   }
 
   return (
