@@ -90,7 +90,7 @@ export default function AdminUsersPage() {
                         <button
                           className="btn ghost"
                           style={{ fontSize: 9, padding: '1px 6px' }}
-                          onClick={() => patch(u.id, { isApproved: false })}
+                          disabled
                         >✓ 승인됨</button>
                       ) : (
                         <button

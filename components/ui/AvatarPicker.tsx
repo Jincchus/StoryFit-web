@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { getAccessToken } from '@/lib/authClient'
 
 interface SharedImage { id: string; url: string }
 
@@ -43,10 +42,9 @@ export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
       const formData = new FormData()
       formData.append('file', selectedFile)
       formData.append('isShared', isShared.toString())
-      const token = getAccessToken()
       const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
         body: formData,
       })
       const data = await res.json()
