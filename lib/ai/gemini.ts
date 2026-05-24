@@ -84,7 +84,7 @@ async function streamViaVertex(
 
   const VERTEX_SAFETY_MAP = {
     strict:   VHBT.BLOCK_LOW_AND_ABOVE,
-    standard: VHBT.BLOCK_MEDIUM_AND_ABOVE,
+    standard: VHBT.BLOCK_NONE,
     relaxed:  VHBT.BLOCK_NONE,
   }
 
