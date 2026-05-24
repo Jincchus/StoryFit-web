@@ -5,7 +5,7 @@ import { GEMINI_CHAT_MODEL, GEMINI_UTILITY_MODEL } from '@/lib/constants'
 const SAFETY_MAP: Record<SafetyLevel, HarmBlockThreshold> = {
   strict:   HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
   standard: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-  relaxed:  HarmBlockThreshold.BLOCK_ONLY_HIGH,
+  relaxed:  HarmBlockThreshold.BLOCK_NONE,
 }
 
 const HARM_CATEGORIES = [

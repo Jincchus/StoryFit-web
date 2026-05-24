@@ -134,11 +134,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         inputTokens = result.inputTokens
         outputTokens = result.outputTokens
 
+        if (!fullText) {
+          logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens, outputTokens })
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'AI가 응답을 생성하지 않았습니다. 안전 필터에 차단됐을 수 있습니다. 캐릭터 설정에서 안전 수준을 낮춰보세요.', retryable: false })}\n\n`))
+          return
+        }
+
         const assistantMsg = await prisma.message.create({
           data: {
             conversationId: params.id,
             role: 'assistant',
-            content: fullText || '[응답 없음]',
+            content: fullText,
             aiModel: conv.currentAI,
             isSelected: true,
             parentId: userMsg.id,
@@ -147,10 +153,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           },
         })
         assistantMsgId = assistantMsg.id
-
-        if (!fullText) {
-          logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens, outputTokens })
-        }
 
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
 
