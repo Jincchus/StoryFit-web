@@ -210,6 +210,7 @@ export function buildStorySystemPrompt({
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
   const personaName = personaCharacter?.name ?? '유저'
   parts.push(buildStoryBaseRules(character.name, personaName))
+  if (modeRules?.trim()) parts.push(`[스토리 추가 규칙]\n${modeRules}`)
 
   if (personaCharacter) {
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
