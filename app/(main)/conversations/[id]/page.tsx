@@ -644,7 +644,7 @@ export default function ChatPage() {
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
                 const storyParsed = isStory && !isYou ? parseStoryChoices(m.content) : null
-                const blocks = isYou ? [] : (isNovel ? parseNovelBlocks(m.content) : parseBlocks(storyParsed ? storyParsed.body : m.content))
+                const blocks = isYou ? [] : (isNovel || isStory ? parseNovelBlocks(storyParsed ? storyParsed.body : m.content) : parseBlocks(m.content))
 
                 return (
                   <div
