@@ -67,6 +67,7 @@ export default function NewConversationPage() {
         personaTags: selectedPersona?.tags,
         mode,
         hint: scenarioHint,
+        worldTags: tags.length ? tags : undefined,
       })
       if (result.scenarioDescription) setScenarioDescription(result.scenarioDescription)
     } catch {
@@ -310,20 +311,7 @@ export default function NewConversationPage() {
               />
             </section>
 
-            {/* 5. 고급 설정 토글 */}
-            <section className="new-conv-section" style={{ padding: '6px 0', borderTop: '1px solid var(--chrome-border)' }}>
-              <button
-                className="btn ghost"
-                style={{ fontSize: 11, width: '100%', textAlign: 'left' }}
-                onClick={() => setShowAdvanced(v => !v)}
-              >
-                {showAdvanced ? '▲' : '▼'} 고급 설정 (세계관 태그 · AI 파라미터)
-              </button>
-            </section>
-
-            {showAdvanced && <>
-
-            {/* 세계관 태그 */}
+            {/* 4. 세계관 태그 */}
             <section className="new-conv-section">
               <div className="label">세계관 태그 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
               <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
@@ -370,6 +358,19 @@ export default function NewConversationPage() {
                 </div>
               )}
             </section>
+
+            {/* 5. 고급 설정 토글 */}
+            <section className="new-conv-section" style={{ padding: '6px 0', borderTop: '1px solid var(--chrome-border)' }}>
+              <button
+                className="btn ghost"
+                style={{ fontSize: 11, width: '100%', textAlign: 'left' }}
+                onClick={() => setShowAdvanced(v => !v)}
+              >
+                {showAdvanced ? '▲' : '▼'} 고급 설정 (AI 파라미터)
+              </button>
+            </section>
+
+            {showAdvanced && <>
 
             {/* AI 설정 */}
             <section className="new-conv-section">

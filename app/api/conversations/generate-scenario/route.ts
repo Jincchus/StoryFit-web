@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const { charName, charTags, charInfo, personaName, personaTags, mode, hint } = await req.json()
+  const { charName, charTags, charInfo, personaName, personaTags, mode, hint, worldTags } = await req.json()
   if (!charName?.trim()) return NextResponse.json({ error: '캐릭터 이름이 필요합니다.' }, { status: 400 })
 
   const modeLabel = mode === 'novel' ? '소설 (작가 시점)' : '롤플레이 (1:1 대화)'
@@ -24,8 +24,9 @@ export async function POST(req: NextRequest) {
     : ''
 
   const hintLine = hint?.trim() ? `힌트: ${hint}` : ''
+  const worldTagsLine = worldTags?.length ? `세계관 태그: ${worldTags.join(', ')}` : ''
 
-  const context = [charContext, personaContext, `대화 모드: ${modeLabel}`, hintLine].filter(Boolean).join('\n')
+  const context = [charContext, personaContext, `대화 모드: ${modeLabel}`, worldTagsLine, hintLine].filter(Boolean).join('\n')
 
   const systemPrompt = `당신은 롤플레이·소설용 시나리오 작가입니다. 캐릭터 정보를 바탕으로 흥미로운 시나리오 배경을 한국어로 작성합니다.`
 
