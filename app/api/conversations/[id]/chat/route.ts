@@ -9,6 +9,7 @@ import { triggerInventoryEvaluation } from '@/lib/inventoryEval'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
+import { logAiError } from '@/lib/errorLog'
 import type { AIProvider } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -147,6 +148,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         })
         assistantMsgId = assistantMsg.id
 
+        if (!fullText) {
+          logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens, outputTokens })
+        }
+
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
 
         triggerMemorySummarization(params.id, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err =>
@@ -175,6 +180,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
               },
             })
             await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
+            logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'partial_save', message: err?.message ?? String(err) })
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: partial.id })}\n\n`))
           } catch {}
         } else {
@@ -184,6 +190,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
           else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
           const retryable = status === 429 || status === 503 || status >= 500
+          logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'api_error', statusCode: status, message: err?.message ?? String(err) })
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg, retryable })}\n\n`))
         }
       } finally {

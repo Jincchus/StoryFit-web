@@ -10,6 +10,7 @@ const NAV = [
   { href: '/admin/images', label: '이미지 관리' },
   { href: '/admin/costs', label: 'AI 비용' },
   { href: '/admin/logs', label: '활동 로그' },
+  { href: '/admin/error-logs', label: '오류 로그' },
 ]
 
 export default function AdminNav({ current }: { current: string }) {
