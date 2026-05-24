@@ -322,11 +322,6 @@ export default function ChatPage() {
     return () => {
       streamUnsubRef.current?.()
       streamUnsubRef.current = null
-      const s = getConvStream(params.id)
-      if (s && !s.done) {
-        s.abort.abort()
-        clearConvStream(params.id)
-      }
     }
   }, [params.id])
 
