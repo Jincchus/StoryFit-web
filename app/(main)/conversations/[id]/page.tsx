@@ -11,6 +11,7 @@ import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 import type { AIProvider, Character } from '@/types'
+import { getConvStream, clearConvStream, subscribeConvStream, runConvStream, runConvRegenerate } from '@/lib/conversationStream'
 
 function editDistance(a: string, b: string): number {
   const m = a.length, n = b.length
@@ -46,22 +47,6 @@ function parseStoryChoices(content: string): { body: string; choices: string[] }
   return { body, choices }
 }
 
-async function* readSseStream(res: Response) {
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-  let buf = ''
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buf += decoder.decode(value, { stream: true })
-    const lines = buf.split('\n')
-    buf = lines.pop() ?? ''
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue
-      try { yield JSON.parse(line.slice(6)) } catch {}
-    }
-  }
-}
 
 function ChatNarration({ text }: { text: string }) {
   const parts = text.split(/(\*[^*]+\*|\n)/)
@@ -129,14 +114,12 @@ export default function ChatPage() {
   const [speakingId, setSpeakingId] = useState<string | null>(null)
   // ── /STT/TTS ─────────────────────────────────────────────────────────
   const logRef = useRef<HTMLDivElement>(null)
-  const abortRef = useRef<AbortController | null>(null)
   const typingRef = useRef(false)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const patchDebounceRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({})
   const lastSentRef = useRef('')
   const [typingDuration, setTypingDuration] = useState(0)
   const typingStartRef = useRef(0)
-  const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // ── STT/TTS ──────────────────────────────────────────────────────────
   const recognitionRef = useRef<any>(null)
   // ── /STT/TTS ─────────────────────────────────────────────────────────
@@ -166,21 +149,49 @@ export default function ChatPage() {
   useEffect(() => { loadConv() }, [loadConv])
 
   useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState !== 'visible') return
-      if (typingRef.current) {
-        abortRef.current?.abort()
+    const existing = getConvStream(params.id)
+    if (!existing) return
+
+    setTyping(true)
+    setStreaming(existing.text)
+
+    if (existing.done) {
+      setTyping(false)
+      setStreaming('')
+      clearConvStream(params.id)
+      loadConv()
+      return
+    }
+
+    const unsub = subscribeConvStream(params.id, () => {
+      const cs = getConvStream(params.id)
+      if (!cs) return
+      setStreaming(cs.text)
+      if (cs.error) { setSendError(cs.error); setSendErrorRetryable(cs.retryable) }
+      if (cs.done) {
         setTyping(false)
         setStreaming('')
         setStreamingCharId(null)
-        setSendError('')
+        clearConvStream(params.id)
+        unsub()
+        loadConv()
       }
-      setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
-      loadConv()
+    })
+
+    return unsub
+  }, [params.id])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      if (!getConvStream(params.id)) {
+        setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
+        loadConv()
+      }
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [loadConv])
+  }, [loadConv, params.id])
 
   useEffect(() => {
     api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => setLorebookError(true))
@@ -255,99 +266,45 @@ export default function ChatPage() {
 
   useEffect(() => { if (!typing) scrollToBottom() }, [typing])
 
-  const clearStreamTimeout = () => {
-    if (streamTimeoutRef.current) { clearTimeout(streamTimeoutRef.current); streamTimeoutRef.current = null }
-  }
+  const subscribeStream = useCallback((convId: string) => {
+    const unsub = subscribeConvStream(convId, () => {
+      const cs = getConvStream(convId)
+      if (!cs) return
+      setStreaming(cs.text)
+      if (cs.error) { setSendError(cs.error); setSendErrorRetryable(cs.retryable) }
+      if (cs.done) {
+        setTyping(false)
+        setStreaming('')
+        setStreamingCharId(null)
+        clearConvStream(convId)
+        unsub()
+        loadConv()
+      }
+    })
+    return unsub
+  }, [loadConv])
 
-  const resetStreamTimeout = (ctrl: AbortController) => {
-    clearStreamTimeout()
-    streamTimeoutRef.current = setTimeout(() => {
-      ctrl.abort()
-      setSendError('30초 동안 응답이 없어 연결을 종료했습니다.')
-      setSendErrorRetryable(true)
-    }, 30000)
-  }
-
-  const send = async (content: string) => {
+  const send = (content: string) => {
     if (!content.trim() || typing) return
     lastSentRef.current = content
     typingStartRef.current = Date.now()
     setTypingDuration(0)
     setText('')
-    const userMsg: Msg = { id: 'tmp-' + Date.now(), role: 'user', content }
-    setMessages(prev => [...prev, userMsg])
+    setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content }])
     setTyping(true)
     setStreaming('')
-
-    const ctrl = new AbortController()
-    abortRef.current = ctrl
-    resetStreamTimeout(ctrl)
-
     setSendError('')
     setSendErrorRetryable(false)
-    try {
-      const res = await api.streamChat(params.id, content, ctrl.signal)
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        setSendError(data.error || 'AI 응답 생성에 실패했습니다.')
-        setTyping(false)
-        return
-      }
-
-      let currentCharText = ''
-      for await (const json of readSseStream(res)) {
-        if (json.allDone) {
-          clearStreamTimeout()
-          setStreaming('')
-          setStreamingCharId(null)
-          await loadConv()
-        } else if (json.text) {
-          resetStreamTimeout(ctrl)
-          if (json.characterId) setStreamingCharId(json.characterId)
-          setStreaming(prev => prev + json.text)
-          currentCharText += json.text
-        } else if (json.done) {
-          clearStreamTimeout()
-          if (json.characterId) {
-            const savedText = currentCharText
-            setMessages(prev => [...prev, {
-              id: json.messageId,
-              role: 'assistant',
-              content: savedText || '[응답 없음]',
-              characterId: json.characterId,
-              branchCount: 1,
-              branchIndex: 1,
-            }])
-            setStreaming('')
-            setStreamingCharId(null)
-            currentCharText = ''
-          } else {
-            setStreaming('')
-            await loadConv()
-          }
-        } else if (json.error) {
-          clearStreamTimeout()
-          setStreaming('')
-          setStreamingCharId(null)
-          setSendError(json.error)
-          setSendErrorRetryable(json.retryable ?? false)
-          await loadConv()
-        }
-      }
-    } catch (e: any) {
-      if (e?.name !== 'AbortError') {
-        setStreaming('')
-        setSendError('연결이 끊어졌습니다. 다시 시도해주세요.')
-      }
-    } finally {
-      clearStreamTimeout()
-      setTyping(false)
-      setStreamingCharId(null)
-      abortRef.current = null
-    }
+    runConvStream(params.id, content).catch(() => {})
+    subscribeStream(params.id)
   }
 
-  const stopStream = () => { abortRef.current?.abort(); setTyping(false); setStreaming(''); setStreamingCharId(null) }
+  const stopStream = () => {
+    getConvStream(params.id)?.abort.abort()
+    setTyping(false)
+    setStreaming('')
+    setStreamingCharId(null)
+  }
 
   // ── STT/TTS ──────────────────────────────────────────────────────────
   const startListening = () => {
@@ -410,7 +367,7 @@ export default function ChatPage() {
     el.style.height = Math.min(el.scrollHeight, 120) + 'px'
   }
 
-  const handleRegenerate = async () => {
+  const handleRegenerate = () => {
     if (typing) return
     setText('')
     typingStartRef.current = Date.now()
@@ -419,36 +376,8 @@ export default function ChatPage() {
     setStreaming('')
     setSendError('')
     setSendErrorRetryable(false)
-
-    const ctrl = new AbortController()
-    abortRef.current = ctrl
-    resetStreamTimeout(ctrl)
-
-    try {
-      const res = await api.streamRegenerate(params.id, ctrl.signal)
-      if (!res.ok) {
-        clearStreamTimeout()
-        const data = await res.json().catch(() => ({}))
-        setSendError(data.error || '재생성에 실패했습니다.')
-        setTyping(false)
-        return
-      }
-
-      for await (const json of readSseStream(res)) {
-        if (json.text) { resetStreamTimeout(ctrl); setStreaming(prev => prev + json.text) }
-        if (json.done) { clearStreamTimeout(); setStreaming(''); await loadConv() }
-        if (json.error) { clearStreamTimeout(); setStreaming(''); setSendError(json.error); setSendErrorRetryable(json.retryable ?? false); await loadConv() }
-      }
-    } catch (e: any) {
-      if (e?.name !== 'AbortError') {
-        setStreaming('')
-        setSendError('연결이 끊어졌습니다. 다시 시도해주세요.')
-      }
-    } finally {
-      clearStreamTimeout()
-      setTyping(false)
-      abortRef.current = null
-    }
+    runConvRegenerate(params.id).catch(() => {})
+    subscribeStream(params.id)
   }
 
   const handleBranchSwitch = async (targetMessageId: string) => {
