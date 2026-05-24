@@ -37,6 +37,8 @@ model WorldTag {
   id        String   @id @default(cuid())
   name      String   @unique
   createdAt DateTime @default(now())
+
+  @@map("CharacterTag")
 }
 
 model StatTag {
@@ -54,6 +56,7 @@ model CharacterTag {
   createdAt DateTime @default(now())
 
   @@unique([name, category, scope])
+  @@map("PersonaTag")
 }
 
 model GlobalConfig {
