@@ -204,6 +204,7 @@ export function buildStorySystemPrompt({
   lorebook = [],
   longTermMemory = [],
   globalRules,
+  modeRules,
 }: BuildSystemPromptParams): string {
   const parts: string[] = []
 
