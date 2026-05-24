@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 interface TagEntry { id: string; name: string }
-interface PersonaTagEntry { id: string; name: string; category: string; gender: string; scope: string }
+interface PersonaTagEntry { id: string; name: string; category: string; gender: string }
 
 const CHAR_CATEGORIES = ['관계', '성격', '외모', '역할'] as const
 const GENDERS = ['공통', '남', '여'] as const
@@ -26,7 +26,7 @@ export default function AdminTagsPage() {
   const [statError, setStatError] = useState('')
 
   const [personaTags, setPersonaTags] = useState<PersonaTagEntry[]>([])
-  const [ptForm, setPtForm] = useState({ name: '', category: '성격', gender: '공통', scope: 'character' })
+  const [ptForm, setPtForm] = useState({ name: '', category: '성격', gender: '공통' })
   const [ptBulkInput, setPtBulkInput] = useState('')
   const [showPtBulk, setShowPtBulk] = useState(false)
   const [ptError, setPtError] = useState('')
@@ -100,8 +100,6 @@ export default function AdminTagsPage() {
     await api.delete(`/api/admin/persona-tags/${id}`)
     setPersonaTags(prev => prev.filter(t => t.id !== id))
   }
-
-  const scopedTags = personaTags.filter(t => t.scope === 'character')
 
   return (
     <Win title="관리자 — 태그 관리" icon={PixelIcons.settings}>
@@ -197,7 +195,7 @@ export default function AdminTagsPage() {
                 {ptError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {ptError}</div>}
 
                 {CHAR_CATEGORIES.map(cat => {
-                  const catTags = scopedTags.filter(t => t.category === cat)
+                  const catTags = personaTags.filter(t => t.category === cat)
                   if (catTags.length === 0) return null
                   return (
                     <div key={cat} className="vstack" style={{ gap: 4 }}>
@@ -214,7 +212,7 @@ export default function AdminTagsPage() {
                     </div>
                   )
                 })}
-                {scopedTags.length === 0 && <div className="tiny muted">태그가 없습니다. 위에서 추가하세요.</div>}
+                {personaTags.length === 0 && <div className="tiny muted">태그가 없습니다. 위에서 추가하세요.</div>}
               </div>
             )}
 

@@ -24,7 +24,7 @@ interface CharacterFormProps {
 }
 
 type NameEntry = { name: string; category: string; gender: string }
-interface TagEntry { id: string; name: string; category: string; gender: string; scope: string }
+interface TagEntry { id: string; name: string; category: string; gender: string }
 
 let _cachedNamePool: NameEntry[] | null = null
 let _cachedCharTags: TagEntry[] | null = null
@@ -59,7 +59,7 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
     if (_cachedCharTags !== null) {
       setCharTags(_cachedCharTags)
     } else {
-      api.get('/api/persona-tags?scope=character').then((data: TagEntry[]) => { _cachedCharTags = data; setCharTags(data) }).catch(() => {})
+      api.get('/api/persona-tags').then((data: TagEntry[]) => { _cachedCharTags = data; setCharTags(data) }).catch(() => {})
     }
   }, [])
 

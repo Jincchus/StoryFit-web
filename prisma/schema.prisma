@@ -17,6 +17,7 @@ model User {
   isApproved    Boolean        @default(true)
   displayName             String  @default("")
   personalRules           String  @default("")
+  rejectionReason         String  @default("")
   defaultTemperature      Float   @default(0.9)
   defaultFrequencyPenalty Float   @default(0.3)
   defaultSafetyLevel      String  @default("standard")
@@ -52,10 +53,9 @@ model CharacterTag {
   name      String
   category  String
   gender    String   @default("공통")
-  scope     String   @default("character")
   createdAt DateTime @default(now())
 
-  @@unique([name, category, scope])
+  @@unique([name, category])
   @@map("PersonaTag")
 }
 
