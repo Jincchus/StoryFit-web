@@ -72,9 +72,9 @@ function makeTimeout(convId: string, abort: AbortController): { reset: () => voi
   const fire = () => {
     abort.abort()
     const s = getConvStream(convId)
-    if (s) { s.error = '30초 동안 응답이 없어 연결을 종료했습니다.'; s.retryable = true; s.done = true; _notify(convId) }
+    if (s) { s.error = '60초 동안 응답이 없어 연결을 종료했습니다.'; s.retryable = true; s.done = true; _notify(convId) }
   }
-  const reset = () => { if (id) clearTimeout(id); id = setTimeout(fire, 30000) }
+  const reset = () => { if (id) clearTimeout(id); id = setTimeout(fire, 60000) }
   const clear = () => { if (id) { clearTimeout(id); id = null } }
   return { reset, clear }
 }
@@ -83,10 +83,12 @@ export async function runConvStream(convId: string, content: string) {
   const abort = new AbortController()
   const state = _create(convId, abort)
   const timer = makeTimeout(convId, abort)
-  timer.reset()
 
   try {
     const res = await doFetch(`/api/conversations/${convId}/chat`, { content }, abort.signal)
+    // 연결 수립 후 타이머 시작 (DB 쿼리·AI 첫 응답 대기 시간 제외)
+    timer.reset()
+
     if (!res.ok) {
       timer.clear()
       const data = await res.json().catch(() => ({}))
@@ -129,11 +131,21 @@ export async function runConvStream(convId: string, content: string) {
         break
       }
     }
+
+    // SSE 스트림이 done 이벤트 없이 끊긴 경우
+    const s = getConvStream(convId)
+    if (s && !s.done) {
+      timer.clear()
+      s.error = '연결이 끊어졌습니다. 다시 시도해주세요.'
+      s.retryable = true
+      s.done = true
+      _notify(convId)
+    }
   } catch (e: any) {
     timer.clear()
     if (e.name !== 'AbortError') {
       const s = getConvStream(convId)
-      if (s) { s.error = '연결이 끊어졌습니다. 다시 시도해주세요.'; s.done = true; _notify(convId) }
+      if (s) { s.error = '연결이 끊어졌습니다. 다시 시도해주세요.'; s.retryable = true; s.done = true; _notify(convId) }
     }
   }
 }

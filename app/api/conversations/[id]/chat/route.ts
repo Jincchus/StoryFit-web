@@ -162,13 +162,30 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: assistantMsgId })}\n\n`))
       } catch (err: any) {
-        console.error('[chat] AI error:', err)
-        const status = err?.status ?? 500
-        let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
-        if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
-        else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
-        const retryable = status === 429 || status === 503 || status >= 500
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg, retryable })}\n\n`))
+        if (fullText.trim()) {
+          try {
+            const partial = await prisma.message.create({
+              data: {
+                conversationId: params.id,
+                role: 'assistant',
+                content: fullText,
+                aiModel: conv.currentAI,
+                isSelected: true,
+                parentId: userMsg.id,
+              },
+            })
+            await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: partial.id })}\n\n`))
+          } catch {}
+        } else {
+          console.error('[chat] AI error:', err)
+          const status = err?.status ?? 500
+          let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
+          if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
+          else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
+          const retryable = status === 429 || status === 503 || status >= 500
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg, retryable })}\n\n`))
+        }
       } finally {
         controller.close()
       }

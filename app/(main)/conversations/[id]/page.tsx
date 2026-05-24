@@ -118,6 +118,7 @@ export default function ChatPage() {
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const patchDebounceRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({})
   const lastSentRef = useRef('')
+  const streamUnsubRef = useRef<(() => void) | null>(null)
   const [typingDuration, setTypingDuration] = useState(0)
   const typingStartRef = useRef(0)
   // ── STT/TTS ──────────────────────────────────────────────────────────
@@ -267,6 +268,7 @@ export default function ChatPage() {
   useEffect(() => { if (!typing) scrollToBottom() }, [typing])
 
   const subscribeStream = useCallback((convId: string) => {
+    streamUnsubRef.current?.()
     const unsub = subscribeConvStream(convId, () => {
       const cs = getConvStream(convId)
       if (!cs) return
@@ -277,12 +279,18 @@ export default function ChatPage() {
         setStreaming('')
         setStreamingCharId(null)
         clearConvStream(convId)
+        streamUnsubRef.current = null
         unsub()
         loadConv()
       }
     })
+    streamUnsubRef.current = unsub
     return unsub
   }, [loadConv])
+
+  useEffect(() => {
+    return () => { streamUnsubRef.current?.(); streamUnsubRef.current = null }
+  }, [params.id])
 
   const send = (content: string) => {
     if (!content.trim() || typing) return
