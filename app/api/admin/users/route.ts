@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const users = await prisma.user.findMany({
     select: {
-      id: true, email: true, isAdmin: true, isActive: true, isApproved: true,
+      id: true, email: true, displayName: true, isAdmin: true, isActive: true, isApproved: true,
       _count: { select: { conversations: true } },
     },
     orderBy: [{ isApproved: 'asc' }, { email: 'asc' }],

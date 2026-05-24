@@ -8,6 +8,7 @@ import AdminNav from '../_components/AdminNav'
 interface UserRow {
   id: string
   email: string
+  displayName: string
   isAdmin: boolean
   isActive: boolean
   isApproved: boolean
@@ -62,13 +63,16 @@ export default function AdminUsersPage() {
                       background: !u.isApproved ? 'var(--lemon)' : undefined,
                     }}
                   >
-                    <td style={{ padding: '5px 8px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>
-                      {u.email}
-                      {!u.isApproved && (
-                        <span style={{ marginLeft: 6, fontSize: 9, background: '#ff9500', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>
-                          대기
-                        </span>
-                      )}
+                    <td style={{ padding: '5px 8px', maxWidth: 200 }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {u.displayName || <span style={{ color: 'var(--ink-soft)' }}>—</span>}
+                        {!u.isApproved && (
+                          <span style={{ marginLeft: 6, fontSize: 9, background: '#ff9500', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>
+                            대기
+                          </span>
+                        )}
+                      </div>
+                      <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
                     </td>
                     <td style={{ padding: '5px 8px', color: 'var(--ink-soft)' }}>{u._count.conversations}</td>
                     <td style={{ padding: '5px 8px' }}>

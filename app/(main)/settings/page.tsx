@@ -168,8 +168,8 @@ export default function SettingsPage() {
               <div className="vstack" style={{ gap: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, borderBottom: '1px solid var(--chrome-border)', paddingBottom: 4 }}>프로필</div>
                 <div>
-                  <label className="label">표시 이름</label>
-                  <input className="field" placeholder="닉네임 (비워두면 이메일 앞부분)" value={displayName} onChange={e => setDisplayName(e.target.value)} />
+                  <label className="label">표시 이름 <span className="tiny muted">(관리자 페이지 유저 목록에 표시)</span></label>
+                  <input className="field" placeholder="닉네임 (비워두면 이메일 앞부분 사용)" value={displayName} onChange={e => setDisplayName(e.target.value)} />
                 </div>
               </div>
               <div className="vstack" style={{ gap: 8 }}>
@@ -202,8 +202,8 @@ export default function SettingsPage() {
                 <label className="label">기본 AI 모델</label>
                 <select className="field" value={defaultAI} onChange={e => setDefaultAI(e.target.value)}>
                   <option value="gemini">Gemini</option>
-                  <option value="chatgpt">ChatGPT</option>
-                  <option value="claude">Claude</option>
+                  {/* <option value="chatgpt">ChatGPT</option> */}
+                  {/* <option value="claude">Claude</option> */}
                 </select>
               </div>
               <div>
@@ -219,24 +219,24 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="label">
-                  창의성 (Temperature): {temperature.toFixed(1)}
-                  <ParamTooltip text={"낮을수록 일관되고 높을수록 창의적"} />
+                  창의성: {temperature.toFixed(1)}
+                  <ParamTooltip text={"AI 답변의 창의성·무작위성을 조절합니다.\n\n낮을수록 (0~0.5): 일관되고 예측 가능한 답변\n보통 (0.7~1.0): 자연스럽고 다양한 표현 (추천)\n높을수록 (1.5~2.0): 창의적이지만 가끔 엉뚱한 답변"} />
                 </label>
                 <input type="range" className="param-slider" min={0} max={2} step={0.1} value={temperature} onChange={e => setTemperature(parseFloat(e.target.value))} />
                 <div className="spread" style={{ marginTop: 2 }}>
-                  <span className="tiny muted">일관됨 (0)</span>
-                  <span className="tiny muted">창의적 (2)</span>
+                  <span className="tiny muted">일관됨</span>
+                  <span className="tiny muted">창의적</span>
                 </div>
               </div>
               <div>
                 <label className="label">
-                  반복 억제 (Frequency Penalty): {frequencyPenalty.toFixed(2)}
-                  <ParamTooltip text={"높을수록 같은 표현 반복을 억제"} />
+                  반복 억제: {frequencyPenalty.toFixed(2)}
+                  <ParamTooltip text={"같은 단어나 표현이 반복되는 것을 억제합니다.\n\n낮을수록 (0~0.2): 반복 허용, 일관된 말투 유지\n보통 (0.3~0.5): 적당한 억제 (추천)\n높을수록 (0.8~): 다양한 어휘 사용, 말투 변할 수 있음"} />
                 </label>
                 <input type="range" className="param-slider" min={0} max={2} step={0.05} value={frequencyPenalty} onChange={e => setFrequencyPenalty(parseFloat(e.target.value))} />
                 <div className="spread" style={{ marginTop: 2 }}>
-                  <span className="tiny muted">반복 허용 (0)</span>
-                  <span className="tiny muted">강하게 억제 (2)</span>
+                  <span className="tiny muted">반복 허용</span>
+                  <span className="tiny muted">강하게 억제</span>
                 </div>
               </div>
               <div className="hstack" style={{ gap: 6 }}>
