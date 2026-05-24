@@ -28,10 +28,10 @@ export async function triggerMemorySummarization(
   const totalMessages = await prisma.message.count({
     where: { conversationId, isSelected: true },
   })
-  if (totalMessages % SUMMARIZE_EVERY !== 0) return
+  const expectedCount = Math.floor(totalMessages / SUMMARIZE_EVERY)
+  if (expectedCount === 0) return
 
   const existingMemoryCount = await prisma.memory.count({ where: { conversationId } })
-  const expectedCount = Math.floor(totalMessages / SUMMARIZE_EVERY)
   if (existingMemoryCount >= expectedCount) return
 
   const skipCount = existingMemoryCount * SUMMARIZE_EVERY
