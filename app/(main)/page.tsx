@@ -8,10 +8,10 @@ const BASE_ICONS = [
   { label: '채팅 목록', icon: PixelIcons.chat, href: '/chatlist' },
   { label: '새 대화', icon: <PixelAvatar kind="ai" size={38} />, href: '/conversations/new' },
   { label: '캐릭터', icon: <PixelAvatar kind="custom" size={38} />, href: '/characters' },
-  { label: '설정', icon: PixelIcons.settings, href: '/settings' },
+  { label: '설정', icon: PixelIcons.sliders, href: '/settings' },
 ]
 
-const ADMIN_ICON = { label: '관리자 패널', icon: PixelIcons.settings, href: '/admin' }
+const ADMIN_ICON = { label: '관리자\n패널', icon: PixelIcons.settings, href: '/admin' }
 
 const STEPS = [
   { num: 1, label: '캐릭터 만들기', desc: '대화 상대 & 내 역할 설정', href: '/characters', icon: <PixelAvatar kind="custom" size={20} /> },
@@ -100,7 +100,7 @@ export default function HomePage() {
                 : icon
               }
             </div>
-            <span>{label}</span>
+            <span style={{ whiteSpace: 'pre-line', textAlign: 'center' }}>{label}</span>
           </div>
         ))}
       </div>

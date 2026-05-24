@@ -149,6 +149,19 @@ export const PixelIcons = {
       <rect x="7" y="7" width="2" height="2" fill="#fff"/>
     </svg>
   ),
+  sliders: (
+    <svg className="icn" viewBox="0 0 16 16" shapeRendering="crispEdges">
+      <rect x="2" y="4" width="12" height="1" fill="#c9b6ff"/>
+      <rect x="5" y="3" width="3" height="3" fill="#ff8fcf"/>
+      <rect x="6" y="3" width="1" height="1" fill="#fff"/>
+      <rect x="2" y="8" width="12" height="1" fill="#c9b6ff"/>
+      <rect x="9" y="7" width="3" height="3" fill="#ff8fcf"/>
+      <rect x="10" y="7" width="1" height="1" fill="#fff"/>
+      <rect x="2" y="12" width="12" height="1" fill="#c9b6ff"/>
+      <rect x="3" y="11" width="3" height="3" fill="#ff8fcf"/>
+      <rect x="4" y="11" width="1" height="1" fill="#fff"/>
+    </svg>
+  ),
 }
 
 interface PixelAvatarProps {

@@ -56,16 +56,14 @@ export default function Dock() {
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/characters') }}>
               🎭 캐릭터
             </button>
+            <div className="start-menu-divider" />
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/settings') }}>
-              ⚙ 설정
+              ◈ 설정
             </button>
             {isAdmin && (
-              <>
-                <div className="start-menu-divider" />
-                <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/admin') }}>
-                  ⚙ 관리자 패널
-                </button>
-              </>
+              <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/admin') }}>
+                ⚙ 관리자 패널
+              </button>
             )}
             <div className="start-menu-divider" />
             <button className="start-menu-item danger" onClick={handleLogout}>
