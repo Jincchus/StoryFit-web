@@ -9,6 +9,7 @@ const USER_SELECT = {
   defaultFrequencyPenalty: true,
   defaultSafetyLevel: true,
   defaultAI: true,
+  theme: true,
 } as const
 
 export async function GET(req: NextRequest) {
@@ -40,6 +41,7 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.defaultFrequencyPenalty === 'number') data.defaultFrequencyPenalty = Math.max(0, Math.min(2, body.defaultFrequencyPenalty))
   if (['strict', 'standard', 'relaxed'].includes(body.defaultSafetyLevel)) data.defaultSafetyLevel = body.defaultSafetyLevel
   if (['gemini', 'claude', 'chatgpt'].includes(body.defaultAI)) data.defaultAI = body.defaultAI
+  if (['retro', 'modern', 'modernwhite', 'win95', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld'].includes(body.theme)) data.theme = body.theme
 
   const user = await prisma.user.update({ where: { id: userId }, data, select: USER_SELECT })
   return NextResponse.json(user)

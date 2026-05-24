@@ -1,0 +1,385 @@
+/* ─── Windows 95 Theme ────────────────────────────────────────────────────
+   data-art="win95" 으로 활성화
+   기존 retro/modern 변수명을 그대로 사용하므로 globals.css 클래스와 호환됨
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="win95"] {
+
+  /* ── 배경 ── */
+  --bg-1: #008080;
+  --bg-2: #008080;
+  --bg-3: #008080;
+
+  /* ── 텍스트 ── */
+  --ink:       #000000;
+  --ink-soft:  #404040;
+
+  /* ── 콘텐츠 배경 ── */
+  --paper:   #ffffff;
+  --paper-2: #f1f1f1;
+
+  /* ── 액센트 컬러 (프로젝트 컬러 시스템 유지, Win95 톤으로 조정) ── */
+  --pink:      #c0c0c0;   /* 기능 없음, 중성 회색으로 폴백 */
+  --hot-pink:  #000080;   /* CTA 액션 → 네이비 블루 */
+  --purple:    #000080;
+  --lavender:  #d0d0d0;
+  --mint:      #00ffff;
+  --lemon:     #ffff80;
+  --sky:       #0000ff;
+  --accent:    #000080;   /* 버튼·하이라이트 기본색 */
+
+  /* ── 창 프레임 (chrome) ── */
+  --chrome-face:   #c0c0c0;   /* 클래식 Windows 회색 */
+  --chrome-shadow: #808080;   /* 어두운 inset 가장자리 */
+  --chrome-hi:     #ffffff;   /* 밝은 outset 가장자리 */
+  --chrome-border: #000000;   /* 테두리 */
+  --title-grad:    linear-gradient(90deg, #000080 0%, #1084d0 100%);
+
+  /* ── 폰트 ── */
+  --font-pixel: 'MS Sans Serif', 'Dotum', '돋움', sans-serif;
+  --font-title: 'MS Sans Serif', 'Dotum', '돋움', sans-serif;
+  --font-body:  'MS Sans Serif', 'Dotum', '돋움', sans-serif;
+  --font-mono:  'Courier New', monospace;
+
+  /* ── 레이아웃 ── */
+  --radius:      0px;
+  --shadow-step: 0px;
+  --hairline:    2px;
+}
+
+/* ─── 배경 ─────────────────────────────────────────────────────────────── */
+body[data-art="win95"] {
+  background: #008080;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="win95"] .shell {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 1px 1px 0 var(--chrome-border);
+}
+
+body[data-art="win95"] .shell-body {
+  background: var(--chrome-face);
+  background-image: none;
+}
+
+body[data-art="win95"] .shell-title {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-shadow: none;
+  color: #ffffff;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="win95"] .win {
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 1px 1px 0 var(--chrome-border);
+}
+
+body[data-art="win95"] .win-title {
+  font-size: 12px;
+  padding: 3px 6px;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+body[data-art="win95"] .win-controls button {
+  width: 16px;
+  height: 14px;
+  font-size: 10px;
+  border: 1.5px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 1px 1px 0 var(--chrome-border);
+}
+
+body[data-art="win95"] .win-body {
+  margin: 3px;
+  padding: 6px;
+  border: 2px solid;
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  box-shadow: none;
+}
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="win95"] .btn {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 1px 1px 0 var(--chrome-border);
+  font-size: 12px;
+  padding: 4px 12px;
+  transition: none;
+}
+
+body[data-art="win95"] .btn:active {
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  box-shadow: none;
+  transform: none;
+  padding: 5px 11px 3px 13px;
+}
+
+body[data-art="win95"] .btn.primary {
+  background: var(--chrome-face);
+  color: var(--ink);
+  text-shadow: none;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+}
+
+body[data-art="win95"] .btn.ghost {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+body[data-art="win95"] .btn.danger {
+  color: var(--ink);
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+}
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="win95"] .field {
+  border: 2px solid;
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  background: var(--paper);
+  font-size: 13px;
+}
+
+body[data-art="win95"] .field:focus {
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  box-shadow: none;
+  outline: 1px dotted var(--ink);
+  outline-offset: -3px;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="win95"] .chatlog {
+  background: var(--paper);
+  border: 2px solid;
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  box-shadow: none;
+  font-size: 13px;
+}
+
+/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
+body[data-art="win95"] .bubble {
+  background: var(--paper);
+  border: 1px solid var(--chrome-border);
+  box-shadow: none;
+  border-radius: 0;
+  font-size: 13px;
+}
+
+body[data-art="win95"] .seq-block.seq-right .bubble {
+  background: #d6e2f0;
+  border-color: #000080;
+}
+
+body[data-art="win95"] .bubble-char    { background: #f1f1f1 !important; border-color: #808080 !important; }
+body[data-art="win95"] .bubble-third   { background: #f1fff1 !important; border-color: #808080 !important; }
+body[data-art="win95"] .bubble-persona { background: #d6e2f0 !important; border-color: #000080 !important; }
+
+/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
+body[data-art="win95"] .composer {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: none;
+}
+
+/* ─── 독(Dock / 작업표시줄) ─────────────────────────────────────────────── */
+body[data-art="win95"] .dock {
+  background: var(--chrome-face);
+  border-top: 2px solid;
+  border-color: var(--chrome-hi) transparent transparent transparent;
+  box-shadow: none;
+}
+
+body[data-art="win95"] .dock .start {
+  background: var(--chrome-face);
+  color: var(--ink);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 1px 1px 0 var(--chrome-border);
+  text-shadow: none;
+  font-weight: 700;
+}
+
+body[data-art="win95"] .dock .start.active {
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  box-shadow: none;
+}
+
+body[data-art="win95"] .dock .clock {
+  font-family: var(--font-mono);
+  background: var(--chrome-face);
+  border: 1.5px solid;
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+}
+
+body[data-art="win95"] .dock-tab {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 1px 1px 0 var(--chrome-border);
+}
+
+body[data-art="win95"] .dock-tab.active {
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  box-shadow: none;
+  background: var(--chrome-face);
+  color: var(--ink);
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="win95"] .start-menu {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 2px 2px 0 var(--chrome-border);
+}
+
+body[data-art="win95"] .start-menu-item:hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="win95"] .row {
+  border: 1px solid var(--chrome-border);
+  box-shadow: none;
+  background: var(--paper);
+}
+
+body[data-art="win95"] .row:hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+body[data-art="win95"] .row .thumb {
+  border: 1px inset var(--chrome-shadow);
+  border-radius: 0;
+}
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="win95"] .char-card {
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 1px 1px 0 var(--chrome-border);
+  background: var(--chrome-face);
+}
+
+body[data-art="win95"] .char-card:hover {
+  transform: none;
+  box-shadow: 1px 1px 0 var(--chrome-border);
+  background: var(--paper-2);
+}
+
+body[data-art="win95"] .char-card.selected {
+  outline: 1px dotted var(--ink);
+  outline-offset: 2px;
+  background: var(--paper-2);
+}
+
+body[data-art="win95"] .char-card .pic-wrap {
+  border: 2px solid;
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  border-radius: 0;
+}
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="win95"] .side-panel {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: none;
+}
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="win95"] .chat-header {
+  background: var(--chrome-face);
+  border: 1.5px solid;
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+}
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="win95"] .tag {
+  background: var(--chrome-face);
+  border: 1px solid var(--chrome-border);
+  border-radius: 0;
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="win95"] .msg-action-btn {
+  background: var(--chrome-face);
+  border: 1.5px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+}
+
+body[data-art="win95"] .msg-action-btn:hover {
+  color: var(--ink);
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+}
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="win95"] .ai-pill {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 1px 1px 0 var(--chrome-border);
+}
+
+body[data-art="win95"] .ai-dropdown {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: 2px 2px 0 var(--chrome-border);
+}
+
+body[data-art="win95"] .ai-dropdown-item:hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="win95"] .form-section {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="win95"] .chatlog::-webkit-scrollbar,
+body[data-art="win95"] .char-grid::-webkit-scrollbar { width: 16px; }
+
+body[data-art="win95"] .chatlog::-webkit-scrollbar-track,
+body[data-art="win95"] .char-grid::-webkit-scrollbar-track {
+  background: repeating-linear-gradient(45deg, #c0c0c0 0 2px, #d0d0d0 2px 4px);
+  border-left: 2px solid var(--chrome-shadow);
+}
+
+body[data-art="win95"] .chatlog::-webkit-scrollbar-thumb,
+body[data-art="win95"] .char-grid::-webkit-scrollbar-thumb {
+  background: var(--chrome-face);
+  border: 2px solid;
+  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  box-shadow: none;
+}
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="win95"] .persona-option,
+body[data-art="win95"] .ai-model-option {
+  background: var(--paper);
+  border: 1.5px solid var(--chrome-border);
+  border-radius: 0;
+}
+
+body[data-art="win95"] .persona-option.selected,
+body[data-art="win95"] .ai-model-option.selected {
+  outline: 1px dotted var(--ink);
+  background: var(--paper-2);
+}

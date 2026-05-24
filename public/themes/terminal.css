@@ -1,0 +1,609 @@
+/* ─── Terminal / CMD Theme ────────────────────────────────────────────────
+   data-art="terminal" 으로 활성화
+   컨셉: 레트로 CMD창 · 그린 터미널
+──────────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+body[data-art="terminal"] {
+
+  /* ── 배경 ── */
+  --bg-1: #000000;
+  --bg-2: #050505;
+  --bg-3: #020202;
+
+  /* ── 텍스트 ── */
+  --ink:      #00ff00;
+  --ink-soft: #00bb00;
+
+  /* ── 콘텐츠 배경 ── */
+  --paper:   #050505;
+  --paper-2: #0a0a0a;
+
+  /* ── 액센트 컬러 ── */
+  --pink:      #00ff00;
+  --hot-pink:  #00ff00;
+  --purple:    #00cc00;
+  --lavender:  #0a5c0a;
+  --mint:      #00ffff;   /* cyan — 강조용 */
+  --lemon:     #ffff00;   /* 경고/강조 노랑 */
+  --sky:       #00ffff;
+  --accent:    #00ff00;
+
+  /* ── 창 프레임 (chrome) ── */
+  --chrome-face:   #050505;
+  --chrome-shadow: #0a5c0a;
+  --chrome-hi:     #00ff00;
+  --chrome-border: #0a5c0a;
+  --title-grad:    linear-gradient(180deg, #0d7a0d 0%, #0a5c0a 100%);
+
+  /* ── 폰트 ── */
+  --font-pixel: 'Courier Prime', 'Courier New', Courier, monospace;
+  --font-title: 'Courier Prime', 'Courier New', Courier, monospace;
+  --font-body:  'Courier Prime', 'Courier New', Courier, monospace;
+  --font-mono:  'Courier Prime', 'Courier New', Courier, monospace;
+
+  /* ── 레이아웃 ── */
+  --radius:      0px;
+  --shadow-step: 0px;
+  --hairline:    1px;
+}
+
+/* ─── 깜빡이는 커서 키프레임 ───────────────────────────────────────────── */
+@keyframes terminal-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes terminal-glow-pulse {
+  0%, 100% { text-shadow: 0 0 4px rgba(0,255,0,0.6), 0 0 8px rgba(0,255,0,0.3); }
+  50% { text-shadow: 0 0 8px rgba(0,255,0,0.9), 0 0 16px rgba(0,255,0,0.5); }
+}
+
+/* ─── 배경 ─────────────────────────────────────────────────────────────── */
+body[data-art="terminal"] {
+  background: #000000;
+  color: #00ff00;
+  font-size: 13px;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
+  letter-spacing: 0.02em;
+}
+
+/* ─── 앱 셸 + CRT 주사선 오버레이 ────────────────────────────────────── */
+body[data-art="terminal"] .shell {
+  background: #050505;
+  border: 2px solid #0a5c0a;
+  box-shadow: 0 0 20px rgba(0,255,0,0.12), inset 0 0 60px rgba(0,0,0,0.8);
+  border-radius: 0;
+  position: relative;
+}
+
+/* CRT 주사선 효과 */
+body[data-art="terminal"] .shell::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.22) 50%),
+    linear-gradient(90deg, rgba(255,0,0,0.05), rgba(0,255,0,0.02), rgba(0,0,255,0.05));
+  background-size: 100% 3px, 3px 100%;
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 0;
+}
+
+body[data-art="terminal"] .shell-body {
+  background: #050505;
+  background-image: none;
+}
+
+body[data-art="terminal"] .shell-title {
+  background: #0a5c0a;
+  color: #000000;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: none;
+  border-bottom: 1px solid #00ff00;
+  text-transform: uppercase;
+}
+
+body[data-art="terminal"] .shell-title::before {
+  content: 'C:\\> ';
+  opacity: 0.7;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .win {
+  background: #050505;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  box-shadow: 0 0 10px rgba(0,255,0,0.1);
+}
+
+body[data-art="terminal"] .win-title {
+  background: #0a5c0a;
+  color: #000000;
+  font-size: 11px;
+  font-weight: 700;
+  text-shadow: none;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid #00ff00;
+  padding: 4px 8px;
+}
+
+body[data-art="terminal"] .win-controls button {
+  width: 16px;
+  height: 14px;
+  border: 1px solid #00ff00;
+  border-radius: 0;
+  background: #050505;
+  color: #00ff00;
+  font-size: 9px;
+  font-weight: 700;
+  box-shadow: none;
+}
+body[data-art="terminal"] .win-controls button:hover { background: #0a5c0a; color: #000; }
+
+body[data-art="terminal"] .win-body {
+  background: #020202;
+  border: none;
+  box-shadow: none;
+  color: #00ff00;
+  border-radius: 0;
+}
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .btn {
+  background: #050505;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 0 6px rgba(0,255,0,0.2);
+  text-shadow: 0 0 4px rgba(0,255,0,0.5);
+  transition: background 0.1s, box-shadow 0.1s;
+}
+
+body[data-art="terminal"] .btn::before { content: '[ '; }
+body[data-art="terminal"] .btn::after  { content: ' ]'; }
+
+body[data-art="terminal"] .btn:hover {
+  background: #0a5c0a;
+  color: #000000;
+  box-shadow: 0 0 12px rgba(0,255,0,0.4);
+  text-shadow: none;
+}
+
+body[data-art="terminal"] .btn:active {
+  background: #00ff00;
+  color: #000000;
+  transform: none;
+  box-shadow: none;
+}
+
+body[data-art="terminal"] .btn.primary {
+  background: #0a5c0a;
+  color: #000000;
+  border-color: #00ff00;
+  text-shadow: none;
+}
+body[data-art="terminal"] .btn.primary:hover { background: #00ff00; }
+
+body[data-art="terminal"] .btn.ghost {
+  background: transparent;
+  color: #00bb00;
+  border: 1px dashed #0a5c0a;
+  box-shadow: none;
+  text-shadow: none;
+}
+body[data-art="terminal"] .btn.ghost::before,
+body[data-art="terminal"] .btn.ghost::after { content: ''; }
+body[data-art="terminal"] .btn.ghost:hover { color: #00ff00; border-color: #00ff00; }
+
+body[data-art="terminal"] .btn.danger {
+  color: #ff4444;
+  border-color: #ff4444;
+  text-shadow: 0 0 4px rgba(255,68,68,0.5);
+  box-shadow: 0 0 6px rgba(255,68,68,0.15);
+}
+body[data-art="terminal"] .btn.danger:hover { background: #ff4444; color: #000; }
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .field {
+  background: #000000;
+  color: #00ff00;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  font-size: 13px;
+  text-shadow: 0 0 3px rgba(0,255,0,0.4);
+  caret-color: #00ff00;
+}
+
+body[data-art="terminal"] .field:focus {
+  border-color: #00ff00;
+  box-shadow: 0 0 8px rgba(0,255,0,0.25);
+  outline: none;
+}
+
+body[data-art="terminal"] .field::placeholder { color: #0a5c0a; }
+
+body[data-art="terminal"] .label {
+  color: #00ff00;
+  font-weight: 700;
+  font-size: 12px;
+  text-shadow: 0 0 4px rgba(0,255,0,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+body[data-art="terminal"] .label::before { content: '> '; color: #0a5c0a; }
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .chatlog {
+  background: #020202;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+  font-size: 13px;
+  color: #00ff00;
+}
+
+/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .bubble {
+  background: #020202;
+  color: #00ff00;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 13px;
+  line-height: 1.6;
+  text-shadow: 0 0 2px rgba(0,255,0,0.3);
+}
+
+body[data-art="terminal"] .bubble::before {
+  content: '$ ';
+  color: #0a5c0a;
+  font-weight: 700;
+}
+
+body[data-art="terminal"] .seq-block.seq-right .bubble {
+  background: #030a03;
+  color: #00ff00;
+  border-color: #00ff00;
+  box-shadow: 0 0 4px rgba(0,255,0,0.15);
+}
+
+body[data-art="terminal"] .seq-block.seq-right .bubble::before { content: '> '; }
+
+body[data-art="terminal"] .bubble-char    { background: #020208 !important; border-color: #0000ff !important; color: #6699ff !important; text-shadow: 0 0 3px rgba(100,150,255,0.4) !important; }
+body[data-art="terminal"] .bubble-third   { background: #020802 !important; border-color: #00aa00 !important; color: #00ff00 !important; }
+body[data-art="terminal"] .bubble-persona { background: #080208 !important; border-color: #aa00aa !important; color: #ff44ff !important; text-shadow: 0 0 3px rgba(255,68,255,0.4) !important; }
+
+body[data-art="terminal"] .msg .who {
+  color: #0a5c0a;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+body[data-art="terminal"] .seq-speaker {
+  color: #0a5c0a;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
+body[data-art="terminal"] .composer {
+  background: #020202;
+  border: 1px solid #0a5c0a;
+  border-top: 1px solid #00ff00;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 입력창 앞에 프롬프트 기호 */
+body[data-art="terminal"] .composer::before {
+  content: 'C:\\> ';
+  color: #0a5c0a;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 6px;
+  align-self: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .dock {
+  background: #0a0a0a;
+  border-top: 1px solid #0a5c0a;
+  box-shadow: none;
+}
+
+body[data-art="terminal"] .dock .start {
+  background: #0a5c0a;
+  color: #000000;
+  border: 1px solid #00ff00;
+  border-radius: 0;
+  box-shadow: 0 0 8px rgba(0,255,0,0.2);
+  font-weight: 700;
+  text-shadow: none;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+body[data-art="terminal"] .dock .start::before { content: '> '; }
+body[data-art="terminal"] .dock .start.active { background: #00ff00; }
+
+body[data-art="terminal"] .dock .clock {
+  background: #000000;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  color: #00ff00;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-shadow: 0 0 4px rgba(0,255,0,0.5);
+}
+
+body[data-art="terminal"] .dock-tab {
+  background: #050505;
+  color: #00bb00;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body[data-art="terminal"] .dock-tab.active {
+  background: #0a5c0a;
+  color: #000000;
+  box-shadow: 0 0 8px rgba(0,255,0,0.2);
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .start-menu {
+  background: #050505;
+  border: 1px solid #00ff00;
+  border-radius: 0;
+  box-shadow: 0 0 16px rgba(0,255,0,0.2);
+}
+
+body[data-art="terminal"] .start-menu::before {
+  content: 'MENU.EXE';
+  display: block;
+  padding: 4px 10px;
+  background: #0a5c0a;
+  color: #000000;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid #00ff00;
+}
+
+body[data-art="terminal"] .start-menu-item {
+  color: #00ff00;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+body[data-art="terminal"] .start-menu-item::before { content: '  '; }
+body[data-art="terminal"] .start-menu-item:hover { background: #0a5c0a; color: #000; }
+body[data-art="terminal"] .start-menu-item:hover::before { content: '> '; }
+body[data-art="terminal"] .start-menu-item.danger { color: #ff4444; text-shadow: 0 0 4px rgba(255,68,68,0.4); }
+body[data-art="terminal"] .start-menu-item.danger:hover { background: #440000; color: #ff4444; }
+body[data-art="terminal"] .start-menu-divider { background: #0a5c0a; height: 1px; }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="terminal"] .row {
+  background: #050505;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  box-shadow: none;
+  color: #00ff00;
+}
+
+body[data-art="terminal"] .row:hover {
+  background: #0a0a0a;
+  border-color: #00ff00;
+  box-shadow: 0 0 6px rgba(0,255,0,0.1);
+}
+
+body[data-art="terminal"] .row + .row { border-top: none; }
+body[data-art="terminal"] .row .thumb { border: 1px solid #0a5c0a; border-radius: 0; }
+body[data-art="terminal"] .row .meta h4 { color: #00ff00; text-shadow: 0 0 3px rgba(0,255,0,0.3); }
+body[data-art="terminal"] .row .meta p { color: #00bb00; }
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="terminal"] .char-card {
+  background: #050505;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  box-shadow: none;
+  color: #00ff00;
+}
+
+body[data-art="terminal"] .char-card:hover {
+  border-color: #00ff00;
+  box-shadow: 0 0 10px rgba(0,255,0,0.15);
+  transform: none;
+}
+
+body[data-art="terminal"] .char-card.selected {
+  outline: 1px dashed #00ff00;
+  outline-offset: 2px;
+  background: #030a03;
+}
+
+body[data-art="terminal"] .char-card .pic-wrap {
+  background: #020202;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+}
+
+body[data-art="terminal"] .char-card h4 { color: #00ff00; text-shadow: 0 0 3px rgba(0,255,0,0.4); }
+body[data-art="terminal"] .char-card p { color: #00bb00; }
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="terminal"] .side-panel {
+  background: #050505;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  color: #00ff00;
+}
+
+body[data-art="terminal"] .side-panel-header {
+  color: #00ff00;
+  border-color: #0a5c0a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 4px rgba(0,255,0,0.4);
+}
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .chat-header {
+  background: #050505;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  color: #00ff00;
+}
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .tag {
+  background: #050505;
+  color: #00ff00;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-shadow: 0 0 3px rgba(0,255,0,0.4);
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="terminal"] .msg-action-btn {
+  background: #050505;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  color: #00bb00;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: none;
+}
+
+body[data-art="terminal"] .msg-action-btn:hover {
+  color: #000000;
+  background: #0a5c0a;
+  border-color: #00ff00;
+}
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="terminal"] .ai-pill {
+  background: #050505;
+  color: #00ff00;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  box-shadow: 0 0 6px rgba(0,255,0,0.1);
+  font-size: 11px;
+  text-shadow: 0 0 3px rgba(0,255,0,0.4);
+}
+
+body[data-art="terminal"] .ai-pill .dot { background: #00ff00; border-color: #0a5c0a; }
+
+body[data-art="terminal"] .ai-dropdown {
+  background: #050505;
+  border: 1px solid #00ff00;
+  border-radius: 0;
+  box-shadow: 0 0 16px rgba(0,255,0,0.15);
+}
+
+body[data-art="terminal"] .ai-dropdown-item { color: #00bb00; font-size: 12px; border-radius: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+body[data-art="terminal"] .ai-dropdown-item:hover { background: #0a5c0a; color: #000000; }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .form-section {
+  background: #050505;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-art="terminal"] .form-section-title {
+  color: #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 4px rgba(0,255,0,0.4);
+}
+body[data-art="terminal"] .form-section-title::before { content: '# '; }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="terminal"] .persona-option,
+body[data-art="terminal"] .ai-model-option {
+  background: #020202;
+  border: 1px solid #0a5c0a;
+  border-radius: 0;
+  color: #00ff00;
+}
+
+body[data-art="terminal"] .persona-option:hover,
+body[data-art="terminal"] .ai-model-option:hover:not(.disabled) {
+  background: #030a03;
+  border-color: #00ff00;
+}
+
+body[data-art="terminal"] .persona-option.selected,
+body[data-art="terminal"] .ai-model-option.selected {
+  outline: 1px dashed #00ff00;
+  background: #030a03;
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .chatlog::-webkit-scrollbar,
+body[data-art="terminal"] .char-grid::-webkit-scrollbar { width: 6px; }
+
+body[data-art="terminal"] .chatlog::-webkit-scrollbar-track,
+body[data-art="terminal"] .char-grid::-webkit-scrollbar-track { background: #020202; }
+
+body[data-art="terminal"] .chatlog::-webkit-scrollbar-thumb,
+body[data-art="terminal"] .char-grid::-webkit-scrollbar-thumb {
+  background: #0a5c0a;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
+body[data-art="terminal"] .login-screen { color: #00ff00; }
+
+body[data-art="terminal"] .login-title {
+  background: none;
+  -webkit-text-fill-color: #00ff00;
+  color: #00ff00;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  text-shadow: 0 0 8px rgba(0,255,0,0.7), 0 0 20px rgba(0,255,0,0.3);
+  filter: none;
+  animation: terminal-glow-pulse 2s infinite;
+}
+
+body[data-art="terminal"] .login-card {
+  background: #050505;
+  border: 1px solid #00ff00;
+  border-radius: 0;
+  box-shadow: 0 0 20px rgba(0,255,0,0.15);
+  padding: 20px;
+}

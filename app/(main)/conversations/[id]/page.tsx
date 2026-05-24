@@ -101,7 +101,6 @@ export default function ChatPage() {
   const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
   const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
   const [selectedMemoryIds, setSelectedMemoryIds] = useState<Set<string>>(new Set())
-  const [atBottom, setAtBottom] = useState(true)
   const [hasNew, setHasNew] = useState(false)
   const shouldScrollRef = useRef(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -151,7 +150,7 @@ export default function ChatPage() {
     }
   }, [params.id])
 
-  useEffect(() => { loadConv() }, [loadConv])
+  useEffect(() => { shouldScrollRef.current = true; loadConv() }, [loadConv])
 
   useEffect(() => {
     const existing = getConvStream(params.id)
@@ -269,7 +268,7 @@ export default function ChatPage() {
   }
 
   const scrollToBottom = () => {
-    if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setAtBottom(true); setHasNew(false) }
+    if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setHasNew(false) }
   }
 
   useEffect(() => {
@@ -277,7 +276,6 @@ export default function ChatPage() {
     if (!el) return
     const onScroll = () => {
       const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-      setAtBottom(isBottom)
       if (isBottom) setHasNew(false)
     }
     el.addEventListener('scroll', onScroll, { passive: true })
@@ -293,7 +291,6 @@ export default function ChatPage() {
     const el = logRef.current
     if (!el) return
     const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-    setAtBottom(isBottom)
     if (!isBottom) setHasNew(true)
   }, [messages.length])
 
@@ -589,18 +586,18 @@ export default function ChatPage() {
 
         <div className="chat-layout">
           <div className="chat-main" style={{ position: 'relative' }}>
-            {(!atBottom || hasNew) && (
+            {hasNew && (
               <button
                 onClick={scrollToBottom}
                 style={{
                   position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
-                  zIndex: 10, background: hasNew ? 'var(--accent)' : 'var(--chrome-face)',
+                  zIndex: 10, background: 'var(--accent)',
                   border: '1.5px solid var(--chrome-border)',
                   borderRadius: 20, padding: '4px 14px', fontSize: 11, cursor: 'pointer',
                   boxShadow: '0 2px 6px rgba(0,0,0,.2)', whiteSpace: 'nowrap',
-                  color: hasNew ? '#fff' : undefined,
+                  color: '#fff',
                 }}
-              >{hasNew ? '새 답변 ↓' : '↓ 아래로'}</button>
+              >새 답변 ↓</button>
             )}
             <div className="chatlog" ref={logRef}>
               {messages.length === 0 && !streaming && (

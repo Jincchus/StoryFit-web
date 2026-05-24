@@ -22,6 +22,7 @@ model User {
   defaultFrequencyPenalty Float   @default(0.3)
   defaultSafetyLevel      String  @default("standard")
   defaultAI               String  @default("gemini")
+  theme                   String  @default("retro")
   characters    Character[]
   conversations Conversation[]
 }
