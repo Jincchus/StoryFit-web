@@ -41,6 +41,7 @@ export default function Dock() {
   const isNewConv = pathname === '/conversations/new'
   const isCharCreate = pathname === '/characters/new'
   const isSettings = pathname === '/settings'
+  const isAssistant = pathname.startsWith('/assistant')
 
   return (
     <div className="dock">
@@ -52,6 +53,9 @@ export default function Dock() {
             </button>
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/conversations/new') }}>
               ✦ 새 대화
+            </button>
+            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/assistant') }}>
+              🤖 AI 채팅
             </button>
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/characters') }}>
               🎭 캐릭터
@@ -85,6 +89,7 @@ export default function Dock() {
         <button className={`dock-tab ${isHome ? 'active' : ''}`} onClick={() => router.push('/')}>홈</button>
         {isChatList && <button className="dock-tab active">▸ 채팅 목록</button>}
         {isChat && <button className="dock-tab active">▸ 채팅</button>}
+        {isAssistant && <button className="dock-tab active">▸ AI 채팅</button>}
         {isCharSelect && <button className="dock-tab active">▸ 캐릭터 선택</button>}
         {isNewConv && <button className="dock-tab active">▸ 새 대화</button>}
         {isCharCreate && <button className="dock-tab active">▸ 캐릭터 만들기</button>}

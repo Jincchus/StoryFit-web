@@ -6,8 +6,13 @@ export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
+  const mode = req.nextUrl.searchParams.get('mode')
+
   const conversations = await prisma.conversation.findMany({
-    where: { userId },
+    where: {
+      userId,
+      mode: mode ? mode : { not: 'assistant' },
+    },
     include: {
       characters: { include: { character: { select: { id: true, name: true, avatarUrl: true } } } },
       messages: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -26,10 +31,12 @@ export async function POST(req: NextRequest) {
   const title = String(body.title ?? '').trim().slice(0, 200)
   if (!title) return NextResponse.json({ error: 'title은 필수입니다.' }, { status: 400 })
 
+  const isAssistant = (body.mode ?? 'roleplay') === 'assistant'
+
   const characterIds: string[] = Array.isArray(body.characterIds)
     ? body.characterIds.slice(0, 10).map(String)
     : body.characterId ? [String(body.characterId)] : []
-  if (characterIds.length === 0) return NextResponse.json({ error: 'characterId가 필요합니다.' }, { status: 400 })
+  if (!isAssistant && characterIds.length === 0) return NextResponse.json({ error: 'characterId가 필요합니다.' }, { status: 400 })
 
   const conversation = await prisma.conversation.create({
     data: {
@@ -47,9 +54,11 @@ export async function POST(req: NextRequest) {
       statsConfig: body.statsConfig ?? null,
       inventoryEnabled: body.inventoryEnabled ?? false,
       inventory: body.inventoryEnabled ? ([] as any) : undefined,
-      characters: {
-        create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),
-      },
+      ...(characterIds.length > 0 ? {
+        characters: {
+          create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),
+        },
+      } : {}),
     },
     include: { characters: { include: { character: true } }, messages: true },
   })

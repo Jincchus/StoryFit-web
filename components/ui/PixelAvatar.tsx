@@ -162,6 +162,23 @@ export const PixelIcons = {
       <rect x="4" y="11" width="1" height="1" fill="#fff"/>
     </svg>
   ),
+  bot: (
+    <svg className="icn" viewBox="0 0 16 16" shapeRendering="crispEdges">
+      <rect x="7" y="1" width="2" height="2" fill="#c9b6ff"/>
+      <rect x="3" y="3" width="10" height="8" fill="#8b5cf6"/>
+      <rect x="4" y="4" width="8" height="6" fill="#c9b6ff"/>
+      <rect x="5" y="5" width="2" height="2" fill="#1a1438"/>
+      <rect x="9" y="5" width="2" height="2" fill="#1a1438"/>
+      <rect x="6" y="5" width="1" height="1" fill="#a3e0ff"/>
+      <rect x="10" y="5" width="1" height="1" fill="#a3e0ff"/>
+      <rect x="6" y="8" width="4" height="1" fill="#ff8fcf"/>
+      <rect x="1" y="6" width="2" height="3" fill="#8b5cf6"/>
+      <rect x="13" y="6" width="2" height="3" fill="#8b5cf6"/>
+      <rect x="4" y="11" width="3" height="3" fill="#8b5cf6"/>
+      <rect x="9" y="11" width="3" height="3" fill="#8b5cf6"/>
+      <rect x="7" y="12" width="2" height="1" fill="#8b5cf6"/>
+    </svg>
+  ),
 }
 
 interface PixelAvatarProps {
