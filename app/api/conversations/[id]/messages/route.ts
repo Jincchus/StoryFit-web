@@ -7,6 +7,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
+  const conv = await prisma.conversation.findUnique({ where: { id: params.id }, select: { userId: true } })
+  if (!conv || conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
+
   const allMessages = await prisma.message.findMany({
     where: { conversationId: params.id },
     orderBy: { createdAt: 'asc' },
@@ -31,6 +34,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+
+  const convCheck = await prisma.conversation.findUnique({ where: { id: params.id }, select: { userId: true } })
+  if (!convCheck || convCheck.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
   const body = await req.json()
 
@@ -72,8 +78,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
+  const convCheck = await prisma.conversation.findUnique({ where: { id: params.id }, select: { userId: true } })
+  if (!convCheck || convCheck.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
+
   const { messageId } = await req.json()
   if (!messageId) return NextResponse.json({ error: 'messageId가 필요합니다.' }, { status: 400 })
+
+  const msg = await prisma.message.findUnique({ where: { id: messageId }, select: { conversationId: true } })
+  if (!msg || msg.conversationId !== params.id) return NextResponse.json({ error: '메시지를 찾을 수 없습니다.' }, { status: 404 })
 
   await prisma.message.delete({ where: { id: messageId } })
   return new NextResponse(null, { status: 204 })

@@ -28,6 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
+  if (conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
   const character = conv.characters[0]?.character
   const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(() => [])
