@@ -25,6 +25,11 @@ export default function AvatarPicker({ value, onChange }: AvatarPickerProps) {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('파일 크기는 10MB 이하여야 합니다')
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
     setSelectedFile(file)
     setPreview(URL.createObjectURL(file))
     setUploadError('')

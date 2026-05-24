@@ -14,7 +14,14 @@ interface ConvItem {
   updatedAt: string
   characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
   messages: { content: string }[]
-  userPersona?: { name: string } | null
+  personaCharacter?: { name: string } | null
+}
+
+function previewText(content: string): string {
+  return content
+    .replace(/\*[^*\n]+\*/g, '')
+    .replace(/\n+/g, ' ')
+    .trim()
 }
 
 const MODE_LABEL: Record<string, string> = {
@@ -26,6 +33,7 @@ const MODE_LABEL: Record<string, string> = {
 export default function HomePage() {
   const router = useRouter()
   const [conversations, setConversations] = useState<ConvItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -35,7 +43,10 @@ export default function HomePage() {
   const [query, setQuery] = useState('')
 
   useEffect(() => {
-    api.get('/api/conversations').then(setConversations).catch(e => setError(e.message))
+    api.get('/api/conversations')
+      .then(setConversations)
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
   }, [])
 
   const toggleSelect = (id: string) => {
@@ -149,7 +160,22 @@ export default function HomePage() {
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
-          {filtered.map(conv => {
+          {loading ? (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink-soft)' }}>
+              <div className="tiny muted">불러오는 중...</div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
+              <div style={{ fontSize: 32 }}>♡</div>
+              {query.trim()
+                ? <div style={{ marginTop: 8 }}>검색 결과가 없어요</div>
+                : <>
+                    <div style={{ marginTop: 8 }}>아직 시작한 롤플레이가 없어요</div>
+                    <div className="tiny" style={{ marginTop: 4 }}>위의 <b>새 대화 시작</b> 버튼을 눌러보세요</div>
+                  </>
+              }
+            </div>
+          ) : filtered.map(conv => {
             const char = conv.characters[0]?.character
             const lastLine = conv.messages[0]?.content ?? ''
             const when = new Date(conv.updatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -163,15 +189,16 @@ export default function HomePage() {
                 onClick={() => selecting ? toggleSelect(conv.id) : router.push(`/conversations/${conv.id}`)}
               >
                 {selecting && (
-                  <div style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 20 }}>
+                  <div style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 22 }}>
                     <div style={{
-                      width: 14, height: 14,
-                      border: `1.5px solid ${isChecked ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
+                      width: 18, height: 18,
+                      border: `2px solid ${isChecked ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
                       background: isChecked ? 'var(--hot-pink)' : 'transparent',
                       borderRadius: 2,
                       display: 'grid', placeItems: 'center',
+                      flexShrink: 0,
                     }}>
-                      {isChecked && <span style={{ color: '#fff', fontSize: 9, lineHeight: 1 }}>✓</span>}
+                      {isChecked && <span style={{ color: '#fff', fontSize: 10, lineHeight: 1 }}>✓</span>}
                     </div>
                   </div>
                 )}
@@ -184,10 +211,10 @@ export default function HomePage() {
                 <div className="meta">
                   <h4>
                     {conv.title}
-                    {conv.userPersona && <span className="muted" style={{ fontWeight: 400 }}> · {conv.userPersona.name}로 플레이</span>}
+                    {conv.personaCharacter && <span className="muted" style={{ fontWeight: 400 }}> · {conv.personaCharacter.name}로 플레이</span>}
                   </h4>
                   <p className="muted" style={{ fontSize: 10, marginBottom: 2 }}>{char?.name}</p>
-                  <p>{lastLine}</p>
+                  <p>{previewText(lastLine)}</p>
                 </div>
                 <div className="vstack" style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                   <div className="hstack" style={{ gap: 4 }}>
@@ -205,23 +232,9 @@ export default function HomePage() {
               </div>
             )
           })}
-
-          {filtered.length === 0 && (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
-              <div style={{ fontSize: 32 }}>♡</div>
-              {query.trim()
-                ? <div style={{ marginTop: 8 }}>검색 결과가 없어요</div>
-                : <>
-                    <div style={{ marginTop: 8 }}>아직 시작한 롤플레이가 없어요</div>
-                    <div className="tiny" style={{ marginTop: 4 }}>위의 <b>새 대화 시작</b> 버튼을 눌러보세요</div>
-                  </>
-              }
-            </div>
-          )}
         </div>
       </div>
     </Win>
     </>
-
   )
 }

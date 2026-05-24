@@ -11,18 +11,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [pending, setPending] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password.trim()) return
     setError('')
+    setPending(false)
     setLoading(true)
     try {
       await apiLogin(email, password)
       router.push('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '로그인 실패')
+      const msg = err instanceof Error ? err.message : '로그인 실패'
+      if (msg === 'PENDING_APPROVAL') { setPending(true) } else { setError(msg) }
     } finally {
       setLoading(false)
     }
@@ -81,6 +84,13 @@ export default function LoginPage() {
                     autoComplete="current-password"
                   />
                 </div>
+                {pending && (
+                  <div style={{ background: 'var(--lemon)', border: '1px solid var(--chrome-border)', borderRadius: 4, padding: '8px 12px' }}>
+                    <div className="tiny" style={{ color: '#7a6200', lineHeight: 1.6 }}>
+                      ✦ 관리자 승인 대기 중입니다.<br />승인 완료 후 로그인하실 수 있습니다.
+                    </div>
+                  </div>
+                )}
                 {error && <div className="tiny" style={{ color: '#ff6b8a' }}>{error}</div>}
                 <button
                   className="btn primary"
@@ -88,7 +98,7 @@ export default function LoginPage() {
                   disabled={loading || !email.trim() || !password.trim()}
                   style={{ marginTop: 4 }}
                 >
-                  {loading ? '...' : '✦ 로그인'}
+                  {loading ? '로그인 중...' : '✦ 로그인'}
                 </button>
               </form>
 

@@ -28,7 +28,7 @@ export async function apiLogout() {
   clearIsAdmin()
 }
 
-export async function apiRegister(email: string, password: string) {
+export async function apiRegister(email: string, password: string): Promise<{ pending: boolean }> {
   const res = await fetch('/api/auth/register', {
     method: 'POST',
     credentials: 'include',
@@ -37,6 +37,6 @@ export async function apiRegister(email: string, password: string) {
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
-  setAccessToken('')
+  if (!data.pending) setAccessToken('')
   return data
 }

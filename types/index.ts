@@ -16,8 +16,6 @@ export interface Character {
   safetyLevel: SafetyLevel
   temperature: number
   frequencyPenalty: number
-  presencePenalty: number
-  defaultAI: AIProvider
   isPreset: boolean
 }
 

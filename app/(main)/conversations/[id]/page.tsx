@@ -10,7 +10,7 @@ import NovelScene from '@/components/ui/NovelScene'
 import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
-import type { AIProvider } from '@/types'
+import type { AIProvider, Character } from '@/types'
 
 function editDistance(a: string, b: string): number {
   const m = a.length, n = b.length
@@ -32,6 +32,23 @@ function isSamePerson(a: string, b: string): boolean {
   if (Math.abs(na.length - nb.length) > 2) return false
   const maxDist = Math.floor(Math.min(na.length, nb.length) / 4)
   return maxDist > 0 && editDistance(na, nb) <= maxDist
+}
+
+async function* readSseStream(res: Response) {
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+  let buf = ''
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += decoder.decode(value, { stream: true })
+    const lines = buf.split('\n')
+    buf = lines.pop() ?? ''
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      try { yield JSON.parse(line.slice(6)) } catch {}
+    }
+  }
 }
 
 function ChatNarration({ text }: { text: string }) {
@@ -74,7 +91,7 @@ export default function ChatPage() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
-  const [allChars, setAllChars] = useState<{ id: string; name: string; avatarUrl?: string | null; tags: string[]; kind?: string }[]>([])
+  const [allChars, setAllChars] = useState<Character[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
   const [lorebooks, setLorebooks] = useState<LbEntry[]>([])
@@ -92,6 +109,7 @@ export default function ChatPage() {
   const abortRef = useRef<AbortController | null>(null)
   const typingRef = useRef(false)
   const composerRef = useRef<HTMLTextAreaElement>(null)
+  const patchDebounceRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({})
 
   useEffect(() => { typingRef.current = typing }, [typing])
 
@@ -221,54 +239,39 @@ export default function ChatPage() {
         return
       }
 
-      const reader = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let buf = ''
       let currentCharText = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buf += decoder.decode(value, { stream: true })
-        const lines = buf.split('\n')
-        buf = lines.pop() ?? ''
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const json = JSON.parse(line.slice(6))
-            if (json.allDone) {
-              setStreaming('')
-              setStreamingCharId(null)
-              await loadConv()
-            } else if (json.text) {
-              if (json.characterId) setStreamingCharId(json.characterId)
-              setStreaming(prev => prev + json.text)
-              currentCharText += json.text
-            } else if (json.done) {
-              if (json.characterId) {
-                const savedText = currentCharText
-                setMessages(prev => [...prev, {
-                  id: json.messageId,
-                  role: 'assistant',
-                  content: savedText || '[응답 없음]',
-                  characterId: json.characterId,
-                  branchCount: 1,
-                  branchIndex: 1,
-                }])
-                setStreaming('')
-                setStreamingCharId(null)
-                currentCharText = ''
-              } else {
-                setStreaming('')
-                await loadConv()
-              }
-            } else if (json.error) {
-              setStreaming('')
-              setStreamingCharId(null)
-              setSendError(json.error)
-              await loadConv()
-            }
-          } catch {}
+      for await (const json of readSseStream(res)) {
+        if (json.allDone) {
+          setStreaming('')
+          setStreamingCharId(null)
+          await loadConv()
+        } else if (json.text) {
+          if (json.characterId) setStreamingCharId(json.characterId)
+          setStreaming(prev => prev + json.text)
+          currentCharText += json.text
+        } else if (json.done) {
+          if (json.characterId) {
+            const savedText = currentCharText
+            setMessages(prev => [...prev, {
+              id: json.messageId,
+              role: 'assistant',
+              content: savedText || '[응답 없음]',
+              characterId: json.characterId,
+              branchCount: 1,
+              branchIndex: 1,
+            }])
+            setStreaming('')
+            setStreamingCharId(null)
+            currentCharText = ''
+          } else {
+            setStreaming('')
+            await loadConv()
+          }
+        } else if (json.error) {
+          setStreaming('')
+          setStreamingCharId(null)
+          setSendError(json.error)
+          await loadConv()
         }
       }
     } catch (e: any) {
@@ -325,25 +328,10 @@ export default function ChatPage() {
         return
       }
 
-      const reader = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let buf = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buf += decoder.decode(value, { stream: true })
-        const lines = buf.split('\n')
-        buf = lines.pop() ?? ''
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const json = JSON.parse(line.slice(6))
-            if (json.text) setStreaming(prev => prev + json.text)
-            if (json.done) { setStreaming(''); await loadConv() }
-            if (json.error) { setStreaming(''); setSendError(json.error); await loadConv() }
-          } catch {}
-        }
+      for await (const json of readSseStream(res)) {
+        if (json.text) setStreaming(prev => prev + json.text)
+        if (json.done) { setStreaming(''); await loadConv() }
+        if (json.error) { setStreaming(''); setSendError(json.error); await loadConv() }
       }
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
@@ -390,22 +378,29 @@ export default function ChatPage() {
   const handlePersonaChange = async (charId: string | null) => {
     await api.patch(`/api/conversations/${params.id}`, { personaCharacterId: charId })
     const found = allChars.find(c => c.id === charId) ?? null
-    setConv(c => c ? { ...c, personaCharacter: found ? { id: found.id, name: found.name, avatarUrl: found.avatarUrl ?? null, tags: found.tags ?? [], additionalInfo: '' } : null } : c)
+    setConv(c => c ? { ...c, personaCharacter: found ? { id: found.id, name: found.name, avatarUrl: found.avatarUrl ?? null, tags: found.tags ?? [], additionalInfo: found.additionalInfo ?? '' } : null } : c)
   }
 
-  const handleCoreMemory = async (value: string) => {
+  const debouncedPatch = (field: string, value: string) => {
+    if (patchDebounceRef.current[field]) clearTimeout(patchDebounceRef.current[field]!)
+    patchDebounceRef.current[field] = setTimeout(() => {
+      api.patch(`/api/conversations/${params.id}`, { [field]: value }).catch(() => {})
+    }, 600)
+  }
+
+  const handleCoreMemory = (value: string) => {
     setConv(c => c ? { ...c, coreMemory: value } : c)
-    await api.patch(`/api/conversations/${params.id}`, { coreMemory: value })
+    debouncedPatch('coreMemory', value)
   }
 
-  const handleStatusTimeline = async (value: string) => {
+  const handleStatusTimeline = (value: string) => {
     setConv(c => c ? { ...c, statusTimeline: value } : c)
-    await api.patch(`/api/conversations/${params.id}`, { statusTimeline: value })
+    debouncedPatch('statusTimeline', value)
   }
 
-  const handleScenarioDescription = async (value: string) => {
+  const handleScenarioDescription = (value: string) => {
     setConv(c => c ? { ...c, scenarioDescription: value } : c)
-    await api.patch(`/api/conversations/${params.id}`, { scenarioDescription: value })
+    debouncedPatch('scenarioDescription', value)
   }
 
   if (loadingConv) return (

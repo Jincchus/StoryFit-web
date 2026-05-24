@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
@@ -13,10 +13,12 @@ export default function NewConversationPage() {
   const { draft, dispatch } = useApp()
   const [char, setChar] = useState<Character | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
-  const [tikiChars, setTikiChars] = useState<Character[]>([])
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<'roleplay' | 'novel' /* | 'tikiTaka' */>('roleplay')
+  const [mode, setMode] = useState<'roleplay' | 'novel'>('roleplay')
   const [scenarioDescription, setScenarioDescription] = useState('')
+  const [scenarioLoading, setScenarioLoading] = useState(false)
+  const [scenarioHint, setScenarioHint] = useState('')
+  const [showHint, setShowHint] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [tagPool, setTagPool] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
@@ -26,7 +28,6 @@ export default function NewConversationPage() {
   const [temperature, setTemperature] = useState(0.9)
   const [frequencyPenalty, setFrequencyPenalty] = useState(0.3)
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const startingRef = useRef(false)
 
   useEffect(() => {
     fetch('/api/tags').then(r => r.json()).then(setTagPool).catch(() => {})
@@ -36,7 +37,6 @@ export default function NewConversationPage() {
         const found = chars.find(c => c.id === draft.charId) ?? null
         if (found) {
           setChar(found)
-          setTikiChars([found])
           setSafetyLevel(found.safetyLevel ?? 'standard')
           setTemperature(found.temperature ?? 0.9)
           setFrequencyPenalty(found.frequencyPenalty ?? 0.3)
@@ -47,30 +47,41 @@ export default function NewConversationPage() {
 
   const selectChar = (c: Character) => {
     setChar(c)
-    setTikiChars([c])
     setSafetyLevel(c.safetyLevel ?? 'standard')
     setTemperature(c.temperature ?? 0.9)
     setFrequencyPenalty(c.frequencyPenalty ?? 0.3)
     setCharOpen(false)
   }
 
-  const toggleTikiChar = (c: Character) => {
-    if (c.id === char?.id) return
-    setTikiChars(prev =>
-      prev.find(x => x.id === c.id)
-        ? prev.filter(x => x.id !== c.id)
-        : [...prev, c],
-    )
+  const selectedPersona = allChars.find(c => c.id === draft.personaId)
+
+  const handleGenerateScenario = async () => {
+    if (!char || scenarioLoading) return
+    setScenarioLoading(true)
+    try {
+      const result = await api.post('/api/conversations/generate-scenario', {
+        charName: char.name,
+        charTags: char.tags,
+        charInfo: char.additionalInfo,
+        personaName: selectedPersona?.name,
+        personaTags: selectedPersona?.tags,
+        mode,
+        hint: scenarioHint,
+      })
+      if (result.scenarioDescription) setScenarioDescription(result.scenarioDescription)
+    } catch {
+      // silent fail
+    } finally {
+      setScenarioLoading(false)
+    }
   }
 
   const handleStart = async () => {
     if (!char || loading) return
     setLoading(true)
-    startingRef.current = true
     try {
-      const characterIds = [char.id]
       const conv = await api.post('/api/conversations', {
-        characterIds,
+        characterIds: [char.id],
         title: `${char.name}와의 대화`,
         currentAI: draft.modelId,
         personaCharacterId: draft.personaId ?? null,
@@ -87,8 +98,6 @@ export default function NewConversationPage() {
       setLoading(false)
     }
   }
-
-  const selectedPersona = allChars.find(c => c.id === draft.personaId)
 
   return (
     <Win title="새 대화 설정 (New Conversation)" icon={PixelIcons.chat}>
@@ -114,101 +123,7 @@ export default function NewConversationPage() {
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           <div className="new-conv-grid">
 
-            {/* 1. 대화 모드 */}
-            <section className="new-conv-section">
-              <div className="label">대화 모드</div>
-              <div className="hstack" style={{ gap: 8 }}>
-                {/* 티키타카는 v2에서 활성화 예정 */}
-                {(['roleplay', 'novel'] as const).map(m => (
-                  <button
-                    key={m}
-                    className={`btn ${mode === m ? 'primary' : 'ghost'}`}
-                    onClick={() => setMode(m)}
-                    style={{ fontSize: 11 }}
-                  >
-                    {m === 'roleplay' ? '⚔ 롤플레이' : '✍ 소설'}
-                  </button>
-                ))}
-              </div>
-              <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
-                {mode === 'roleplay' && '나 ↔ 캐릭터 1:1 대화 형식'}
-                {mode === 'novel' && '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
-              </div>
-            </section>
-
-            {/* 2. 배경 */}
-            <section className="new-conv-section">
-              <div className="label">시나리오 배경 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
-              <textarea
-                className="field" rows={3}
-                placeholder={"이 대화의 세계관·배경을 설정하세요\n예: 마법 학원 천문대, 루나는 오늘 밤 예언을 완성해야 한다."}
-                value={scenarioDescription}
-                onChange={e => setScenarioDescription(e.target.value)}
-              />
-            </section>
-
-            {/* 3. 고급 설정 토글 */}
-            <section className="new-conv-section" style={{ padding: '6px 0', borderTop: '1px solid var(--chrome-border)' }}>
-              <button
-                className="btn ghost"
-                style={{ fontSize: 11, width: '100%', textAlign: 'left' }}
-                onClick={() => setShowAdvanced(v => !v)}
-              >
-                {showAdvanced ? '▲' : '▼'} 고급 설정 (태그 · AI 파라미터)
-              </button>
-            </section>
-
-            {showAdvanced && <>
-
-            {/* 태그 */}
-            <section className="new-conv-section">
-              <div className="label">세계관 태그 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
-              <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
-                <div className="tag-row" style={{ flexWrap: 'nowrap', gap: 5, width: 'max-content' }}>
-                  {[...tagPool].sort((a, b) => a.localeCompare(b, 'ko')).map(tag => (
-                    <span
-                      key={tag}
-                      className={`tag ${tags.includes(tag) ? 'tag-selected' : ''}`}
-                      style={{ cursor: 'pointer', padding: '2px 7px', fontSize: 10, whiteSpace: 'nowrap' }}
-                      onClick={() => setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
-                    >
-                      {tags.includes(tag) ? '✓ ' : ''}{tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="hstack" style={{ gap: 6 }}>
-                <input
-                  className="field" style={{ flex: 1 }} placeholder="직접 입력..."
-                  value={tagInput} onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      const t = tagInput.trim()
-                      if (t && !tags.includes(t)) setTags(prev => [...prev, t])
-                      setTagInput('')
-                    }
-                  }}
-                />
-                <button className="btn" onClick={() => {
-                  const t = tagInput.trim()
-                  if (t && !tags.includes(t)) setTags(prev => [...prev, t])
-                  setTagInput('')
-                }}>추가</button>
-              </div>
-              {tags.length > 0 && (
-                <div className="tag-row" style={{ marginTop: 4, flexWrap: 'wrap', gap: 4 }}>
-                  {tags.map(t => (
-                    <span key={t} className="tag tag-selected" style={{ cursor: 'pointer' }}
-                      onClick={() => setTags(prev => prev.filter(x => x !== t))}>
-                      {t} ×
-                    </span>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* 4. 캐릭터 선택 */}
+            {/* 1. 캐릭터 선택 */}
             <section className="new-conv-section">
               <div className="label">캐릭터 선택</div>
               <div
@@ -258,8 +173,7 @@ export default function NewConversationPage() {
               )}
             </section>
 
-
-            {/* 5. 내 역할 (페르소나) */}
+            {/* 2. 내 역할 (페르소나) */}
             <section className="new-conv-section">
               <div className="label">내 역할 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
               <div
@@ -331,15 +245,135 @@ export default function NewConversationPage() {
               )}
             </section>
 
-            {/* 6. AI 설정 */}
+            {/* 3. 대화 모드 */}
+            <section className="new-conv-section">
+              <div className="label">대화 모드</div>
+              <div className="hstack" style={{ gap: 8 }}>
+                {(['roleplay', 'novel'] as const).map(m => (
+                  <button
+                    key={m}
+                    className={`btn ${mode === m ? 'primary' : 'ghost'}`}
+                    onClick={() => setMode(m)}
+                    style={{ fontSize: 11 }}
+                  >
+                    {m === 'roleplay' ? '⚔ 롤플레이' : '✍ 소설'}
+                  </button>
+                ))}
+              </div>
+              <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
+                {mode === 'roleplay' && '나 ↔ 캐릭터 1:1 대화 형식'}
+                {mode === 'novel' && '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
+              </div>
+            </section>
+
+            {/* 4. 시나리오 배경 */}
+            <section className="new-conv-section">
+              <div className="spread" style={{ alignItems: 'center', marginBottom: 6 }}>
+                <div className="label" style={{ marginBottom: 0 }}>
+                  시나리오 배경 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span>
+                </div>
+                <div className="hstack" style={{ gap: 4 }}>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ fontSize: 10, padding: '2px 8px' }}
+                    onClick={() => setShowHint(v => !v)}
+                  >
+                    {showHint ? '힌트 접기' : '힌트'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    style={{ fontSize: 10, padding: '2px 8px' }}
+                    disabled={!char || scenarioLoading}
+                    onClick={handleGenerateScenario}
+                  >
+                    {scenarioLoading ? '생성 중...' : '✦ AI 생성'}
+                  </button>
+                </div>
+              </div>
+              {showHint && (
+                <input
+                  className="field"
+                  style={{ marginBottom: 6, fontSize: 11 }}
+                  placeholder="생성 힌트 (선택): 마법학원, 재회, 비오는 밤..."
+                  value={scenarioHint}
+                  onChange={e => setScenarioHint(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleGenerateScenario() } }}
+                />
+              )}
+              <textarea
+                className="field" rows={3}
+                placeholder={"이 대화의 세계관·배경을 설정하세요\n예: 마법 학원 천문대, 루나는 오늘 밤 예언을 완성해야 한다."}
+                value={scenarioDescription}
+                onChange={e => setScenarioDescription(e.target.value)}
+              />
+            </section>
+
+            {/* 5. 고급 설정 토글 */}
+            <section className="new-conv-section" style={{ padding: '6px 0', borderTop: '1px solid var(--chrome-border)' }}>
+              <button
+                className="btn ghost"
+                style={{ fontSize: 11, width: '100%', textAlign: 'left' }}
+                onClick={() => setShowAdvanced(v => !v)}
+              >
+                {showAdvanced ? '▲' : '▼'} 고급 설정 (세계관 태그 · AI 파라미터)
+              </button>
+            </section>
+
+            {showAdvanced && <>
+
+            {/* 세계관 태그 */}
+            <section className="new-conv-section">
+              <div className="label">세계관 태그 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
+              <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
+                <div className="tag-row" style={{ flexWrap: 'nowrap', gap: 5, width: 'max-content' }}>
+                  {[...tagPool].sort((a, b) => a.localeCompare(b, 'ko')).map(tag => (
+                    <span
+                      key={tag}
+                      className={`tag ${tags.includes(tag) ? 'tag-selected' : ''}`}
+                      style={{ cursor: 'pointer', padding: '2px 7px', fontSize: 10, whiteSpace: 'nowrap' }}
+                      onClick={() => setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+                    >
+                      {tags.includes(tag) ? '✓ ' : ''}{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="hstack" style={{ gap: 6 }}>
+                <input
+                  className="field" style={{ flex: 1 }} placeholder="직접 입력..."
+                  value={tagInput} onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const t = tagInput.trim()
+                      if (t && !tags.includes(t)) setTags(prev => [...prev, t])
+                      setTagInput('')
+                    }
+                  }}
+                />
+                <button className="btn" onClick={() => {
+                  const t = tagInput.trim()
+                  if (t && !tags.includes(t)) setTags(prev => [...prev, t])
+                  setTagInput('')
+                }}>추가</button>
+              </div>
+              {tags.length > 0 && (
+                <div className="tag-row" style={{ marginTop: 4, flexWrap: 'wrap', gap: 4 }}>
+                  {tags.map(t => (
+                    <span key={t} className="tag tag-selected" style={{ cursor: 'pointer' }}
+                      onClick={() => setTags(prev => prev.filter(x => x !== t))}>
+                      {t} ×
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* AI 설정 */}
             <section className="new-conv-section">
               <div className="label">AI 설정</div>
-              {/*
-              AI 모델 선택 — 현재 Gemini 2.5 Pro 고정, v2에서 활성화
-              {AI_MODELS.map(m => (
-                <div key={m.id} ...>{m.name}</div>
-              ))}
-              */}
               <div className="form-grid">
                 <div>
                   <label className="label">
