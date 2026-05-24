@@ -37,6 +37,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!character) return NextResponse.json({ error: '캐릭터를 찾을 수 없습니다.' }, { status: 404 })
   if (character.isPreset || character.creatorId !== userId) return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })
 
-  await prisma.character.delete({ where: { id: params.id } })
+  await prisma.$transaction([
+    prisma.conversationCharacter.deleteMany({ where: { characterId: params.id } }),
+    prisma.conversation.updateMany({ where: { personaCharacterId: params.id }, data: { personaCharacterId: null } }),
+    prisma.message.updateMany({ where: { characterId: params.id }, data: { characterId: null } }),
+    prisma.lorebook.updateMany({ where: { characterId: params.id }, data: { characterId: null } }),
+    prisma.character.delete({ where: { id: params.id } }),
+  ])
   return new NextResponse(null, { status: 204 })
 }

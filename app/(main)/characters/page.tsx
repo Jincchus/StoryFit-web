@@ -54,10 +54,15 @@ export default function CharactersPage() {
   const selectedChar = characters.find(c => c.id === draft.charId)
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/api/characters/${id}`)
-    setCharacters(prev => prev.filter(c => c.id !== id))
-    if (draft.charId === id) dispatch({ type: 'selectChar', id: '' })
-    setConfirmDeleteId(null)
+    try {
+      await api.delete(`/api/characters/${id}`)
+      setCharacters(prev => prev.filter(c => c.id !== id))
+      if (draft.charId === id) dispatch({ type: 'selectChar', id: '' })
+      setConfirmDeleteId(null)
+    } catch (e: any) {
+      setConfirmDeleteId(null)
+      setError(e.message ?? '삭제 중 오류가 발생했습니다.')
+    }
   }
 
   return (
