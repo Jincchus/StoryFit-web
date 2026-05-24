@@ -390,7 +390,7 @@ export default function ChatPage() {
   const stopSpeaking = () => { window.speechSynthesis.cancel(); setSpeakingId(null) }
 
   useEffect(() => {
-    return () => { recognitionRef.current?.stop(); window.speechSynthesis.cancel() }
+    return () => { try { recognitionRef.current?.stop() } catch {} try { window.speechSynthesis?.cancel() } catch {} }
   }, [])
   // ── /STT/TTS ─────────────────────────────────────────────────────────
 
