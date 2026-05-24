@@ -36,7 +36,6 @@ const MODE_FILTERS = [
   { key: 'all', label: '전체' },
   { key: 'roleplay', label: '⚔ 롤플레이' },
   { key: 'novel', label: '✍ 소설' },
-  { key: 'tikiTaka', label: '⟳ 티키타카' },
   { key: 'story', label: '📖 스토리' },
 ] as const
 
