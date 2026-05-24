@@ -47,7 +47,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
 
-  const { globalRules, modeRules } = await loadGlobalRules(conv.mode)
+  const [{ globalRules, modeRules }, userRecord] = await Promise.all([
+    loadGlobalRules(conv.mode),
+    prisma.user.findUnique({ where: { id: userId }, select: { personalRules: true } }),
+  ])
 
   const matchedLorebook = matchLorebook(
     conv.lorebooks.map(l => ({ ...l, scope: l.scope as 'conversation' | 'character' })),
@@ -63,6 +66,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     longTermMemory,
     globalRules,
     modeRules,
+    personalRules: userRecord?.personalRules ?? '',
   }
 
   function makeCharParam(c: typeof character) {

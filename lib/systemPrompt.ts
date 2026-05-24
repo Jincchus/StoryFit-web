@@ -21,6 +21,7 @@ interface BuildSystemPromptParams {
   longTermMemory?: string[]
   globalRules?: string
   modeRules?: string
+  personalRules?: string
 }
 
 export const BASE_RULES = `당신은 소설형 롤플레이 AI입니다. 반드시 아래 출력 형식을 지켜주세요.
@@ -50,10 +51,12 @@ export function buildSystemPrompt({
   longTermMemory = [],
   globalRules,
   modeRules,
+  personalRules,
 }: BuildSystemPromptParams): string {
   const parts: string[] = []
 
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
+  if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
   parts.push(BASE_RULES)
   if (modeRules?.trim()) parts.push(`[롤플레이 추가 규칙]\n${modeRules}`)
 
@@ -122,6 +125,7 @@ export function buildNovelSystemPrompt({
   longTermMemory = [],
   globalRules,
   modeRules,
+  personalRules,
 }: BuildSystemPromptParams): string {
   const personaName = personaCharacter?.name ?? '주인공'
   const characterName = character.name
@@ -130,6 +134,7 @@ export function buildNovelSystemPrompt({
 
   const parts: string[] = []
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
+  if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
   parts.push(novelBase)
   if (modeRules?.trim()) parts.push(`[소설 추가 규칙]\n${modeRules}`)
 
@@ -205,10 +210,12 @@ export function buildStorySystemPrompt({
   longTermMemory = [],
   globalRules,
   modeRules,
+  personalRules,
 }: BuildSystemPromptParams): string {
   const parts: string[] = []
 
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
+  if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
   const personaName = personaCharacter?.name ?? '유저'
   parts.push(buildStoryBaseRules(character.name, personaName))
   if (modeRules?.trim()) parts.push(`[스토리 추가 규칙]\n${modeRules}`)
