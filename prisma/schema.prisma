@@ -15,8 +15,12 @@ model User {
   isAdmin       Boolean        @default(false)
   isActive      Boolean        @default(true)
   isApproved    Boolean        @default(true)
-  displayName   String         @default("")
-  personalRules String         @default("")
+  displayName             String  @default("")
+  personalRules           String  @default("")
+  defaultTemperature      Float   @default(0.9)
+  defaultFrequencyPenalty Float   @default(0.3)
+  defaultSafetyLevel      String  @default("standard")
+  defaultAI               String  @default("gemini")
   characters    Character[]
   conversations Conversation[]
 }

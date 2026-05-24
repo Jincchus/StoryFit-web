@@ -38,7 +38,8 @@ export default function NewConversationPage() {
       fetch('/api/tags').then(r => r.json()),
       fetch('/api/stat-tags').then(r => r.json()),
       api.get('/api/characters'),
-    ]).then(([tagData, statTagData, chars]) => {
+      api.get('/api/user/settings'),
+    ]).then(([tagData, statTagData, chars, userSettings]) => {
       setTagPool(tagData)
       setStatTagPool(statTagData)
       setAllChars(chars)
@@ -50,6 +51,10 @@ export default function NewConversationPage() {
           setTemperature(found.temperature ?? 0.9)
           setFrequencyPenalty(found.frequencyPenalty ?? 0.3)
         }
+      } else {
+        setSafetyLevel(userSettings.defaultSafetyLevel ?? 'standard')
+        setTemperature(userSettings.defaultTemperature ?? 0.9)
+        setFrequencyPenalty(userSettings.defaultFrequencyPenalty ?? 0.3)
       }
     }).catch(() => {})
   }, [draft.charId])
