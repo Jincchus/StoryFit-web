@@ -102,6 +102,8 @@ export default function ChatPage() {
   const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
   const [selectedMemoryIds, setSelectedMemoryIds] = useState<Set<string>>(new Set())
   const [atBottom, setAtBottom] = useState(true)
+  const [hasNew, setHasNew] = useState(false)
+  const shouldScrollRef = useRef(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
@@ -267,22 +269,33 @@ export default function ChatPage() {
   }
 
   const scrollToBottom = () => {
-    if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setAtBottom(true) }
+    if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setAtBottom(true); setHasNew(false) }
   }
 
   useEffect(() => {
     const el = logRef.current
     if (!el) return
     const onScroll = () => {
-      setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80)
+      const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+      setAtBottom(isBottom)
+      if (isBottom) setHasNew(false)
     }
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => { scrollToBottom() }, [messages.length])
-
-  useEffect(() => { if (!typing) scrollToBottom() }, [typing])
+  useEffect(() => {
+    if (shouldScrollRef.current) {
+      scrollToBottom()
+      shouldScrollRef.current = false
+      return
+    }
+    const el = logRef.current
+    if (!el) return
+    const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    setAtBottom(isBottom)
+    if (!isBottom) setHasNew(true)
+  }, [messages.length])
 
   const subscribeStream = useCallback((convId: string) => {
     streamUnsubRef.current?.()
@@ -306,7 +319,15 @@ export default function ChatPage() {
   }, [loadConv])
 
   useEffect(() => {
-    return () => { streamUnsubRef.current?.(); streamUnsubRef.current = null }
+    return () => {
+      streamUnsubRef.current?.()
+      streamUnsubRef.current = null
+      const s = getConvStream(params.id)
+      if (s && !s.done) {
+        s.abort.abort()
+        clearConvStream(params.id)
+      }
+    }
   }, [params.id])
 
   const send = (content: string) => {
@@ -315,6 +336,7 @@ export default function ChatPage() {
     typingStartRef.current = Date.now()
     setTypingDuration(0)
     setText('')
+    shouldScrollRef.current = true
     setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content }])
     setTyping(true)
     setStreaming('')
@@ -325,10 +347,16 @@ export default function ChatPage() {
   }
 
   const stopStream = () => {
-    getConvStream(params.id)?.abort.abort()
+    const s = getConvStream(params.id)
+    if (s && !s.done) s.abort.abort()
+    streamUnsubRef.current?.()
+    streamUnsubRef.current = null
+    clearConvStream(params.id)
     setTyping(false)
     setStreaming('')
     setStreamingCharId(null)
+    setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
+    loadConv().catch(() => {})
   }
 
   // ── STT/TTS ──────────────────────────────────────────────────────────
@@ -372,8 +400,10 @@ export default function ChatPage() {
   // ── /STT/TTS ─────────────────────────────────────────────────────────
 
   const handleDelete = async (msgId: string) => {
-    await api.delete(`/api/conversations/${params.id}/messages`, { messageId: msgId })
-    setMessages(prev => prev.filter(m => m.id !== msgId))
+    try {
+      await api.delete(`/api/conversations/${params.id}/messages`, { messageId: msgId })
+      setMessages(prev => prev.filter(m => m.id !== msgId))
+    } catch {}
     setConfirmDeleteId(null)
   }
 
@@ -564,16 +594,18 @@ export default function ChatPage() {
 
         <div className="chat-layout">
           <div className="chat-main" style={{ position: 'relative' }}>
-            {!atBottom && (
+            {(!atBottom || hasNew) && (
               <button
                 onClick={scrollToBottom}
                 style={{
                   position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
-                  zIndex: 10, background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+                  zIndex: 10, background: hasNew ? 'var(--accent)' : 'var(--chrome-face)',
+                  border: '1.5px solid var(--chrome-border)',
                   borderRadius: 20, padding: '4px 14px', fontSize: 11, cursor: 'pointer',
                   boxShadow: '0 2px 6px rgba(0,0,0,.2)', whiteSpace: 'nowrap',
+                  color: hasNew ? '#fff' : undefined,
                 }}
-              >↓ 최신 메시지</button>
+              >{hasNew ? '새 답변 ↓' : '↓ 아래로'}</button>
             )}
             <div className="chatlog" ref={logRef}>
               {messages.length === 0 && !streaming && (

@@ -115,6 +115,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       let fullText = ''
       let inputTokens = 0
       let outputTokens = 0
+      let saved = false
+      const safeEnqueue = (data: object) => {
+        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)) } catch {}
+      }
       try {
         const result = await streamChat(
           {
@@ -127,7 +131,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           },
           chunk => {
             fullText += chunk
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`))
+            safeEnqueue({ text: chunk })
           },
           abortController.signal,
         )
@@ -136,7 +140,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         if (!fullText) {
           logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens, outputTokens })
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'AI가 응답을 생성하지 않았습니다. 안전 필터에 차단됐을 수 있습니다. 캐릭터 설정에서 안전 수준을 낮춰보세요.', retryable: false })}\n\n`))
+          safeEnqueue({ error: 'AI가 응답을 생성하지 않았습니다. 안전 필터에 차단됐을 수 있습니다. 캐릭터 설정에서 안전 수준을 낮춰보세요.', retryable: false })
           return
         }
 
@@ -152,6 +156,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             outputTokens,
           },
         })
+        saved = true
         assistantMsgId = assistantMsg.id
 
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
@@ -167,25 +172,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           triggerInventoryEvaluation(params.id, content, fullText, conv.inventory as any)
         }
 
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: assistantMsgId })}\n\n`))
+        safeEnqueue({ done: true, messageId: assistantMsgId })
       } catch (err: any) {
-        if (fullText.trim()) {
+        if (abortController.signal.aborted) {
+          if (fullText.trim() && !saved) {
+            try {
+              const partial = await prisma.message.create({
+                data: { conversationId: params.id, role: 'assistant', content: fullText, aiModel: conv.currentAI, isSelected: true, parentId: userMsg.id },
+              })
+              await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
+              safeEnqueue({ done: true, messageId: partial.id })
+            } catch {}
+          }
+        } else if (fullText.trim() && !saved) {
           try {
             const partial = await prisma.message.create({
-              data: {
-                conversationId: params.id,
-                role: 'assistant',
-                content: fullText,
-                aiModel: conv.currentAI,
-                isSelected: true,
-                parentId: userMsg.id,
-              },
+              data: { conversationId: params.id, role: 'assistant', content: fullText, aiModel: conv.currentAI, isSelected: true, parentId: userMsg.id },
             })
             await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
             logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'partial_save', message: err?.message ?? String(err) })
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: partial.id })}\n\n`))
+            safeEnqueue({ done: true, messageId: partial.id })
           } catch {}
-        } else {
+        } else if (!saved) {
           console.error('[chat] AI error:', err)
           const status = err?.status ?? 500
           let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
@@ -193,10 +201,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
           const retryable = status === 429 || status === 503 || status >= 500
           logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'api_error', statusCode: status, message: err?.message ?? String(err) })
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg, retryable })}\n\n`))
+          safeEnqueue({ error: errorMsg, retryable })
         }
       } finally {
-        controller.close()
+        try { controller.close() } catch {}
       }
     },
   })
@@ -242,9 +250,13 @@ async function streamTikiTaka({
   const stream = new ReadableStream({
     async start(controller) {
       const savedResponses: { id: string; charName: string; content: string }[] = []
+      const safeEnqueue = (data: object) => {
+        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)) } catch {}
+      }
 
       try {
         for (const convChar of conv.characters) {
+          if (abortController.signal.aborted) break
           const tChar = convChar.character
           const tSystemPrompt = buildSystemPrompt({ ...basePromptParams, character: makeCharParam(tChar) })
 
@@ -258,7 +270,7 @@ async function streamTikiTaka({
           ]
 
           let charText = ''
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ character: tChar.name, characterId: tChar.id })}\n\n`))
+          safeEnqueue({ character: tChar.name, characterId: tChar.id })
 
           const tikiResult = await streamChat(
             {
@@ -271,7 +283,7 @@ async function streamTikiTaka({
             },
             chunk => {
               charText += chunk
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ character: tChar.name, characterId: tChar.id, text: chunk })}\n\n`))
+              safeEnqueue({ character: tChar.name, characterId: tChar.id, text: chunk })
             },
             abortController.signal,
           )
@@ -296,7 +308,7 @@ async function streamTikiTaka({
           })
 
           savedResponses.push({ id: charMsg.id, charName: tChar.name, content: charText })
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ character: tChar.name, characterId: tChar.id, done: true, messageId: charMsg.id })}\n\n`))
+          safeEnqueue({ character: tChar.name, characterId: tChar.id, done: true, messageId: charMsg.id })
         }
 
         await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
@@ -308,17 +320,19 @@ async function streamTikiTaka({
           )
         }
 
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ allDone: true })}\n\n`))
+        safeEnqueue({ allDone: true })
       } catch (err: any) {
-        console.error('[tikiTaka] AI error:', err)
-        const status = err?.status ?? 500
-        let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
-        if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
-        else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
-        const retryable = status === 429 || status === 503 || status >= 500
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg, retryable })}\n\n`))
+        if (!abortController.signal.aborted) {
+          console.error('[tikiTaka] AI error:', err)
+          const status = err?.status ?? 500
+          let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
+          if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
+          else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
+          const retryable = status === 429 || status === 503 || status >= 500
+          safeEnqueue({ error: errorMsg, retryable })
+        }
       } finally {
-        controller.close()
+        try { controller.close() } catch {}
       }
     },
   })
