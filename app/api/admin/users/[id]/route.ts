@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { authenticateAdmin } from '@/lib/adminAuth'
+import { requireAdmin } from '@/lib/adminAuth'
 import { logAdminAction } from '@/lib/adminLog'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const adminId = await authenticateAdmin(req)
-  if (!adminId) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+  const authResult = await requireAdmin(req)
+  if (authResult instanceof NextResponse) return authResult
+  const adminId = authResult.userId
   if (adminId === params.id) return NextResponse.json({ error: '자신의 권한은 변경할 수 없습니다.' }, { status: 400 })
 
   const body = await req.json()

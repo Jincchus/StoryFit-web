@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { authenticateAdmin } from '@/lib/adminAuth'
+import { requireAdmin } from '@/lib/adminAuth'
 import { logAdminAction } from '@/lib/adminLog'
 
 export async function GET(req: NextRequest) {
-  if (!await authenticateAdmin(req)) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+  const _auth = await requireAdmin(req)
+  if (_auth instanceof NextResponse) return _auth
   const configs = await prisma.globalConfig.findMany()
   const result: Record<string, string> = {}
   for (const c of configs) result[c.key] = c.value
@@ -12,8 +13,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const adminId = await authenticateAdmin(req)
-  if (!adminId) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+  const authResult = await requireAdmin(req)
+  if (authResult instanceof NextResponse) return authResult
+  const adminId = authResult.userId
   const body = await req.json()
   const updates = await Promise.all(
     Object.entries(body).map(([key, value]) =>

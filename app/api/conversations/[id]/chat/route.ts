@@ -9,6 +9,7 @@ import { triggerInventoryEvaluation } from '@/lib/inventoryEval'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
+import type { AIProvider } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       try {
         const result = await streamChat(
           {
-            provider: conv.currentAI as 'gemini',
+            provider: conv.currentAI as AIProvider,
             systemPrompt,
             messages: history,
             temperature: conv.temperature,
@@ -162,7 +163,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
         if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
         else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg })}\n\n`))
+        const retryable = status === 429 || status === 503 || status >= 500
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg, retryable })}\n\n`))
       } finally {
         controller.close()
       }
@@ -230,7 +232,7 @@ async function streamTikiTaka({
 
           const tikiResult = await streamChat(
             {
-              provider: conv.currentAI as 'gemini',
+              provider: conv.currentAI as AIProvider,
               systemPrompt: tSystemPrompt,
               messages,
               temperature: conv.temperature,
@@ -259,6 +261,7 @@ async function streamTikiTaka({
               characterId: tChar.id,
               inputTokens: tikiResult.inputTokens,
               outputTokens: tikiResult.outputTokens,
+              createdAt: new Date(Date.now() + savedResponses.length * 100),
             },
           })
 
@@ -282,7 +285,8 @@ async function streamTikiTaka({
         let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
         if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
         else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg })}\n\n`))
+        const retryable = status === 429 || status === 503 || status >= 500
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg, retryable })}\n\n`))
       } finally {
         controller.close()
       }

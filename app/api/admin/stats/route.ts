@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { authenticateAdmin } from '@/lib/adminAuth'
+import { requireAdmin } from '@/lib/adminAuth'
 
 export async function GET(req: NextRequest) {
-  if (!await authenticateAdmin(req)) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+  const _auth = await requireAdmin(req)
+  if (_auth instanceof NextResponse) return _auth
 
   const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 

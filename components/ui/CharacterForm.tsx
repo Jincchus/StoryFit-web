@@ -26,6 +26,9 @@ interface CharacterFormProps {
 type NameEntry = { name: string; category: string; gender: string }
 interface TagEntry { id: string; name: string; category: string; gender: string; scope: string }
 
+let _cachedNamePool: NameEntry[] | null = null
+let _cachedCharTags: TagEntry[] | null = null
+
 const CATEGORIES = ['관계', '성격', '외모', '역할'] as const
 type Category = typeof CATEGORIES[number]
 
@@ -48,8 +51,16 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
   const [aiError, setAiError] = useState('')
 
   useEffect(() => {
-    fetch('/api/names').then(r => r.json()).then(setNamePool).catch(() => {})
-    api.get('/api/persona-tags?scope=character').then(setCharTags).catch(() => {})
+    if (_cachedNamePool) {
+      setNamePool(_cachedNamePool)
+    } else {
+      fetch('/api/names').then(r => r.json()).then((data: NameEntry[]) => { _cachedNamePool = data; setNamePool(data) }).catch(() => {})
+    }
+    if (_cachedCharTags) {
+      setCharTags(_cachedCharTags)
+    } else {
+      api.get('/api/persona-tags?scope=character').then((data: TagEntry[]) => { _cachedCharTags = data; setCharTags(data) }).catch(() => {})
+    }
   }, [])
 
   useEffect(() => {

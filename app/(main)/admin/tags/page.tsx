@@ -9,12 +9,11 @@ interface TagEntry { id: string; name: string }
 interface PersonaTagEntry { id: string; name: string; category: string; gender: string; scope: string }
 
 const CHAR_CATEGORIES = ['관계', '성격', '외모', '역할'] as const
-const PERSONA_CATEGORIES = ['관계', '성격', '외모', '역할'] as const
 const GENDERS = ['공통', '남', '여'] as const
 const GENDER_COLOR: Record<string, string> = { 공통: 'var(--ink-soft)', 남: '#6b9eff', 여: '#ff9eb5' }
 
 export default function AdminTagsPage() {
-  const [tab, setTab] = useState<'world' | 'persona' | 'character' | 'stat'>('world')
+  const [tab, setTab] = useState<'world' | 'character' | 'stat'>('world')
 
   const [tags, setTags] = useState<TagEntry[]>([])
   const [input, setInput] = useState('')
@@ -27,7 +26,7 @@ export default function AdminTagsPage() {
   const [statError, setStatError] = useState('')
 
   const [personaTags, setPersonaTags] = useState<PersonaTagEntry[]>([])
-  const [ptForm, setPtForm] = useState({ name: '', category: '성격', gender: '공통', scope: 'persona' })
+  const [ptForm, setPtForm] = useState({ name: '', category: '성격', gender: '공통', scope: 'character' })
   const [ptBulkInput, setPtBulkInput] = useState('')
   const [showPtBulk, setShowPtBulk] = useState(false)
   const [ptError, setPtError] = useState('')
@@ -37,11 +36,6 @@ export default function AdminTagsPage() {
     api.get('/api/admin/persona-tags').then(setPersonaTags).catch(() => {})
     api.get('/api/admin/stat-tags').then(setStatTags).catch(() => {})
   }, [])
-
-  useEffect(() => {
-    const defaultCat = tab === 'character' ? '성격' : '성격'
-    setPtForm(f => ({ ...f, scope: tab === 'character' ? 'character' : 'persona', category: defaultCat }))
-  }, [tab])
 
   const handleAdd = async () => {
     const name = input.trim()
@@ -107,9 +101,7 @@ export default function AdminTagsPage() {
     setPersonaTags(prev => prev.filter(t => t.id !== id))
   }
 
-  const currentScope = tab === 'character' ? 'character' : 'persona'
-  const currentCategories = tab === 'character' ? CHAR_CATEGORIES : PERSONA_CATEGORIES
-  const scopedTags = personaTags.filter(t => t.scope === currentScope)
+  const scopedTags = personaTags.filter(t => t.scope === 'character')
 
   return (
     <Win title="관리자 — 태그 관리" icon={PixelIcons.settings}>
@@ -122,13 +114,13 @@ export default function AdminTagsPage() {
 
             {/* 탭 */}
             <div className="hstack" style={{ gap: 4, flexWrap: 'wrap' }}>
-              {(['world', 'persona', 'character', 'stat'] as const).map(t => (
+              {(['world', 'character', 'stat'] as const).map(t => (
                 <button
                   key={t}
                   className={`btn ${tab === t ? 'primary' : 'ghost'}`}
                   style={{ fontSize: 11 }}
                   onClick={() => setTab(t)}
-                >{t === 'world' ? '세계관 태그' : t === 'persona' ? '페르소나 태그' : t === 'character' ? '캐릭터 태그' : '스탯 태그'}</button>
+                >{t === 'world' ? '세계관 태그' : t === 'character' ? '캐릭터 태그' : '스탯 태그'}</button>
               ))}
             </div>
 
@@ -169,11 +161,9 @@ export default function AdminTagsPage() {
               </div>
             )}
 
-            {(tab === 'persona' || tab === 'character') && (
+            {tab === 'character' && (
               <div className="vstack" style={{ gap: 8 }}>
-                <div className="tiny muted">
-                  {tab === 'persona' ? '페르소나 폼에서 관계/성격/외모/역할 칩으로 표시됩니다.' : '캐릭터 폼에서 관계/성격/외모/역할 칩으로 표시됩니다.'}
-                </div>
+                <div className="tiny muted">캐릭터 폼에서 관계/성격/외모/역할 칩으로 표시됩니다.</div>
 
                 <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
                   <input
@@ -184,7 +174,7 @@ export default function AdminTagsPage() {
                     onKeyDown={e => { if (e.key === 'Enter') handlePtAdd() }}
                   />
                   <select className="field" style={{ width: 72, fontSize: 11 }} value={ptForm.category} onChange={e => setPtForm(f => ({ ...f, category: e.target.value }))}>
-                    {currentCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                    {CHAR_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <select className="field" style={{ width: 60, fontSize: 11 }} value={ptForm.gender} onChange={e => setPtForm(f => ({ ...f, gender: e.target.value }))}>
                     {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
@@ -206,7 +196,7 @@ export default function AdminTagsPage() {
 
                 {ptError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {ptError}</div>}
 
-                {currentCategories.map(cat => {
+                {CHAR_CATEGORIES.map(cat => {
                   const catTags = scopedTags.filter(t => t.category === cat)
                   if (catTags.length === 0) return null
                   return (

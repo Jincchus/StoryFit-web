@@ -34,12 +34,16 @@ export default function NewConversationPage() {
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
-    fetch('/api/tags').then(r => r.json()).then(setTagPool).catch(() => {})
-    fetch('/api/stat-tags').then(r => r.json()).then(setStatTagPool).catch(() => {})
-    api.get('/api/characters').then((chars: Character[]) => {
+    Promise.all([
+      fetch('/api/tags').then(r => r.json()),
+      fetch('/api/stat-tags').then(r => r.json()),
+      api.get('/api/characters'),
+    ]).then(([tagData, statTagData, chars]) => {
+      setTagPool(tagData)
+      setStatTagPool(statTagData)
       setAllChars(chars)
       if (draft.charId) {
-        const found = chars.find(c => c.id === draft.charId) ?? null
+        const found = chars.find((c: Character) => c.id === draft.charId) ?? null
         if (found) {
           setChar(found)
           setSafetyLevel(found.safetyLevel ?? 'standard')

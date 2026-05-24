@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { authenticateAdmin } from '@/lib/adminAuth'
+import { requireAdmin } from '@/lib/adminAuth'
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  if (!await authenticateAdmin(req)) return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 })
+  const _auth = await requireAdmin(req)
+  if (_auth instanceof NextResponse) return _auth
   await prisma.characterTag.delete({ where: { id: params.id } })
   return NextResponse.json({ ok: true })
 }

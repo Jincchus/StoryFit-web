@@ -121,13 +121,33 @@ export default function ChatPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
   const [infoTip, setInfoTip] = useState<string | null>(null)
+  const [sendErrorRetryable, setSendErrorRetryable] = useState(false)
+  const [lorebookError, setLorebookError] = useState(false)
+  const [memoryError, setMemoryError] = useState(false)
+  // ── STT/TTS ──────────────────────────────────────────────────────────
+  const [isListening, setIsListening] = useState(false)
+  const [speakingId, setSpeakingId] = useState<string | null>(null)
+  // ── /STT/TTS ─────────────────────────────────────────────────────────
   const logRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const typingRef = useRef(false)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const patchDebounceRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({})
+  const lastSentRef = useRef('')
+  const [typingDuration, setTypingDuration] = useState(0)
+  const typingStartRef = useRef(0)
+  const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // ── STT/TTS ──────────────────────────────────────────────────────────
+  const recognitionRef = useRef<any>(null)
+  // ── /STT/TTS ─────────────────────────────────────────────────────────
 
   useEffect(() => { typingRef.current = typing }, [typing])
+
+  useEffect(() => {
+    if (!typing || streaming) { setTypingDuration(0); return }
+    const id = setInterval(() => setTypingDuration(Math.floor((Date.now() - typingStartRef.current) / 1000)), 1000)
+    return () => clearInterval(id)
+  }, [typing, streaming])
 
   const loadConv = useCallback(async () => {
     try {
@@ -155,6 +175,7 @@ export default function ChatPage() {
         setStreamingCharId(null)
         setSendError('')
       }
+      setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
       loadConv()
     }
     document.addEventListener('visibilitychange', onVisible)
@@ -162,8 +183,8 @@ export default function ChatPage() {
   }, [loadConv])
 
   useEffect(() => {
-    api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => {})
-    api.get(`/api/conversations/${params.id}/memories`).then(setMemories).catch(() => {})
+    api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => setLorebookError(true))
+    api.get(`/api/conversations/${params.id}/memories`).then(setMemories).catch(() => setMemoryError(true))
   }, [params.id])
 
   const handleDeleteMemory = async (memoryId: string) => {
@@ -234,8 +255,24 @@ export default function ChatPage() {
 
   useEffect(() => { if (!typing) scrollToBottom() }, [typing])
 
+  const clearStreamTimeout = () => {
+    if (streamTimeoutRef.current) { clearTimeout(streamTimeoutRef.current); streamTimeoutRef.current = null }
+  }
+
+  const resetStreamTimeout = (ctrl: AbortController) => {
+    clearStreamTimeout()
+    streamTimeoutRef.current = setTimeout(() => {
+      ctrl.abort()
+      setSendError('30초 동안 응답이 없어 연결을 종료했습니다.')
+      setSendErrorRetryable(true)
+    }, 30000)
+  }
+
   const send = async (content: string) => {
     if (!content.trim() || typing) return
+    lastSentRef.current = content
+    typingStartRef.current = Date.now()
+    setTypingDuration(0)
     setText('')
     const userMsg: Msg = { id: 'tmp-' + Date.now(), role: 'user', content }
     setMessages(prev => [...prev, userMsg])
@@ -244,8 +281,10 @@ export default function ChatPage() {
 
     const ctrl = new AbortController()
     abortRef.current = ctrl
+    resetStreamTimeout(ctrl)
 
     setSendError('')
+    setSendErrorRetryable(false)
     try {
       const res = await api.streamChat(params.id, content, ctrl.signal)
       if (!res.ok) {
@@ -258,14 +297,17 @@ export default function ChatPage() {
       let currentCharText = ''
       for await (const json of readSseStream(res)) {
         if (json.allDone) {
+          clearStreamTimeout()
           setStreaming('')
           setStreamingCharId(null)
           await loadConv()
         } else if (json.text) {
+          resetStreamTimeout(ctrl)
           if (json.characterId) setStreamingCharId(json.characterId)
           setStreaming(prev => prev + json.text)
           currentCharText += json.text
         } else if (json.done) {
+          clearStreamTimeout()
           if (json.characterId) {
             const savedText = currentCharText
             setMessages(prev => [...prev, {
@@ -284,9 +326,11 @@ export default function ChatPage() {
             await loadConv()
           }
         } else if (json.error) {
+          clearStreamTimeout()
           setStreaming('')
           setStreamingCharId(null)
           setSendError(json.error)
+          setSendErrorRetryable(json.retryable ?? false)
           await loadConv()
         }
       }
@@ -296,6 +340,7 @@ export default function ChatPage() {
         setSendError('연결이 끊어졌습니다. 다시 시도해주세요.')
       }
     } finally {
+      clearStreamTimeout()
       setTyping(false)
       setStreamingCharId(null)
       abortRef.current = null
@@ -303,6 +348,46 @@ export default function ChatPage() {
   }
 
   const stopStream = () => { abortRef.current?.abort(); setTyping(false); setStreaming(''); setStreamingCharId(null) }
+
+  // ── STT/TTS ──────────────────────────────────────────────────────────
+  const startListening = () => {
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
+    if (!SR) return
+    const recognition = new SR()
+    recognition.lang = 'ko-KR'
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript
+      setText(prev => prev ? prev + ' ' + transcript : transcript)
+      composerRef.current?.focus()
+    }
+    recognition.onend = () => setIsListening(false)
+    recognition.onerror = () => setIsListening(false)
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }
+  const stopListening = () => { recognitionRef.current?.stop(); setIsListening(false) }
+
+  const speak = (content: string, id: string) => {
+    window.speechSynthesis.cancel()
+    if (speakingId === id) { setSpeakingId(null); return }
+    const plain = content.replace(/\*([^*]+)\*/g, '$1').replace(/["""]/g, '')
+    const utter = new SpeechSynthesisUtterance(plain)
+    utter.lang = 'ko-KR'
+    utter.rate = 1.0
+    utter.onend = () => setSpeakingId(null)
+    utter.onerror = () => setSpeakingId(null)
+    setSpeakingId(id)
+    window.speechSynthesis.speak(utter)
+  }
+  const stopSpeaking = () => { window.speechSynthesis.cancel(); setSpeakingId(null) }
+
+  useEffect(() => {
+    return () => { recognitionRef.current?.stop(); window.speechSynthesis.cancel() }
+  }, [])
+  // ── /STT/TTS ─────────────────────────────────────────────────────────
 
   const handleDelete = async (msgId: string) => {
     await api.delete(`/api/conversations/${params.id}/messages`, { messageId: msgId })
@@ -328,16 +413,21 @@ export default function ChatPage() {
   const handleRegenerate = async () => {
     if (typing) return
     setText('')
+    typingStartRef.current = Date.now()
+    setTypingDuration(0)
     setTyping(true)
     setStreaming('')
     setSendError('')
+    setSendErrorRetryable(false)
 
     const ctrl = new AbortController()
     abortRef.current = ctrl
+    resetStreamTimeout(ctrl)
 
     try {
       const res = await api.streamRegenerate(params.id, ctrl.signal)
       if (!res.ok) {
+        clearStreamTimeout()
         const data = await res.json().catch(() => ({}))
         setSendError(data.error || '재생성에 실패했습니다.')
         setTyping(false)
@@ -345,9 +435,9 @@ export default function ChatPage() {
       }
 
       for await (const json of readSseStream(res)) {
-        if (json.text) setStreaming(prev => prev + json.text)
-        if (json.done) { setStreaming(''); await loadConv() }
-        if (json.error) { setStreaming(''); setSendError(json.error); await loadConv() }
+        if (json.text) { resetStreamTimeout(ctrl); setStreaming(prev => prev + json.text) }
+        if (json.done) { clearStreamTimeout(); setStreaming(''); await loadConv() }
+        if (json.error) { clearStreamTimeout(); setStreaming(''); setSendError(json.error); setSendErrorRetryable(json.retryable ?? false); await loadConv() }
       }
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
@@ -355,6 +445,7 @@ export default function ChatPage() {
         setSendError('연결이 끊어졌습니다. 다시 시도해주세요.')
       }
     } finally {
+      clearStreamTimeout()
       setTyping(false)
       abortRef.current = null
     }
@@ -397,12 +488,31 @@ export default function ChatPage() {
     setConv(c => c ? { ...c, personaCharacter: found ? { id: found.id, name: found.name, avatarUrl: found.avatarUrl ?? null, tags: found.tags ?? [], additionalInfo: found.additionalInfo ?? '' } : null } : c)
   }
 
+  const pendingPatchRef = useRef<Record<string, string>>({})
+
   const debouncedPatch = (field: string, value: string) => {
+    pendingPatchRef.current[field] = value
     if (patchDebounceRef.current[field]) clearTimeout(patchDebounceRef.current[field]!)
     patchDebounceRef.current[field] = setTimeout(() => {
+      delete pendingPatchRef.current[field]
       api.patch(`/api/conversations/${params.id}`, { [field]: value }).catch(() => {})
     }, 600)
   }
+
+  useEffect(() => {
+    const onUnload = () => {
+      if (Object.keys(pendingPatchRef.current).length === 0) return
+      fetch(`/api/conversations/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingPatchRef.current),
+        keepalive: true,
+        credentials: 'include',
+      })
+    }
+    window.addEventListener('beforeunload', onUnload)
+    return () => window.removeEventListener('beforeunload', onUnload)
+  }, [params.id])
 
   const handleCoreMemory = (value: string) => {
     setConv(c => c ? { ...c, coreMemory: value } : c)
@@ -660,6 +770,15 @@ export default function ChatPage() {
                         {isLast && isLastAssistant && !isYou && (
                           <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>
                         )}
+                        {/* ── TTS 스피커 버튼 ── */}
+                        {!isYou && (
+                          <button
+                            className="msg-action-btn"
+                            style={{ color: speakingId === m.id ? 'var(--pink)' : undefined }}
+                            onClick={() => speakingId === m.id ? stopSpeaking() : speak(m.content, m.id)}
+                          >{speakingId === m.id ? '■ 정지' : '🔊'}</button>
+                        )}
+                        {/* ── /TTS 스피커 버튼 ── */}
                         {!isYou && (m.branchCount ?? 1) > 1 && (
                           <div className="hstack" style={{ gap: 2, alignItems: 'center' }}>
                             <button className="msg-action-btn" style={{ padding: '1px 5px' }}
@@ -700,7 +819,10 @@ export default function ChatPage() {
                         ? <NovelScene text={streaming} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
                         : <MessageBlocks text={streaming} />
                       : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
-                          <span>•</span><span>•</span><span>•</span>
+                          {typingDuration >= 3
+                            ? <span style={{ fontSize: 11, letterSpacing: 0, opacity: 0.7 }}>{typingDuration}초째 생성 중...</span>
+                            : <><span>•</span><span>•</span><span>•</span></>
+                          }
                         </div>
                     }
                   </div>
@@ -712,7 +834,10 @@ export default function ChatPage() {
 
             {sendError && (
               <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>⚠ {sendError}</span>
+                <span style={{ flex: 1 }}>⚠ {sendError}</span>
+                {sendErrorRetryable && lastSentRef.current && (
+                  <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => { setSendError(''); send(lastSentRef.current) }}>↺ 재시도</button>
+                )}
                 <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setSendError('')}>닫기</button>
               </div>
             )}
@@ -728,6 +853,15 @@ export default function ChatPage() {
                 onChange={e => { setText(e.target.value); autoResize() }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text) } }}
               />
+              {/* ── STT 마이크 버튼 ── */}
+              <button
+                className={`btn ${isListening ? 'primary' : 'ghost'}`}
+                style={{ padding: '0 10px', fontSize: 15, flexShrink: 0, minHeight: 36 }}
+                onClick={isListening ? stopListening : startListening}
+                disabled={typing}
+                title={isListening ? '녹음 중지' : '음성 입력 (STT)'}
+              >{isListening ? '⏹' : '🎤'}</button>
+              {/* ── /STT 마이크 버튼 ── */}
               <button className="btn primary" onClick={() => send(text)} disabled={!text.trim() || typing}>전송</button>
             </div>
           </div>
@@ -738,7 +872,7 @@ export default function ChatPage() {
             <div style={{
               position: 'fixed', top: 56, right: 12, zIndex: 10,
               background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
-              borderRadius: 'var(--radius)', padding: '12px 14px', minWidth: 200, maxWidth: 260,
+              borderRadius: 'var(--radius)', padding: '12px 14px', minWidth: 'min(200px, 90vw)', maxWidth: 'min(260px, 90vw)',
               boxShadow: '0 4px 16px rgba(0,0,0,.3)',
             }}>
               <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 10 }}>📊 스탯</div>
@@ -769,7 +903,7 @@ export default function ChatPage() {
             <div style={{
               position: 'fixed', top: 56, right: 12, zIndex: 10,
               background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
-              borderRadius: 'var(--radius)', padding: '12px 14px', minWidth: 200, maxWidth: 280,
+              borderRadius: 'var(--radius)', padding: '12px 14px', minWidth: 'min(200px, 90vw)', maxWidth: 'min(280px, 90vw)',
               boxShadow: '0 4px 16px rgba(0,0,0,.3)',
             }}>
               <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 10 }}>🎒 인벤토리</div>
@@ -985,7 +1119,10 @@ export default function ChatPage() {
                   </div>
                 )}
 
-                {lorebooks.length === 0 && !lorebookAdd && (
+                {lorebookError && (
+                  <div className="tiny" style={{ color: '#ff6b8a', marginBottom: 4 }}>⚠ 로어북 로드 실패</div>
+                )}
+                {lorebooks.length === 0 && !lorebookAdd && !lorebookError && (
                   <div className="lorebook-placeholder"><span>로어북 항목이 없습니다</span></div>
                 )}
 
@@ -1029,7 +1166,10 @@ export default function ChatPage() {
                     onClick={handlePromoteMemories}
                   >↑ 선택한 항목 핵심 메모리로 올리기 ({selectedMemoryIds.size})</button>
                 )}
-                {memories.length === 0 ? (
+                {memoryError && (
+                  <div className="tiny" style={{ color: '#ff6b8a', marginBottom: 4 }}>⚠ 메모리 로드 실패</div>
+                )}
+                {memories.length === 0 && !memoryError ? (
                   <div className="lorebook-placeholder"><span>아직 요약된 메모리가 없습니다</span></div>
                 ) : (
                   memories.map((mem, i) => {

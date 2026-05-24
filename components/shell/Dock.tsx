@@ -55,9 +55,6 @@ export default function Dock() {
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/characters') }}>
               🎭 캐릭터
             </button>
-            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/personas') }}>
-              👤 내 페르소나
-            </button>
             {isAdmin && (
               <>
                 <div className="start-menu-divider" />

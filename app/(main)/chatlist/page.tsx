@@ -144,8 +144,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
-
         <div className="hstack" style={{ flexShrink: 0, gap: 6 }}>
           <input
             className="field"
@@ -163,6 +161,12 @@ export default function HomePage() {
           {loading ? (
             <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink-soft)' }}>
               <div className="tiny muted">불러오는 중...</div>
+            </div>
+          ) : error ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
+              <div style={{ fontSize: 32 }}>⚠</div>
+              <div style={{ marginTop: 8, color: '#ff6b8a' }}>대화 목록을 불러오지 못했습니다</div>
+              <div className="tiny" style={{ marginTop: 4 }}>잠시 후 새로고침 해주세요</div>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>

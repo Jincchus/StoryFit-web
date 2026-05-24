@@ -10,7 +10,6 @@ const SCREEN_LABELS: Record<string, string> = {
   '/chatlist': '채팅 목록',
   '/characters': '캐릭터 선택',
   '/characters/new': '캐릭터 만들기',
-  '/personas': '내 페르소나',
   '/conversations/new': '새 대화',
 }
 
