@@ -5,6 +5,7 @@ import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matc
 import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStatsEvaluation } from '@/lib/statsEval'
+import { triggerInventoryEvaluation } from '@/lib/inventoryEval'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
@@ -148,6 +149,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         if (conv.mode === 'story' && conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0) {
           triggerStatsEvaluation(params.id, content, fullText, conv.statsConfig as any)
+        }
+        if (conv.mode === 'story' && conv.inventoryEnabled && Array.isArray(conv.inventory)) {
+          triggerInventoryEvaluation(params.id, content, fullText, conv.inventory as any)
         }
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: assistantMsgId })}\n\n`))

@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
       safetyLevel: body.safetyLevel ?? 'standard',
       statsEnabled: body.statsEnabled ?? false,
       statsConfig: body.statsConfig ?? null,
+      inventoryEnabled: body.inventoryEnabled ?? false,
+      inventory: body.inventoryEnabled ? ([] as any) : undefined,
       characters: {
         create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),
       },

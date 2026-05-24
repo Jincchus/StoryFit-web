@@ -106,6 +106,8 @@ model Conversation {
   isSummarizing       Boolean                 @default(false)
   statsEnabled        Boolean                 @default(false)
   statsConfig         Json?
+  inventoryEnabled    Boolean                 @default(false)
+  inventory           Json?
   characters      ConversationCharacter[]
   messages        Message[]
   memories        Memory[]

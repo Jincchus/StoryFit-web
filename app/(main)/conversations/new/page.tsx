@@ -18,6 +18,7 @@ export default function NewConversationPage() {
   const [statsEnabled, setStatsEnabled] = useState(false)
   const [statTagPool, setStatTagPool] = useState<string[]>([])
   const [selectedStats, setSelectedStats] = useState<string[]>([])
+  const [inventoryEnabled, setInventoryEnabled] = useState(false)
   const [scenarioDescription, setScenarioDescription] = useState('')
   const [scenarioLoading, setScenarioLoading] = useState(false)
   const [scenarioHint, setScenarioHint] = useState('')
@@ -101,6 +102,7 @@ export default function NewConversationPage() {
         frequencyPenalty,
         statsEnabled: mode === 'story' && statsEnabled && selectedStats.length > 0,
         statsConfig,
+        inventoryEnabled: mode === 'story' && inventoryEnabled,
       })
       router.push(`/conversations/${conv.id}`)
       dispatch({ type: 'resetDraft' })
@@ -313,6 +315,24 @@ export default function NewConversationPage() {
                         <div className="tiny muted">선택됨: {selectedStats.join(', ')}</div>
                       )}
                     </>
+                  )}
+                </div>
+              )}
+              {mode === 'story' && (
+                <div className="vstack" style={{ gap: 6, marginTop: 6, padding: '8px 10px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>
+                  <div className="spread" style={{ alignItems: 'center' }}>
+                    <div className="tiny" style={{ fontWeight: 700 }}>🎒 인벤토리 (아이템 파밍)</div>
+                    <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={inventoryEnabled}
+                        onChange={e => setInventoryEnabled(e.target.checked)}
+                      />
+                      <span className="tiny">{inventoryEnabled ? 'ON' : 'OFF'}</span>
+                    </label>
+                  </div>
+                  {inventoryEnabled && (
+                    <div className="tiny muted">스토리 진행 중 AI가 자동으로 아이템 획득·소모를 판단해 인벤토리를 관리합니다.</div>
                   )}
                 </div>
               )}

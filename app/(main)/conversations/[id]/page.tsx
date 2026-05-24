@@ -82,6 +82,7 @@ interface ConvChar { character: { id: string; name: string; kind: string; avatar
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
+  inventoryEnabled: boolean; inventory: { name: string; qty: number; description?: string }[] | null
   characters: ConvChar[]
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
   messages: Msg[]
@@ -102,6 +103,7 @@ export default function ChatPage() {
   const [model, setModel] = useState<AIProvider>('gemini')
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [showInventory, setShowInventory] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
@@ -474,11 +476,18 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
+            {isStory && conv.inventoryEnabled && (
+              <button
+                className={`btn ${showInventory ? 'primary' : 'ghost'}`}
+                style={{ padding: '3px 7px', fontSize: 10 }}
+                onClick={() => { setShowInventory(p => !p); setShowStats(false) }}
+              >🎒</button>
+            )}
             {isStory && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
               <button
                 className={`btn ${showStats ? 'primary' : 'ghost'}`}
                 style={{ padding: '3px 7px', fontSize: 10 }}
-                onClick={() => setShowStats(p => !p)}
+                onClick={() => { setShowStats(p => !p); setShowInventory(false) }}
               >STAT</button>
             )}
             <button
@@ -750,6 +759,39 @@ export default function ChatPage() {
                   )
                 })}
               </div>
+            </div>
+            </>
+          )}
+
+          {showInventory && (
+            <>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setShowInventory(false)} />
+            <div style={{
+              position: 'fixed', top: 56, right: 12, zIndex: 10,
+              background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+              borderRadius: 'var(--radius)', padding: '12px 14px', minWidth: 200, maxWidth: 280,
+              boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 10 }}>🎒 인벤토리</div>
+              {(!conv.inventory || conv.inventory.length === 0) ? (
+                <div className="tiny muted">보유 아이템이 없습니다.</div>
+              ) : (
+                <div className="vstack" style={{ gap: 6 }}>
+                  {conv.inventory.map((item, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '5px 0', borderBottom: '1px solid var(--chrome-border)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="hstack" style={{ gap: 6, alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700 }}>{item.name}</span>
+                          <span style={{ fontSize: 10, color: 'var(--pink)', fontWeight: 700 }}>×{item.qty}</span>
+                        </div>
+                        {item.description && (
+                          <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.4 }}>{item.description}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             </>
           )}
