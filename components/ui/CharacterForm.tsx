@@ -47,6 +47,7 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
   const [customInputs, setCustomInputs] = useState<Record<Category, string>>({ 관계: '', 성격: '', 외모: '', 역할: '' })
   const [showDialogues, setShowDialogues] = useState(!!form.exampleDialogues)
   const [aiStyle, setAiStyle] = useState<AiStyle>('eastern')
+  const [aiHint, setAiHint] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState('')
 
@@ -110,6 +111,7 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
         name: form.name,
         additionalInfo: form.additionalInfo,
         exampleDialogues: form.exampleDialogues,
+        hint: aiHint.trim() || undefined,
       })
       if (result.name) onChange('name', result.name)
       if (result.additionalInfo) onChange('additionalInfo', result.additionalInfo)
@@ -242,8 +244,16 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
             </div>
           </div>
           <div className="tiny muted" style={{ marginBottom: 6 }}>
-            이름·추가정보·예시대화 중 비어있는 항목만 채웁니다. 성별·태그를 먼저 선택하면 더 정확합니다.
+            이름·세부설정·예시대화 중 비어있는 항목만 채웁니다. 성별·태그를 먼저 선택하면 더 정확합니다.
           </div>
+          <textarea
+            className="field"
+            rows={2}
+            placeholder={'AI에게 전달할 추가 지시사항 (선택)\n예: 츤데레 말투, 어미는 ~다냥으로 끝내기, 냉정하지만 속은 따뜻한 캐릭터'}
+            value={aiHint}
+            onChange={e => setAiHint(e.target.value)}
+            style={{ marginBottom: 6, fontSize: 11 }}
+          />
           <button type="button" className="btn primary" style={{ fontSize: 11, alignSelf: 'flex-start' }}
             disabled={aiLoading} onClick={handleAiFill}>
             {aiLoading ? '생성 중...' : '✦ 채우기'}
@@ -251,9 +261,9 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
           {aiError && <div className="tiny" style={{ color: '#ff6b8a', marginTop: 4 }}>⚠ {aiError}</div>}
         </div>
 
-        {/* 추가 정보 */}
+        {/* 세부 설정 */}
         <div className="form-section">
-          <div className="form-section-title">추가 정보</div>
+          <div className="form-section-title">세부 설정</div>
           <textarea
             className="field" rows={3}
             placeholder={"태그 외 세부 설정을 자유롭게 적어주세요\n예: 왼손잡이다. 절대 반말을 쓰지 않는다. 고어체를 사용한다."}

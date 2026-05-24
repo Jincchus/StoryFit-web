@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const { style, gender, tags, name, additionalInfo, exampleDialogues } = await req.json()
+  const { style, gender, tags, name, additionalInfo, exampleDialogues, hint } = await req.json()
 
   const needName = !name?.trim()
   const needAdditionalInfo = !additionalInfo?.trim()
@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
   const tagsClause = tags?.length ? `선택된 태그: ${tags.join(', ')}` : ''
   const nameClause = !needName ? `이름: ${name} (이미 확정됨 — 이 이름을 그대로 사용)` : ''
 
-  const contextLines = [styleName, genderClause, tagsClause, nameClause].filter(Boolean).join('\n')
+  const hintClause = hint?.trim() ? `추가 지시사항: ${hint.trim()}` : ''
+  const contextLines = [styleName, genderClause, tagsClause, nameClause, hintClause].filter(Boolean).join('\n')
 
   const fieldsToGenerate: string[] = []
   if (needName) fieldsToGenerate.push(`"name": "성 + 이름 풀네임 (한글, 성별·태그·스타일에 어울리게)"`)
