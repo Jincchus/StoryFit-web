@@ -41,8 +41,8 @@ export default function AdminUsersPage() {
         {loading ? (
           <div className="tiny muted" style={{ padding: 20 }}>불러오는 중...</div>
         ) : (
-          <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+          <div className="scroll" style={{ flex: 1, minHeight: 0, overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--chrome-border)', textAlign: 'left' }}>
                   <th style={{ padding: '4px 8px', fontWeight: 700 }}>이메일</th>
