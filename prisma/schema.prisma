@@ -74,7 +74,6 @@ model Character {
   safetyLevel         String    @default("standard")
   temperature         Float     @default(0.9)
   frequencyPenalty    Float     @default(0.3)
-  presencePenalty     Float     @default(0.3)
   defaultAI           String    @default("gemini")
   isPreset            Boolean   @default(false)
   createdAt           DateTime  @default(now())

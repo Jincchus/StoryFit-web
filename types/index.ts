@@ -46,8 +46,6 @@ export interface Conversation {
   isSummarizing: boolean
   characters: Character[]
   messages: Message[]
-  lastLine?: string
-  when?: string
 }
 
 export interface AIModel {
@@ -70,8 +68,3 @@ export interface LorebookEntry {
   isEnabled: boolean
 }
 
-export interface Draft {
-  charId: string | null
-  personaId: string | null
-  modelId: AIProvider
-}
