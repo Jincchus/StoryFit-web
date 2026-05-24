@@ -146,16 +146,25 @@ export default function AdminTagsPage() {
                   </div>
                 )}
                 {error && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {error}</div>}
-                <div className="tiny muted">총 {tags.length}개</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {tags.map(t => (
-                    <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11 }}>
-                      <span>{t.name}</span>
-                      <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }} onClick={() => handleDelete(t.id)}>×</button>
-                    </div>
-                  ))}
-                  {tags.length === 0 && <div className="tiny muted">태그가 없습니다.</div>}
-                </div>
+                {(() => {
+                  const q = input.trim()
+                  const shown = q ? tags.filter(t => t.name.includes(q)) : tags
+                  return (
+                    <>
+                      <div className="tiny muted">총 {tags.length}개{q ? ` (${shown.length}개 표시)` : ''}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {shown.map(t => (
+                          <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: q && t.name === q ? 'var(--lavender)' : 'var(--pane)', border: `1px solid ${q && t.name === q ? 'var(--hot-pink)' : 'var(--chrome-border)'}`, fontSize: 11 }}>
+                            <span>{t.name}</span>
+                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }} onClick={() => handleDelete(t.id)}>×</button>
+                          </div>
+                        ))}
+                        {tags.length === 0 && <div className="tiny muted">태그가 없습니다.</div>}
+                        {tags.length > 0 && shown.length === 0 && <div className="tiny muted">일치하는 태그 없음</div>}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             )}
 
@@ -194,25 +203,35 @@ export default function AdminTagsPage() {
 
                 {ctError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {ctError}</div>}
 
-                {CHAR_CATEGORIES.map(cat => {
-                  const catTags = characterTags.filter(t => t.category === cat)
-                  if (catTags.length === 0) return null
+                {(() => {
+                  const q = ctForm.name.trim()
+                  const shown = q ? characterTags.filter(t => t.name.includes(q)) : characterTags
                   return (
-                    <div key={cat} className="vstack" style={{ gap: 4 }}>
-                      <div className="tiny muted" style={{ fontWeight: 700 }}>{cat} ({catTags.length})</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                        {catTags.map(t => (
-                          <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11, borderRadius: 'var(--radius)' }}>
-                            <span style={{ fontSize: 9, color: GENDER_COLOR[t.gender] ?? 'var(--ink-soft)', fontWeight: 700 }}>{t.gender}</span>
-                            <span>{t.name}</span>
-                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }} onClick={() => handleCtDelete(t.id)}>×</button>
+                    <>
+                      {CHAR_CATEGORIES.map(cat => {
+                        const catTags = shown.filter(t => t.category === cat)
+                        const totalCat = characterTags.filter(t => t.category === cat)
+                        if (totalCat.length === 0) return null
+                        return (
+                          <div key={cat} className="vstack" style={{ gap: 4 }}>
+                            <div className="tiny muted" style={{ fontWeight: 700 }}>{cat} ({catTags.length}{q ? `/${totalCat.length}` : ''})</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                              {catTags.map(t => (
+                                <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: q && t.name === q ? 'var(--lavender)' : 'var(--pane)', border: `1px solid ${q && t.name === q ? 'var(--hot-pink)' : 'var(--chrome-border)'}`, fontSize: 11, borderRadius: 'var(--radius)' }}>
+                                  <span style={{ fontSize: 9, color: GENDER_COLOR[t.gender] ?? 'var(--ink-soft)', fontWeight: 700 }}>{t.gender}</span>
+                                  <span>{t.name}</span>
+                                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }} onClick={() => handleCtDelete(t.id)}>×</button>
+                                </div>
+                              ))}
+                              {catTags.length === 0 && q && <div className="tiny muted">일치 없음</div>}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        )
+                      })}
+                      {characterTags.length === 0 && <div className="tiny muted">태그가 없습니다. 위에서 추가하세요.</div>}
+                    </>
                   )
-                })}
-                {characterTags.length === 0 && <div className="tiny muted">태그가 없습니다. 위에서 추가하세요.</div>}
+                })()}
               </div>
             )}
 
@@ -246,19 +265,28 @@ export default function AdminTagsPage() {
                   }}>추가</button>
                 </div>
                 {statError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {statError}</div>}
-                <div className="tiny muted">총 {statTags.length}개</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {statTags.map(t => (
-                    <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', fontSize: 11 }}>
-                      <span>{t.name}</span>
-                      <button
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
-                        onClick={() => api.delete(`/api/admin/stat-tags/${t.id}`).then(() => setStatTags(prev => prev.filter(s => s.id !== t.id))).catch(() => {})}
-                      >×</button>
-                    </div>
-                  ))}
-                  {statTags.length === 0 && <div className="tiny muted">스탯 태그가 없습니다.</div>}
-                </div>
+                {(() => {
+                  const q = statInput.trim()
+                  const shown = q ? statTags.filter(t => t.name.includes(q)) : statTags
+                  return (
+                    <>
+                      <div className="tiny muted">총 {statTags.length}개{q ? ` (${shown.length}개 표시)` : ''}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {shown.map(t => (
+                          <div key={t.id} className="hstack" style={{ gap: 4, padding: '3px 8px', background: q && t.name === q ? 'var(--lavender)' : 'var(--pane)', border: `1px solid ${q && t.name === q ? 'var(--hot-pink)' : 'var(--chrome-border)'}`, fontSize: 11 }}>
+                            <span>{t.name}</span>
+                            <button
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', padding: 0, fontSize: 11 }}
+                              onClick={() => api.delete(`/api/admin/stat-tags/${t.id}`).then(() => setStatTags(prev => prev.filter(s => s.id !== t.id))).catch(() => {})}
+                            >×</button>
+                          </div>
+                        ))}
+                        {statTags.length === 0 && <div className="tiny muted">스탯 태그가 없습니다.</div>}
+                        {statTags.length > 0 && shown.length === 0 && <div className="tiny muted">일치하는 태그 없음</div>}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             )}
 

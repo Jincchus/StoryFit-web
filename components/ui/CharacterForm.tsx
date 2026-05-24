@@ -87,7 +87,14 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
 
   const addCustomTag = (cat: Category) => {
     const val = customInputs[cat].trim()
-    if (!val || form.tags.includes(val)) return
+    if (!val) return
+    const exactMatch = charTags.find(t => t.category === cat && t.name === val)
+    if (exactMatch) {
+      if (!form.tags.includes(exactMatch.name)) onChange('tags', [...form.tags, exactMatch.name])
+      setCustomInputs(c => ({ ...c, [cat]: '' }))
+      return
+    }
+    if (form.tags.includes(val)) return
     onChange('tags', [...form.tags, val])
     setCustomInputs(c => ({ ...c, [cat]: '' }))
   }
@@ -165,12 +172,14 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
           <div className="form-section-title">태그</div>
           {CATEGORIES.map(cat => {
             const available = visibleTags(charTags, cat, form.gender)
+            const q = customInputs[cat].trim()
+            const displayed = q ? available.filter(t => t.name.includes(q)) : available
             return (
               <div key={cat}>
                 <label className="label">{cat}</label>
                 <div style={{ overflowX: 'auto', paddingBottom: 4, marginBottom: 5 }}>
                   <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 5, width: 'max-content' }}>
-                    {available.map(t => {
+                    {displayed.map(t => {
                       const selected = form.tags.includes(t.name)
                       return (
                         <button key={t.id} type="button" onClick={() => toggleTag(t.name)}
@@ -185,6 +194,7 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
                       )
                     })}
                     {available.length === 0 && <div className="tiny muted">등록된 태그 없음 (어드민에서 추가)</div>}
+                    {available.length > 0 && displayed.length === 0 && <div className="tiny muted">일치하는 태그 없음</div>}
                   </div>
                 </div>
                 <div className="hstack" style={{ gap: 4 }}>
