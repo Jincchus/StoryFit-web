@@ -62,7 +62,7 @@ function ChatNarration({ text }: { text: string }) {
   )
 }
 
-interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; parentId?: string | null; characterId?: string | null }
+interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null }
 interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string } }
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
@@ -813,22 +813,22 @@ export default function ChatPage() {
                           >{speakingId === m.id ? '■ 정지' : '🔊'}</button>
                         )}
                         {/* ── /TTS 스피커 버튼 ── */}
-                        {!isYou && (m.branchCount ?? 1) > 1 && (
+                        {!isYou && (m.branchCount ?? 1) > 1 && m.siblingIds && (
                           <div className="hstack" style={{ gap: 2, alignItems: 'center' }}>
                             <button className="msg-action-btn" style={{ padding: '1px 5px' }}
                               onClick={async () => {
-                                const siblings = messages.filter(s => s.parentId === m.parentId && s.role === 'assistant')
-                                const idx = siblings.findIndex(s => s.id === m.id)
-                                const prev = siblings[(idx - 1 + siblings.length) % siblings.length]
-                                if (prev) await handleBranchSwitch(prev.id)
+                                const ids = m.siblingIds!
+                                const idx = ids.indexOf(m.id)
+                                const prevId = ids[(idx - 1 + ids.length) % ids.length]
+                                if (prevId !== m.id) await handleBranchSwitch(prevId)
                               }}>←</button>
                             <span className="tiny muted" style={{ fontSize: 9 }}>{m.branchIndex}/{m.branchCount}</span>
                             <button className="msg-action-btn" style={{ padding: '1px 5px' }}
                               onClick={async () => {
-                                const siblings = messages.filter(s => s.parentId === m.parentId && s.role === 'assistant')
-                                const idx = siblings.findIndex(s => s.id === m.id)
-                                const next = siblings[(idx + 1) % siblings.length]
-                                if (next) await handleBranchSwitch(next.id)
+                                const ids = m.siblingIds!
+                                const idx = ids.indexOf(m.id)
+                                const nextId = ids[(idx + 1) % ids.length]
+                                if (nextId !== m.id) await handleBranchSwitch(nextId)
                               }}>→</button>
                           </div>
                         )}
