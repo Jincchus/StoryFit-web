@@ -296,7 +296,7 @@ body[data-art="modern"] .seq-block.seq-right .bubble { border-radius: 14px 14px 
 body[data-art="retro"] .composer { box-shadow: inset 1px 1px 0 var(--chrome-hi); }
 body[data-art="modern"] .composer { background: #fff; border: 1.5px solid #ecdcf3; }
 .composer .field { flex: 1 }
-.composer textarea.field { field-sizing: content }
+.composer textarea.field { overflow: hidden; }
 
 /* ─── Character grid ────────────────────────────────────────────────────── */
 .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; overflow-y: auto; padding: 4px; min-height: 0; flex: 1; align-content: start; }

@@ -328,7 +328,10 @@ export default function ChatPage() {
     lastSentRef.current = msg
     typingStartRef.current = Date.now()
     setTypingDuration(0)
-    if (!content && composerRef.current) composerRef.current.value = ''
+    if (!content && composerRef.current) {
+      composerRef.current.value = ''
+      composerRef.current.style.height = '36px'
+    }
     shouldScrollRef.current = true
     setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content: msg }])
     setTyping(true)
@@ -806,9 +809,14 @@ export default function ChatPage() {
                 ref={composerRef}
                 className="field"
                 rows={1}
-                style={{ resize: 'none', overflow: 'auto', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
+                style={{ resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
                 placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요…' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : isStory ? '직접 입력하거나 선택지를 클릭하세요…' : `${char.name}에게 말 걸기…`}
                 disabled={typing}
+                onInput={e => {
+                  const el = e.currentTarget
+                  el.style.height = 'auto'
+                  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+                }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               />
               {/* ── STT 마이크 버튼 ── */}
