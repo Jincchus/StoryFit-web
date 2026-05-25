@@ -34,6 +34,7 @@ async function streamViaApiKey(
   const generationConfig = {
     temperature: params.temperature ?? 0.9,
     maxOutputTokens: 8192,
+    ...({ thinkingConfig: { thinkingBudget: 0 } } as object),
   }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
@@ -99,6 +100,7 @@ async function streamViaVertex(
     generationConfig: {
       temperature: params.temperature ?? 0.9,
       maxOutputTokens: 8192,
+      ...({ thinkingConfig: { thinkingBudget: 0 } } as object),
     },
     safetySettings: [
       VHC.HARM_CATEGORY_HARASSMENT,
