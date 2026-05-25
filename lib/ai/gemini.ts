@@ -113,7 +113,10 @@ async function streamViaVertex(
 
   for await (const chunk of stream) {
     if (signal?.aborted) break
-    const text = chunk.text ?? ''
+    const parts: any[] = (chunk as any).candidates?.[0]?.content?.parts ?? []
+    const text = parts.length
+      ? parts.filter(p => !p.thought).map(p => p.text ?? '').join('')
+      : (chunk.text ?? '')
     if (text) { fullText += text; onChunk(text) }
     if (chunk.usageMetadata) {
       inputTokens = chunk.usageMetadata.promptTokenCount ?? 0
