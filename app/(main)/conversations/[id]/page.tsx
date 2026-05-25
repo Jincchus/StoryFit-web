@@ -806,7 +806,7 @@ export default function ChatPage() {
                     onClick={scrollToBottom}
                     style={{
                       pointerEvents: 'auto',
-                      background: 'var(--chrome-face)',
+                      background: 'transparent',
                       border: '1.5px solid #5d0f4a',
                       borderRadius: 20, padding: '4px 14px', fontSize: 11, cursor: 'pointer',
                       boxShadow: '0 2px 6px rgba(0,0,0,.2)', whiteSpace: 'nowrap',
