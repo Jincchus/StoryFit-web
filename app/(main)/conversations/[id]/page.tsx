@@ -115,6 +115,7 @@ export default function ChatPage() {
   const [speakingId, setSpeakingId] = useState<string | null>(null)
   // ── /STT/TTS ─────────────────────────────────────────────────────────
   const logRef = useRef<HTMLDivElement>(null)
+  const scrollSnapRef = useRef<{ top: number; height: number } | null>(null)
   const typingRef = useRef(false)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const patchDebounceRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({})
@@ -141,6 +142,9 @@ export default function ChatPage() {
         api.get(`/api/conversations/${params.id}/messages`),
       ])
       setConv(data)
+      if (logRef.current && !shouldScrollRef.current) {
+        scrollSnapRef.current = { top: logRef.current.scrollTop, height: logRef.current.scrollHeight }
+      }
       setMessages(msgs)
       setModel(data.currentAI as AIProvider)
     } catch {
@@ -279,6 +283,17 @@ export default function ChatPage() {
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
+
+  useLayoutEffect(() => {
+    const snap = scrollSnapRef.current
+    const el = logRef.current
+    if (!snap || !el) return
+    scrollSnapRef.current = null
+    const wasAtBottom = snap.height - snap.top - el.clientHeight < 80
+    if (!wasAtBottom) {
+      el.scrollTop = snap.top + (el.scrollHeight - snap.height)
+    }
+  }, [messages])
 
   useEffect(() => {
     const el = logRef.current
