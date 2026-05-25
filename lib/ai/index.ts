@@ -4,16 +4,14 @@ import { streamGeminiChat, type GeminiChatParams, type StreamResult } from './ge
 export type StreamChatParams = GeminiChatParams & { provider: AIProvider }
 export type { StreamResult }
 
-const isKorean = (ch: string) => { const c = ch.charCodeAt(0); return c >= 0xAC00 && c <= 0xD7A3 }
-
 export function stripAnalysisPreamble(text: string): string {
   const lines = text.split('\n')
   const firstNonEmpty = lines.find(l => l.trim())
-  if (firstNonEmpty && isKorean(firstNonEmpty.trim()[0])) return text
+  if (firstNonEmpty && /^[가-힣]/.test(firstNonEmpty.trim())) return text
 
   for (let i = 0; i < lines.length; i++) {
     const nonSpace = lines[i].replace(/\s/g, '')
-    if (nonSpace.length > 3 && [...nonSpace].filter(isKorean).length / nonSpace.length > 0.4) {
+    if (nonSpace.length > 3 && (nonSpace.match(/[가-힣]/g) ?? []).length / nonSpace.length > 0.4) {
       return lines.slice(i).join('\n')
     }
   }
