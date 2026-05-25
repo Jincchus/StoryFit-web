@@ -162,7 +162,7 @@ async function generateAsync({
       chunk => {
         fullText += chunk
         if (Date.now() - lastFlush > 2000) {
-          prisma.message.update({ where: { id: msgId }, data: { content: fullText } }).catch(() => {})
+          prisma.message.update({ where: { id: msgId }, data: { content: stripAnalysisPreamble(fullText) } }).catch(() => {})
           lastFlush = Date.now()
         }
       },
