@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gaegu&display=swap');
+
+:root {
+  --bg:          #ffffff;
+  --bg-2:        #fce8f5;
+  --paper:       #ffffff;
+  --line:        #e8d6ee;
+  --hairline:    #ecdcf3;
+  --hairline-2:  rgba(200,80,180,.06);
+  --ink:         #2a1840;
+  --ink-soft:    #6a4a7a;
+  --ink-muted:   #a080b0;
+  --accent:      #ff6fb5;
+  --red:         #ff4d88;
+  --green:       #5ac88f;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   18px;
+  --bubble-other:    #f3e6ff;
+  --bubble-you:      linear-gradient(180deg, #ffa8da 0%, #ff6fb5 100%);
+  --bubble-you-text: #fff;
+  /* 레거시 컴포넌트 변수 */
+  --chrome-face:   #ffffff;
+  --chrome-shadow: #d8c3e8;
+  --chrome-hi:     #ffffff;
+  --chrome-border: #d8c3e8;
+  --title-grad:    linear-gradient(90deg, #ff8fcf 0%, #c79bff 60%, #9fc8ff 100%);
+  --pink:          #ff6fb5;
+  --hot-pink:      #ff4d88;
+  --lavender:      #e0ccff;
+  --pane:          #fdf0f8;
+}
+
+body[data-art="modern"] {
+  font-family: "Gowun Dodum", system-ui, sans-serif;
+  background: #fce8f5;
+}
+
+body[data-art="modern"]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 15% 10%, #ffe0f4 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 25%, #ddc8ff 0%, transparent 50%),
+    linear-gradient(180deg, #fce8f5 0%, #f1e3fa 100%);
+  transform: translateZ(0);
+}
+
+/* 버튼 */
+body[data-art="modern"] .btn {
+  border: 1.5px solid #d8c3e8;
+  border-radius: 14px;
+  box-shadow: 0 2px 0 #d8c3e8;
+  font-family: "Gowun Dodum", system-ui, sans-serif;
+}
+body[data-art="modern"] .btn.primary {
+  background: linear-gradient(180deg, #ffa8da, #ff6fb5);
+  border-color: #ff6fb5;
+  box-shadow: 0 3px 0 #d44e8e;
+  color: #fff;
+}
+
+/* 인풋 */
+body[data-art="modern"] .field {
+  border: 1.5px solid #e6d2ee;
+  border-radius: 10px;
+  font-family: "Gowun Dodum", system-ui, sans-serif;
+}
+
+/* 버블 */
+body[data-art="modern"] .bubble {
+  border-radius: 14px 14px 14px 2px;
+  border: 1.5px solid #ecdcf3;
+  box-shadow: 0 1px 0 #ecdcf3;
+}
+body[data-art="modern"] .seq-block.seq-right .bubble {
+  border-radius: 14px 14px 2px 14px;
+}

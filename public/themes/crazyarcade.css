@@ -1,0 +1,483 @@
+/* ─── Crazy Arcade Theme ──────────────────────────────────────────────────
+   data-art="crazyarcade" 으로 활성화
+   컨셉: 크레이지 아케이드·물풍선·아케이드 팝
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="crazyarcade"] {
+
+  /* ── 배경 ── */
+  --bg-1: #1a1a2e;
+  --bg-2: #0044cc;
+  --bg-3: #002266;
+
+  /* ── 텍스트 ── */
+  --ink:      #000000;
+  --ink-soft: #333333;
+
+  /* ── 콘텐츠 배경 ── */
+  --paper:   #0066ff;   /* 물빛 파란색 베이스 */
+  --paper-2: #0044cc;   /* 진한 물빛 */
+
+  /* ── 액센트 컬러 ── */
+  --pink:      #ff3366;   /* 크아 빨강 */
+  --hot-pink:  #ff3366;
+  --purple:    #6600cc;
+  --lavender:  #2ae0ff;   /* 밝은 물색 */
+  --mint:      #2ae0ff;
+  --lemon:     #ffcc00;   /* 크아 노랑 (CTA) */
+  --sky:       #2ae0ff;
+  --accent:    #ffcc00;   /* 버튼 기본색 */
+
+  /* ── 창 프레임 (chrome) ── */
+  --chrome-face:   #0066ff;
+  --chrome-shadow: #002266;
+  --chrome-hi:     #2ae0ff;
+  --chrome-border: #000000;
+  --title-grad:    linear-gradient(180deg, #ffdd33 0%, #ffaa00 100%);
+
+  /* ── 폰트 ── */
+  --font-pixel: 'Galmuri11', 'DotGothic16', 'Courier New', monospace;
+  --font-title: 'Galmuri11', 'DotGothic16', 'Courier New', monospace;
+  --font-body:  'Galmuri11', 'DotGothic16', 'Courier New', monospace;
+  --font-mono:  'Courier New', monospace;
+
+  /* ── 레이아웃 ── */
+  --radius:      15px;
+  --shadow-step: 5px;
+  --hairline:    4px;
+}
+
+/* ─── 배경 ─────────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] {
+  background: #1a1a2e;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .shell {
+  background: linear-gradient(180deg, #2ae0ff 0%, #0066ff 100%);
+  border: 6px solid #000000;
+  border-radius: 40px;
+  box-shadow: 0 20px 0 #002266, 0 30px 20px rgba(0,0,0,0.4);
+}
+
+body[data-art="crazyarcade"] .shell-body {
+  background: linear-gradient(180deg, #1a88ff 0%, #0055dd 100%);
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 2px, transparent 2px),
+    linear-gradient(180deg, #1a88ff 0%, #0055dd 100%);
+  background-size: 20px 20px, 20px 20px, 100% 100%;
+}
+
+body[data-art="crazyarcade"] .shell-title {
+  background: #ffcc00;
+  color: #000000;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 2px 2px 0 #ffffff;
+  -webkit-text-stroke: 0.5px #000;
+  letter-spacing: 0.05em;
+  border-bottom: 5px solid #000000;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .win {
+  background: #0055ee;
+  border: 4px solid #000000;
+  border-radius: 20px;
+  box-shadow: 0 6px 0 #002266, 4px 10px 16px rgba(0,0,0,0.3);
+}
+
+body[data-art="crazyarcade"] .win-title {
+  background: #ffcc00;
+  color: #000000;
+  font-size: 14px;
+  font-weight: 700;
+  text-shadow: 2px 2px 0 #ffffff;
+  border-bottom: 4px solid #000000;
+  border-radius: 16px 16px 0 0;
+  letter-spacing: 0.04em;
+}
+
+body[data-art="crazyarcade"] .win-controls button {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #000000;
+  border-radius: 50%;
+  box-shadow: 2px 2px 0 #000;
+  font-size: 0;
+}
+body[data-art="crazyarcade"] .win-controls button:nth-child(1) { background: #ff3366; }
+body[data-art="crazyarcade"] .win-controls button:nth-child(2) { background: #ffcc00; }
+body[data-art="crazyarcade"] .win-controls button:nth-child(3) { background: #33cc66; }
+
+body[data-art="crazyarcade"] .win-body {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+  border-radius: 0 0 16px 16px;
+  color: #ffffff;
+}
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .btn {
+  background: var(--lemon);
+  color: #000000;
+  border: 4px solid #000000;
+  border-radius: 15px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 5px 0 #000000;
+  position: relative;
+  transition: margin-top 0.08s, box-shadow 0.08s;
+  text-shadow: none;
+  letter-spacing: 0.03em;
+}
+
+body[data-art="crazyarcade"] .btn:active {
+  margin-top: 5px;
+  box-shadow: none;
+  transform: none;
+}
+
+body[data-art="crazyarcade"] .btn.primary {
+  background: var(--lemon);
+  color: #000000;
+  border-color: #000000;
+}
+
+body[data-art="crazyarcade"] .btn.ghost {
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+  border: 3px solid rgba(255,255,255,0.4);
+  box-shadow: none;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+}
+body[data-art="crazyarcade"] .btn.ghost:hover { background: rgba(255,255,255,0.25); }
+
+body[data-art="crazyarcade"] .btn.danger {
+  background: transparent;
+  color: #ff6688;
+  border-color: #ff6688;
+  box-shadow: 0 4px 0 rgba(255,51,102,0.4);
+  text-shadow: none;
+}
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .field {
+  background: #ffffff;
+  color: #000000;
+  border: 4px solid #000000;
+  border-radius: 12px;
+  font-size: 14px;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+  transition: all 0.1s;
+}
+
+body[data-art="crazyarcade"] .field:focus {
+  background: #ffffcc;
+  border-color: #000000;
+  box-shadow: 4px 4px 0 #ffcc00;
+  outline: none;
+}
+
+body[data-art="crazyarcade"] .label {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  text-shadow: 2px 2px 0 #000000;
+  letter-spacing: 0.05em;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .chatlog {
+  background: rgba(0,20,100,0.4);
+  border: 4px solid #000000;
+  border-radius: 15px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+  font-size: 13px;
+  color: #ffffff;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 2px, transparent 2px);
+  background-size: 20px 20px;
+}
+
+/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .bubble {
+  background: #ffffff;
+  color: #000000;
+  border: 3px solid #000000;
+  border-radius: 15px;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+body[data-art="crazyarcade"] .seq-block.seq-right .bubble {
+  background: #ffcc00;
+  color: #000000;
+  border-color: #000000;
+  box-shadow: -3px 3px 0 rgba(0,0,0,0.25);
+}
+
+body[data-art="crazyarcade"] .bubble-char    { background: rgba(255,255,255,0.92) !important; border-color: #2ae0ff !important; color: #000 !important; }
+body[data-art="crazyarcade"] .bubble-third   { background: rgba(255,255,255,0.92) !important; border-color: #33cc66 !important; color: #000 !important; }
+body[data-art="crazyarcade"] .bubble-persona { background: #ffcc00 !important; border-color: #000 !important; color: #000 !important; }
+
+body[data-art="crazyarcade"] .msg .who { color: #2ae0ff; text-shadow: 1px 1px 0 #000; }
+body[data-art="crazyarcade"] .seq-speaker { color: #2ae0ff; text-shadow: 1px 1px 0 rgba(0,0,0,0.4); }
+
+/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .composer {
+  background: rgba(0,20,80,0.6);
+  border: 4px solid #000000;
+  border-radius: 15px;
+  box-shadow: none;
+}
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .dock {
+  background: #0044cc;
+  border-top: 5px solid #000000;
+  box-shadow: 0 -4px 0 #002266;
+}
+
+body[data-art="crazyarcade"] .dock .start {
+  background: #ff3366;
+  color: #ffffff;
+  border: 4px solid #000000;
+  border-radius: 12px;
+  box-shadow: 0 4px 0 #000000;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 #000;
+  letter-spacing: 0.04em;
+}
+
+body[data-art="crazyarcade"] .dock .start.active {
+  margin-top: 4px;
+  box-shadow: none;
+}
+
+body[data-art="crazyarcade"] .dock .clock {
+  background: rgba(0,0,0,0.3);
+  border: 2px solid #2ae0ff;
+  border-radius: 8px;
+  color: #2ae0ff;
+  font-family: var(--font-mono);
+  text-shadow: 0 0 6px #2ae0ff;
+}
+
+body[data-art="crazyarcade"] .dock-tab {
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+  border: 3px solid #000000;
+  border-radius: 12px;
+  box-shadow: 0 3px 0 #000000;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
+}
+
+body[data-art="crazyarcade"] .dock-tab.active {
+  background: #ffcc00;
+  color: #000000;
+  text-shadow: none;
+  box-shadow: inset 0 3px 0 rgba(0,0,0,0.15);
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .start-menu {
+  background: #0055ee;
+  border: 4px solid #000000;
+  border-radius: 15px;
+  box-shadow: 0 8px 0 #002266, 4px 12px 20px rgba(0,0,0,0.4);
+}
+
+body[data-art="crazyarcade"] .start-menu-item { color: #ffffff; font-weight: 700; border-radius: 10px; }
+body[data-art="crazyarcade"] .start-menu-item:hover { background: rgba(255,204,0,0.2); color: #ffcc00; }
+body[data-art="crazyarcade"] .start-menu-item.danger { color: #ff6688; }
+body[data-art="crazyarcade"] .start-menu-item.danger:hover { background: rgba(255,51,102,0.15); }
+body[data-art="crazyarcade"] .start-menu-divider { background: rgba(255,255,255,0.15); }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .row {
+  background: rgba(255,255,255,0.12);
+  border: 3px solid #000000;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+  color: #ffffff;
+}
+
+body[data-art="crazyarcade"] .row:hover { background: rgba(255,255,255,0.2); }
+body[data-art="crazyarcade"] .row .meta h4 { color: #ffffff; }
+body[data-art="crazyarcade"] .row .meta p { color: #2ae0ff; }
+body[data-art="crazyarcade"] .row .thumb {
+  border: 3px solid #000000;
+  border-radius: 10px;
+  box-shadow: 2px 2px 0 #002266;
+}
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .char-card {
+  background: rgba(255,255,255,0.12);
+  border: 4px solid #000000;
+  border-radius: 20px;
+  box-shadow: 0 6px 0 #002266, 4px 10px 14px rgba(0,0,0,0.25);
+  color: #ffffff;
+}
+
+body[data-art="crazyarcade"] .char-card h4 { color: #ffffff; text-shadow: 1px 1px 0 rgba(0,0,0,0.4); }
+body[data-art="crazyarcade"] .char-card p { color: #2ae0ff; }
+
+body[data-art="crazyarcade"] .char-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 #002266, 4px 14px 18px rgba(0,0,0,0.3);
+}
+
+body[data-art="crazyarcade"] .char-card.selected {
+  outline: 3px dashed #ffcc00;
+  outline-offset: 2px;
+  background: rgba(255,204,0,0.15);
+}
+
+body[data-art="crazyarcade"] .char-card .pic-wrap {
+  background: rgba(0,0,0,0.3);
+  border: 3px solid #000000;
+  border-radius: 12px;
+  box-shadow: inset 0 0 12px rgba(42,224,255,0.3);
+}
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .side-panel {
+  background: rgba(0,20,100,0.5);
+  border: 4px solid #000000;
+  border-radius: 15px;
+  color: #ffffff;
+  box-shadow: 0 6px 0 #002266;
+}
+
+body[data-art="crazyarcade"] .side-panel-header { border-color: rgba(42,224,255,0.3); color: #2ae0ff; }
+body[data-art="crazyarcade"] .side-section { border-color: rgba(255,255,255,0.08); }
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .chat-header {
+  background: rgba(0,20,80,0.5);
+  border: 3px solid #000000;
+  border-radius: 12px;
+  color: #ffffff;
+}
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .tag {
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+  border: 2px solid rgba(42,224,255,0.5);
+  border-radius: 20px;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .msg-action-btn {
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+  color: #2ae0ff;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+}
+
+body[data-art="crazyarcade"] .msg-action-btn:hover {
+  color: #ffcc00;
+  border-color: #ffcc00;
+  background: rgba(255,204,0,0.15);
+}
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .ai-pill {
+  background: rgba(255,255,255,0.15);
+  color: #2ae0ff;
+  border: 3px solid #000000;
+  border-radius: 12px;
+  box-shadow: 0 3px 0 #000000;
+  font-weight: 700;
+}
+
+body[data-art="crazyarcade"] .ai-dropdown {
+  background: #0044cc;
+  border: 4px solid #000000;
+  border-radius: 15px;
+  box-shadow: 0 8px 0 #002266, 4px 12px 20px rgba(0,0,0,0.4);
+}
+
+body[data-art="crazyarcade"] .ai-dropdown-item { color: #ffffff; font-weight: 700; border-radius: 10px; }
+body[data-art="crazyarcade"] .ai-dropdown-item:hover { background: rgba(255,204,0,0.2); color: #ffcc00; }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .form-section {
+  background: rgba(0,20,100,0.4);
+  border: 4px solid #000000;
+  border-radius: 15px;
+  box-shadow: 0 5px 0 #002266;
+  color: #ffffff;
+}
+
+body[data-art="crazyarcade"] .form-section-title { color: #2ae0ff; text-shadow: 1px 1px 0 rgba(0,0,0,0.4); }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .persona-option,
+body[data-art="crazyarcade"] .ai-model-option {
+  background: rgba(255,255,255,0.1);
+  border: 3px solid #000000;
+  border-radius: 14px;
+  color: #ffffff;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+}
+
+body[data-art="crazyarcade"] .persona-option:hover,
+body[data-art="crazyarcade"] .ai-model-option:hover:not(.disabled) {
+  background: rgba(255,255,255,0.18);
+}
+
+body[data-art="crazyarcade"] .persona-option.selected,
+body[data-art="crazyarcade"] .ai-model-option.selected {
+  outline: 3px dashed #ffcc00;
+  background: rgba(255,204,0,0.15);
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .chatlog::-webkit-scrollbar,
+body[data-art="crazyarcade"] .char-grid::-webkit-scrollbar { width: 10px; }
+
+body[data-art="crazyarcade"] .chatlog::-webkit-scrollbar-track,
+body[data-art="crazyarcade"] .char-grid::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.3);
+  border-radius: 5px;
+}
+
+body[data-art="crazyarcade"] .chatlog::-webkit-scrollbar-thumb,
+body[data-art="crazyarcade"] .char-grid::-webkit-scrollbar-thumb {
+  background: #2ae0ff;
+  border: 2px solid rgba(0,0,0,0.4);
+  border-radius: 5px;
+  box-shadow: 0 0 6px rgba(42,224,255,0.5);
+}
+
+/* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
+body[data-art="crazyarcade"] .login-screen { color: #ffffff; }
+body[data-art="crazyarcade"] .login-title {
+  background: linear-gradient(90deg, #ffcc00, #ff9900);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
+}
+body[data-art="crazyarcade"] .login-card {
+  background: rgba(0,20,100,0.6);
+  border: 4px solid #000000;
+  border-radius: 20px;
+  box-shadow: 0 8px 0 #002266;
+}
