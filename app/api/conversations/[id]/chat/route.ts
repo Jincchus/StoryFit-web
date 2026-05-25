@@ -98,7 +98,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
     const last = acc[acc.length - 1]
-    if (last && last.role === role && role === 'user') {
+    if (last && last.role === role) {
       last.parts[0].text += '\n\n' + m.content
     } else {
       acc.push({ role, parts: [{ text: m.content }] })
@@ -218,7 +218,7 @@ function buildGeminiHistory(
   const result: Array<{ role: 'user' | 'model'; parts: [{ text: string }] }> = []
   for (const m of messages) {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
-    if (result.length > 0 && result[result.length - 1].role === 'model' && role === 'model') {
+    if (result.length > 0 && result[result.length - 1].role === role) {
       result[result.length - 1].parts[0].text += '\n\n' + m.content
     } else {
       result.push({ role, parts: [{ text: m.content }] })

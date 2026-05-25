@@ -70,10 +70,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       ? buildStorySystemPrompt(promptParams)
       : buildSystemPrompt(promptParams)
 
-  const history = historyMsgs.slice(-15).map(m => ({
-    role: m.role === 'user' ? 'user' as const : 'model' as const,
-    parts: [{ text: m.content }] as [{ text: string }],
-  }))
+  const history = historyMsgs.slice(-15).reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
+    const role = m.role === 'user' ? 'user' as const : 'model' as const
+    const last = acc[acc.length - 1]
+    if (last && last.role === role) {
+      last.parts[0].text += '\n\n' + m.content
+    } else {
+      acc.push({ role, parts: [{ text: m.content }] })
+    }
+    return acc
+  }, [])
 
   const newMsg = await prisma.message.create({
     data: {

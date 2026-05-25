@@ -96,7 +96,7 @@ export function buildSystemPrompt({
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
-  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.`)
+  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.\n⚠️ 절대 금지: 이전 대화 내역(History)에 이미 존재하고 진행된 대사, 행동, 상황 묘사를 다시 처음부터 작성하거나 똑같이 반복해서 출력하지 마세요. 오직 가장 최근 메시지(이전 대화의 마지막 시점)에 자연스럽게 이어지는 새로운 내용만을 작성해야 합니다. 이미 지나간 장면이나 대화를 복사하듯 재출력하는 것을 강력히 금지합니다.`)
 
   return parts.join('\n\n---\n\n')
 }
@@ -138,7 +138,7 @@ export function buildNovelSystemPrompt({
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
-  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.`)
+  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.\n⚠️ 절대 금지: 이전 대화 내역(History)에 이미 존재하고 진행된 대사, 행동, 상황 묘사를 다시 처음부터 작성하거나 똑같이 반복해서 출력하지 마세요. 오직 가장 최근 메시지(이전 대화의 마지막 시점)에 자연스럽게 이어지는 새로운 내용만을 작성해야 합니다. 이미 지나간 장면이나 대화를 복사하듯 재출력하는 것을 강력히 금지합니다.`)
 
   return parts.join('\n\n---\n\n')
 }
@@ -203,7 +203,7 @@ export function buildStorySystemPrompt({
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
-  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.`)
+  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.\n⚠️ 절대 금지: 이전 대화 내역(History)에 이미 존재하고 진행된 대사, 행동, 상황 묘사를 다시 처음부터 작성하거나 똑같이 반복해서 출력하지 마세요. 오직 가장 최근 메시지(이전 대화의 마지막 시점)에 자연스럽게 이어지는 새로운 내용만을 작성해야 합니다. 이미 지나간 장면이나 대화를 복사하듯 재출력하는 것을 강력히 금지합니다.`)
 
   return parts.join('\n\n---\n\n')
 }

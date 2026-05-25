@@ -742,9 +742,7 @@ export default function ChatPage() {
                               }}>→</button>
                           </div>
                         )}
-                        {isYou && (
-                          <button className="msg-action-btn" onClick={() => startEdit(m.id)}>✏ 편집</button>
-                        )}
+                        <button className="msg-action-btn" onClick={() => startEdit(m.id)}>✏ 편집</button>
                         <button className="msg-action-btn danger" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
                       </div>
                     )}
