@@ -1,385 +1,939 @@
-/* ─── Windows 95 Theme ────────────────────────────────────────────────────
-   data-art="win95" 으로 활성화
-   기존 retro/modern 변수명을 그대로 사용하므로 globals.css 클래스와 호환됨
-──────────────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=VT323&display=swap');
 
-body[data-art="win95"] {
+/* ─── Kitsch RP — Windows 95 grey edition ───────────────────────────────── */
+:root{
+  /* Classic Win95 grays */
+  --gray:        #c0c0c0;
+  --gray-face:   #c0c0c0;
+  --gray-light:  #dfdfdf;
+  --gray-hi:     #ffffff;
+  --gray-shadow: #808080;
+  --gray-dark:   #000000;
 
-  /* ── 배경 ── */
-  --bg-1: #008080;
-  --bg-2: #008080;
-  --bg-3: #008080;
+  /* Title / accents */
+  --navy:        #000080;
+  --navy-2:      #1084d0;
+  --teal:        #008080;
+  --dim-teal:    #5a8a8a;
 
-  /* ── 텍스트 ── */
-  --ink:       #000000;
-  --ink-soft:  #404040;
+  /* Chat bubbles */
+  --bubble-other:#d6e2f6;
+  --bubble-you:  #b7c8e6;
+  --bubble-line: #4f6896;
 
-  /* ── 콘텐츠 배경 ── */
-  --paper:   #ffffff;
-  --paper-2: #f1f1f1;
+  /* Status colors */
+  --ink:         #000;
+  --ink-soft:    #2b2b2b;
+  --link:        #0000a0;
+  --selected:    #000080;
 
-  /* ── 액센트 컬러 (프로젝트 컬러 시스템 유지, Win95 톤으로 조정) ── */
-  --pink:      #c0c0c0;   /* 기능 없음, 중성 회색으로 폴백 */
-  --hot-pink:  #000080;   /* CTA 액션 → 네이비 블루 */
-  --purple:    #000080;
-  --lavender:  #d0d0d0;
-  --mint:      #00ffff;
-  --lemon:     #ffff80;
-  --sky:       #0000ff;
-  --accent:    #000080;   /* 버튼·하이라이트 기본색 */
+  /* Type */
+  --font-pixel:  "Galmuri11", "DotGothic16", "Tahoma", monospace;
+  --font-body:   "Galmuri11", "DotGothic16", "Tahoma", system-ui, sans-serif;
+  --font-mono:   "VT323", "Galmuri11", monospace;
+  --font-title:  "Galmuri11", "Tahoma", sans-serif;
 
-  /* ── 창 프레임 (chrome) ── */
-  --chrome-face:   #c0c0c0;   /* 클래식 Windows 회색 */
-  --chrome-shadow: #808080;   /* 어두운 inset 가장자리 */
-  --chrome-hi:     #ffffff;   /* 밝은 outset 가장자리 */
-  --chrome-border: #000000;   /* 테두리 */
-  --title-grad:    linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  --radius: 0px;
 
-  /* ── 폰트 ── */
-  --font-pixel: 'MS Sans Serif', 'Dotum', '돋움', sans-serif;
-  --font-title: 'MS Sans Serif', 'Dotum', '돋움', sans-serif;
-  --font-body:  'MS Sans Serif', 'Dotum', '돋움', sans-serif;
-  --font-mono:  'Courier New', monospace;
-
-  /* ── 레이아웃 ── */
-  --radius:      0px;
-  --shadow-step: 0px;
-  --hairline:    2px;
+  /* Fallback aliases for project-specific classes */
+  --bg-2: var(--gray-light);
+  --paper: #fff;
+  --line: var(--gray-dark);
+  --hairline: var(--gray-shadow);
+  --accent: var(--navy);
+  --red: #cc0000;
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+  --green: #00aa00;
 }
 
-/* ─── 배경 ─────────────────────────────────────────────────────────────── */
-body[data-art="win95"] {
-  background: #008080;
-  font-size: 14px;
+/* Modern variant = same chrome, slightly softer borders */
+body[data-art="modern"]{
+  --radius: 6px;
+  --gray-face: #ececec;
+  --gray-light: #f4f4f4;
+  --radius-sm: 4px;
+  --radius-lg: 8px;
+}
+
+/* Palettes — change desktop wallpaper color (classic Win9x options) */
+body[data-palette="teal"]   { --teal: #008080 }
+body[data-palette="purple"] { --teal: #4a3e7a }
+body[data-palette="maroon"] { --teal: #803a3c }
+body[data-palette="olive"]  { --teal: #888a3a }
+
+/* ─── Page ───────────────────────────────────────────────────────────────── */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden}
+body{
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--teal);
   letter-spacing: 0;
+  word-break: keep-all;
+  font-size: 13px;
+  image-rendering: pixelated;
 }
 
-/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
-body[data-art="win95"] .shell {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 1px 1px 0 var(--chrome-border);
+/* desktop wallpaper: subtle checker + classic teal */
+#desktop-bg{
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(0deg,  rgba(255,255,255,.04) 0 1px, transparent 1px 2px),
+    var(--teal);
 }
 
-body[data-art="win95"] .shell-body {
-  background: var(--chrome-face);
-  background-image: none;
+#stars{position:fixed; inset:0; pointer-events:none; z-index:1; overflow:hidden}
+.star{position:absolute; width:6px;height:6px; image-rendering:pixelated;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6' shape-rendering='crispEdges'><rect x='2' y='0' width='2' height='6' fill='%23ffffff'/><rect x='0' y='2' width='6' height='2' fill='%23ffffff'/></svg>");
+  background-size:contain; background-repeat:no-repeat;
+  animation: twinkle 1.4s steps(2) infinite;
+  opacity:.45;
+}
+@keyframes twinkle{ 0%{opacity:.55} 50%{opacity:.15} 100%{opacity:.55} }
+
+#cursor-trail{position:fixed; inset:0; pointer-events:none; z-index:2}
+
+/* ─── 3D bevels (Win95 canonical) ───────────────────────────────────────── */
+.bevel-out{
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow),
+    inset  2px  2px 0 var(--gray-light),
+    inset -2px -2px 0 var(--gray-dark);
+}
+.bevel-in{
+  background: #fff;
+  border: 1px solid var(--gray-dark);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi),
+    inset  2px  2px 0 var(--gray-dark),
+    inset -2px -2px 0 var(--gray-light);
+}
+.bevel-thin{
+  border: 1px solid var(--gray-hi);
+  border-right-color: var(--gray-shadow);
+  border-bottom-color: var(--gray-shadow);
 }
 
-body[data-art="win95"] .shell-title {
+/* ─── Window-chrome primitives ─────────────────────────────────────────── */
+.win{
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow),
+    inset  2px  2px 0 var(--gray-light),
+    inset -2px -2px 0 var(--gray-dark);
+  border-radius: var(--radius);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 3px;
+}
+body[data-art="modern"] .win{
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9) inset,
+    0 8px 24px rgba(0,0,0,.15);
+  border-color: #b5b5b5;
+}
+
+.win-title{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 2px 3px 2px 4px;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: #fff;
+  font-family: var(--font-title);
   font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0;
   text-shadow: none;
-  color: #ffffff;
+  user-select: none;
+  flex-shrink: 0;
+  height: 20px;
 }
-
-/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
-body[data-art="win95"] .win {
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 1px 1px 0 var(--chrome-border);
+body[data-art="modern"] .win-title{
+  font-size: 13px; height: 24px;
 }
+.win-title-l{display:flex; align-items:center; gap:4px; min-width:0; line-height:1}
+.win-title-l .icn{width:14px;height:14px; flex-shrink:0; image-rendering:pixelated}
+.win-title-l span{overflow:hidden;text-overflow:ellipsis; white-space:nowrap}
 
-body[data-art="win95"] .win-title {
-  font-size: 12px;
-  padding: 3px 6px;
-  letter-spacing: 0;
-  text-shadow: none;
+.win-controls{display:flex; gap:2px; flex-shrink:0}
+.win-controls button{
+  appearance:none;
+  width:18px; height:16px;
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow);
+  font: 700 11px/1 var(--font-title);
+  color: var(--ink);
+  cursor: pointer;
+  padding:0;
+  display:grid; place-items:center;
 }
-
-body[data-art="win95"] .win-controls button {
-  width: 16px;
-  height: 14px;
-  font-size: 10px;
-  border: 1.5px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 1px 1px 0 var(--chrome-border);
+.win-controls button:active{
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
 }
+body[data-art="modern"] .win-controls button{
+  width:14px; height:14px; border-radius:50%;
+  border: 1px solid rgba(0,0,0,.2);
+  box-shadow: none; font-size: 0;
+}
+body[data-art="modern"] .win-controls button:nth-child(1){background:#ffbd44}
+body[data-art="modern"] .win-controls button:nth-child(2){background:#00ca56}
+body[data-art="modern"] .win-controls button:nth-child(3){background:#ff5f57}
 
-body[data-art="win95"] .win-body {
-  margin: 3px;
+.win-body{
   padding: 6px;
-  border: 2px solid;
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-  box-shadow: none;
+  margin-top: 3px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--gray-face);
 }
 
-/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
-body[data-art="win95"] .btn {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 1px 1px 0 var(--chrome-border);
+/* Optional menu bar under titlebar */
+.menubar{
+  display:flex; gap: 2px;
+  padding: 1px 2px;
+  background: var(--gray-face);
   font-size: 12px;
-  padding: 4px 12px;
+  font-family: var(--font-title);
+  border-bottom: 1px solid var(--gray-shadow);
+}
+.menubar .mi{padding: 2px 8px; cursor:default; user-select:none}
+.menubar .mi:hover{background: var(--selected); color:#fff}
+.menubar .mi u{text-decoration: underline}
+
+/* ─── Buttons ───────────────────────────────────────────────────────────── */
+.btn{
+  appearance:none;
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  padding: 4px 14px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  letter-spacing: 0;
+  position: relative;
+  min-height: 23px;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow),
+    inset  2px  2px 0 var(--gray-light),
+    inset -2px -2px 0 var(--gray-dark);
   transition: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+}
+body[data-art="modern"] .btn{
+  border-color: #b5b5b5;
+  box-shadow:
+    inset 1px 1px 0 var(--gray-hi),
+    inset -1px -1px 0 #999;
+}
+.btn:hover{background: var(--gray-light)}
+.btn:active, .btn.active{
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi),
+    inset  2px  2px 0 var(--gray-dark),
+    inset -2px -2px 0 var(--gray-light);
+  padding: 5px 13px 3px 15px;
+}
+.btn:focus-visible{outline: 1px dotted var(--ink); outline-offset: -4px}
+.btn:disabled{color: var(--gray-shadow); text-shadow: 1px 1px 0 var(--gray-hi); cursor: default}
+.btn:disabled:hover{background: var(--gray-face)}
+
+.btn.primary{ font-weight: 700 }
+.btn.primary:not(:disabled)::after{
+  content:""; position:absolute; inset:3px; border: 1px dotted var(--ink); pointer-events:none;
 }
 
-body[data-art="win95"] .btn:active {
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-  box-shadow: none;
-  transform: none;
-  padding: 5px 11px 3px 13px;
-}
-
-body[data-art="win95"] .btn.primary {
-  background: var(--chrome-face);
-  color: var(--ink);
-  text-shadow: none;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-}
-
-body[data-art="win95"] .btn.ghost {
+.btn.ghost{
   background: transparent;
-  border: none;
+  border-color: transparent;
   box-shadow: none;
+  min-height: 0;
+  padding: 2px 8px;
 }
+.btn.ghost:hover{background: var(--gray-light); border:1px solid var(--gray-shadow); padding: 1px 7px}
 
-body[data-art="win95"] .btn.danger {
+/* ─── Inputs ─────────────────────────────────────────────────────────────── */
+.field{
+  font-family: var(--font-body);
+  font-size: 13px;
   color: var(--ink);
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
+  background: #fff;
+  border: 1px solid var(--gray-dark);
+  padding: 3px 5px;
+  width: 100%;
+  border-radius: var(--radius);
+  outline: none;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi),
+    inset  2px  2px 0 var(--gray-dark),
+    inset -2px -2px 0 var(--gray-light);
+}
+body[data-art="modern"] .field{
+  border: 1px solid #b5b5b5;
+  box-shadow: inset 1px 1px 0 #d0d0d0;
+}
+.field:focus{outline: 1px dotted var(--ink); outline-offset: -3px}
+textarea.field{resize:none; min-height: 64px; font-family: var(--font-body); line-height: 1.4; padding: 4px 6px; field-sizing: content; max-height: 120px; overflow: auto;}
+
+.label{
+  display:block;
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 400;
+  margin-bottom: 3px;
+  color: var(--ink);
+}
+.label u{text-decoration: underline}
+
+select.field{
+  appearance:none;
+  background:
+    linear-gradient(var(--gray-face), var(--gray-face)) right 0 top 0 / 18px 100% no-repeat,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'><path fill='%23000' d='M0 0h8L4 5z'/></svg>") right 5px center / 8px no-repeat,
+    #fff;
+  padding-right: 22px;
+  height: 22px;
+  padding-top: 2px; padding-bottom: 2px;
 }
 
-/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
-body[data-art="win95"] .field {
-  border: 2px solid;
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-  background: var(--paper);
-  font-size: 13px;
+/* ─── Tabs (Win95 property-sheet style) ─────────────────────────────────── */
+.tabs{
+  display:flex; gap:0; padding: 0; margin-top:0;
+  position:relative; z-index:1; padding-top: 4px;
+}
+.tab{
+  font-family: var(--font-title); font-size: 12px; font-weight: 400;
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  border-bottom: none;
+  padding: 3px 12px 2px;
+  cursor:default;
+  position:relative;
+  top:0;
+  margin-right: 2px;
+  border-radius: 3px 3px 0 0;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px 0 0 var(--gray-shadow);
+}
+.tab.active{
+  background: var(--gray-face);
+  z-index:2;
+  padding: 4px 14px 4px;
+  margin-bottom: -1px;
+  font-weight: 700;
+}
+.tab:not(.active){
+  top: 2px;
+  background: var(--gray-light);
 }
 
-body[data-art="win95"] .field:focus {
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+/* ─── Conversation list rows ────────────────────────────────────────────── */
+.row{
+  display:flex; align-items:center; gap:8px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid var(--gray-dark);
+  border-radius: var(--radius);
+  cursor: default;
+  position:relative;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+}
+body[data-art="modern"] .row{
+  border-color: #b5b5b5;
   box-shadow: none;
-  outline: 1px dotted var(--ink);
-  outline-offset: -3px;
 }
-
-/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
-body[data-art="win95"] .chatlog {
-  background: var(--paper);
-  border: 2px solid;
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-  box-shadow: none;
-  font-size: 13px;
-}
-
-/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
-body[data-art="win95"] .bubble {
-  background: var(--paper);
-  border: 1px solid var(--chrome-border);
-  box-shadow: none;
+.row:hover{background: #ffffe1}
+.row + .row{margin-top: 4px}
+.row .thumb{
+  width:38px; height:38px; flex-shrink:0;
+  background: var(--gray-light);
+  border: 1px solid var(--gray-dark);
+  display:grid; place-items:center;
+  image-rendering: pixelated;
+  overflow:hidden;
   border-radius: 0;
-  font-size: 13px;
+  padding: 0;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
 }
-
-body[data-art="win95"] .seq-block.seq-right .bubble {
-  background: #d6e2f0;
-  border-color: #000080;
+.row .thumb > *{ background: transparent; border-radius: 0; padding: 0; }
+.row .meta{flex:1; min-width:0}
+.row .meta h4{margin:0; font-size: 13px; font-weight:700; color: var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.row .meta p{margin:1px 0 0; font-size: 12px; color: var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.row .badge{
+  font-size: 10px; font-weight:400; padding: 1px 5px;
+  background: #ffff80; border: 1px solid var(--gray-dark);
+  border-radius: 0; white-space:nowrap;
 }
+.row .when{font-size:11px; color: var(--ink-soft); white-space:nowrap; font-family: var(--font-mono); font-size: 13px}
 
-body[data-art="win95"] .bubble-char    { background: #f1f1f1 !important; border-color: #808080 !important; }
-body[data-art="win95"] .bubble-third   { background: #f1fff1 !important; border-color: #808080 !important; }
-body[data-art="win95"] .bubble-persona { background: #d6e2f0 !important; border-color: #000080 !important; }
-
-/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
-body[data-art="win95"] .composer {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: none;
-}
-
-/* ─── 독(Dock / 작업표시줄) ─────────────────────────────────────────────── */
-body[data-art="win95"] .dock {
-  background: var(--chrome-face);
-  border-top: 2px solid;
-  border-color: var(--chrome-hi) transparent transparent transparent;
-  box-shadow: none;
-}
-
-body[data-art="win95"] .dock .start {
-  background: var(--chrome-face);
+/* ─── Status bar ────────────────────────────────────────────────────────── */
+.statusbar{
+  display:flex; align-items:center; gap:6px;
+  font-family: var(--font-body); font-size: 11px;
+  padding: 2px 4px;
+  background: var(--gray-face);
   color: var(--ink);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 1px 1px 0 var(--chrome-border);
-  text-shadow: none;
+}
+.statusbar > *{
+  padding: 1px 6px;
+  border: 1px solid var(--gray-shadow);
+  box-shadow: inset 1px 1px 0 var(--gray-shadow), inset -1px -1px 0 var(--gray-hi);
+  background: var(--gray-face);
+}
+
+/* ─── Bottom dock (taskbar) ─────────────────────────────────────────────── */
+.dock{
+  position: relative;
+  display:flex; align-items:center; gap: 3px;
+  padding: 2px 3px;
+  background: var(--gray-face);
+  border-top: 1px solid var(--gray-hi);
+  flex-shrink:0;
+  box-shadow: 0 -1px 0 var(--gray-shadow) inset;
+}
+.dock .start{
+  display:flex; align-items:center; gap:5px;
+  padding: 3px 6px 3px 4px;
+  background: var(--gray-face);
+  color: var(--ink);
+  border: 1px solid var(--gray-dark);
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  cursor:pointer;
+  border-radius: 0;
+  letter-spacing: 0;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow),
+    inset  2px  2px 0 var(--gray-light),
+    inset -2px -2px 0 var(--gray-dark);
+  height: 22px;
+}
+.dock .start:active{
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+}
+.dock .clock{
+  margin-left:auto;
+  padding: 2px 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  background: var(--gray-face);
+  border: 1px solid var(--gray-shadow);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+  color: var(--ink);
+  border-radius: 0;
+  height: 22px;
+  display: flex; align-items: center;
+}
+.dock .tray{
+  display:flex; gap:6px; align-items:center;
+  padding: 0 6px;
+  font-size: 14px;
+  height: 22px;
+  border: 1px solid var(--gray-shadow);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+  background: var(--gray-face);
+}
+
+.dock-tab{
+  font-family: var(--font-title); font-size: 12px; font-weight: 400;
+  padding: 2px 10px;
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  color: var(--ink);
+  border-radius: 0;
+  cursor: default;
+  white-space:nowrap;
+  flex-shrink:0;
+  height: 22px;
+  display: inline-flex; align-items: center; gap: 4px;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow);
+}
+.dock-tab.active{
+  background: var(--gray-light);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi),
+    inset  2px  2px 0 var(--gray-dark),
+    inset -2px -2px 0 var(--gray-light);
   font-weight: 700;
 }
 
-body[data-art="win95"] .dock .start.active {
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-  box-shadow: none;
+/* ─── App-shell frame ───────────────────────────────────────────────────── */
+.shell-wrap{
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  z-index: 5;
+  padding: 0;
+}
+.shell{
+  width: 100%; max-width: 100%;
+  height: 100dvh;
+  background: var(--gray-face);
+  display: flex; flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  padding: 3px;
+  border: 1px solid var(--gray-dark);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow),
+    inset  2px  2px 0 var(--gray-light),
+    inset -2px -2px 0 var(--gray-dark);
 }
 
-body[data-art="win95"] .dock .clock {
+@media (min-width: 900px){
+  .shell-wrap{ padding: 24px 24px 24px 140px }
+  .shell{
+    max-width: 980px;
+    height: min(820px, calc(100dvh - 48px));
+    box-shadow:
+      inset  1px  1px 0 var(--gray-hi),
+      inset -1px -1px 0 var(--gray-shadow),
+      inset  2px  2px 0 var(--gray-light),
+      inset -2px -2px 0 var(--gray-dark),
+      2px 2px 0 rgba(0,0,0,.35);
+  }
+  body[data-art="modern"] .shell{
+    border-radius: 8px;
+    border: 1px solid #b5b5b5;
+    box-shadow: 0 24px 60px rgba(0,0,0,.25);
+  }
+  .desktop-only{display:grid !important}
+}
+.desktop-only{display:none}
+
+.shell-title{
+  padding: 2px 3px 2px 4px;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: #fff;
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow: none;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0;
+  height: 20px;
+}
+body[data-art="modern"] .shell-title{
+  color:#fff; font-size:13px;
+}
+
+.shell-body{
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--gray-face);
+  overflow: hidden;
+}
+
+.workwin{
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── Desktop icons ─────────────────────────────────────────────────────── */
+.desktop-icons{
+  position: fixed; top: 28px; left: 28px; z-index: 3;
+  display: grid; gap: 18px;
+  grid-template-columns: 80px;
+}
+.desktop-icons .di{
+  display: flex; flex-direction: column; align-items:center; gap: 4px;
+  font-family: var(--font-title); font-size: 11px;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000;
+  text-align:center; line-height: 1.2;
+  cursor: pointer; user-select: none;
+  padding: 2px;
+}
+.desktop-icons .di .pic{
+  width: 36px; height: 36px;
+  image-rendering: pixelated;
+}
+.desktop-icons .di:hover{ background: transparent; }
+.desktop-icons .di:active span, .desktop-icons .di.selected span{
+  background: var(--selected); color: #fff;
+  outline: 1px dotted #fff;
+  text-shadow: none;
+  padding: 0 2px;
+}
+
+/* ─── Chat ──────────────────────────────────────────────────────────────── */
+.chatlog{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--gray-dark);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi),
+    inset  2px  2px 0 var(--gray-dark),
+    inset -2px -2px 0 var(--gray-light);
+}
+body[data-art="modern"] .chatlog{
+  border: 1px solid #b5b5b5; box-shadow: none;
+}
+
+.msg-time{
+  align-self: center;
   font-family: var(--font-mono);
-  background: var(--chrome-face);
-  border: 1.5px solid;
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  font-size: 14px;
+  color: var(--ink-soft);
+  padding: 0 4px;
+  margin-top: 4px;
+  white-space: nowrap;
 }
+.msg-time.right{align-self: flex-end}
+.msg-time.left{align-self: flex-start}
 
-body[data-art="win95"] .dock-tab {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 1px 1px 0 var(--chrome-border);
+.msg{display:flex; gap: 6px; align-items: flex-start; max-width: 100%}
+.msg.you{flex-direction: row-reverse; align-self: flex-end; max-width: 86%}
+.msg:not(.you):not(.system):not(.typing){align-self: flex-start; max-width: 86%}
+
+.msg .av{
+  width: 30px; height: 30px;
+  border: 1px solid var(--gray-dark);
+  flex-shrink:0;
+  image-rendering: pixelated;
+  background: var(--gray-light);
+  display:grid; place-items:center;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 0;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
 }
+body[data-art="modern"] .msg .av{border-radius: 50%; box-shadow:none; border-color:#b5b5b5}
 
-body[data-art="win95"] .dock-tab.active {
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-  box-shadow: none;
-  background: var(--chrome-face);
+.msg .bubble{
+  padding: 5px 10px;
+  background: var(--bubble-other);
+  border: 1px solid var(--bubble-line);
+  border-radius: 8px;
+  position: relative;
+  word-wrap: break-word;
+  max-width: 100%;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.msg .bubble .who{
+  font-weight: 700;
   color: var(--ink);
+  margin-right: 0;
+}
+.msg .bubble .who::after{
+  content: ":";
+  margin-right: 4px;
+  font-weight: 700;
+}
+.msg:not(.you) .bubble::before{
+  content:""; position:absolute;
+  left: -7px; top: 8px;
+  width: 0; height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 7px solid var(--bubble-line);
+}
+.msg:not(.you) .bubble::after{
+  content:""; position:absolute;
+  left: -5px; top: 9px;
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 6px solid var(--bubble-other);
+}
+.msg.you .bubble{ background: var(--bubble-you) }
+.msg.you .bubble::before{
+  content:""; position:absolute;
+  right: -7px; top: 8px;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 7px solid var(--bubble-line);
+}
+.msg.you .bubble::after{
+  content:""; position:absolute;
+  right: -5px; top: 9px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid var(--bubble-you);
 }
 
-/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
-body[data-art="win95"] .start-menu {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 2px 2px 0 var(--chrome-border);
+.msg .who{
+  font-size: 13px; font-weight: 700; color: var(--ink);
+  margin-bottom: 0;
+  display:inline;
+}
+.msg .who .ai-tag,
+.msg .bubble .ai-tag{
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+  background: #fff; border: 1px solid var(--gray-dark); color: var(--ink);
+  padding: 0 4px; border-radius: 0;
+  box-shadow: inset 1px 1px 0 var(--gray-hi), inset -1px -1px 0 var(--gray-shadow);
+  vertical-align: 1px;
+  margin-left: 4px;
+}
+.msg .who .ai-tag.gpt{background:#d4ffd4}
+.msg .who .ai-tag.gemini{background:#ffe4f0}
+.msg.system{
+  display: block;
+  align-self:center; font-family: var(--font-mono); font-size: 14px;
+  color: var(--ink-soft); background: #ffffe1;
+  border: 1px solid var(--gray-dark);
+  padding: 3px 12px; max-width: 90%;
+  text-align: center;
+  white-space: normal;
+}
+.msg.typing .bubble{
+  font-family: var(--font-mono);
+  color: var(--ink-soft);
+  font-size: 14px;
 }
 
-body[data-art="win95"] .start-menu-item:hover {
-  background: var(--accent);
-  color: #ffffff;
+.composer{
+  display:flex; gap: 6px;
+  padding: 6px;
+  background: var(--gray-face);
+  border-radius: var(--radius);
+  flex-shrink:0;
+  align-items: center;
+}
+.composer .field{flex:1; field-sizing: content; min-height: 22px; max-height: 80px; overflow: auto; height: auto;}
+.composer .btn.primary::after{ content: "전송"; font-size: 12px; }
+
+/* ─── Character grid ────────────────────────────────────────────────────── */
+.char-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  padding: 4px;
+  min-height: 0;
+  flex: 1;
+  align-content: start;
+  background: var(--gray-face);
+}
+.char-card{
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--gray-dark);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  cursor: default;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  text-align: center;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+}
+.char-card:hover{background: #ffffe1}
+.char-card.selected{
+  background: var(--selected);
+  color: #fff;
+}
+.char-card.selected::after{ display: none; }
+.char-card.selected h4, .char-card.selected p{color: #fff}
+.char-card.selected .tag{background: #fff; color: var(--ink)}
+.char-card .pic-wrap{
+  width: 76px; height: 76px;
+  background: var(--gray-light);
+  border: 1px solid var(--gray-dark);
+  display:grid; place-items:center;
+  image-rendering: pixelated;
+  border-radius: var(--radius);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+  padding: 0;
+}
+.char-card .pic-wrap > *{ background: transparent; border-radius: 0; padding: 0; }
+body[data-art="modern"] .char-card .pic-wrap{ border-radius: 50% }
+.char-card h4{margin:0; font-size:13px; font-weight:700; max-width: 100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.char-card p{
+  margin:0; font-size: 12px; color: var(--ink-soft); line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+  text-align: center;
+}
+.char-card .tag-row{display:flex; gap:3px; flex-wrap:wrap; justify-content:center}
+.char-card .tag{font-size: 10px; padding: 0 4px; background: #ffff80; border:1px solid var(--gray-dark); border-radius: 0;}
+
+/* ─── Scenario / form ───────────────────────────────────────────────────── */
+.form-grid{display:grid; grid-template-columns: 1fr 1fr; gap: 10px}
+@media (max-width: 600px){ .form-grid{grid-template-columns: 1fr} }
+
+.stat-row{display:flex; align-items:center; gap: 6px}
+.stat-row .lbl{font-size:12px; font-weight:700; width: 36px; color: var(--ink)}
+.stat-row .bar{
+  flex:1; height: 12px;
+  border: 1px solid var(--gray-dark);
+  background:#fff;
+  image-rendering:pixelated;
+  position:relative;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+}
+.stat-row .bar > i{display:block; height:100%; background: var(--navy);
+  box-shadow: inset -1px -1px 0 rgba(0,0,0,.2), inset 1px 1px 0 rgba(255,255,255,.3)}
+.stat-row .stars{font-size: 13px; letter-spacing: 1px; color: var(--ink); font-family: var(--font-mono)}
+
+/* ─── Scrollbars (Win95) ───────────────────────────────────────────────── */
+.win-body ::-webkit-scrollbar, .chatlog::-webkit-scrollbar, .char-grid::-webkit-scrollbar, .scroll::-webkit-scrollbar{
+  width: 16px; height: 16px;
+}
+.win-body ::-webkit-scrollbar-track, .chatlog::-webkit-scrollbar-track, .char-grid::-webkit-scrollbar-track, .scroll::-webkit-scrollbar-track{
+  background:
+    repeating-conic-gradient(var(--gray-light) 0% 25%, #fff 0% 50%) 50% / 4px 4px;
+  border-left: 1px solid var(--gray-shadow);
+}
+.win-body ::-webkit-scrollbar-thumb, .chatlog::-webkit-scrollbar-thumb, .char-grid::-webkit-scrollbar-thumb, .scroll::-webkit-scrollbar-thumb{
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow),
+    inset  2px  2px 0 var(--gray-light),
+    inset -2px -2px 0 var(--gray-dark);
+}
+.win-body ::-webkit-scrollbar-button, .chatlog::-webkit-scrollbar-button, .char-grid::-webkit-scrollbar-button, .scroll::-webkit-scrollbar-button{
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow);
+  display: block;
+  height: 16px;
 }
 
-/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
-body[data-art="win95"] .row {
-  border: 1px solid var(--chrome-border);
-  box-shadow: none;
-  background: var(--paper);
-}
-
-body[data-art="win95"] .row:hover {
-  background: var(--accent);
-  color: #ffffff;
-}
-
-body[data-art="win95"] .row .thumb {
-  border: 1px inset var(--chrome-shadow);
-  border-radius: 0;
-}
-
-/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
-body[data-art="win95"] .char-card {
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 1px 1px 0 var(--chrome-border);
-  background: var(--chrome-face);
-}
-
-body[data-art="win95"] .char-card:hover {
-  transform: none;
-  box-shadow: 1px 1px 0 var(--chrome-border);
-  background: var(--paper-2);
-}
-
-body[data-art="win95"] .char-card.selected {
-  outline: 1px dotted var(--ink);
-  outline-offset: 2px;
-  background: var(--paper-2);
-}
-
-body[data-art="win95"] .char-card .pic-wrap {
-  border: 2px solid;
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-  border-radius: 0;
-}
-
-/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
-body[data-art="win95"] .side-panel {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: none;
-}
-
-/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
-body[data-art="win95"] .chat-header {
-  background: var(--chrome-face);
-  border: 1.5px solid;
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-}
-
-/* ─── 태그 ─────────────────────────────────────────────────────────────── */
-body[data-art="win95"] .tag {
-  background: var(--chrome-face);
-  border: 1px solid var(--chrome-border);
-  border-radius: 0;
-}
-
-/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
-body[data-art="win95"] .msg-action-btn {
-  background: var(--chrome-face);
-  border: 1.5px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-}
-
-body[data-art="win95"] .msg-action-btn:hover {
+/* ─── AI dropdown ───────────────────────────────────────────────────────── */
+.ai-pill{
+  display:inline-flex; align-items:center; gap: 5px;
+  padding: 2px 8px;
+  font-family: var(--font-title); font-size: 12px; font-weight: 400;
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  border-radius: var(--radius);
+  cursor: default;
   color: var(--ink);
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
+  height: 22px;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow);
+}
+.ai-pill:active{
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+}
+.ai-pill .dot{
+  width:8px;height:8px;background:#00aa00;border:1px solid #000;
+  display:inline-block;
+  box-shadow: inset 1px 1px 0 #80ff80;
 }
 
-/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
-body[data-art="win95"] .ai-pill {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 1px 1px 0 var(--chrome-border);
+/* ─── Helpers ───────────────────────────────────────────────────────────── */
+.hstack{display:flex; gap: 6px; align-items: center}
+.vstack{display:flex; flex-direction: column; gap: 4px}
+.spread{display:flex; justify-content: space-between; align-items: center; gap: 6px}
+.muted{color: var(--ink-soft)}
+.tiny{font-size: 11px}
+.mono{font-family: var(--font-mono); font-size: 14px}
+.fill{flex:1; min-width:0}
+.center{display:grid; place-items:center}
+.scroll{overflow-y:auto; min-height:0}
+
+.btn, .dock-tab, .ai-pill, .tag, .badge, .win-title, .shell-title{ white-space: nowrap }
+
+@keyframes pop{0%{transform:scale(.2);opacity:0}50%{transform:scale(1.2);opacity:1}100%{transform:scale(.6);opacity:0}}
+.sparkle-burst{position:absolute; pointer-events:none; font-size:14px; animation: pop .5s ease-out forwards; font-family: var(--font-mono)}
+
+@keyframes blink{0%,20%{opacity:.2} 50%{opacity:1} 100%{opacity:.2}}
+.dots span{display:inline-block; animation: blink 1.2s infinite; font-family: var(--font-mono); font-size: 16px}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+
+body[data-crt="on"]::after{
+  content:""; position: fixed; inset:0; pointer-events:none; z-index:9999;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.10) 0 1px, transparent 1px 3px);
 }
 
-body[data-art="win95"] .ai-dropdown {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: 2px 2px 0 var(--chrome-border);
+.group{
+  border: 1px solid var(--gray-hi);
+  border-right-color: var(--gray-shadow);
+  border-bottom-color: var(--gray-shadow);
+  padding: 10px 8px 8px;
+  position: relative;
+  margin-top: 8px;
 }
-
-body[data-art="win95"] .ai-dropdown-item:hover {
-  background: var(--accent);
-  color: #ffffff;
-}
-
-/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
-body[data-art="win95"] .form-section {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-shadow) var(--chrome-hi) var(--chrome-hi) var(--chrome-shadow);
-}
-
-/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
-body[data-art="win95"] .chatlog::-webkit-scrollbar,
-body[data-art="win95"] .char-grid::-webkit-scrollbar { width: 16px; }
-
-body[data-art="win95"] .chatlog::-webkit-scrollbar-track,
-body[data-art="win95"] .char-grid::-webkit-scrollbar-track {
-  background: repeating-linear-gradient(45deg, #c0c0c0 0 2px, #d0d0d0 2px 4px);
-  border-left: 2px solid var(--chrome-shadow);
-}
-
-body[data-art="win95"] .chatlog::-webkit-scrollbar-thumb,
-body[data-art="win95"] .char-grid::-webkit-scrollbar-thumb {
-  background: var(--chrome-face);
-  border: 2px solid;
-  border-color: var(--chrome-hi) var(--chrome-shadow) var(--chrome-shadow) var(--chrome-hi);
-  box-shadow: none;
-}
-
-/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
-body[data-art="win95"] .persona-option,
-body[data-art="win95"] .ai-model-option {
-  background: var(--paper);
-  border: 1.5px solid var(--chrome-border);
-  border-radius: 0;
-}
-
-body[data-art="win95"] .persona-option.selected,
-body[data-art="win95"] .ai-model-option.selected {
-  outline: 1px dotted var(--ink);
-  background: var(--paper-2);
+.group::before{
+  content: attr(data-title);
+  position: absolute;
+  top: -8px;
+  left: 8px;
+  background: var(--gray-face);
+  padding: 0 4px;
+  font-size: 12px;
+  font-family: var(--font-title);
+  font-weight: 400;
 }
