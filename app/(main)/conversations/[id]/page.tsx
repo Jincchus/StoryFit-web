@@ -83,7 +83,6 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState('')
   const [typing, setTyping] = useState(false)
   const [streamingCharId, setStreamingCharId] = useState<string | null>(null)
-  const [text, setText] = useState('')
   const [sendError, setSendError] = useState('')
   const [model, setModel] = useState<AIProvider>('gemini')
   const [showPanel, setShowPanel] = useState(false)
@@ -325,19 +324,20 @@ export default function ChatPage() {
     }
   }, [params.id])
 
-  const send = (content: string) => {
-    if (!content.trim() || typing) return
-    lastSentRef.current = content
+  const send = (content?: string) => {
+    const msg = content ?? composerRef.current?.value ?? ''
+    if (!msg.trim() || typing) return
+    lastSentRef.current = msg
     typingStartRef.current = Date.now()
     setTypingDuration(0)
-    setText('')
+    if (!content && composerRef.current) { composerRef.current.value = ''; autoResize() }
     shouldScrollRef.current = true
-    setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content }])
+    setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content: msg }])
     setTyping(true)
     setStreaming('')
     setSendError('')
     setSendErrorRetryable(false)
-    runConvStream(params.id, content).catch(() => {})
+    runConvStream(params.id, msg).catch(() => {})
     subscribeStream(params.id)
   }
 
@@ -362,7 +362,10 @@ export default function ChatPage() {
     recognition.interimResults = false
     recognition.onresult = (e: any) => {
       const transcript = e.results[0][0].transcript
-      setText(prev => prev ? prev + ' ' + transcript : transcript)
+      if (composerRef.current) {
+        composerRef.current.value = composerRef.current.value ? composerRef.current.value + ' ' + transcript : transcript
+        autoResize()
+      }
       composerRef.current?.focus()
     }
     recognition.onend = () => setIsListening(false)
@@ -417,7 +420,6 @@ export default function ChatPage() {
 
   const handleRegenerate = () => {
     if (typing) return
-    setText('')
     typingStartRef.current = Date.now()
     setTypingDuration(0)
     setTyping(true)
@@ -830,10 +832,9 @@ export default function ChatPage() {
                 rows={1}
                 style={{ resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
                 placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요…' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : isStory ? '직접 입력하거나 선택지를 클릭하세요…' : `${char.name}에게 말 걸기…`}
-                value={text}
                 disabled={typing}
-                onChange={e => { setText(e.target.value); autoResize() }}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text) } }}
+                onChange={autoResize}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               />
               {/* ── STT 마이크 버튼 ── */}
               <button
@@ -844,7 +845,7 @@ export default function ChatPage() {
                 title={isListening ? '녹음 중지' : '음성 입력 (STT)'}
               >{isListening ? '⏹' : '🎤'}</button>
               {/* ── /STT 마이크 버튼 ── */}
-              <button className="btn primary" onClick={() => send(text)} disabled={!text.trim() || typing}>전송</button>
+              <button className="btn primary" onClick={() => send()} disabled={typing}>전송</button>
             </div>
           </div>
 
