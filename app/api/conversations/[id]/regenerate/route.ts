@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
-import { streamChat, stripAnalysisPreamble } from '@/lib/ai'
+import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
@@ -117,6 +117,7 @@ async function regenerateAsync({
   systemPrompt: string
   history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
 }) {
+  const prevAssistantText = [...history].reverse().find(m => m.role === 'model')?.parts[0].text ?? ''
   let fullText = ''
   let lastFlush = Date.now()
   const bgAbort = new AbortController()
@@ -146,7 +147,7 @@ async function regenerateAsync({
     await prisma.message.update({
       where: { id: msgId },
       data: {
-        content: stripAnalysisPreamble(fullText) || '[응답 없음]',
+        content: deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText) || '[응답 없음]',
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,

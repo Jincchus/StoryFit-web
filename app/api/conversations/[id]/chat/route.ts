@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
-import { streamChat, stripAnalysisPreamble } from '@/lib/ai'
+import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStatsEvaluation } from '@/lib/statsEval'
 import { triggerInventoryEvaluation } from '@/lib/inventoryEval'
@@ -144,6 +144,7 @@ async function generateAsync({
   systemPrompt: string
   history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
 }) {
+  const prevAssistantText = [...history].reverse().find(m => m.role === 'model')?.parts[0].text ?? ''
   let fullText = ''
   let lastFlush = Date.now()
   const bgAbort = new AbortController()
@@ -170,7 +171,7 @@ async function generateAsync({
     )
     clearTimeout(timeoutId)
 
-    const cleanText = stripAnalysisPreamble(fullText)
+    const cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText)
 
     if (!cleanText) {
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens: result.inputTokens, outputTokens: result.outputTokens })
