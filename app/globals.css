@@ -51,14 +51,21 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden }
 body {
   font-family: var(--font-body);
   color: var(--ink);
+  letter-spacing: .01em;
+  word-break: keep-all;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background:
     radial-gradient(ellipse at 20% 10%, #ffd4f0 0%, transparent 55%),
     radial-gradient(ellipse at 90% 20%, #c2e5ff 0%, transparent 55%),
     radial-gradient(ellipse at 50% 100%, #d9c2ff 0%, transparent 60%),
     linear-gradient(180deg, #efd4ff 0%, #ffc8e8 100%);
-  background-attachment: fixed;
-  letter-spacing: .01em;
-  word-break: keep-all;
+  transform: translateZ(0);
 }
 
 .btn, .dock-tab, .ai-pill, .tag, .badge, .win-title, .shell-title { white-space: nowrap }

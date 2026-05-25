@@ -71,7 +71,7 @@ export default function AssistantChatPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [messages, setMessages] = useState<Msg[]>([])
-  const [input, setInput] = useState('')
+  const [hasInput, setHasInput] = useState(false)
   const [streamingText, setStreamingText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamError, setStreamError] = useState('')
@@ -129,9 +129,10 @@ export default function AssistantChatPage() {
   }
 
   const send = useCallback(async () => {
-    const text = input.trim()
+    const text = textareaRef.current?.value.trim() ?? ''
     if (!text || isStreaming) return
-    setInput('')
+    if (textareaRef.current) textareaRef.current.value = ''
+    setHasInput(false)
     setStreamError('')
     setIsStreaming(true)
     setStreamingText('')
@@ -158,15 +159,10 @@ export default function AssistantChatPage() {
         textareaRef.current?.focus()
       }
     })
-  }, [id, input, isStreaming])
+  }, [id, isStreaming])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
-  }
-
-  const adjustHeight = (el: HTMLTextAreaElement) => {
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px'
   }
 
   const stopStream = () => {
@@ -254,17 +250,16 @@ export default function AssistantChatPage() {
             ref={textareaRef}
             className="field"
             rows={1}
-            style={{ flex: 1, resize: 'none', fontSize: 12, lineHeight: 1.5, overflow: 'hidden', minHeight: 32 }}
+            style={{ flex: 1, resize: 'none', fontSize: 12, lineHeight: 1.5, overflow: 'auto', minHeight: 32, maxHeight: 140, fieldSizing: 'content' } as any}
             placeholder="메시지 입력... (Shift+Enter: 줄바꿈)"
-            value={input}
-            onChange={e => { setInput(e.target.value); adjustHeight(e.target) }}
+            onChange={e => setHasInput(e.target.value.trim().length > 0)}
             onKeyDown={handleKeyDown}
             disabled={isStreaming}
           />
           {isStreaming ? (
             <button className="btn danger" style={{ fontSize: 10, flexShrink: 0 }} onClick={stopStream}>■ 중지</button>
           ) : (
-            <button className="btn primary" style={{ fontSize: 11, flexShrink: 0 }} disabled={!input.trim()} onClick={send}>전송</button>
+            <button className="btn primary" style={{ fontSize: 11, flexShrink: 0 }} disabled={!hasInput} onClick={send}>전송</button>
           )}
         </div>
 
