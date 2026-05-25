@@ -116,6 +116,9 @@ model Conversation {
   statsConfig         Json?
   inventoryEnabled    Boolean                 @default(false)
   inventory           Json?
+  rootConversationId   String?
+  branchFromMessageId  String?
+  branchDescription    String                  @default("")
   characters      ConversationCharacter[]
   messages        Message[]
   memories        Memory[]
