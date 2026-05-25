@@ -291,7 +291,7 @@ export default function ChatPage() {
     scrollSnapRef.current = null
     const wasAtBottom = snap.height - snap.top - el.clientHeight < 80
     if (!wasAtBottom) {
-      el.scrollTop = snap.top + (el.scrollHeight - snap.height)
+      el.scrollTop = snap.top
     }
   }, [messages])
 
