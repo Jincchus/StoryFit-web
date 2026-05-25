@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(selected.map(m => {
     const siblings = byParent.get(m.parentId ?? '__root__') ?? [m]
     const branchIndex = siblings.findIndex(s => s.id === m.id) + 1
-    return { ...m, branchCount: siblings.length, branchIndex }
+    return { ...m, branchCount: siblings.length, branchIndex, siblingIds: siblings.map(s => s.id) }
   }))
 }
 
