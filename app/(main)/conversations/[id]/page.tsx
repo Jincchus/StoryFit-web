@@ -591,7 +591,7 @@ export default function ChatPage() {
 
         <div className="chat-layout">
           <div className="chat-main">
-            <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+            <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               {hasNew && (
                 <button
                   onClick={scrollToBottom}
