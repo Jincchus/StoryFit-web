@@ -1218,27 +1218,28 @@ function MessageEdit({ initialContent, isUser, onSave, onSaveOnly, onCancel }: {
   onSaveOnly: (content: string) => void
   onCancel: () => void
 }) {
-  const [editText, setEditText] = useState(initialContent)
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const get = () => ref.current?.value ?? ''
   return (
     <div className="vstack" style={{ gap: 4, alignItems: isUser ? 'flex-end' : undefined }}>
       <textarea
+        ref={ref}
         className="field" rows={3}
-        value={editText}
-        onChange={e => setEditText(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSave(editText) } }}
+        defaultValue={initialContent}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSave(get()) } }}
         autoFocus
         style={{ minWidth: isUser ? 200 : 0 }}
       />
       <div className="hstack" style={{ gap: 4 }}>
         {isUser ? (
           <>
-            <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSave(editText)}>저장 + 재생성</button>
-            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSaveOnly(editText)}>저장만</button>
+            <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSave(get())}>저장 + 재생성</button>
+            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSaveOnly(get())}>저장만</button>
           </>
         ) : (
           <>
-            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSaveOnly(editText)}>저장만</button>
-            <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSave(editText)}>저장 + 재생성</button>
+            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSaveOnly(get())}>저장만</button>
+            <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSave(get())}>저장 + 재생성</button>
           </>
         )}
         <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={onCancel}>취소</button>
