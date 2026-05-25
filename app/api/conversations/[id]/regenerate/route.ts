@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
-import { streamChat } from '@/lib/ai'
+import { streamChat, stripAnalysisPreamble } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
@@ -140,7 +140,7 @@ async function regenerateAsync({
     await prisma.message.update({
       where: { id: msgId },
       data: {
-        content: fullText || '[응답 없음]',
+        content: stripAnalysisPreamble(fullText) || '[응답 없음]',
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,

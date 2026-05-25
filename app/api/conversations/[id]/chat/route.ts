@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
-import { streamChat } from '@/lib/ai'
+import { streamChat, stripAnalysisPreamble } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStatsEvaluation } from '@/lib/statsEval'
 import { triggerInventoryEvaluation } from '@/lib/inventoryEval'
@@ -170,7 +170,9 @@ async function generateAsync({
     )
     clearTimeout(timeoutId)
 
-    if (!fullText) {
+    const cleanText = stripAnalysisPreamble(fullText)
+
+    if (!cleanText) {
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens: result.inputTokens, outputTokens: result.outputTokens })
       await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
       return
@@ -179,7 +181,7 @@ async function generateAsync({
     await prisma.message.update({
       where: { id: msgId },
       data: {
-        content: fullText,
+        content: cleanText,
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
