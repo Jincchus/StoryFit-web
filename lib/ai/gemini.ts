@@ -34,7 +34,7 @@ async function streamViaApiKey(
   const generationConfig = {
     temperature: params.temperature ?? 0.9,
     maxOutputTokens: 8192,
-    ...({ thinkingConfig: { thinkingBudget: 0 } } as object),
+    thinkingConfig: { thinkingBudget: 0 },
   }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
