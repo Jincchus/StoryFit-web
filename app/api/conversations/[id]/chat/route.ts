@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
-import { streamChat } from '@/lib/ai'
+import { streamChat, stripLeadingAnalysis } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStatsEvaluation } from '@/lib/statsEval'
 import { triggerInventoryEvaluation } from '@/lib/inventoryEval'
@@ -162,7 +162,7 @@ async function generateAsync({
       chunk => {
         fullText += chunk
         if (Date.now() - lastFlush > 2000) {
-          prisma.message.update({ where: { id: msgId }, data: { content: fullText } }).catch(() => {})
+          prisma.message.update({ where: { id: msgId }, data: { content: stripLeadingAnalysis(fullText) } }).catch(() => {})
           lastFlush = Date.now()
         }
       },
@@ -179,7 +179,7 @@ async function generateAsync({
     await prisma.message.update({
       where: { id: msgId },
       data: {
-        content: fullText,
+        content: stripLeadingAnalysis(fullText),
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
@@ -200,7 +200,7 @@ async function generateAsync({
     if (fullText.trim()) {
       await prisma.message.update({
         where: { id: msgId },
-        data: { content: fullText, isStreaming: false },
+        data: { content: stripLeadingAnalysis(fullText), isStreaming: false },
       }).catch(() => {})
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'partial_save', message: err?.message ?? String(err) })
     } else {

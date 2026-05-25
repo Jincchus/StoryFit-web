@@ -118,7 +118,6 @@ export default function ChatPage() {
   const patchDebounceRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({})
   const lastSentRef = useRef('')
   const streamUnsubRef = useRef<(() => void) | null>(null)
-  const resizeRafRef = useRef<number | null>(null)
   const [typingDuration, setTypingDuration] = useState(0)
   const typingStartRef = useRef(0)
   // ── STT/TTS ──────────────────────────────────────────────────────────
@@ -329,7 +328,7 @@ export default function ChatPage() {
     lastSentRef.current = msg
     typingStartRef.current = Date.now()
     setTypingDuration(0)
-    if (!content && composerRef.current) { composerRef.current.value = ''; autoResize() }
+    if (!content && composerRef.current) composerRef.current.value = ''
     shouldScrollRef.current = true
     setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content: msg }])
     setTyping(true)
@@ -363,7 +362,6 @@ export default function ChatPage() {
       const transcript = e.results[0][0].transcript
       if (composerRef.current) {
         composerRef.current.value = composerRef.current.value ? composerRef.current.value + ' ' + transcript : transcript
-        autoResize()
       }
       composerRef.current?.focus()
     }
@@ -410,16 +408,6 @@ export default function ChatPage() {
     setToast('저장 완료')
   }
 
-  const autoResize = () => {
-    if (resizeRafRef.current !== null) cancelAnimationFrame(resizeRafRef.current)
-    resizeRafRef.current = requestAnimationFrame(() => {
-      resizeRafRef.current = null
-      const el = composerRef.current
-      if (!el) return
-      el.style.height = 'auto'
-      el.style.height = Math.min(el.scrollHeight, 120) + 'px'
-    })
-  }
 
   const handleRegenerate = () => {
     if (typing) return
@@ -818,10 +806,9 @@ export default function ChatPage() {
                 ref={composerRef}
                 className="field"
                 rows={1}
-                style={{ resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
+                style={{ resize: 'none', overflow: 'auto', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
                 placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요…' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : isStory ? '직접 입력하거나 선택지를 클릭하세요…' : `${char.name}에게 말 걸기…`}
                 disabled={typing}
-                onChange={autoResize}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               />
               {/* ── STT 마이크 버튼 ── */}
