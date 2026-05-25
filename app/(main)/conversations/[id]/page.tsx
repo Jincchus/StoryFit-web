@@ -610,7 +610,7 @@ export default function ChatPage() {
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
                 const storyParsed = isStory && !isYou ? parseStoryChoices(m.content) : null
-                const blocks = isYou ? [] : (isNovel || isStory ? parseNovelBlocks(storyParsed ? storyParsed.body : m.content, conv.personaCharacter?.name) : parseBlocks(m.content))
+                const blocks = isYou ? [] : (isNovel || isStory ? parseNovelBlocks(storyParsed ? storyParsed.body : m.content) : parseBlocks(m.content))
 
                 return (
                   <div
@@ -680,17 +680,15 @@ export default function ChatPage() {
                               </div>
                             )
                           }
-                          const isPersonaHint = b.speaker === '__persona__'
-                          const rawSpeaker = (isPersonaHint ? undefined : b.speaker) || msgChar.name
+                          const rawSpeaker = b.speaker || msgChar.name
                           const speaker = rawSpeaker.replace(/^\[|\]$/g, '').trim()
                           const isMainChar = isSamePerson(speaker, msgChar.name)
-                          const isPersona = isPersonaHint || (!!conv.personaCharacter && isSamePerson(speaker, conv.personaCharacter.name))
-                          const personaDisplayName = isPersonaHint ? (conv.personaCharacter?.name ?? '당신') : speaker
+                          const isPersona = !!conv.personaCharacter && isSamePerson(speaker, conv.personaCharacter.name)
                           const thought = b.type === 'thought' ? ' thought-bubble' : ''
                           if (isPersona) {
                             return (
                               <div key={i} className="seq-block seq-right">
-                                <div className="seq-speaker">{personaDisplayName}</div>
+                                <div className="seq-speaker">{speaker}</div>
                                 <div className={`bubble bubble-persona${thought}`}>{b.text}</div>
                               </div>
                             )
