@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
-import { streamChat, stripLeadingAnalysis } from '@/lib/ai'
+import { streamChat } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
@@ -129,7 +129,7 @@ async function regenerateAsync({
       chunk => {
         fullText += chunk
         if (Date.now() - lastFlush > 2000) {
-          prisma.message.update({ where: { id: msgId }, data: { content: stripLeadingAnalysis(fullText) } }).catch(() => {})
+          prisma.message.update({ where: { id: msgId }, data: { content: fullText } }).catch(() => {})
           lastFlush = Date.now()
         }
       },
@@ -140,7 +140,7 @@ async function regenerateAsync({
     await prisma.message.update({
       where: { id: msgId },
       data: {
-        content: stripLeadingAnalysis(fullText) || '[응답 없음]',
+        content: fullText || '[응답 없음]',
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
@@ -152,7 +152,7 @@ async function regenerateAsync({
   } catch (err: any) {
     clearTimeout(timeoutId)
     if (fullText.trim()) {
-      await prisma.message.update({ where: { id: msgId }, data: { content: stripLeadingAnalysis(fullText), isStreaming: false } }).catch(() => {})
+      await prisma.message.update({ where: { id: msgId }, data: { content: fullText, isStreaming: false } }).catch(() => {})
     } else {
       await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
       await prisma.message.update({ where: { id: prevAssistantId }, data: { isSelected: true } }).catch(() => {})
