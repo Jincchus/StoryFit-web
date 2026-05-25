@@ -149,6 +149,20 @@ export function parseNovelBlocks(text: string): Block[] {
       }
     }
 
+    // speaker 없는 단독 인용문 라인 → 대화 블록으로 처리
+    const dqMatch = trimmed.match(/^["""](.*)["""]$/)
+    if (dqMatch) {
+      flushNarration()
+      blocks.push({ type: 'dialogue', text: dqMatch[1] })
+      continue
+    }
+    const sqMatch = trimmed.match(/^['''](.*)[''']$/)
+    if (sqMatch) {
+      flushNarration()
+      blocks.push({ type: 'thought', text: sqMatch[1] })
+      continue
+    }
+
     narrationLines.push(trimmed)
   }
 
