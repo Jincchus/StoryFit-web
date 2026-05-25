@@ -188,27 +188,10 @@ export default function ChatPage() {
   }, [params.id])
 
   useEffect(() => {
-    let streamTextAtHide = ''
     const onVisChange = () => {
-      if (document.visibilityState === 'hidden') {
-        streamTextAtHide = getConvStream(params.id)?.text ?? ''
-        return
-      }
-      const stream = getConvStream(params.id)
-      if (stream && !stream.done) {
-        setTimeout(() => {
-          const current = getConvStream(params.id)
-          if (current && !current.done && current.text === streamTextAtHide) {
-            current.abort.abort()
-            clearConvStream(params.id)
-            setTyping(false)
-            setStreaming('')
-            setStreamingCharId(null)
-            setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
-            setTimeout(() => loadConv().catch(() => {}), 800)
-          }
-        }, 1500)
-      } else if (!stream) {
+      if (document.visibilityState !== 'visible') return
+      // 폴링이 살아있으면 자동으로 재개됨. 스트림 없이 화면 복귀 시에만 loadConv 호출
+      if (!getConvStream(params.id)) {
         setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
         loadConv().catch(() => {})
       }
@@ -359,8 +342,6 @@ export default function ChatPage() {
   }
 
   const stopStream = () => {
-    const s = getConvStream(params.id)
-    if (s && !s.done) s.abort.abort()
     streamUnsubRef.current?.()
     streamUnsubRef.current = null
     clearConvStream(params.id)

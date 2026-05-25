@@ -29,6 +29,7 @@ export interface Message {
   content: string
   aiModel?: string
   isSelected: boolean
+  isStreaming?: boolean
   parentId: string | null
   characterId?: string | null
 }

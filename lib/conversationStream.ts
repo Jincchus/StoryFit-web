@@ -5,6 +5,7 @@ export interface ConvStreamState {
   error: string
   retryable: boolean
   abort: AbortController
+  pollId: ReturnType<typeof setInterval> | null
   listeners: Set<() => void>
 }
 
@@ -15,7 +16,7 @@ export function getConvStream(convId: string): ConvStreamState | null {
 }
 
 function _create(convId: string, abort: AbortController): ConvStreamState {
-  const s: ConvStreamState = { text: '', done: false, msgId: null, error: '', retryable: false, abort, listeners: new Set() }
+  const s: ConvStreamState = { text: '', done: false, msgId: null, error: '', retryable: false, abort, pollId: null, listeners: new Set() }
   _store.set(convId, s)
   return s
 }
@@ -25,6 +26,8 @@ function _notify(convId: string) {
 }
 
 export function clearConvStream(convId: string) {
+  const s = _store.get(convId)
+  if (s?.pollId != null) clearInterval(s.pollId)
   _store.delete(convId)
 }
 
@@ -33,23 +36,6 @@ export function subscribeConvStream(convId: string, fn: () => void): () => void 
   if (!s) return () => {}
   s.listeners.add(fn)
   return () => s.listeners.delete(fn)
-}
-
-async function* readSse(res: Response) {
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-  let buf = ''
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buf += decoder.decode(value, { stream: true })
-    const lines = buf.split('\n')
-    buf = lines.pop() ?? ''
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue
-      try { yield JSON.parse(line.slice(6)) } catch {}
-    }
-  }
 }
 
 async function doFetch(url: string, body?: unknown, signal?: AbortSignal): Promise<Response> {
@@ -67,82 +53,65 @@ async function doFetch(url: string, body?: unknown, signal?: AbortSignal): Promi
   return res
 }
 
-function makeTimeout(convId: string, abort: AbortController): { reset: () => void; clear: () => void } {
-  let id: ReturnType<typeof setTimeout> | null = null
-  const fire = () => {
-    abort.abort()
-    const s = getConvStream(convId)
-    if (s) { s.error = '60초 동안 응답이 없어 연결을 종료했습니다.'; s.retryable = true; s.done = true; _notify(convId) }
+function startPoll(convId: string, msgId: string) {
+  let pollId: ReturnType<typeof setInterval>
+
+  const tick = async () => {
+    const s = _store.get(convId)
+    if (!s) { clearInterval(pollId); return }
+
+    try {
+      const res = await fetch(`/api/conversations/${convId}/messages/${msgId}`, { credentials: 'include' })
+      if (!res.ok) {
+        if (res.status === 404) {
+          s.error = 'AI가 응답을 생성하지 않았습니다. 다시 시도해주세요.'
+          s.retryable = true
+          s.done = true
+          clearInterval(pollId)
+          _notify(convId)
+        }
+        return
+      }
+      const msg = await res.json()
+      s.text = msg.content ?? ''
+      if (!msg.isStreaming) {
+        s.done = true
+        clearInterval(pollId)
+      }
+    } catch {
+      // 네트워크 오류는 무시하고 다음 틱에 재시도
+    }
+
+    _notify(convId)
   }
-  const reset = () => { if (id) clearTimeout(id); id = setTimeout(fire, 60000) }
-  const clear = () => { if (id) { clearTimeout(id); id = null } }
-  return { reset, clear }
+
+  pollId = setInterval(tick, 1500)
+  const s = _store.get(convId)
+  if (s) s.pollId = pollId
+  tick()
 }
 
 export async function runConvStream(convId: string, content: string) {
   const abort = new AbortController()
   const state = _create(convId, abort)
-  const timer = makeTimeout(convId, abort)
 
   try {
     const res = await doFetch(`/api/conversations/${convId}/chat`, { content }, abort.signal)
-    // 연결 수립 후 타이머 시작 (DB 쿼리·AI 첫 응답 대기 시간 제외)
-    timer.reset()
 
     if (!res.ok) {
-      timer.clear()
       const data = await res.json().catch(() => ({}))
       state.error = data.error || 'AI 응답 생성에 실패했습니다.'
+      state.retryable = res.status >= 500 || res.status === 429
       state.done = true
       _notify(convId)
       return
     }
 
-    for await (const json of readSse(res)) {
-      const s = getConvStream(convId)
-      if (!s) break
-
-      if (json.allDone) {
-        timer.clear()
-        s.done = true
-        _notify(convId)
-        break
-      } else if (json.text) {
-        timer.reset()
-        s.text += json.text
-        _notify(convId)
-      } else if (json.done) {
-        timer.clear()
-        if (!json.characterId) {
-          s.msgId = json.messageId
-          s.done = true
-          _notify(convId)
-          break
-        }
-        // tikiTaka 개별 캐릭터 done: text 초기화 후 다음 캐릭터 스트림 대기
-        s.text = ''
-        _notify(convId)
-      } else if (json.error) {
-        timer.clear()
-        s.error = json.error
-        s.retryable = json.retryable ?? false
-        s.done = true
-        _notify(convId)
-        break
-      }
-    }
-
-    // SSE 스트림이 done 이벤트 없이 끊긴 경우
-    const s = getConvStream(convId)
-    if (s && !s.done) {
-      timer.clear()
-      s.error = '연결이 끊어졌습니다. 다시 시도해주세요.'
-      s.retryable = true
-      s.done = true
-      _notify(convId)
-    }
+    const { messageId } = await res.json()
+    state.msgId = messageId
+    _notify(convId)
+    startPoll(convId, messageId)
   } catch (e: any) {
-    timer.clear()
     if (e.name !== 'AbortError') {
       const s = getConvStream(convId)
       if (s) { s.error = '연결이 끊어졌습니다. 다시 시도해주세요.'; s.retryable = true; s.done = true; _notify(convId) }
@@ -153,32 +122,27 @@ export async function runConvStream(convId: string, content: string) {
 export async function runConvRegenerate(convId: string) {
   const abort = new AbortController()
   const state = _create(convId, abort)
-  const timer = makeTimeout(convId, abort)
-  timer.reset()
 
   try {
     const res = await doFetch(`/api/conversations/${convId}/regenerate`, undefined, abort.signal)
+
     if (!res.ok) {
-      timer.clear()
       const data = await res.json().catch(() => ({}))
       state.error = data.error || '재생성에 실패했습니다.'
+      state.retryable = res.status >= 500 || res.status === 429
       state.done = true
       _notify(convId)
       return
     }
 
-    for await (const json of readSse(res)) {
-      const s = getConvStream(convId)
-      if (!s) break
-      if (json.text) { timer.reset(); s.text += json.text; _notify(convId) }
-      else if (json.done) { timer.clear(); s.msgId = json.messageId; s.done = true; _notify(convId); break }
-      else if (json.error) { timer.clear(); s.error = json.error; s.retryable = json.retryable ?? false; s.done = true; _notify(convId); break }
-    }
+    const { messageId } = await res.json()
+    state.msgId = messageId
+    _notify(convId)
+    startPoll(convId, messageId)
   } catch (e: any) {
-    timer.clear()
     if (e.name !== 'AbortError') {
       const s = getConvStream(convId)
-      if (s) { s.error = '연결이 끊어졌습니다. 다시 시도해주세요.'; s.done = true; _notify(convId) }
+      if (s) { s.error = '재생성 중 연결이 끊어졌습니다. 다시 시도해주세요.'; s.retryable = true; s.done = true; _notify(convId) }
     }
   }
 }

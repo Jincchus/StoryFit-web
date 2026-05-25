@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     where: { id: params.id },
     include: {
       characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
-      messages: { where: { isSelected: true }, orderBy: { createdAt: 'asc' } },
+      messages: { where: { isSelected: true, isStreaming: false }, orderBy: { createdAt: 'asc' } },
       personaCharacter: true,
       lorebooks: true,
     },
@@ -34,14 +34,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     : null) ?? conv.characters[0]?.character
   if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
-  // deselect the last assistant message (create branch sibling)
   await prisma.message.update({ where: { id: lastAssistant.id }, data: { isSelected: false } })
 
-  // history = all selected messages BEFORE the deselected one
   const historyMsgs = selectedMsgs.filter(m => m.id !== lastAssistant.id)
-
   const longTermMemory = await retrieveRelevantMemories(params.id, lastUserMsg?.content ?? '', 6).catch(() => [])
-
   const { globalRules, modeRules } = await loadGlobalRules(conv.mode)
 
   const matchedLorebook = matchLorebook(
@@ -49,14 +45,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     historyMsgs as unknown as Message[],
   )
 
+  const charParam = {
+    ...character,
+    kind: 'custom' as const,
+    safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
+    defaultAI: character.defaultAI as 'gemini' | 'claude' | 'chatgpt',
+    avatarUrl: character.avatarUrl ?? undefined,
+  }
+
   const promptParams = {
-    character: {
-      ...character,
-      kind: 'custom' as const,
-      safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
-      defaultAI: character.defaultAI as 'gemini' | 'claude' | 'chatgpt',
-      avatarUrl: character.avatarUrl ?? undefined,
-    },
+    character: charParam,
     personaCharacter: conv.personaCharacter ?? null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
@@ -74,74 +72,90 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const history = historyMsgs.slice(-15).map(m => ({
     role: m.role === 'user' ? 'user' as const : 'model' as const,
-    parts: [{ text: m.content }],
+    parts: [{ text: m.content }] as [{ text: string }],
   }))
 
-  const encoder = new TextEncoder()
-  const abortController = new AbortController()
-  req.signal.addEventListener('abort', () => abortController.abort())
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      let fullText = ''
-      try {
-        const result = await streamChat(
-          {
-            provider: conv.currentAI as 'gemini',
-            systemPrompt,
-            messages: history,
-            temperature: character.temperature,
-            frequencyPenalty: character.frequencyPenalty,
-            safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
-          },
-          chunk => {
-            fullText += chunk
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`))
-          },
-          abortController.signal,
-        )
-
-        const newMsg = await prisma.message.create({
-          data: {
-            conversationId: params.id,
-            role: 'assistant',
-            content: fullText || '[응답 없음]',
-            aiModel: conv.currentAI,
-            isSelected: true,
-            parentId: lastAssistant.parentId,
-            inputTokens: result.inputTokens,
-            outputTokens: result.outputTokens,
-          },
-        })
-
-        await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
-
-        triggerMemorySummarization(params.id, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err =>
-          console.error('[summarize] error:', err),
-        )
-
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: newMsg.id })}\n\n`))
-      } catch (err: any) {
-        // restore deselected message on error
-        await prisma.message.update({ where: { id: lastAssistant.id }, data: { isSelected: true } }).catch(() => {})
-        console.error('[regenerate] AI error:', err)
-        const status = err?.status ?? 500
-        let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
-        if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
-        else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
-        const retryable = status === 429 || status === 503 || status >= 500
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMsg, retryable })}\n\n`))
-      } finally {
-        controller.close()
-      }
+  const newMsg = await prisma.message.create({
+    data: {
+      conversationId: params.id,
+      role: 'assistant',
+      content: '',
+      aiModel: conv.currentAI,
+      isSelected: true,
+      isStreaming: true,
+      parentId: lastAssistant.parentId,
     },
   })
 
-  return new NextResponse(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
-  })
+  regenerateAsync({
+    convId: params.id,
+    msgId: newMsg.id,
+    prevAssistantId: lastAssistant.id,
+    character: charParam,
+    conv,
+    systemPrompt,
+    history,
+  }).catch(err => console.error('[regenerate:async] uncaught error:', err))
+
+  return NextResponse.json({ messageId: newMsg.id }, { status: 202 })
+}
+
+async function regenerateAsync({
+  convId, msgId, prevAssistantId, character, conv, systemPrompt, history,
+}: {
+  convId: string
+  msgId: string
+  prevAssistantId: string
+  character: any
+  conv: any
+  systemPrompt: string
+  history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
+}) {
+  let fullText = ''
+  let lastFlush = Date.now()
+  const bgAbort = new AbortController()
+  const timeoutId = setTimeout(() => bgAbort.abort(), 5 * 60 * 1000)
+
+  try {
+    const result = await streamChat(
+      {
+        provider: conv.currentAI as 'gemini',
+        systemPrompt,
+        messages: history,
+        temperature: character.temperature,
+        frequencyPenalty: character.frequencyPenalty,
+        safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
+      },
+      chunk => {
+        fullText += chunk
+        if (Date.now() - lastFlush > 2000) {
+          prisma.message.update({ where: { id: msgId }, data: { content: fullText } }).catch(() => {})
+          lastFlush = Date.now()
+        }
+      },
+      bgAbort.signal,
+    )
+    clearTimeout(timeoutId)
+
+    await prisma.message.update({
+      where: { id: msgId },
+      data: {
+        content: fullText || '[응답 없음]',
+        isStreaming: false,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+      },
+    })
+    await prisma.conversation.update({ where: { id: convId }, data: { updatedAt: new Date() } })
+
+    triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
+  } catch (err: any) {
+    clearTimeout(timeoutId)
+    if (fullText.trim()) {
+      await prisma.message.update({ where: { id: msgId }, data: { content: fullText, isStreaming: false } }).catch(() => {})
+    } else {
+      await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
+      await prisma.message.update({ where: { id: prevAssistantId }, data: { isSelected: true } }).catch(() => {})
+    }
+  }
 }
