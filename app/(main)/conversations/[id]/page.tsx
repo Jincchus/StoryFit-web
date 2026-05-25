@@ -196,15 +196,18 @@ export default function ChatPage() {
       }
       const stream = getConvStream(params.id)
       if (stream && !stream.done) {
-        if (stream.text === streamTextAtHide) {
-          stream.abort.abort()
-          clearConvStream(params.id)
-          setTyping(false)
-          setStreaming('')
-          setStreamingCharId(null)
-          setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
-          loadConv().catch(() => {})
-        }
+        setTimeout(() => {
+          const current = getConvStream(params.id)
+          if (current && !current.done && current.text === streamTextAtHide) {
+            current.abort.abort()
+            clearConvStream(params.id)
+            setTyping(false)
+            setStreaming('')
+            setStreamingCharId(null)
+            setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
+            setTimeout(() => loadConv().catch(() => {}), 800)
+          }
+        }, 1500)
       } else if (!stream) {
         setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
         loadConv().catch(() => {})
