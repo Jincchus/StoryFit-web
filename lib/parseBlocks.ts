@@ -121,7 +121,7 @@ function parseInlineContent(content: string, speaker: string): Block[] {
   return result
 }
 
-export function parseNovelBlocks(text: string): Block[] {
+export function parseNovelBlocks(text: string, personaName?: string): Block[] {
   const blocks: Block[] = []
   const lines = text.split('\n')
   let narrationLines: string[] = []
@@ -149,17 +149,26 @@ export function parseNovelBlocks(text: string): Block[] {
       }
     }
 
-    // speaker 없는 단독 인용문 라인 → 대화 블록으로 처리
+    // speaker 없는 단독 인용문 라인 → 직전 내레이션 컨텍스트로 화자 추정
     const dqMatch = trimmed.match(/^["""](.*)["""]$/)
     if (dqMatch) {
+      const prevNarration = narrationLines.filter(l => l.trim()).slice(-2).join(' ')
+      const personaPatterns = ['당신은', '당신이', '당신이', '당신의 목소리', '당신은']
+      const isLikelyPersona =
+        personaPatterns.some(p => prevNarration.includes(p)) ||
+        (!!personaName && prevNarration.includes(personaName))
       flushNarration()
-      blocks.push({ type: 'dialogue', text: dqMatch[1] })
+      blocks.push({ type: 'dialogue', text: dqMatch[1], speaker: isLikelyPersona ? '__persona__' : undefined })
       continue
     }
     const sqMatch = trimmed.match(/^['''](.*)[''']$/)
     if (sqMatch) {
+      const prevNarration = narrationLines.filter(l => l.trim()).slice(-2).join(' ')
+      const isLikelyPersona =
+        prevNarration.includes('당신은') || prevNarration.includes('당신이') ||
+        (!!personaName && prevNarration.includes(personaName))
       flushNarration()
-      blocks.push({ type: 'thought', text: sqMatch[1] })
+      blocks.push({ type: 'thought', text: sqMatch[1], speaker: isLikelyPersona ? '__persona__' : undefined })
       continue
     }
 
