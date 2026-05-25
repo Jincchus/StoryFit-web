@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     byParent.get(key)!.push(m)
   }
 
-  const selected = allMessages.filter(m => m.isSelected)
+  const selected = allMessages.filter(m => m.isSelected && !m.isStreaming)
   return NextResponse.json(selected.map(m => {
     const siblings = byParent.get(m.parentId ?? '__root__') ?? [m]
     const branchIndex = siblings.findIndex(s => s.id === m.id) + 1

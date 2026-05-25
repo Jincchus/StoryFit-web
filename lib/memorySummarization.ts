@@ -14,7 +14,7 @@ async function summarizeMessages(
     .join('\n')
 
   const systemPrompt = `당신은 롤플레이 대화 요약 도우미입니다. 캐릭터 설정: ${characterSystemPrompt}`
-  const userPrompt = `아래 대화를 3~5개의 핵심 사실 중심 불릿 포인트로 요약하세요. 이름·행동·장소·감정 변화만 포함하고, 추측하지 마세요.\n\n${transcript}`
+  const userPrompt = `아래 대화를 3~5개의 핵심 사실 중심 불릿 포인트로 요약하세요. 이름·행동·장소·감정 변화만 포함하고, 추측하지 마세요. 반드시 한국어로 요약하세요.\n\n${transcript}`
 
   return generateText(systemPrompt, userPrompt)
 }

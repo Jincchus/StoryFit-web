@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     where: { id: params.id },
     include: {
       characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
-      messages: { where: { isSelected: true }, orderBy: { createdAt: 'asc' } },
+      messages: { where: { isSelected: true, isStreaming: false }, orderBy: { createdAt: 'asc' } },
       personaCharacter: true,
       lorebooks: true,
     },
@@ -33,11 +33,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
   const character = conv.characters[0]?.character
-  const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(() => [])
   if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
-  const prevMsg = conv.messages[conv.messages.length - 1] ?? null
+  const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(() => [])
 
+  const prevMsg = conv.messages[conv.messages.length - 1] ?? null
   const userMsg = await prisma.message.create({
     data: {
       conversationId: params.id,
@@ -80,14 +80,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
 
-  const encoder = new TextEncoder()
-  const abortController = new AbortController()
-  req.signal.addEventListener('abort', () => abortController.abort())
-
+  // tikiTaka는 SSE 유지 (다중 캐릭터 순차 스트림)
   if (conv.mode === 'tikiTaka') {
-    return streamTikiTaka({
-      conv, params, userMsg, basePromptParams, makeCharParam, encoder, abortController,
-    })
+    const encoder = new TextEncoder()
+    const abortController = new AbortController()
+    req.signal.addEventListener('abort', () => abortController.abort())
+    return streamTikiTaka({ conv, params, userMsg, basePromptParams, makeCharParam, encoder, abortController })
   }
 
   const systemPrompt = conv.mode === 'novel'
@@ -108,114 +106,108 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return acc
   }, [])
 
-  let assistantMsgId: string | null = null
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      let fullText = ''
-      let inputTokens = 0
-      let outputTokens = 0
-      let saved = false
-      const safeEnqueue = (data: object) => {
-        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)) } catch {}
-      }
-      try {
-        const result = await streamChat(
-          {
-            provider: conv.currentAI as AIProvider,
-            systemPrompt,
-            messages: history,
-            temperature: conv.temperature,
-            frequencyPenalty: conv.frequencyPenalty,
-            safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
-          },
-          chunk => {
-            fullText += chunk
-            safeEnqueue({ text: chunk })
-          },
-          abortController.signal,
-        )
-        inputTokens = result.inputTokens
-        outputTokens = result.outputTokens
-
-        if (!fullText) {
-          logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens, outputTokens })
-          safeEnqueue({ error: 'AI가 응답을 생성하지 않았습니다. 안전 필터에 차단됐을 수 있습니다. 캐릭터 설정에서 안전 수준을 낮춰보세요.', retryable: false })
-          return
-        }
-
-        const assistantMsg = await prisma.message.create({
-          data: {
-            conversationId: params.id,
-            role: 'assistant',
-            content: fullText,
-            aiModel: conv.currentAI,
-            isSelected: true,
-            parentId: userMsg.id,
-            inputTokens,
-            outputTokens,
-          },
-        })
-        saved = true
-        assistantMsgId = assistantMsg.id
-
-        await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
-
-        triggerMemorySummarization(params.id, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err =>
-          console.error('[summarize] error:', err),
-        )
-
-        if (conv.mode === 'story' && conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0) {
-          triggerStatsEvaluation(params.id, content, fullText, conv.statsConfig as any)
-        }
-        if (conv.mode === 'story' && conv.inventoryEnabled && Array.isArray(conv.inventory)) {
-          triggerInventoryEvaluation(params.id, content, fullText, conv.inventory as any)
-        }
-
-        safeEnqueue({ done: true, messageId: assistantMsgId })
-      } catch (err: any) {
-        if (abortController.signal.aborted) {
-          if (fullText.trim() && !saved) {
-            try {
-              const partial = await prisma.message.create({
-                data: { conversationId: params.id, role: 'assistant', content: fullText, aiModel: conv.currentAI, isSelected: true, parentId: userMsg.id },
-              })
-              await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
-              safeEnqueue({ done: true, messageId: partial.id })
-            } catch {}
-          }
-        } else if (fullText.trim() && !saved) {
-          try {
-            const partial = await prisma.message.create({
-              data: { conversationId: params.id, role: 'assistant', content: fullText, aiModel: conv.currentAI, isSelected: true, parentId: userMsg.id },
-            })
-            await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
-            logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'partial_save', message: err?.message ?? String(err) })
-            safeEnqueue({ done: true, messageId: partial.id })
-          } catch {}
-        } else if (!saved) {
-          console.error('[chat] AI error:', err)
-          const status = err?.status ?? 500
-          let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
-          if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
-          else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
-          const retryable = status === 429 || status === 503 || status >= 500
-          logAiError({ userId, conversationId: params.id, provider: conv.currentAI, mode: conv.mode, errorType: 'api_error', statusCode: status, message: err?.message ?? String(err) })
-          safeEnqueue({ error: errorMsg, retryable })
-        }
-      } finally {
-        try { controller.close() } catch {}
-      }
+  // 스트리밍 플레이스홀더 메시지 생성
+  const assistantMsg = await prisma.message.create({
+    data: {
+      conversationId: params.id,
+      role: 'assistant',
+      content: '',
+      aiModel: conv.currentAI,
+      isSelected: true,
+      isStreaming: true,
+      parentId: userMsg.id,
     },
   })
 
-  return new NextResponse(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
-  })
+  // 백그라운드에서 AI 생성 (응답 즉시 반환)
+  generateAsync({
+    convId: params.id,
+    msgId: assistantMsg.id,
+    userId,
+    conv,
+    character: makeCharParam(character),
+    systemPrompt,
+    history,
+  }).catch(err => console.error('[chat:async] uncaught error:', err))
+
+  return NextResponse.json({ messageId: assistantMsg.id }, { status: 202 })
+}
+
+async function generateAsync({
+  convId, msgId, userId, conv, character, systemPrompt, history,
+}: {
+  convId: string
+  msgId: string
+  userId: string
+  conv: any
+  character: any
+  systemPrompt: string
+  history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
+}) {
+  let fullText = ''
+  let lastFlush = Date.now()
+  const bgAbort = new AbortController()
+  const timeoutId = setTimeout(() => bgAbort.abort(), 5 * 60 * 1000)
+
+  try {
+    const result = await streamChat(
+      {
+        provider: conv.currentAI as AIProvider,
+        systemPrompt,
+        messages: history,
+        temperature: conv.temperature,
+        frequencyPenalty: conv.frequencyPenalty,
+        safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
+      },
+      chunk => {
+        fullText += chunk
+        if (Date.now() - lastFlush > 2000) {
+          prisma.message.update({ where: { id: msgId }, data: { content: fullText } }).catch(() => {})
+          lastFlush = Date.now()
+        }
+      },
+      bgAbort.signal,
+    )
+    clearTimeout(timeoutId)
+
+    if (!fullText) {
+      logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens: result.inputTokens, outputTokens: result.outputTokens })
+      await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
+      return
+    }
+
+    await prisma.message.update({
+      where: { id: msgId },
+      data: {
+        content: fullText,
+        isStreaming: false,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+      },
+    })
+    await prisma.conversation.update({ where: { id: convId }, data: { updatedAt: new Date() } })
+
+    triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
+
+    if (conv.mode === 'story' && conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0) {
+      triggerStatsEvaluation(convId, history[history.length - 1]?.parts[0].text ?? '', fullText, conv.statsConfig)
+    }
+    if (conv.mode === 'story' && conv.inventoryEnabled && Array.isArray(conv.inventory)) {
+      triggerInventoryEvaluation(convId, history[history.length - 1]?.parts[0].text ?? '', fullText, conv.inventory)
+    }
+  } catch (err: any) {
+    clearTimeout(timeoutId)
+    if (fullText.trim()) {
+      await prisma.message.update({
+        where: { id: msgId },
+        data: { content: fullText, isStreaming: false },
+      }).catch(() => {})
+      logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'partial_save', message: err?.message ?? String(err) })
+    } else {
+      await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
+      logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'api_error', statusCode: err?.status ?? 500, message: err?.message ?? String(err) })
+    }
+  }
 }
 
 function buildGeminiHistory(
@@ -315,15 +307,12 @@ async function streamTikiTaka({
 
         const firstChar = conv.characters[0]?.character
         if (firstChar) {
-          triggerMemorySummarization(params.id, [firstChar.tags?.join(', '), firstChar.additionalInfo].filter(Boolean).join('\n')).catch(err =>
-            console.error('[tikiTaka:summarize] error:', err),
-          )
+          triggerMemorySummarization(params.id, [firstChar.tags?.join(', '), firstChar.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
         }
 
         safeEnqueue({ allDone: true })
       } catch (err: any) {
         if (!abortController.signal.aborted) {
-          console.error('[tikiTaka] AI error:', err)
           const status = err?.status ?? 500
           let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
           if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
