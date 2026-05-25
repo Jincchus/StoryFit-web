@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   const conversations = await prisma.conversation.findMany({
     where: {
       userId,
+      rootConversationId: null,
       mode: mode ? mode : { not: 'assistant' },
     },
     include: {
