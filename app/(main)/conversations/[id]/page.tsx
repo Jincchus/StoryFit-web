@@ -73,6 +73,7 @@ interface Conv {
   messages: Msg[]
 }
 interface LbEntry { id: string; keyword: string[]; content: string; priority: number; scanDepth: number }
+interface BranchInfo { id: string; version: number; branchDescription: string; branchFromMessageId: string | null; rootConversationId: string | null }
 
 export default function ChatPage() {
   const params = useParams<{ id: string }>()
@@ -107,6 +108,11 @@ export default function ChatPage() {
   const [sendErrorRetryable, setSendErrorRetryable] = useState(false)
   const [lorebookError, setLorebookError] = useState(false)
   const [memoryError, setMemoryError] = useState(false)
+  const [branches, setBranches] = useState<BranchInfo[]>([])
+  const [showBranchModal, setShowBranchModal] = useState(false)
+  const [branchTargetMsgId, setBranchTargetMsgId] = useState<string | null>(null)
+  const [branchDesc, setBranchDesc] = useState('')
+  const [creatingBranch, setCreatingBranch] = useState(false)
   // ── STT/TTS ──────────────────────────────────────────────────────────
   const [isListening, setIsListening] = useState(false)
   const [speakingId, setSpeakingId] = useState<string | null>(null)
@@ -200,6 +206,7 @@ export default function ChatPage() {
   useEffect(() => {
     api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => setLorebookError(true))
     api.get(`/api/conversations/${params.id}/memories`).then(setMemories).catch(() => setMemoryError(true))
+    api.get(`/api/conversations/${params.id}/branches`).then(setBranches).catch(() => {})
   }, [params.id])
 
   const handleDeleteMemory = async (memoryId: string) => {
@@ -392,6 +399,20 @@ export default function ChatPage() {
   }, [])
   // ── /STT/TTS ─────────────────────────────────────────────────────────
 
+  const handleCreateBranch = async () => {
+    if (!branchTargetMsgId || creatingBranch) return
+    setCreatingBranch(true)
+    try {
+      const { id } = await api.post(`/api/conversations/${params.id}/branch`, {
+        branchFromMessageId: branchTargetMsgId,
+        description: branchDesc.trim(),
+      })
+      router.push(`/conversations/${id}`)
+    } catch {
+      setCreatingBranch(false)
+    }
+  }
+
   const handleDelete = async (msgId: string) => {
     try {
       await api.delete(`/api/conversations/${params.id}/messages`, { messageId: msgId })
@@ -530,6 +551,41 @@ export default function ChatPage() {
         onCancel={() => setConfirmDeleteId(null)}
       />
     )}
+    {showBranchModal && (
+      <>
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 100 }}
+          onClick={() => setShowBranchModal(false)}
+        />
+        <div style={{
+          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          zIndex: 101, background: 'var(--paper, #fff)',
+          border: '1.5px solid rgba(0,0,0,.12)', borderRadius: 12,
+          padding: 20, width: 'min(320px, 90vw)',
+          display: 'flex', flexDirection: 'column', gap: 12,
+        }}>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>⑂ 이 메시지에서 분기 만들기</div>
+          <div className="tiny muted" style={{ lineHeight: 1.5 }}>
+            이 메시지까지의 대화를 복사해 새로운 타임라인을 시작합니다.
+          </div>
+          <input
+            className="field"
+            placeholder="분기 설명 (예: 루나가 거절하는 방향)"
+            value={branchDesc}
+            onChange={e => setBranchDesc(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleCreateBranch() }}
+            autoFocus
+            maxLength={100}
+          />
+          <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
+            <button className="btn ghost" style={{ fontSize: 11 }} onClick={() => setShowBranchModal(false)}>취소</button>
+            <button className="btn primary" style={{ fontSize: 11 }} disabled={creatingBranch} onClick={handleCreateBranch}>
+              {creatingBranch ? '생성 중...' : '분기 만들기'}
+            </button>
+          </div>
+        </div>
+      </>
+    )}
     <Win title={isTikiTaka ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat}>
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
         <div className="chat-header spread">
@@ -578,6 +634,25 @@ export default function ChatPage() {
           </div>
         </div>
 
+        {branches.length > 1 && (
+          <div className="hstack" style={{ gap: 4, paddingBottom: 2, overflowX: 'auto', flexShrink: 0 }}>
+            {branches.map(b => {
+              const isCurrent = b.id === params.id
+              return (
+                <button
+                  key={b.id}
+                  className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
+                  style={{ fontSize: 10, padding: '2px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                  title={b.branchDescription || undefined}
+                  onClick={() => !isCurrent && router.push(`/conversations/${b.id}`)}
+                >
+                  v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         <div className="chat-layout">
           <div className="chat-main">
             <div className="chatlog" ref={logRef}>
@@ -604,10 +679,25 @@ export default function ChatPage() {
                 const isEditing = editingId === m.id
                 const storyParsed = isStory && !isYou ? parseStoryChoices(m.content) : null
                 const blocks = isYou ? [] : (isNovel || isStory ? parseNovelBlocks(storyParsed ? storyParsed.body : m.content) : parseBlocks(m.content))
+                const branchesFromHere = branches.filter(b => b.branchFromMessageId === m.id && b.id !== params.id)
 
                 return (
+                  <div key={m.id}>
+                    {branchesFromHere.length > 0 && (
+                      <div style={{ display: 'flex', gap: 4, padding: '2px 4px 4px', flexWrap: 'wrap' }}>
+                        {branchesFromHere.map(b => (
+                          <button
+                            key={b.id}
+                            className="btn ghost"
+                            style={{ fontSize: 9, padding: '1px 7px', color: 'var(--accent, #0095f6)', borderColor: 'var(--accent, #0095f6)', opacity: 0.75 }}
+                            onClick={e => { e.stopPropagation(); router.push(`/conversations/${b.id}`) }}
+                          >
+                            ⑂ v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   <div
-                    key={m.id}
                     className={`msg-seq${activeId === m.id ? ' active' : ''}`}
                     onClick={() => setActiveId(prev => prev === m.id ? null : m.id)}
                   >
@@ -743,9 +833,14 @@ export default function ChatPage() {
                           </div>
                         )}
                         <button className="msg-action-btn" onClick={() => startEdit(m.id)}>✏ 편집</button>
+                        <button
+                          className="msg-action-btn"
+                          onClick={() => { setBranchTargetMsgId(m.id); setBranchDesc(''); setShowBranchModal(true) }}
+                        >⑂ 분기</button>
                         <button className="msg-action-btn danger" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
                       </div>
                     )}
+                  </div>
                   </div>
                 )
               })}
