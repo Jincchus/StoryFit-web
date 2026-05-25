@@ -12,24 +12,24 @@
     "db:generate": "prisma generate"
   },
   "dependencies": {
-    "next": "14.2.29",
-    "react": "^18",
-    "react-dom": "^18",
+    "@google-cloud/vertexai": "^1.9.0",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
+    "google-auth-library": "^9.0.0",
     "jose": "^5.9.6",
-    "@google/generative-ai": "^0.21.0",
-    "@google-cloud/vertexai": "^1.9.0",
-    "google-auth-library": "^9.0.0"
+    "next": "14.2.29",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "@types/bcryptjs": "^2.4.6",
-    "prisma": "^5.22.0",
     "eslint": "^8",
-    "eslint-config-next": "14.2.29"
+    "eslint-config-next": "14.2.29",
+    "prisma": "^5.22.0",
+    "typescript": "^5"
   }
 }

@@ -1,6 +1,6 @@
 import type { AIModel } from '@/types'
 
-export const GEMINI_CHAT_MODEL = 'gemini-2.5-pro'
+export const GEMINI_CHAT_MODEL = 'gemini-2.5-flash'
 export const GEMINI_UTILITY_MODEL = 'gemini-2.5-flash'
 
 export const AI_MODELS: AIModel[] = [
