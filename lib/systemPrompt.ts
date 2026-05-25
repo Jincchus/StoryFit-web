@@ -94,6 +94,7 @@ export function buildSystemPrompt({
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
+  if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
 
   return parts.join('\n\n---\n\n')
 }
@@ -134,6 +135,7 @@ export function buildNovelSystemPrompt({
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
+  if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
 
   return parts.join('\n\n---\n\n')
 }
@@ -193,6 +195,7 @@ export function buildStorySystemPrompt({
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
+  if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
 
   return parts.join('\n\n---\n\n')
 }
