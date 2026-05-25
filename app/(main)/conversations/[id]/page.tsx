@@ -119,6 +119,7 @@ export default function ChatPage() {
   const patchDebounceRef = useRef<Partial<Record<string, ReturnType<typeof setTimeout>>>>({})
   const lastSentRef = useRef('')
   const streamUnsubRef = useRef<(() => void) | null>(null)
+  const resizeRafRef = useRef<number | null>(null)
   const [typingDuration, setTypingDuration] = useState(0)
   const typingStartRef = useRef(0)
   // ── STT/TTS ──────────────────────────────────────────────────────────
@@ -411,10 +412,14 @@ export default function ChatPage() {
   }
 
   const autoResize = () => {
-    const el = composerRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+    if (resizeRafRef.current !== null) cancelAnimationFrame(resizeRafRef.current)
+    resizeRafRef.current = requestAnimationFrame(() => {
+      resizeRafRef.current = null
+      const el = composerRef.current
+      if (!el) return
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+    })
   }
 
   const handleRegenerate = () => {
