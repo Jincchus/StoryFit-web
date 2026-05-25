@@ -96,7 +96,7 @@ export function buildSystemPrompt({
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
-  parts.push(`[언어 규칙 — 최우선]\n반드시 한국어로만 응답하세요. Never respond in English or any other language. 대화가 아무리 길어져도, 어떤 상황에서도 항상 한국어로만 작성합니다.`)
+  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.`)
 
   return parts.join('\n\n---\n\n')
 }
@@ -138,7 +138,7 @@ export function buildNovelSystemPrompt({
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
-  parts.push(`[언어 규칙 — 최우선]\n반드시 한국어로만 응답하세요. Never respond in English or any other language. 대화가 아무리 길어져도, 어떤 상황에서도 항상 한국어로만 작성합니다.`)
+  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.`)
 
   return parts.join('\n\n---\n\n')
 }
@@ -203,7 +203,7 @@ export function buildStorySystemPrompt({
   if (lorebookSection) parts.push(lorebookSection)
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
-  parts.push(`[언어 규칙 — 최우선]\n반드시 한국어로만 응답하세요. Never respond in English or any other language. 대화가 아무리 길어져도, 어떤 상황에서도 항상 한국어로만 작성합니다.`)
+  parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.`)
 
   return parts.join('\n\n---\n\n')
 }
