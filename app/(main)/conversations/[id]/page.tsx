@@ -591,20 +591,6 @@ export default function ChatPage() {
 
         <div className="chat-layout">
           <div className="chat-main">
-            <div style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-              {hasNew && (
-                <button
-                  onClick={scrollToBottom}
-                  style={{
-                    position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
-                    zIndex: 10, background: 'var(--chrome-face)',
-                    border: '1.5px solid #5d0f4a',
-                    borderRadius: 20, padding: '4px 14px', fontSize: 11, cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(0,0,0,.2)', whiteSpace: 'nowrap',
-                    color: '#ff2e93',
-                  }}
-                >새 답변 ↓</button>
-              )}
             <div className="chatlog" ref={logRef}>
               {messages.length === 0 && !streaming && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
@@ -814,7 +800,21 @@ export default function ChatPage() {
                 </div>
               )}
 
-            </div>
+              {hasNew && (
+                <div style={{ position: 'sticky', bottom: 8, display: 'flex', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>
+                  <button
+                    onClick={scrollToBottom}
+                    style={{
+                      pointerEvents: 'auto',
+                      background: 'var(--chrome-face)',
+                      border: '1.5px solid #5d0f4a',
+                      borderRadius: 20, padding: '4px 14px', fontSize: 11, cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(0,0,0,.2)', whiteSpace: 'nowrap',
+                      color: '#ff2e93',
+                    }}
+                  >새 답변 ↓</button>
+                </div>
+              )}
             </div>
 
             {sendError && (
