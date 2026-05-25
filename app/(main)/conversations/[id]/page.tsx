@@ -88,7 +88,6 @@ export default function ChatPage() {
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
@@ -621,9 +620,7 @@ export default function ChatPage() {
                 return (
                   <div
                     key={m.id}
-                    className="msg-seq"
-                    onMouseEnter={() => setHoveredId(m.id)}
-                    onMouseLeave={() => setHoveredId(null)}
+                    className={`msg-seq${activeId === m.id ? ' active' : ''}`}
                     onClick={() => setActiveId(prev => prev === m.id ? null : m.id)}
                   >
                     {isYou ? (
@@ -724,7 +721,7 @@ export default function ChatPage() {
                     )}
 
                     {/* ── 호버/탭 액션 ── */}
-                    {!isEditing && (hoveredId === m.id || activeId === m.id) && (
+                    {!isEditing && (
                       <div className={`msg-actions ${isYou ? 'you' : ''}`}>
                         {isLast && isLastAssistant && !isYou && (
                           <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>

@@ -355,8 +355,7 @@ body[data-art="modern"] .narration-block { color: #a394c0; }
 .msg-wrap { display: flex; flex-direction: column; gap: 2px; }
 .msg-wrap.you { align-items: flex-end; }
 .msg-actions { display: flex; gap: 4px; padding-left: 4px; opacity: 0; transition: opacity .12s; pointer-events: none; }
-.msg-wrap:hover .msg-actions, .msg-wrap:focus-within .msg-actions,
-.msg-seq .msg-actions { opacity: 1; pointer-events: auto; }
+.msg-seq:hover .msg-actions, .msg-seq.active .msg-actions { opacity: 1; pointer-events: auto; }
 .msg-actions.you { padding-left: 0; padding-right: 4px; justify-content: flex-end; }
 .msg-action-btn { appearance: none; font-family: var(--font-body); font-size: 9px; font-weight: 700; padding: 2px 7px; background: var(--chrome-face); border: 1.5px solid var(--chrome-border); border-radius: var(--radius); cursor: pointer; color: var(--ink-soft); white-space: nowrap; }
 .msg-action-btn:hover { color: var(--purple); border-color: var(--purple); }
