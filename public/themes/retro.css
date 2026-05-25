@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&family=VT323&family=Gowun+Dodum&display=swap');
+
+:root {
+  --bg:          #f6d4ec;
+  --bg-2:        #e9d8f7;
+  --paper:       #fff7fb;
+  --line:        #2b1f55;
+  --hairline:    rgba(43,31,85,.35);
+  --hairline-2:  rgba(43,31,85,.08);
+  --ink:         #1a1438;
+  --ink-soft:    #4a3d7a;
+  --ink-muted:   #8070aa;
+  --accent:      #ff2e93;
+  --red:         #ff2e93;
+  --green:       #38b27a;
+  --radius:      0px;
+  --radius-sm:   0px;
+  --radius-lg:   0px;
+  --bubble-other:    #e9d8f7;
+  --bubble-you:      linear-gradient(180deg, #ff8fcf 0%, #ff2e93 100%);
+  --bubble-you-text: #fff;
+  /* 레거시 컴포넌트 변수 */
+  --chrome-face:   #e9d8f7;
+  --chrome-shadow: #6b4a9a;
+  --chrome-hi:     #ffffff;
+  --chrome-border: #2b1f55;
+  --title-grad:    linear-gradient(90deg, #6e3aff 0%, #c14ed6 55%, #ff66c4 100%);
+  --pink:          #ff5ea8;
+  --hot-pink:      #ff2e93;
+  --lavender:      #c9b6ff;
+  --pane:          #f3e6ff;
+}
+
+body[data-art="retro"] {
+  font-family: "DotGothic16", "VT323", monospace;
+  background: #efd4ff;
+}
+
+body[data-art="retro"]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 20% 10%, #ffd4f0 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 20%, #c2e5ff 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 100%, #d9c2ff 0%, transparent 60%),
+    linear-gradient(180deg, #efd4ff 0%, #ffc8e8 100%);
+  transform: translateZ(0);
+}
+
+/* 버튼 */
+body[data-art="retro"] .btn {
+  border: 2px solid #2b1f55;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #6b4a9a;
+  font-family: "DotGothic16", monospace;
+}
+body[data-art="retro"] .btn.primary {
+  background: linear-gradient(180deg, #ff8fcf, #ff2e93);
+  border-color: #5d0f4a;
+  color: #fff;
+}
+
+/* 인풋 */
+body[data-art="retro"] .field {
+  border: 2px solid #2b1f55;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #6b4a9a, inset -1px -1px 0 #fff;
+  font-family: "DotGothic16", monospace;
+}
+
+/* 버블 */
+body[data-art="retro"] .bubble {
+  border-radius: 0;
+  box-shadow: 2px 2px 0 rgba(43,31,85,.2);
+}

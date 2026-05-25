@@ -1,0 +1,487 @@
+/* ─── Block Theme ─────────────────────────────────────────────────────────
+   data-art="block" 으로 활성화
+   컨셉: 장난감·블록·원색 게임 UI
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="block"] {
+
+  /* ── 배경 ── */
+  --bg-1: #FFEBCD;
+  --bg-2: #FFE4B5;
+  --bg-3: #FFD9A0;
+
+  /* ── 텍스트 ── */
+  --ink:      #1A1A1A;
+  --ink-soft: #444444;
+
+  /* ── 콘텐츠 배경 ── */
+  --paper:   #FFFFFF;
+  --paper-2: #F0F8FF;   /* 연한 파란빛 내부 배경 */
+
+  /* ── 액센트 컬러 ── */
+  --pink:      #FF3B30;   /* 블록 빨강 */
+  --hot-pink:  #FF3B30;
+  --purple:    #004080;   /* 진한 파랑 */
+  --lavender:  #B8D4FF;
+  --mint:      #34C759;
+  --lemon:     #FFCC00;   /* 블록 노랑 (CTA) */
+  --sky:       #007AFF;   /* 블록 파랑 */
+  --accent:    #FFCC00;   /* 버튼 기본색 */
+
+  /* ── 창 프레임 (chrome) ── */
+  --chrome-face:   #FFFFFF;
+  --chrome-shadow: #1A1A1A;
+  --chrome-hi:     #FFFFFF;
+  --chrome-border: #1A1A1A;
+  --title-grad:    linear-gradient(180deg, #FF5C52 0%, #FF3B30 100%);
+
+  /* ── 폰트 ── */
+  --font-pixel: 'Comic Sans MS', 'DungGeunMo', 'Galmuri11', sans-serif;
+  --font-title: 'Comic Sans MS', 'DungGeunMo', 'Galmuri11', sans-serif;
+  --font-body:  'Comic Sans MS', 'DungGeunMo', 'Galmuri11', sans-serif;
+  --font-mono:  'Courier New', monospace;
+
+  /* ── 레이아웃 ── */
+  --radius:      12px;
+  --shadow-step: 4px;
+  --hairline:    4px;
+}
+
+/* ─── 배경 ─────────────────────────────────────────────────────────────── */
+body[data-art="block"] {
+  background: #FFEBCD;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="block"] .shell {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 32px;
+  box-shadow: 12px 12px 0 rgba(0,0,0,0.15);
+}
+
+body[data-art="block"] .shell-body {
+  background: #F0F8FF;
+  background-image: none;
+}
+
+body[data-art="block"] .shell-title {
+  background: #FF3B30;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+  border-bottom: 4px solid #1A1A1A;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="block"] .win {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 20px;
+  box-shadow: 4px 4px 0 #1A1A1A;
+}
+
+body[data-art="block"] .win-title {
+  background: #FF3B30;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+  text-shadow: none;
+  border-bottom: 4px solid #1A1A1A;
+  border-radius: 16px 16px 0 0;
+  letter-spacing: 0.02em;
+}
+
+body[data-art="block"] .win-controls button {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #1A1A1A;
+  border-radius: 50%;
+  box-shadow: 2px 2px 0 #1A1A1A;
+  font-size: 0;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+body[data-art="block"] .win-controls button:nth-child(1) { background: #FF3B30; }
+body[data-art="block"] .win-controls button:nth-child(2) { background: #FFCC00; }
+body[data-art="block"] .win-controls button:nth-child(3) { background: #34C759; }
+body[data-art="block"] .win-controls button:active { transform: translate(2px, 2px); box-shadow: none; }
+
+body[data-art="block"] .win-body {
+  background: #F0F8FF;
+  border: none;
+  box-shadow: none;
+  border-radius: 0 0 16px 16px;
+}
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="block"] .btn {
+  background: var(--lemon);
+  color: #1A1A1A;
+  border: 4px solid #1A1A1A;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 4px 4px 0 #1A1A1A;
+  transition: transform 0.08s, box-shadow 0.08s;
+  text-shadow: none;
+}
+
+body[data-art="block"] .btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 #1A1A1A;
+}
+
+body[data-art="block"] .btn:hover { filter: brightness(1.05); }
+
+body[data-art="block"] .btn.primary {
+  background: #FF3B30;
+  color: #FFFFFF;
+  border-color: #1A1A1A;
+}
+
+body[data-art="block"] .btn.ghost {
+  background: transparent;
+  color: #1A1A1A;
+  border: 3px dashed #1A1A1A;
+  box-shadow: none;
+}
+body[data-art="block"] .btn.ghost:hover { background: rgba(0,0,0,0.05); }
+
+body[data-art="block"] .btn.danger {
+  background: transparent;
+  color: #FF3B30;
+  border: 3px solid #FF3B30;
+  box-shadow: 3px 3px 0 rgba(255,59,48,0.3);
+  text-shadow: none;
+}
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="block"] .field {
+  background: #FFFFFF;
+  color: #1A1A1A;
+  border: 4px solid #1A1A1A;
+  border-radius: 12px;
+  font-size: 14px;
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.08);
+}
+
+body[data-art="block"] .field:focus {
+  border-color: #007AFF;
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.08), 0 0 0 3px rgba(0,122,255,0.2);
+  outline: none;
+}
+
+body[data-art="block"] .label {
+  color: #1A1A1A;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="block"] .chatlog {
+  background: #F0F8FF;
+  border: 4px solid #1A1A1A;
+  border-radius: 16px;
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.06);
+  font-size: 14px;
+  color: #1A1A1A;
+}
+
+/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
+body[data-art="block"] .bubble {
+  background: #FFFFFF;
+  color: #1A1A1A;
+  border: 4px solid #1A1A1A;
+  border-radius: 16px;
+  border-top-left-radius: 0;
+  box-shadow: 4px 4px 0 #1A1A1A;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+body[data-art="block"] .seq-block.seq-right .bubble {
+  background: #FFCC00;
+  color: #1A1A1A;
+  border-color: #1A1A1A;
+  border-radius: 16px;
+  border-top-right-radius: 0;
+  box-shadow: -4px 4px 0 #1A1A1A;
+}
+
+body[data-art="block"] .bubble-char    { background: #E8F4FF !important; border-color: #007AFF !important; }
+body[data-art="block"] .bubble-third   { background: #EAFFF0 !important; border-color: #34C759 !important; }
+body[data-art="block"] .bubble-persona { background: #FFCC00 !important; border-color: #1A1A1A !important; }
+
+body[data-art="block"] .msg .who { color: #444444; font-weight: 700; }
+body[data-art="block"] .seq-speaker { color: #444444; font-weight: 700; }
+
+/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
+body[data-art="block"] .composer {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 16px;
+  box-shadow: none;
+  border-top: 4px solid #1A1A1A;
+}
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="block"] .dock {
+  background: #FFFFFF;
+  border-top: 4px solid #1A1A1A;
+  box-shadow: 0 -3px 0 rgba(0,0,0,0.05);
+}
+
+body[data-art="block"] .dock .start {
+  background: #FFCC00;
+  color: #1A1A1A;
+  border: 4px solid #1A1A1A;
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 #1A1A1A;
+  font-weight: 700;
+  text-shadow: none;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+body[data-art="block"] .dock .start.active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+body[data-art="block"] .dock .clock {
+  background: #F0F8FF;
+  border: 3px solid #1A1A1A;
+  border-radius: 10px;
+  color: #1A1A1A;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  box-shadow: 2px 2px 0 #1A1A1A;
+}
+
+body[data-art="block"] .dock-tab {
+  background: #F0F8FF;
+  color: #1A1A1A;
+  border: 3px solid #1A1A1A;
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 #1A1A1A;
+  font-weight: 700;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+body[data-art="block"] .dock-tab.active {
+  background: #007AFF;
+  color: #FFFFFF;
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,0.15);
+  transform: none;
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="block"] .start-menu {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 #1A1A1A;
+}
+
+body[data-art="block"] .start-menu-item { color: #1A1A1A; font-weight: 700; border-radius: 10px; }
+body[data-art="block"] .start-menu-item:hover { background: #FFCC00; }
+body[data-art="block"] .start-menu-item.danger { color: #FF3B30; }
+body[data-art="block"] .start-menu-item.danger:hover { background: #FFE5E3; }
+body[data-art="block"] .start-menu-divider { background: #1A1A1A; height: 2px; }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="block"] .row {
+  background: #FFFFFF;
+  border: 3px solid #1A1A1A;
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 #1A1A1A;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+body[data-art="block"] .row:hover {
+  background: #F0F8FF;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #1A1A1A;
+}
+
+body[data-art="block"] .row .thumb {
+  border: 3px solid #1A1A1A;
+  border-radius: 10px;
+  box-shadow: 2px 2px 0 #1A1A1A;
+}
+
+body[data-art="block"] .row .meta h4 { color: #1A1A1A; font-weight: 700; }
+body[data-art="block"] .row .meta p { color: #444444; }
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="block"] .char-card {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 20px;
+  box-shadow: 4px 4px 0 #1A1A1A;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+body[data-art="block"] .char-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #1A1A1A;
+}
+
+body[data-art="block"] .char-card.selected {
+  outline: 3px dashed #007AFF;
+  outline-offset: 2px;
+  background: #F0F8FF;
+}
+
+body[data-art="block"] .char-card .pic-wrap {
+  border: 3px solid #1A1A1A;
+  border-radius: 14px;
+  box-shadow: 2px 2px 0 #1A1A1A;
+}
+
+body[data-art="block"] .char-card h4 { color: #1A1A1A; font-weight: 700; }
+body[data-art="block"] .char-card p { color: #444444; }
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="block"] .side-panel {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 #1A1A1A;
+}
+
+body[data-art="block"] .side-panel-header { border-color: #1A1A1A; font-weight: 700; }
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="block"] .chat-header {
+  background: #FFFFFF;
+  border: 3px solid #1A1A1A;
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 #1A1A1A;
+}
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="block"] .tag {
+  background: #007AFF;
+  color: #FFFFFF;
+  border: 2px solid #1A1A1A;
+  border-radius: 20px;
+  font-weight: 700;
+  box-shadow: 2px 2px 0 #1A1A1A;
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="block"] .msg-action-btn {
+  background: #F0F8FF;
+  border: 2px solid #1A1A1A;
+  border-radius: 8px;
+  color: #1A1A1A;
+  font-weight: 700;
+  box-shadow: 2px 2px 0 #1A1A1A;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+body[data-art="block"] .msg-action-btn:hover {
+  color: #007AFF;
+  border-color: #007AFF;
+  box-shadow: 2px 2px 0 #007AFF;
+}
+
+body[data-art="block"] .msg-action-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="block"] .ai-pill {
+  background: #FFFFFF;
+  color: #1A1A1A;
+  border: 3px solid #1A1A1A;
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 #1A1A1A;
+  font-weight: 700;
+}
+
+body[data-art="block"] .ai-dropdown {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 #1A1A1A;
+}
+
+body[data-art="block"] .ai-dropdown-item { color: #1A1A1A; font-weight: 600; border-radius: 10px; }
+body[data-art="block"] .ai-dropdown-item:hover { background: #FFCC00; }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="block"] .form-section {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 #1A1A1A;
+}
+
+body[data-art="block"] .form-section-title { color: #444444; font-weight: 700; letter-spacing: 0.04em; }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="block"] .persona-option,
+body[data-art="block"] .ai-model-option {
+  background: #FFFFFF;
+  border: 3px solid #1A1A1A;
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 #1A1A1A;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+body[data-art="block"] .persona-option:hover,
+body[data-art="block"] .ai-model-option:hover:not(.disabled) {
+  background: #F0F8FF;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #1A1A1A;
+}
+
+body[data-art="block"] .persona-option.selected,
+body[data-art="block"] .ai-model-option.selected {
+  outline: 3px dashed #007AFF;
+  background: #F0F8FF;
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,0.1);
+  transform: none;
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="block"] .chatlog::-webkit-scrollbar,
+body[data-art="block"] .char-grid::-webkit-scrollbar { width: 12px; }
+
+body[data-art="block"] .chatlog::-webkit-scrollbar-track,
+body[data-art="block"] .char-grid::-webkit-scrollbar-track {
+  background: #F0F8FF;
+  border: 2px solid #1A1A1A;
+  border-radius: 6px;
+}
+
+body[data-art="block"] .chatlog::-webkit-scrollbar-thumb,
+body[data-art="block"] .char-grid::-webkit-scrollbar-thumb {
+  background: #007AFF;
+  border: 2px solid #1A1A1A;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+/* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
+body[data-art="block"] .login-title {
+  background: #FF3B30;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.15));
+}
+
+body[data-art="block"] .login-card {
+  background: #FFFFFF;
+  border: 4px solid #1A1A1A;
+  border-radius: 20px;
+  box-shadow: 6px 6px 0 #1A1A1A;
+  padding: 20px;
+}

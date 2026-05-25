@@ -1,0 +1,434 @@
+/* ─── Modern & White Theme ────────────────────────────────────────────────
+   data-art="modernwhite" 으로 활성화
+   컨셉: iOS / Apple HIG 느낌의 클린 화이트 UI
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="modernwhite"] {
+
+  /* ── 배경 ── */
+  --bg-1: #f5f5f7;
+  --bg-2: #f5f5f7;
+  --bg-3: #e8e8ed;
+
+  /* ── 텍스트 ── */
+  --ink:      #1c1c1e;
+  --ink-soft: #8e8e93;
+
+  /* ── 콘텐츠 배경 ── */
+  --paper:   #ffffff;
+  --paper-2: #f2f2f7;
+
+  /* ── 액센트 컬러 ── */
+  --pink:      #ff2d55;   /* iOS 레드 */
+  --hot-pink:  #007aff;   /* iOS 블루를 CTA로 */
+  --purple:    #5856d6;   /* iOS 인디고 */
+  --lavender:  #e5e5ea;
+  --mint:      #34c759;   /* iOS 그린 */
+  --lemon:     #ffcc00;   /* iOS 옐로우 */
+  --sky:       #32ade6;   /* iOS 라이트블루 */
+  --accent:    #007aff;   /* iOS 블루 */
+
+  /* ── 창 프레임 (chrome) ── */
+  --chrome-face:   #ffffff;
+  --chrome-shadow: #c7c7cc;
+  --chrome-hi:     #ffffff;
+  --chrome-border: #e5e5ea;
+  --title-grad:    linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+
+  /* ── 폰트 ── */
+  --font-pixel: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-title: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-body:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:  'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+
+  /* ── 레이아웃 ── */
+  --radius:      12px;
+  --shadow-step: 0px;
+  --hairline:    1px;
+}
+
+/* ─── 배경 ─────────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] {
+  background: #f5f5f7;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .shell {
+  background: #ffffff;
+  border: none;
+  border-radius: 44px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+}
+
+body[data-art="modernwhite"] .shell-body {
+  background: #f5f5f7;
+  background-image: none;
+}
+
+body[data-art="modernwhite"] .shell-title {
+  background: #ffffff;
+  color: #1c1c1e;
+  text-shadow: none;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid #f2f2f7;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .win {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+}
+
+body[data-art="modernwhite"] .win-title {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 16px;
+  text-shadow: none;
+  color: #1c1c1e;
+  border-bottom: 1px solid #f2f2f7;
+  letter-spacing: -0.01em;
+  border-radius: 16px 16px 0 0;
+}
+
+body[data-art="modernwhite"] .win-controls button {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  box-shadow: none;
+  font-size: 0;
+}
+body[data-art="modernwhite"] .win-controls button:nth-child(1) { background: #ff5f57; }
+body[data-art="modernwhite"] .win-controls button:nth-child(2) { background: #febc2e; }
+body[data-art="modernwhite"] .win-controls button:nth-child(3) { background: #28c840; }
+
+body[data-art="modernwhite"] .win-body {
+  background: #ffffff;
+  border: none;
+  box-shadow: none;
+  padding: 16px;
+  border-radius: 0 0 16px 16px;
+}
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .btn {
+  background: #f2f2f7;
+  color: #007aff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.15s, opacity 0.15s;
+  text-shadow: none;
+}
+
+body[data-art="modernwhite"] .btn:hover { background: #e5e5ea; }
+body[data-art="modernwhite"] .btn:active { opacity: 0.7; transform: none; box-shadow: none; }
+
+body[data-art="modernwhite"] .btn.primary {
+  background: #007aff;
+  color: #ffffff;
+  text-shadow: none;
+}
+body[data-art="modernwhite"] .btn.primary:hover { background: #0066d6; }
+
+body[data-art="modernwhite"] .btn.ghost {
+  background: transparent;
+  color: #007aff;
+  border: none;
+  box-shadow: none;
+}
+body[data-art="modernwhite"] .btn.ghost:hover { background: rgba(0,122,255,0.06); }
+
+body[data-art="modernwhite"] .btn.danger {
+  background: transparent;
+  color: #ff3b30;
+  border: none;
+  box-shadow: none;
+}
+body[data-art="modernwhite"] .btn.danger:hover { background: rgba(255,59,48,0.06); }
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .field {
+  background: #fafafa;
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #1c1c1e;
+  padding: 14px 16px;
+}
+
+body[data-art="modernwhite"] .field:focus {
+  border-color: #007aff;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
+}
+
+body[data-art="modernwhite"] .label {
+  color: #1c1c1e;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .chatlog {
+  background: #f2f2f7;
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  box-shadow: none;
+  font-size: 15px;
+  color: #1c1c1e;
+}
+
+/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .bubble {
+  background: #ffffff;
+  color: #1c1c1e;
+  border: 1px solid #e5e5ea;
+  border-radius: 18px 18px 18px 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+body[data-art="modernwhite"] .seq-block.seq-right .bubble {
+  background: #007aff;
+  color: #ffffff;
+  border: none;
+  border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.25);
+}
+
+body[data-art="modernwhite"] .bubble-char    { background: #f2f7ff !important; border-color: #b8d4ff !important; }
+body[data-art="modernwhite"] .bubble-third   { background: #f0fff4 !important; border-color: #b2f0c8 !important; }
+body[data-art="modernwhite"] .bubble-persona { background: #007aff !important; border-color: transparent !important; color: #fff !important; }
+
+body[data-art="modernwhite"] .msg .who { color: #8e8e93; font-size: 12px; }
+body[data-art="modernwhite"] .seq-speaker { color: #8e8e93; }
+
+/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .composer {
+  background: #ffffff;
+  border: none;
+  border-top: 1px solid #f2f2f7;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .dock {
+  background: rgba(255,255,255,0.9);
+  border-top: 1px solid #f2f2f7;
+  box-shadow: 0 -1px 0 rgba(0,0,0,0.05);
+  backdrop-filter: blur(20px);
+}
+
+body[data-art="modernwhite"] .dock .start {
+  background: #007aff;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.3);
+  font-weight: 700;
+  text-shadow: none;
+}
+
+body[data-art="modernwhite"] .dock .clock {
+  background: #f2f2f7;
+  border: none;
+  border-radius: 8px;
+  color: #1c1c1e;
+  font-family: var(--font-mono);
+}
+
+body[data-art="modernwhite"] .dock-tab {
+  background: transparent;
+  color: #8e8e93;
+  border: none;
+  border-radius: 10px;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+body[data-art="modernwhite"] .dock-tab.active {
+  background: #007aff;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.25);
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .start-menu {
+  background: rgba(255,255,255,0.95);
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  backdrop-filter: blur(20px);
+}
+
+body[data-art="modernwhite"] .start-menu-item { color: #1c1c1e; font-size: 15px; border-radius: 10px; }
+body[data-art="modernwhite"] .start-menu-item:hover { background: #f2f2f7; }
+body[data-art="modernwhite"] .start-menu-item.danger { color: #ff3b30; }
+body[data-art="modernwhite"] .start-menu-item.danger:hover { background: rgba(255,59,48,0.06); }
+body[data-art="modernwhite"] .start-menu-divider { background: #e5e5ea; }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .row {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+body[data-art="modernwhite"] .row:hover { background: #f9f9fb; }
+
+body[data-art="modernwhite"] .row .thumb {
+  border: 1px solid #e5e5ea;
+  border-radius: 12px;
+}
+
+body[data-art="modernwhite"] .row .meta h4 { color: #1c1c1e; font-size: 15px; }
+body[data-art="modernwhite"] .row .meta p { color: #8e8e93; }
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .char-card {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+body[data-art="modernwhite"] .char-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+body[data-art="modernwhite"] .char-card.selected {
+  outline: 2px solid #007aff;
+  outline-offset: 2px;
+  background: #f5f8ff;
+}
+
+body[data-art="modernwhite"] .char-card .pic-wrap {
+  border: 1px solid #e5e5ea;
+  border-radius: 50%;
+}
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .side-panel {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+body[data-art="modernwhite"] .side-panel-header { border-color: #f2f2f7; color: #1c1c1e; }
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .chat-header {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 14px;
+}
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .tag {
+  background: #f2f2f7;
+  color: #3a3a3c;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .msg-action-btn {
+  background: #f2f2f7;
+  border: none;
+  border-radius: 8px;
+  color: #8e8e93;
+  box-shadow: none;
+  font-size: 11px;
+}
+
+body[data-art="modernwhite"] .msg-action-btn:hover {
+  color: #007aff;
+  background: #e5f0ff;
+  border-color: transparent;
+}
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .ai-pill {
+  background: #f2f2f7;
+  color: #007aff;
+  border: none;
+  border-radius: 20px;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+body[data-art="modernwhite"] .ai-dropdown {
+  background: rgba(255,255,255,0.95);
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  backdrop-filter: blur(20px);
+}
+
+body[data-art="modernwhite"] .ai-dropdown-item { color: #1c1c1e; border-radius: 10px; font-size: 14px; }
+body[data-art="modernwhite"] .ai-dropdown-item:hover { background: #f2f2f7; }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .form-section {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+body[data-art="modernwhite"] .form-section-title { color: #8e8e93; letter-spacing: 0.04em; }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .persona-option,
+body[data-art="modernwhite"] .ai-model-option {
+  background: #fafafa;
+  border: 1px solid #e5e5ea;
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+body[data-art="modernwhite"] .persona-option:hover,
+body[data-art="modernwhite"] .ai-model-option:hover:not(.disabled) { background: #f2f2f7; }
+
+body[data-art="modernwhite"] .persona-option.selected,
+body[data-art="modernwhite"] .ai-model-option.selected {
+  outline: 2px solid #007aff;
+  background: #f5f8ff;
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .chatlog::-webkit-scrollbar,
+body[data-art="modernwhite"] .char-grid::-webkit-scrollbar { width: 0; }
+
+/* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
+body[data-art="modernwhite"] .login-title {
+  background: linear-gradient(135deg, #007aff, #5856d6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+body[data-art="modernwhite"] .login-card {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  padding: 24px;
+}
