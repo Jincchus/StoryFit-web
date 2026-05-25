@@ -90,7 +90,6 @@ export default function ChatPage() {
   const [showInventory, setShowInventory] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editText, setEditText] = useState('')
   const [allChars, setAllChars] = useState<Character[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
@@ -403,10 +402,10 @@ export default function ChatPage() {
     setConfirmDeleteId(null)
   }
 
-  const saveEditOnly = async () => {
-    if (!editText.trim() || !editingId) return
-    await api.patch(`/api/conversations/${params.id}/messages`, { messageId: editingId, content: editText.trim() })
-    setMessages(prev => prev.map(m => m.id === editingId ? { ...m, content: editText.trim() } : m))
+  const saveEditOnly = async (content: string, msgId: string) => {
+    if (!content.trim()) return
+    await api.patch(`/api/conversations/${params.id}/messages`, { messageId: msgId, content: content.trim() })
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: content.trim() } : m))
     setEditingId(null)
     setToast('저장 완료')
   }
@@ -435,18 +434,18 @@ export default function ChatPage() {
     await loadConv()
   }
 
-  const startEdit = (id: string, content: string) => { setEditingId(id); setEditText(content) }
+  const startEdit = (id: string) => { setEditingId(id) }
 
-  const saveEdit = async () => {
-    if (!editText.trim() || !editingId) return
-    const idx = messages.findIndex(m => m.id === editingId)
+  const saveEdit = async (content: string, msgId: string) => {
+    if (!content.trim()) return
+    const idx = messages.findIndex(m => m.id === msgId)
     const toDelete = messages.slice(idx)
     for (const m of toDelete) {
       await api.delete(`/api/conversations/${params.id}/messages`, { messageId: m.id })
     }
     setMessages(prev => prev.slice(0, idx))
     setEditingId(null)
-    await send(editText.trim())
+    await send(content.trim())
   }
 
   const handleModelChange = async (id: AIProvider) => {
@@ -636,18 +635,13 @@ export default function ChatPage() {
                           )}
                         </div>
                         {isEditing ? (
-                          <div className="vstack" style={{ gap: 4, alignItems: 'flex-end' }}>
-                            <textarea className="field" rows={3} value={editText}
-                              onChange={e => setEditText(e.target.value)}
-                              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() } }}
-                              autoFocus style={{ minWidth: 200 }}
-                            />
-                            <div className="hstack" style={{ gap: 4 }}>
-                              <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEdit}>저장 + 재생성</button>
-                              <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEditOnly}>저장만</button>
-                              <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
-                            </div>
-                          </div>
+                          <MessageEdit
+                            initialContent={m.content}
+                            isUser
+                            onSave={c => saveEdit(c, m.id)}
+                            onSaveOnly={c => saveEditOnly(c, m.id)}
+                            onCancel={() => setEditingId(null)}
+                          />
                         ) : (
                           <div className={`bubble ${isNovel ? 'bubble-author' : 'bubble-persona'}`} style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                         )}
@@ -655,21 +649,13 @@ export default function ChatPage() {
                     ) : isEditing ? (
                       /* ── AI 편집 중 ── */
                       <div className="seq-block seq-left">
-                        <div className="seq-speaker">
-                          <span>{msgChar.name}</span>
-                        </div>
-                        <div className="vstack" style={{ gap: 4 }}>
-                          <textarea className="field" rows={3} value={editText}
-                            onChange={e => setEditText(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit() } }}
-                            style={{ minWidth: 0 }} autoFocus
-                          />
-                          <div className="hstack" style={{ gap: 4 }}>
-                            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEditOnly}>저장만</button>
-                            <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={saveEdit}>저장 + 재생성</button>
-                            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
-                          </div>
-                        </div>
+                        <div className="seq-speaker"><span>{msgChar.name}</span></div>
+                        <MessageEdit
+                          initialContent={m.content}
+                          onSave={c => saveEdit(c, m.id)}
+                          onSaveOnly={c => saveEditOnly(c, m.id)}
+                          onCancel={() => setEditingId(null)}
+                        />
                       </div>
                     ) : blocks.length > 0 ? (
                       /* ── AI 메시지: 블록 순서대로 ── */
@@ -767,7 +753,7 @@ export default function ChatPage() {
                           </div>
                         )}
                         {isYou && (
-                          <button className="msg-action-btn" onClick={() => startEdit(m.id, m.content)}>✏ 편집</button>
+                          <button className="msg-action-btn" onClick={() => startEdit(m.id)}>✏ 편집</button>
                         )}
                         <button className="msg-action-btn danger" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
                       </div>
@@ -1215,6 +1201,42 @@ function LorebookEditForm({ entry, onSave, onCancel }: { entry: LbEntry; onSave:
         <button className="btn primary" style={{ fontSize: 9, padding: '2px 7px' }}
           onClick={() => onSave({ keyword: keywords.split(',').map(k => k.trim()).filter(Boolean), content, priority, scanDepth })}>저장</button>
         <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={onCancel}>취소</button>
+      </div>
+    </div>
+  )
+}
+
+function MessageEdit({ initialContent, isUser, onSave, onSaveOnly, onCancel }: {
+  initialContent: string
+  isUser?: boolean
+  onSave: (content: string) => void
+  onSaveOnly: (content: string) => void
+  onCancel: () => void
+}) {
+  const [editText, setEditText] = useState(initialContent)
+  return (
+    <div className="vstack" style={{ gap: 4, alignItems: isUser ? 'flex-end' : undefined }}>
+      <textarea
+        className="field" rows={3}
+        value={editText}
+        onChange={e => setEditText(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSave(editText) } }}
+        autoFocus
+        style={{ minWidth: isUser ? 200 : 0 }}
+      />
+      <div className="hstack" style={{ gap: 4 }}>
+        {isUser ? (
+          <>
+            <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSave(editText)}>저장 + 재생성</button>
+            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSaveOnly(editText)}>저장만</button>
+          </>
+        ) : (
+          <>
+            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSaveOnly(editText)}>저장만</button>
+            <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => onSave(editText)}>저장 + 재생성</button>
+          </>
+        )}
+        <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={onCancel}>취소</button>
       </div>
     </div>
   )
