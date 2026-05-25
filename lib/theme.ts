@@ -15,7 +15,7 @@ export const THEMES = [
 
 export type ThemeId = typeof THEMES[number]['id']
 
-const EXTERNAL_THEMES = new Set(['retro', 'modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld'])
+const EXTERNAL_THEMES = new Set(['modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld'])
 
 export function applyTheme(theme: string): void {
   if (typeof document === 'undefined') return
@@ -40,5 +40,5 @@ export function applyTheme(theme: string): void {
 }
 
 export function getSavedTheme(): string {
-  try { return localStorage.getItem('sf-theme') ?? 'instagram' } catch { return 'instagram' }
+  try { return localStorage.getItem('sf-theme') ?? 'retro' } catch { return 'retro' }
 }
