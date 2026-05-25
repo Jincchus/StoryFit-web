@@ -161,9 +161,8 @@ export default function ChatPage() {
 
     if (existing.done) {
       setTyping(false)
-      setStreaming('')
       clearConvStream(params.id)
-      loadConv().catch(() => {})
+      loadConv().then(() => setStreaming('')).catch(() => setStreaming(''))
       return
     }
 
@@ -174,11 +173,10 @@ export default function ChatPage() {
       if (cs.error) { setSendError(cs.error); setSendErrorRetryable(cs.retryable) }
       if (cs.done) {
         setTyping(false)
-        setStreaming('')
         setStreamingCharId(null)
         clearConvStream(params.id)
         unsub()
-        loadConv().catch(() => {})
+        loadConv().then(() => setStreaming('')).catch(() => setStreaming(''))
       }
     })
 
@@ -308,12 +306,11 @@ export default function ChatPage() {
       if (cs.error) { setSendError(cs.error); setSendErrorRetryable(cs.retryable) }
       if (cs.done) {
         setTyping(false)
-        setStreaming('')
         setStreamingCharId(null)
         clearConvStream(convId)
         streamUnsubRef.current = null
         unsub()
-        loadConv().catch(() => {})
+        loadConv().then(() => setStreaming('')).catch(() => setStreaming(''))
       }
     })
     streamUnsubRef.current = unsub
@@ -778,7 +775,7 @@ export default function ChatPage() {
                 )
               })}
 
-              {(typing || streaming) && (
+              {(typing || streaming) && messages[messages.length - 1]?.role !== 'assistant' && (
                 <div className="msg-seq">
                   <div className="seq-block seq-left">
                     <div className="seq-speaker">
