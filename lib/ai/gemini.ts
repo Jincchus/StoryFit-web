@@ -34,7 +34,6 @@ async function streamViaApiKey(
   const generationConfig = {
     temperature: params.temperature ?? 0.9,
     maxOutputTokens: 8192,
-    ...({ thinkingConfig: { thinkingBudget: 0 } } as object),
   }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
@@ -60,9 +59,9 @@ async function streamViaApiKey(
   let fullText = ''
   for await (const chunk of result.stream) {
     if (signal?.aborted) break
-    const text = chunk.text()
-    fullText += text
-    onChunk(text)
+    const parts: any[] = (chunk as any).candidates?.[0]?.content?.parts ?? []
+    const text = parts.filter(p => !p.thought).map(p => p.text ?? '').join('')
+    if (text) { fullText += text; onChunk(text) }
   }
 
   let inputTokens = 0
@@ -100,8 +99,7 @@ async function streamViaVertex(
     generationConfig: {
       temperature: params.temperature ?? 0.9,
       maxOutputTokens: 8192,
-      ...({ thinkingConfig: { thinkingBudget: 0 } } as object),
-    },
+      },
     safetySettings: [
       VHC.HARM_CATEGORY_HARASSMENT,
       VHC.HARM_CATEGORY_HATE_SPEECH,
@@ -127,9 +125,9 @@ async function streamViaVertex(
   let fullText = ''
   for await (const chunk of result.stream) {
     if (signal?.aborted) break
-    const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    fullText += text
-    if (text) onChunk(text)
+    const parts: any[] = chunk.candidates?.[0]?.content?.parts ?? []
+    const text = parts.filter((p: any) => !p.thought).map((p: any) => p.text ?? '').join('')
+    if (text) { fullText += text; onChunk(text) }
   }
 
   let inputTokens = 0
