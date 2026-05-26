@@ -53,6 +53,6 @@ export async function streamChat(
     case 'gemini':
       return streamGeminiChat(params, onChunk, signal)
     default:
-      throw new Error(`AI provider '${params.provider}' is not available in v1`)
+      return streamGeminiChat(params, onChunk, signal)
   }
 }

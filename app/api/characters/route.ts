@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const exampleDialogues = String(body.exampleDialogues ?? '').slice(0, 20000)
 
   const avatarUrl: string | undefined = body.avatarUrl
-    ? /^https?:\/\/.{1,2000}/.test(body.avatarUrl) ? body.avatarUrl : undefined
+    ? /^https?:\/\/.{1,2000}/.test(body.avatarUrl) || /^\/api\/uploads\//.test(body.avatarUrl) ? body.avatarUrl : undefined
     : undefined
 
   const safetyLevel = ['strict', 'standard', 'relaxed'].includes(body.safetyLevel) ? body.safetyLevel : 'standard'
