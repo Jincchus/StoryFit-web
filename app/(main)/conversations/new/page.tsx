@@ -350,7 +350,7 @@ export default function NewConversationPage() {
             {/* 4. 세계관 태그 */}
             <section className="new-conv-section">
               <div className="label">세계관 태그 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
-              <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
+              <div className="tag-scroll" style={{ overflowX: 'auto', paddingBottom: 4 }}>
                 <div className="tag-row" style={{ flexWrap: 'nowrap', gap: 5, width: 'max-content' }}>
                   {[...tagPool].sort((a, b) => a.localeCompare(b, 'ko')).map(tag => (
                     <span
