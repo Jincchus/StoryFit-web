@@ -38,6 +38,7 @@
   /* Fallback aliases for project-specific classes */
   --bg-2: var(--gray-light);
   --paper: #fff;
+  --paper-2: #fff;
   --line: var(--gray-dark);
   --hairline: var(--gray-shadow);
   --accent: var(--navy);
@@ -45,6 +46,21 @@
   --radius-sm: 0px;
   --radius-lg: 0px;
   --green: #00aa00;
+
+  /* Override retro/global pink variables → Win95 navy/teal */
+  --hot-pink: #000080;
+  --pink: #008080;
+  --lavender: #c0c0c0;
+  --pane: #ffffff;
+  --title-grad: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  --chrome-face: #c0c0c0;
+  --chrome-shadow: #808080;
+  --chrome-hi: #ffffff;
+  --chrome-border: #000000;
+  --ink-muted: #808080;
+  --ink-soft: #2b2b2b;
+  --mode-badge-bg: #ffff80;
+  --mode-badge-color: #000;
 }
 
 /* Modern variant = same chrome, slightly softer borders */
