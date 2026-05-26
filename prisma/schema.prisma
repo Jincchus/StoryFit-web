@@ -111,6 +111,7 @@ model Conversation {
   frequencyPenalty    Float                   @default(0.3)
   safetyLevel         String                  @default("standard")
   isPinned            Boolean                 @default(false)
+  isArchived          Boolean                 @default(false)
   isSummarizing       Boolean                 @default(false)
   statsEnabled        Boolean                 @default(false)
   statsConfig         Json?

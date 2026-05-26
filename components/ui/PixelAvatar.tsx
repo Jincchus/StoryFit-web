@@ -179,6 +179,17 @@ export const PixelIcons = {
       <rect x="7" y="12" width="2" height="1" fill="#8b5cf6"/>
     </svg>
   ),
+  book: (
+    <svg className="icn" viewBox="0 0 16 16" shapeRendering="crispEdges">
+      <rect x="2" y="2" width="5" height="12" fill="#c9b6ff"/>
+      <rect x="7" y="2" width="1" height="12" fill="#8b5cf6"/>
+      <rect x="8" y="2" width="6" height="12" fill="#ffd1e8"/>
+      <rect x="2" y="2" width="1" height="12" fill="#8b5cf6"/>
+      <rect x="9" y="4" width="4" height="1" fill="#ff8fcf"/>
+      <rect x="9" y="6" width="4" height="1" fill="#ff8fcf"/>
+      <rect x="9" y="8" width="3" height="1" fill="#ff8fcf"/>
+    </svg>
+  ),
 }
 
 interface PixelAvatarProps {

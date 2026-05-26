@@ -9,6 +9,7 @@ const BASE_ICONS = [
   { label: '새 대화', icon: <PixelAvatar kind="ai" size={38} />, href: '/conversations/new' },
   { label: 'AI 채팅', icon: PixelIcons.bot, href: '/assistant' },
   { label: '캐릭터', icon: <PixelAvatar kind="custom" size={38} />, href: '/characters' },
+  { label: '서재', icon: PixelIcons.book, href: '/library' },
   { label: '설정', icon: PixelIcons.sliders, href: '/settings' },
 ]
 

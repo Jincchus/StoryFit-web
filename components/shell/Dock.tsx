@@ -42,6 +42,7 @@ export default function Dock() {
   const isCharCreate = pathname === '/characters/new'
   const isSettings = pathname === '/settings'
   const isAssistant = pathname.startsWith('/assistant')
+  const isLibrary = pathname.startsWith('/library')
 
   return (
     <div className="dock">
@@ -59,6 +60,9 @@ export default function Dock() {
             </button>
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/characters') }}>
               🎭 캐릭터
+            </button>
+            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/library') }}>
+              📚 서재
             </button>
             <div className="start-menu-divider" />
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/settings') }}>
@@ -94,6 +98,7 @@ export default function Dock() {
         {isNewConv && <button className="dock-tab active">▸ 새 대화</button>}
         {isCharCreate && <button className="dock-tab active">▸ 캐릭터 만들기</button>}
         {isSettings && <button className="dock-tab active">▸ 설정</button>}
+        {isLibrary && <button className="dock-tab active">▸ 서재</button>}
       </div>
       <div className="tray">
         <span title="네트워크" style={{ color: '#22a06b' }}>●</span>

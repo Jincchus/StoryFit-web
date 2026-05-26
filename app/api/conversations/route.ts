@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     where: {
       userId,
       rootConversationId: null,
+      isArchived: false,
       mode: mode ? mode : { not: 'assistant' },
     },
     include: {

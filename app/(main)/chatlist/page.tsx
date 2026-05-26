@@ -92,6 +92,12 @@ export default function ChatListPage() {
     await api.patch(`/api/conversations/${conv.id}`, { isPinned: next })
   }
 
+  const archiveConv = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    await api.patch(`/api/conversations/${id}`, { isArchived: true })
+    setConversations(prev => prev.filter(c => c.id !== id))
+  }
+
   const filtered = conversations.filter(c => {
     if (modeFilter !== 'all' && c.mode !== modeFilter) return false
     if (!query.trim()) return true
@@ -275,6 +281,12 @@ export default function ChatListPage() {
                         onClick={e => togglePin(e, conv)}
                         title={conv.isPinned ? '핀 해제' : '상단 고정'}
                       >📌</button>
+                      <button
+                        className="btn ghost"
+                        style={{ fontSize: 10, padding: '3px 8px' }}
+                        onClick={e => archiveConv(e, conv.id)}
+                        title="서재로 보내기"
+                      >📚</button>
                       <button
                         className="btn danger"
                         style={{ fontSize: 10, padding: '3px 8px', minWidth: 44 }}

@@ -12,6 +12,7 @@ const SCREEN_LABELS: Record<string, string> = {
   '/characters/new': '캐릭터 만들기',
   '/conversations/new': '새 대화',
   '/settings': '설정',
+  '/library': '서재',
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
