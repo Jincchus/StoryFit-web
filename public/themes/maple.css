@@ -380,18 +380,40 @@ body[data-art="maple"] .ai-model-option.selected {
 }
 
 /* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
-body[data-art="maple"] .chatlog::-webkit-scrollbar,
-body[data-art="maple"] .char-grid::-webkit-scrollbar { width: 12px; }
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="maple"] ::-webkit-scrollbar              { width: 12px; height: 12px; }
+body[data-art="maple"] ::-webkit-scrollbar-track        { background: #C8DFF5; border-left: 2px solid var(--chrome-border); }
+body[data-art="maple"] ::-webkit-scrollbar-thumb        { background: var(--accent); border: 2px solid var(--chrome-border); box-shadow: inset 1px 1px 0 #FFD580; }
+body[data-art="maple"] ::-webkit-scrollbar-thumb:hover  { background: var(--hot-pink); }
+body[data-art="maple"] ::-webkit-scrollbar-corner       { background: #C8DFF5; }
 
-body[data-art="maple"] .chatlog::-webkit-scrollbar-track,
-body[data-art="maple"] .char-grid::-webkit-scrollbar-track {
-  background: #E2EAF4;
-  border: 2px solid var(--chrome-border);
+/* ─── 홈화면 아이콘 (픽셀 게임 아이콘 스타일) ─────────────────────────── */
+body[data-art="maple"] .di {
+  color: #1a1a1a;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.9);
 }
-
-body[data-art="maple"] .chatlog::-webkit-scrollbar-thumb,
-body[data-art="maple"] .char-grid::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border: 2px solid var(--chrome-border);
-  box-shadow: none;
+body[data-art="maple"] .di .di-pic {
+  background: var(--paper);
+  border: 3px solid var(--chrome-border);
+  border-radius: 4px;
+  box-shadow:
+    3px 3px 0 var(--chrome-border),
+    inset 1px 1px 0 #FFD580;
+  padding: 4px;
+  image-rendering: pixelated;
+  transition: transform .08s, box-shadow .08s;
+}
+body[data-art="maple"] .di:hover .di-pic {
+  background: var(--paper-2);
+  transform: translate(-1px, -2px);
+  box-shadow:
+    4px 5px 0 var(--chrome-border),
+    inset 1px 1px 0 #FFD580;
+}
+body[data-art="maple"] .di:hover {
+  background: rgba(255,153,0,.12);
+  border-radius: 4px;
 }
