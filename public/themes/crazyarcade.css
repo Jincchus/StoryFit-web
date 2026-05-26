@@ -449,21 +449,43 @@ body[data-art="crazyarcade"] .ai-model-option.selected {
 }
 
 /* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
-body[data-art="crazyarcade"] .chatlog::-webkit-scrollbar,
-body[data-art="crazyarcade"] .char-grid::-webkit-scrollbar { width: 10px; }
+body[data-art="crazyarcade"] ::-webkit-scrollbar              { width: 10px; height: 10px; }
+body[data-art="crazyarcade"] ::-webkit-scrollbar-track        { background: rgba(0,0,0,.35); border-radius: 5px; }
+body[data-art="crazyarcade"] ::-webkit-scrollbar-thumb        { background: #2ae0ff; border: 2px solid rgba(0,0,0,.4); border-radius: 5px; box-shadow: 0 0 6px rgba(42,224,255,.5); }
+body[data-art="crazyarcade"] ::-webkit-scrollbar-thumb:hover  { background: #ffcc00; box-shadow: 0 0 8px rgba(255,204,0,.7); }
+body[data-art="crazyarcade"] ::-webkit-scrollbar-corner       { background: rgba(0,0,0,.35); }
 
-body[data-art="crazyarcade"] .chatlog::-webkit-scrollbar-track,
-body[data-art="crazyarcade"] .char-grid::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.3);
-  border-radius: 5px;
+/* ─── 홈화면 아이콘 (아케이드 네온 스타일) ─────────────────────────────── */
+body[data-art="crazyarcade"] .di {
+  color: #ffffff;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 rgba(0,0,0,.6), 0 0 8px rgba(42,224,255,.4);
 }
-
-body[data-art="crazyarcade"] .chatlog::-webkit-scrollbar-thumb,
-body[data-art="crazyarcade"] .char-grid::-webkit-scrollbar-thumb {
-  background: #2ae0ff;
-  border: 2px solid rgba(0,0,0,0.4);
-  border-radius: 5px;
-  box-shadow: 0 0 6px rgba(42,224,255,0.5);
+body[data-art="crazyarcade"] .di .di-pic {
+  background: rgba(0,20,80,.75);
+  border: 3px solid #000000;
+  border-radius: 12px;
+  box-shadow:
+    0 5px 0 #001144,
+    0 0 10px rgba(42,224,255,.25),
+    inset 0 0 8px rgba(42,224,255,.12);
+  padding: 5px;
+  image-rendering: pixelated;
+  transition: transform .1s, box-shadow .1s, border-color .1s;
+}
+body[data-art="crazyarcade"] .di:hover .di-pic {
+  transform: translateY(-3px);
+  border-color: #2ae0ff;
+  box-shadow:
+    0 8px 0 #001144,
+    0 0 16px rgba(42,224,255,.5),
+    inset 0 0 8px rgba(42,224,255,.2);
+}
+body[data-art="crazyarcade"] .di:hover {
+  background: rgba(42,224,255,.08);
+  border-radius: 10px;
 }
 
 /* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
