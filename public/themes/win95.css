@@ -1023,3 +1023,78 @@ body[data-crt="on"]::after{
   font-family: var(--font-title);
   font-weight: 400;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Win95 전용 오버라이드 — 핑크/퍼플 → Win95 컬러 교체
+   ════════════════════════════════════════════════════════════ */
+
+/* 가이드 ? 버튼 */
+body[data-art="win95"] [style*="--hot-pink"] { color: var(--ink) }
+
+/* 가이드 팝업 step 카드 */
+body[data-art="win95"] .win-body [style*="border: 1.5px solid var(--chrome-border)"] {
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow) !important;
+}
+
+/* 모드 배지 */
+body[data-art="win95"] .mode-badge {
+  background: #ffff80;
+  color: var(--ink);
+  border: 1px solid var(--gray-dark);
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* 캐릭터 태그 (선택됨) */
+body[data-art="win95"] .tag-selected {
+  background: var(--selected) !important;
+  border-color: var(--gray-dark) !important;
+  color: #fff !important;
+}
+
+/* 캐릭터 카드 선택 outline */
+body[data-art="win95"] .char-card.selected {
+  outline: 2px solid var(--navy) !important;
+  background: #d0d8f0 !important;
+}
+
+/* 캐릭터 선택 프리뷰 바 */
+body[data-art="win95"] .char-preview-bar {
+  border: 1px solid var(--gray-dark) !important;
+  background: var(--gray-light) !important;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi);
+}
+
+/* input focus */
+body[data-art="win95"] .field:focus {
+  border-color: var(--navy) !important;
+  box-shadow: none !important;
+  outline: 1px dotted var(--ink);
+  outline-offset: -3px;
+}
+
+/* 선택된 페르소나 / AI 모델 */
+body[data-art="win95"] .persona-option.selected,
+body[data-art="win95"] .ai-model-option.selected {
+  outline: 2px solid var(--navy) !important;
+  background: #d0d8f0 !important;
+}
+
+/* 메시지 액션 버튼 hover */
+body[data-art="win95"] .msg-action-btn:hover {
+  color: var(--ink) !important;
+  border-color: var(--gray-dark) !important;
+  background: #ffff80 !important;
+}
+
+/* dock-tab active */
+body[data-art="win95"] .dock-tab.active {
+  background: var(--gray-light);
+  color: var(--ink);
+  border-color: var(--gray-dark);
+}
