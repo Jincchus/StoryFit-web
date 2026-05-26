@@ -427,6 +427,66 @@ body[data-art="modern"] .row{
   background: var(--gray-face);
 }
 
+/* ─── Start button + menu (Win95 override) ─────────────────────────────── */
+body[data-art="win95"] .dock .start,
+body[data-art="win95"] .dock .start.active {
+  background: var(--gray-face);
+  color: var(--ink);
+  border: 1px solid var(--gray-dark);
+  text-shadow: none;
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow),
+    inset  2px  2px 0 var(--gray-light),
+    inset -2px -2px 0 var(--gray-dark);
+}
+body[data-art="win95"] .dock .start.active {
+  box-shadow:
+    inset  1px  1px 0 var(--gray-shadow),
+    inset -1px -1px 0 var(--gray-hi),
+    inset  2px  2px 0 var(--gray-dark),
+    inset -2px -2px 0 var(--gray-light);
+}
+
+body[data-art="win95"] .start-menu {
+  background: var(--gray-face);
+  border: 1px solid var(--gray-dark);
+  border-radius: 0;
+  padding: 2px;
+  box-shadow:
+    inset  1px  1px 0 var(--gray-hi),
+    inset -1px -1px 0 var(--gray-shadow),
+    3px 3px 0 rgba(0,0,0,.4);
+}
+body[data-art="win95"] .start-menu-item {
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 400;
+  border-radius: 0;
+  padding: 5px 16px;
+  color: var(--ink);
+}
+body[data-art="win95"] .start-menu-item:hover {
+  background: var(--selected);
+  color: #fff;
+}
+body[data-art="win95"] .start-menu-item.danger {
+  color: var(--ink);
+}
+body[data-art="win95"] .start-menu-item.danger:hover {
+  background: var(--selected);
+  color: #fff;
+}
+body[data-art="win95"] .start-menu-divider {
+  background: var(--gray-shadow);
+  height: 1px;
+  margin: 2px 4px;
+  box-shadow: 0 1px 0 var(--gray-hi);
+}
+
 /* ─── Bottom dock (taskbar) ─────────────────────────────────────────────── */
 .dock{
   position: relative;
