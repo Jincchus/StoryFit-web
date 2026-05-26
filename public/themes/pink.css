@@ -813,3 +813,39 @@ body[data-crt="on"]::after{
   font-size: 18px; text-align: center;
   padding: 20px 0; letter-spacing: 2px;
 }
+
+/* ─── Pink-theme scoped overrides ───────────────────────────────────────── */
+
+body[data-art="pink"] .start-menu {
+  border: 1.5px solid var(--pink-line);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 #fff inset,
+    0 6px 0 #ffd4e3,
+    0 10px 24px rgba(255,120,170,.2);
+}
+
+body[data-art="pink"] .start-menu-item:hover {
+  background: var(--pink-pale);
+  border-radius: 10px;
+}
+
+body[data-art="pink"] .mode-badge {
+  background: rgba(255,111,163,.12);
+  border-color: rgba(255,111,163,.35);
+}
+
+body[data-art="pink"] .tag-selected {
+  background: rgba(255,111,163,.15) !important;
+  border-color: var(--pink-line) !important;
+  color: var(--link) !important;
+}
+
+body[data-art="pink"] .bubble-char {
+  background: var(--blue-soft) !important;
+  border-color: var(--blue-line) !important;
+}
+body[data-art="pink"] .bubble-char.thought-bubble {
+  background: rgba(111,181,255,.08) !important;
+  border-color: rgba(111,181,255,.2) !important;
+}
