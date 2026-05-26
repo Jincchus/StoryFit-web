@@ -10,6 +10,7 @@ import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { logAiError } from '@/lib/errorLog'
+import { appendTurnControlInstruction, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
 import type { AIProvider } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -97,11 +98,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const recentMsgs = conv.messages.slice(-15)
   const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
+    const contentForModel = m.id === userMsg.id ? appendTurnControlInstruction(m.content) : m.content
     const last = acc[acc.length - 1]
     if (last && last.role === role) {
-      last.parts[0].text += '\n\n' + m.content
+      last.parts[0].text += '\n\n' + contentForModel
     } else {
-      acc.push({ role, parts: [{ text: m.content }] })
+      acc.push({ role, parts: [{ text: contentForModel }] })
     }
     return acc
   }, [])
@@ -171,7 +173,19 @@ async function generateAsync({
     )
     clearTimeout(timeoutId)
 
-    const cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText)
+    let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText)
+
+    if (needsResponseRevision(cleanText)) {
+      const revised = await regenerateControlledResponse({
+        conv,
+        systemPrompt,
+        history,
+        firstDraft: cleanText,
+        character,
+        signal: bgAbort.signal,
+      }).catch(() => '')
+      if (revised.trim()) cleanText = deduplicatePreviousContent(stripAnalysisPreamble(revised), prevAssistantText)
+    }
 
     if (!cleanText) {
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens: result.inputTokens, outputTokens: result.outputTokens })
@@ -211,6 +225,36 @@ async function generateAsync({
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'api_error', statusCode: err?.status ?? 500, message: err?.message ?? String(err) })
     }
   }
+}
+
+async function regenerateControlledResponse({
+  conv, systemPrompt, history, firstDraft, character, signal,
+}: {
+  conv: any
+  systemPrompt: string
+  history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
+  firstDraft: string
+  character: any
+  signal: AbortSignal
+}): Promise<string> {
+  let revisedText = ''
+  await streamChat(
+    {
+      provider: conv.currentAI as AIProvider,
+      systemPrompt,
+      messages: [
+        ...history,
+        { role: 'model', parts: [{ text: firstDraft }] },
+        { role: 'user', parts: [{ text: buildRevisionPrompt(firstDraft) }] },
+      ],
+      temperature: Math.min(Number(character.temperature ?? conv.temperature ?? 0.9), 0.75),
+      frequencyPenalty: conv.frequencyPenalty,
+      safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
+    },
+    chunk => { revisedText += chunk },
+    signal,
+  )
+  return revisedText
 }
 
 function buildGeminiHistory(
@@ -261,7 +305,7 @@ async function streamTikiTaka({
 
           const messages = [
             ...preTurnHistory,
-            { role: 'user' as const, parts: [{ text: userMsg.content + prevContext }] },
+            { role: 'user' as const, parts: [{ text: appendTurnControlInstruction(userMsg.content + prevContext) }] },
           ]
 
           let charText = ''

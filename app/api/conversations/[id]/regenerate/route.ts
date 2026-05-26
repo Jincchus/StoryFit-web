@@ -6,6 +6,7 @@ import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent } from '@
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
+import { appendTurnControlInstruction, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
 import type { Message } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -70,13 +71,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       ? buildStorySystemPrompt(promptParams)
       : buildSystemPrompt(promptParams)
 
+  const latestUserId = [...historyMsgs].reverse().find(m => m.role === 'user')?.id
   const history = historyMsgs.slice(-15).reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
+    const contentForModel = m.id === latestUserId ? appendTurnControlInstruction(m.content) : m.content
     const last = acc[acc.length - 1]
     if (last && last.role === role) {
-      last.parts[0].text += '\n\n' + m.content
+      last.parts[0].text += '\n\n' + contentForModel
     } else {
-      acc.push({ role, parts: [{ text: m.content }] })
+      acc.push({ role, parts: [{ text: contentForModel }] })
     }
     return acc
   }, [])
@@ -144,10 +147,24 @@ async function regenerateAsync({
     )
     clearTimeout(timeoutId)
 
+    let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText) || '[응답 없음]'
+
+    if (needsResponseRevision(cleanText)) {
+      const revised = await regenerateControlledResponse({
+        conv,
+        systemPrompt,
+        history,
+        firstDraft: cleanText,
+        character,
+        signal: bgAbort.signal,
+      }).catch(() => '')
+      if (revised.trim()) cleanText = deduplicatePreviousContent(stripAnalysisPreamble(revised), prevAssistantText) || cleanText
+    }
+
     await prisma.message.update({
       where: { id: msgId },
       data: {
-        content: deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText) || '[응답 없음]',
+        content: cleanText,
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
@@ -165,4 +182,34 @@ async function regenerateAsync({
       await prisma.message.update({ where: { id: prevAssistantId }, data: { isSelected: true } }).catch(() => {})
     }
   }
+}
+
+async function regenerateControlledResponse({
+  conv, systemPrompt, history, firstDraft, character, signal,
+}: {
+  conv: any
+  systemPrompt: string
+  history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
+  firstDraft: string
+  character: any
+  signal: AbortSignal
+}): Promise<string> {
+  let revisedText = ''
+  await streamChat(
+    {
+      provider: conv.currentAI as 'gemini',
+      systemPrompt,
+      messages: [
+        ...history,
+        { role: 'model', parts: [{ text: firstDraft }] },
+        { role: 'user', parts: [{ text: buildRevisionPrompt(firstDraft) }] },
+      ],
+      temperature: Math.min(Number(character.temperature ?? 0.9), 0.75),
+      frequencyPenalty: character.frequencyPenalty,
+      safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
+    },
+    chunk => { revisedText += chunk },
+    signal,
+  )
+  return revisedText
 }

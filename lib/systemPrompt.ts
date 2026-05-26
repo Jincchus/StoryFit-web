@@ -1,4 +1,5 @@
 import type { Character, LorebookEntry } from '@/types'
+import { RESPONSE_CONTROL_RULES } from '@/lib/responseControl'
 
 function approxTokens(text: string): number {
   let tokens = 0
@@ -99,6 +100,7 @@ export function buildSystemPrompt({
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
   if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 최종 확인, 반드시 준수]\n${coreMemory}`)
+  parts.push(`[응답 통제 규칙 — 최우선]\n${RESPONSE_CONTROL_RULES}`)
   parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.\n유저에게 선택지를 제시하지 말고, 캐릭터가 직접 행동하고 장면을 이끌어가세요.\n응답 분량을 풍부하게 유지하세요. 지나치게 짧은 응답은 금지합니다.\n⚠️ 절대 금지: 이전 대화 내역(History)에 이미 존재하고 진행된 대사, 행동, 상황 묘사를 다시 처음부터 작성하거나 똑같이 반복해서 출력하지 마세요. 오직 가장 최근 메시지(이전 대화의 마지막 시점)에 자연스럽게 이어지는 새로운 내용만을 작성해야 합니다. 이미 지나간 장면이나 대화를 복사하듯 재출력하는 것을 강력히 금지합니다.`)
 
   return parts.join('\n\n---\n\n')
@@ -142,6 +144,7 @@ export function buildNovelSystemPrompt({
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
   if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 최종 확인, 반드시 준수]\n${coreMemory}`)
+  parts.push(`[응답 통제 규칙 — 최우선]\n${RESPONSE_CONTROL_RULES}`)
   parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.\n응답 분량을 풍부하게 유지하세요. 지나치게 짧은 응답은 금지합니다.\n⚠️ 절대 금지: 이전 대화 내역(History)에 이미 존재하고 진행된 대사, 행동, 상황 묘사를 다시 처음부터 작성하거나 똑같이 반복해서 출력하지 마세요. 오직 가장 최근 메시지(이전 대화의 마지막 시점)에 자연스럽게 이어지는 새로운 내용만을 작성해야 합니다. 이미 지나간 장면이나 대화를 복사하듯 재출력하는 것을 강력히 금지합니다.`)
 
   return parts.join('\n\n---\n\n')
@@ -156,8 +159,9 @@ function buildStoryBaseRules(charName: string, personaName: string): string {
 - ${personaName}의 대사도 반드시 "${personaName} : \\"내용\\"" 형식으로 작성합니다. (예: ${personaName} : "알겠어요.")
 - 내면 생각: 반드시 "이름 : '내용'" 형식으로 작성합니다. (예: ${charName} : '왜 이렇게 떨리지...')
 - ${charName}, ${personaName} 외 제3의 인물이 등장하더라도 동일한 이름 : "대사" 형식으로 표현하세요.
-- 마지막에 반드시 "---" 구분선을 넣고, 그 아래에 유저(${personaName})가 선택할 수 있는 선택지 2~3개를 번호로 나열합니다.
-- 선택지는 반드시 유저의 행동이나 대사여야 합니다. "직접 입력" 같은 메타 선택지는 절대 포함하지 마세요.
+- 유저가 명시적으로 선택지를 요청한 경우에만 마지막에 "---" 구분선을 넣고, 그 아래에 유저(${personaName})가 선택할 수 있는 선택지 2~3개를 번호로 나열합니다.
+- 유저가 선택지를 요청하지 않았다면 선택지 없이 장면을 계속 이어가세요.
+- 선택지를 낼 때도 반드시 유저의 행동이나 대사만 포함하세요. "직접 입력" 같은 메타 선택지는 절대 포함하지 마세요.
 ⚠️ 절대 금지: 이름 없이 "대사만 단독으로 쓰는 것". 장면 안에서 누가 말하든 반드시 이름 : "내용" 형식으로 작성하세요.
 
 [출력 예시]
@@ -167,6 +171,7 @@ ${charName} : "오래 기다렸나요?"
 ${charName} : '이 분은 어떤 사람일까.'
 ${personaName} : "아니, 괜찮아요."
 
+선택지 요청이 있을 때만:
 ---
 1. ${personaName} : "오히려 경치가 좋았어요."
 2. ${personaName} : "솔직히 말하면… 조금 걱정했어요."
@@ -208,6 +213,7 @@ export function buildStorySystemPrompt({
   if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
   if (globalRules?.trim()) parts.push(`[최종 규칙 확인 — 반드시 준수]\n${globalRules}`)
   if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 최종 확인, 반드시 준수]\n${coreMemory}`)
+  parts.push(`[응답 통제 규칙 — 최우선]\n${RESPONSE_CONTROL_RULES}`)
   parts.push(`[출력 규칙 — 절대 준수]\n반드시 한국어로만 응답하세요. Never respond in English or any other language.\n분석·계획·메타 주석(예: "I am crafting...", "Scene Planning:", "User Input Breakdown:", "Analysis of the Choice:" 등)을 절대 출력하지 마세요.\n응답은 항상 장면·대사·행동으로 바로 시작합니다. 어떤 도입 설명도 없이 바로 본문을 작성하세요.\n응답 분량을 풍부하게 유지하세요. 지나치게 짧은 응답은 금지합니다.\n⚠️ 절대 금지: 이전 대화 내역(History)에 이미 존재하고 진행된 대사, 행동, 상황 묘사를 다시 처음부터 작성하거나 똑같이 반복해서 출력하지 마세요. 오직 가장 최근 메시지(이전 대화의 마지막 시점)에 자연스럽게 이어지는 새로운 내용만을 작성해야 합니다. 이미 지나간 장면이나 대화를 복사하듯 재출력하는 것을 강력히 금지합니다.`)
 
   return parts.join('\n\n---\n\n')
