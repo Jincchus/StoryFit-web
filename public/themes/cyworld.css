@@ -480,20 +480,42 @@ body[data-art="cyworld"] .ai-model-option.selected {
 }
 
 /* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
-body[data-art="cyworld"] .chatlog::-webkit-scrollbar,
-body[data-art="cyworld"] .char-grid::-webkit-scrollbar { width: 14px; }
+body[data-art="cyworld"] ::-webkit-scrollbar              { width: 14px; height: 14px; }
+body[data-art="cyworld"] ::-webkit-scrollbar-track        { background: repeating-linear-gradient(45deg, #d0d0d0 0 2px, #e8e8e8 2px 4px); border-left: 1px solid var(--chrome-border); }
+body[data-art="cyworld"] ::-webkit-scrollbar-thumb        { background: #c0c0c0; border: 1px solid var(--chrome-border); box-shadow: inset -1px -1px 0 #888888, inset 1px 1px 0 #ffffff; }
+body[data-art="cyworld"] ::-webkit-scrollbar-thumb:hover  { background: #ff8833; box-shadow: inset -1px -1px 0 rgba(0,0,0,.25), inset 1px 1px 0 rgba(255,255,255,.4); }
+body[data-art="cyworld"] ::-webkit-scrollbar-corner       { background: #d0d0d0; }
 
-body[data-art="cyworld"] .chatlog::-webkit-scrollbar-track,
-body[data-art="cyworld"] .char-grid::-webkit-scrollbar-track {
-  background: repeating-linear-gradient(45deg, #d0d0d0 0 2px, #e8e8e8 2px 4px);
-  border-left: 1px solid var(--chrome-border);
+/* ─── 홈화면 아이콘 (싸이월드 미니홈피 스타일) ─────────────────────────── */
+body[data-art="cyworld"] .di {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
 }
-
-body[data-art="cyworld"] .chatlog::-webkit-scrollbar-thumb,
-body[data-art="cyworld"] .char-grid::-webkit-scrollbar-thumb {
-  background: #c0c0c0;
-  border: 1px solid var(--chrome-border);
-  box-shadow: inset -1px -1px 0 #888888, inset 1px 1px 0 #ffffff;
+body[data-art="cyworld"] .di .di-pic {
+  background: #ffffff;
+  border: 2px solid var(--chrome-border);
+  border-radius: 0;
+  box-shadow:
+    inset -1px -1px 0 #888888,
+    inset 1px 1px 0 #ffffff,
+    2px 2px 0 rgba(0,0,0,.12);
+  padding: 4px;
+  transition: background .1s, border-color .1s;
+}
+body[data-art="cyworld"] .di:hover .di-pic {
+  background: #c6ddf0;
+  border-color: var(--accent);
+  box-shadow:
+    inset -1px -1px 0 rgba(0,0,0,.15),
+    inset 1px 1px 0 rgba(255,255,255,.6),
+    2px 2px 0 rgba(0,0,0,.12);
+}
+body[data-art="cyworld"] .di:hover {
+  background: #c6ddf0;
+  outline: 1px dotted var(--accent);
+  outline-offset: 2px;
 }
 
 /* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
