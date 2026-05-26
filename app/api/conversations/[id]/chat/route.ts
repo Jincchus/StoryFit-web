@@ -96,9 +96,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
   const recentMsgs = conv.messages.slice(-15)
+  const allowChoices = conv.mode === 'story'
   const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
-    const contentForModel = m.id === userMsg.id ? appendTurnControlInstruction(m.content) : m.content
+    const contentForModel = m.id === userMsg.id ? appendTurnControlInstruction(m.content, allowChoices) : m.content
     const last = acc[acc.length - 1]
     if (last && last.role === role) {
       last.parts[0].text += '\n\n' + contentForModel
@@ -175,13 +176,14 @@ async function generateAsync({
 
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText)
 
-    if (conv.mode !== 'story' && needsResponseRevision(cleanText)) {
+    if (needsResponseRevision(cleanText, conv.mode === 'story')) {
       const revised = await regenerateControlledResponse({
         conv,
         systemPrompt,
         history,
         firstDraft: cleanText,
         character,
+        allowChoices: conv.mode === 'story',
         signal: bgAbort.signal,
       }).catch(() => '')
       if (revised.trim()) cleanText = deduplicatePreviousContent(stripAnalysisPreamble(revised), prevAssistantText)
@@ -228,13 +230,14 @@ async function generateAsync({
 }
 
 async function regenerateControlledResponse({
-  conv, systemPrompt, history, firstDraft, character, signal,
+  conv, systemPrompt, history, firstDraft, character, allowChoices, signal,
 }: {
   conv: any
   systemPrompt: string
   history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
   firstDraft: string
   character: any
+  allowChoices: boolean
   signal: AbortSignal
 }): Promise<string> {
   let revisedText = ''
@@ -245,7 +248,7 @@ async function regenerateControlledResponse({
       messages: [
         ...history,
         { role: 'model', parts: [{ text: firstDraft }] },
-        { role: 'user', parts: [{ text: buildRevisionPrompt(firstDraft) }] },
+        { role: 'user', parts: [{ text: buildRevisionPrompt(firstDraft, allowChoices) }] },
       ],
       temperature: Math.min(Number(character.temperature ?? conv.temperature ?? 0.9), 0.75),
       frequencyPenalty: conv.frequencyPenalty,
@@ -305,7 +308,7 @@ async function streamTikiTaka({
 
           const messages = [
             ...preTurnHistory,
-            { role: 'user' as const, parts: [{ text: appendTurnControlInstruction(userMsg.content + prevContext) }] },
+            { role: 'user' as const, parts: [{ text: appendTurnControlInstruction(userMsg.content + prevContext, conv.mode === 'story') }] },
           ]
 
           let charText = ''
