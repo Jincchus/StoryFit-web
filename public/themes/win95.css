@@ -47,11 +47,14 @@
   --radius-lg: 0px;
   --green: #00aa00;
 
-  /* Override retro/global pink variables → Win95 navy/teal */
+  /* Override retro/global pink/purple variables → Win95 navy/teal */
   --hot-pink: #000080;
   --pink: #008080;
+  --purple: #000080;
   --lavender: #c0c0c0;
+  --mint: #d4ffd4;
   --pane: #ffffff;
+  --paper-2: #ffffff;
   --title-grad: linear-gradient(90deg, #000080 0%, #1084d0 100%);
   --chrome-face: #c0c0c0;
   --chrome-shadow: #808080;
@@ -59,8 +62,6 @@
   --chrome-border: #000000;
   --ink-muted: #808080;
   --ink-soft: #2b2b2b;
-  --mode-badge-bg: #ffff80;
-  --mode-badge-color: #000;
 }
 
 /* Modern variant = same chrome, slightly softer borders */
@@ -1027,6 +1028,53 @@ body[data-crt="on"]::after{
 /* ═══════════════════════════════════════════════════════════════
    Win95 전용 오버라이드 — 핑크/퍼플 → Win95 컬러 교체
    ════════════════════════════════════════════════════════════ */
+
+/* ── 유저 말풍선 (seq-right) — globals에 핑크 그라디언트 하드코딩 ── */
+body[data-art="win95"] .seq-block.seq-right .bubble {
+  background: var(--bubble-you) !important;
+  border-color: var(--bubble-line) !important;
+}
+
+/* ── 소설/채팅 버블 색상 (rgba purple/pink 하드코딩) ── */
+body[data-art="win95"] .bubble-char {
+  background: #d6e2f6 !important;
+  border-color: #4f6896 !important;
+}
+body[data-art="win95"] .bubble-persona {
+  background: #d0ead0 !important;
+  border-color: #3a7a4f !important;
+}
+body[data-art="win95"] .bubble-third {
+  background: #e8e8d0 !important;
+  border-color: #7a7a3a !important;
+}
+body[data-art="win95"] .bubble-author {
+  background: #fafad4 !important;
+  border-color: #8a8030 !important;
+}
+body[data-art="win95"] .bubble-char.thought-bubble {
+  background: #eaf0fb !important;
+  border-color: #a0b8d8 !important;
+}
+body[data-art="win95"] .bubble-persona.thought-bubble {
+  background: #e8f5e8 !important;
+  border-color: #90c090 !important;
+}
+
+/* ── 소설 화자명·지문 ── */
+body[data-art="win95"] .novel-speaker-char  { color: var(--navy) !important; }
+body[data-art="win95"] .novel-speaker-persona { color: var(--teal) !important; }
+body[data-art="win95"] .novel-direction {
+  background: #f0f0e0 !important;
+  border-color: #a0a060 !important;
+}
+body[data-art="win95"] .novel-direction-label { color: var(--ink-soft) !important; }
+
+/* ── 파라미터 슬라이더 ── */
+body[data-art="win95"] .param-slider {
+  background: var(--gray-light);
+  accent-color: var(--navy);
+}
 
 /* 가이드 ? 버튼 */
 body[data-art="win95"] [style*="--hot-pink"] { color: var(--ink) }
