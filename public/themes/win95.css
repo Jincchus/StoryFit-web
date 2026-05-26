@@ -595,6 +595,16 @@ body[data-art="modern"] .shell-title{
   overflow: hidden;
 }
 
+/* ─── Home screen icons (override pink → Win95 grayscale) ──────────────── */
+body[data-art="win95"] .di .di-pic {
+  filter: grayscale(1) contrast(1.2) drop-shadow(1px 1px 0 rgba(0,0,0,.5));
+}
+body[data-art="win95"] .di:hover {
+  background: var(--navy);
+  outline: 1px dotted #fff;
+  color: #fff;
+}
+
 /* ─── Desktop icons ─────────────────────────────────────────────────────── */
 .desktop-icons{
   position: fixed; top: 28px; left: 28px; z-index: 3;
