@@ -149,7 +149,7 @@ async function regenerateAsync({
 
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText) || '[응답 없음]'
 
-    if (needsResponseRevision(cleanText)) {
+    if (conv.mode !== 'story' && needsResponseRevision(cleanText)) {
       const revised = await regenerateControlledResponse({
         conv,
         systemPrompt,

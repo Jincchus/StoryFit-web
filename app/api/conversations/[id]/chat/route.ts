@@ -175,7 +175,7 @@ async function generateAsync({
 
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText)
 
-    if (needsResponseRevision(cleanText)) {
+    if (conv.mode !== 'story' && needsResponseRevision(cleanText)) {
       const revised = await regenerateControlledResponse({
         conv,
         systemPrompt,
