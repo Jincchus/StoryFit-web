@@ -150,14 +150,20 @@ async function regenerateAsync({
 
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText) || '[응답 없음]'
 
-    if (needsResponseRevision(cleanText, conv.mode === 'story')) {
+    const revisionOptions = {
+      allowChoices: conv.mode === 'story',
+      forbiddenChoiceNames: conv.mode === 'story' ? [character.name] : [],
+      requiredBodyNames: conv.mode === 'story' ? [character.name] : [],
+    }
+
+    if (needsResponseRevision(cleanText, revisionOptions)) {
       const revised = await regenerateControlledResponse({
         conv,
         systemPrompt,
         history,
         firstDraft: cleanText,
         character,
-        allowChoices: conv.mode === 'story',
+        revisionOptions,
         signal: bgAbort.signal,
       }).catch(() => '')
       if (revised.trim()) cleanText = deduplicatePreviousContent(stripAnalysisPreamble(revised), prevAssistantText) || cleanText
@@ -187,14 +193,14 @@ async function regenerateAsync({
 }
 
 async function regenerateControlledResponse({
-  conv, systemPrompt, history, firstDraft, character, allowChoices, signal,
+  conv, systemPrompt, history, firstDraft, character, revisionOptions, signal,
 }: {
   conv: any
   systemPrompt: string
   history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
   firstDraft: string
   character: any
-  allowChoices: boolean
+  revisionOptions: { allowChoices: boolean; forbiddenChoiceNames: string[]; requiredBodyNames: string[] }
   signal: AbortSignal
 }): Promise<string> {
   let revisedText = ''
@@ -205,7 +211,7 @@ async function regenerateControlledResponse({
       messages: [
         ...history,
         { role: 'model', parts: [{ text: firstDraft }] },
-        { role: 'user', parts: [{ text: buildRevisionPrompt(firstDraft, allowChoices) }] },
+        { role: 'user', parts: [{ text: buildRevisionPrompt(firstDraft, revisionOptions) }] },
       ],
       temperature: Math.min(Number(character.temperature ?? 0.9), 0.75),
       frequencyPenalty: character.frequencyPenalty,
