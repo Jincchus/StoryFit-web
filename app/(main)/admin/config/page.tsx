@@ -23,6 +23,47 @@ const STORY_BASE_READONLY = `당신은 인터랙티브 스토리 작가입니다
 - 선택지는 유저의 행동/대사 후보만
 ※ 캐릭터명·페르소나명은 대화 시작 시 실제 이름으로 자동 치환됩니다. (코드 고정)`
 
+const ROLEPLAY_CLOSING_KO = `[최우선 준수]
+- 반드시 한국어로만 응답
+- 분석·계획·메타 주석을 절대 미출력
+- 장면·대사·행동으로 바로 시작
+- 유저에게 선택지·진행자식 질문을 제시 금지
+- 유저의 말·행동·감정·결정을 대신 작성 금지
+- 캐릭터는 자신의 말과 행동만 수행 후 장면을 자연스럽게 이어가야함
+- 묘사·행동·대사를 포함해 충분히 풍부하게 작성할 것
+- 필수: 직전 대화에 이미 있는 대사·행동·묘사를 반복 출력하지 말것`
+
+const NOVEL_CLOSING_KO = `[최우선 준수]
+- 반드시 한국어로만 응답
+- 분석·계획·메타 주석을 절대 미출력
+- 장면·대사·행동으로 바로 시작
+- 유저에게 선택지·진행자식 질문을 제시 금지
+- 페르소나의 중대한 선택(방향 전환, 고백, 결별 등)을 유저 입력 없이 임의 확정 금지
+- 캐릭터는 자신의 말과 행동만 수행 후 장면을 자연스럽게 이어가야함
+- 묘사·행동·대사를 포함해 충분히 풍부하게 작성할 것
+- *필수* 직전 대화에 이미 있는 대사·행동·묘사를 반복 출력하지 말것`
+
+const STORY_CLOSING_KO = `[최우선 준수]
+- 반드시 한국어로만 응답
+- 분석·계획·메타 주석을 절대 미출력
+- 장면·대사·행동으로 바로 시작
+- 본문에 반드시 AI 캐릭터의 행동과 대사를 포함할 것
+- 본문에서 유저의 말·행동·감정을 대신 확정 금지
+- 응답 마지막에 "---" 구분선 후 유저 선택지 4개를 번호로 제시
+- 선택지 1~3번: 유저의 다음 행동·대사 후보만 포함, AI 캐릭터 이름·대사·행동 금지
+- 선택지 4번: 현재 장면에서 한 단계 앞으로 나아가는 행동 (대화·감정 표현 제외)
+- *필수* 직전 대화에 이미 있는 대사·행동·묘사를 반복 출력하지 말것`
+
+function Tooltip({ text }: { text: string }) {
+  return (
+    <span title={text} style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: 14, height: 14, borderRadius: '50%', border: '1px solid var(--chrome-border)',
+      fontSize: 9, color: 'var(--ink-soft)', cursor: 'help', marginLeft: 4, flexShrink: 0,
+    }}>?</span>
+  )
+}
+
 function ReadonlyBlock({ label, text }: { label: string; text: string }) {
   return (
     <div>
@@ -115,7 +156,7 @@ export default function AdminConfigPage() {
                   value={roleplayRules} onChange={e => setRoleplayRules(e.target.value)} />
               </div>
               <div>
-                <label className="label">최종 강조 규칙 (roleplay_closing) <span className="tiny muted">— 핵심 메모리 바로 뒤, 맨 마지막 삽입</span></label>
+                <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>최종 강조 규칙 (roleplay_closing) <span className="tiny muted">— 핵심 메모리 바로 뒤, 맨 마지막 삽입</span><Tooltip text={ROLEPLAY_CLOSING_KO} /></label>
                 <textarea className="field" rows={8}
                   placeholder="응답 통제 규칙, 출력 규칙 등 마지막에 강조할 지침을 입력하세요."
                   value={roleplayClosing} onChange={e => setRoleplayClosing(e.target.value)} />
@@ -133,7 +174,7 @@ export default function AdminConfigPage() {
                   value={novelRules} onChange={e => setNovelRules(e.target.value)} />
               </div>
               <div>
-                <label className="label">최종 강조 규칙 (novel_closing) <span className="tiny muted">— 핵심 메모리 바로 뒤, 맨 마지막 삽입</span></label>
+                <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>최종 강조 규칙 (novel_closing) <span className="tiny muted">— 핵심 메모리 바로 뒤, 맨 마지막 삽입</span><Tooltip text={NOVEL_CLOSING_KO} /></label>
                 <textarea className="field" rows={8}
                   placeholder="소설 모드 응답 통제 및 출력 규칙을 입력하세요."
                   value={novelClosing} onChange={e => setNovelClosing(e.target.value)} />
@@ -151,7 +192,7 @@ export default function AdminConfigPage() {
                   value={storyRules} onChange={e => setStoryRules(e.target.value)} />
               </div>
               <div>
-                <label className="label">최종 강조 규칙 (story_closing) <span className="tiny muted">— 핵심 메모리 바로 뒤, 맨 마지막 삽입</span></label>
+                <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>최종 강조 규칙 (story_closing) <span className="tiny muted">— 핵심 메모리 바로 뒤, 맨 마지막 삽입</span><Tooltip text={STORY_CLOSING_KO} /></label>
                 <textarea className="field" rows={8}
                   placeholder="스토리 모드 응답 통제 및 선택지 규칙을 입력하세요."
                   value={storyClosing} onChange={e => setStoryClosing(e.target.value)} />
