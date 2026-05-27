@@ -1,12 +1,19 @@
 import { prisma } from '@/lib/prisma'
 
-export async function loadGlobalRules(mode: string): Promise<{ globalRules: string; modeRules: string }> {
-  const [globalRulesConfig, modeRulesConfig] = await Promise.all([
+export async function loadGlobalRules(mode: string): Promise<{
+  globalRules: string
+  modeRules: string
+  closingRules: string
+}> {
+  const modeKey = mode === 'novel' ? 'novel' : mode === 'story' ? 'story' : 'roleplay'
+  const [globalConfig, modeConfig, closingConfig] = await Promise.all([
     prisma.globalConfig.findUnique({ where: { key: 'global_rules' } }),
-    prisma.globalConfig.findUnique({ where: { key: mode === 'novel' ? 'novel_rules' : mode === 'story' ? 'story_rules' : 'roleplay_rules' } }),
+    prisma.globalConfig.findUnique({ where: { key: `${modeKey}_rules` } }),
+    prisma.globalConfig.findUnique({ where: { key: `${modeKey}_closing` } }),
   ])
   return {
-    globalRules: globalRulesConfig?.value ?? '',
-    modeRules: modeRulesConfig?.value ?? '',
+    globalRules: globalConfig?.value ?? '',
+    modeRules: modeConfig?.value ?? '',
+    closingRules: closingConfig?.value ?? '',
   }
 }
