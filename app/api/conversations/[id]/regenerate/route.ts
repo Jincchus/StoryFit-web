@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const longTermMemory = await retrieveRelevantMemories(params.id, lastUserMsg?.content ?? '', 6).catch(() => [])
   const [{ globalRules, modeRules }, userRecord] = await Promise.all([
     loadGlobalRules(conv.mode),
-    prisma.user.findUnique({ where: { id: userId }, select: { personalRules: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { personalRules: true, personalRulesNovel: true, personalRulesStory: true } }),
   ])
 
   const matchedLorebook = matchLorebook(
@@ -67,7 +67,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     longTermMemory,
     globalRules,
     modeRules,
-    personalRules: userRecord?.personalRules ?? '',
+    personalRules: conv.mode === 'novel'
+      ? (userRecord?.personalRulesNovel ?? '')
+      : conv.mode === 'story'
+        ? (userRecord?.personalRulesStory ?? '')
+        : (userRecord?.personalRules ?? ''),
   }
   const systemPrompt = conv.mode === 'novel'
     ? buildNovelSystemPrompt(promptParams)

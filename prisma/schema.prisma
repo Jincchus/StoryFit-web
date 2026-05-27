@@ -17,6 +17,8 @@ model User {
   isApproved    Boolean        @default(true)
   displayName             String  @default("")
   personalRules           String  @default("")
+  personalRulesNovel      String  @default("")
+  personalRulesStory      String  @default("")
   rejectionReason         String  @default("")
   defaultTemperature      Float   @default(0.9)
   defaultFrequencyPenalty Float   @default(0.3)

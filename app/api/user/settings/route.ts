@@ -5,6 +5,8 @@ import { authenticate } from '@/lib/apiAuth'
 const USER_SELECT = {
   displayName: true,
   personalRules: true,
+  personalRulesNovel: true,
+  personalRulesStory: true,
   defaultTemperature: true,
   defaultFrequencyPenalty: true,
   defaultSafetyLevel: true,
@@ -37,6 +39,8 @@ export async function PATCH(req: NextRequest) {
 
   if (typeof body.displayName === 'string') data.displayName = body.displayName
   if (typeof body.personalRules === 'string') data.personalRules = body.personalRules
+  if (typeof body.personalRulesNovel === 'string') data.personalRulesNovel = body.personalRulesNovel
+  if (typeof body.personalRulesStory === 'string') data.personalRulesStory = body.personalRulesStory
   if (typeof body.defaultTemperature === 'number') data.defaultTemperature = Math.max(0, Math.min(2, body.defaultTemperature))
   if (typeof body.defaultFrequencyPenalty === 'number') data.defaultFrequencyPenalty = Math.max(0, Math.min(2, body.defaultFrequencyPenalty))
   if (['strict', 'standard', 'relaxed'].includes(body.defaultSafetyLevel)) data.defaultSafetyLevel = body.defaultSafetyLevel

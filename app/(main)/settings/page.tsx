@@ -38,6 +38,8 @@ export default function SettingsPage() {
   // profile
   const [displayName, setDisplayName] = useState('')
   const [personalRules, setPersonalRules] = useState('')
+  const [personalRulesNovel, setPersonalRulesNovel] = useState('')
+  const [personalRulesStory, setPersonalRulesStory] = useState('')
   const [adminGlobalRules, setAdminGlobalRules] = useState('')
   const [profileSaved, setProfileSaved] = useState(false)
   const [profileLoading, setProfileLoading] = useState(false)
@@ -74,6 +76,8 @@ export default function SettingsPage() {
     api.get('/api/user/settings').then((data: any) => {
       setDisplayName(data.displayName ?? '')
       setPersonalRules(data.personalRules ?? '')
+      setPersonalRulesNovel(data.personalRulesNovel ?? '')
+      setPersonalRulesStory(data.personalRulesStory ?? '')
       setAdminGlobalRules(data.adminGlobalRules ?? '')
       setTemperature(data.defaultTemperature ?? 0.9)
       setFrequencyPenalty(data.defaultFrequencyPenalty ?? 0.3)
@@ -96,7 +100,7 @@ export default function SettingsPage() {
   const saveProfile = async () => {
     setProfileLoading(true); setProfileSaved(false)
     try {
-      await api.patch('/api/user/settings', { displayName, personalRules })
+      await api.patch('/api/user/settings', { displayName, personalRules, personalRulesNovel, personalRulesStory })
       setProfileSaved(true); setTimeout(() => setProfileSaved(false), 2000)
     } finally { setProfileLoading(false) }
   }
@@ -191,7 +195,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="vstack" style={{ gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, borderBottom: '1px solid var(--chrome-border)', paddingBottom: 4 }}>AI 프롬프트</div>
+                <div style={{ fontSize: 12, fontWeight: 700, borderBottom: '1px solid var(--chrome-border)', paddingBottom: 4 }}>AI 프롬프트 개인 설정</div>
                 {adminGlobalRules.trim() && (
                   <div>
                     <div className="label">관리자 공통 규칙 <span className="tiny muted">(읽기 전용)</span></div>
@@ -199,8 +203,16 @@ export default function SettingsPage() {
                   </div>
                 )}
                 <div>
-                  <label className="label">내 개인 전역 설정 <span className="tiny muted">(모든 대화 시스템 프롬프트에 삽입)</span></label>
-                  <textarea className="field" rows={6} placeholder={"예: 응답은 항상 반말로 해주세요.\n장면 묘사를 풍부하게 작성해주세요."} value={personalRules} onChange={e => setPersonalRules(e.target.value)} />
+                  <label className="label">⚔ 롤플레이 모드 <span className="tiny muted">(롤플레이 대화에만 삽입)</span></label>
+                  <textarea className="field" rows={4} placeholder={"예: 응답은 항상 반말로 해주세요."} value={personalRules} onChange={e => setPersonalRules(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">✍ 소설 모드 <span className="tiny muted">(소설 대화에만 삽입)</span></label>
+                  <textarea className="field" rows={4} placeholder={"예: 장면 묘사를 풍부하게 작성해주세요."} value={personalRulesNovel} onChange={e => setPersonalRulesNovel(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">📖 스토리 모드 <span className="tiny muted">(스토리 대화에만 삽입)</span></label>
+                  <textarea className="field" rows={4} placeholder={"예: 선택지는 항상 한국어로 작성해주세요."} value={personalRulesStory} onChange={e => setPersonalRulesStory(e.target.value)} />
                 </div>
               </div>
               <div className="hstack" style={{ gap: 6 }}>
