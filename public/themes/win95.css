@@ -937,6 +937,7 @@ body[data-art="modern"] .char-card .pic-wrap{ border-radius: 50% }
 .win-body ::-webkit-scrollbar-thumb, .chatlog::-webkit-scrollbar-thumb, .char-grid::-webkit-scrollbar-thumb, .scroll::-webkit-scrollbar-thumb{
   background: var(--gray-face);
   border: 1px solid var(--gray-dark);
+  border-radius: 0;
   box-shadow:
     inset  1px  1px 0 var(--gray-hi),
     inset -1px -1px 0 var(--gray-shadow),
@@ -951,6 +952,32 @@ body[data-art="modern"] .char-card .pic-wrap{ border-radius: 50% }
     inset -1px -1px 0 var(--gray-shadow);
   display: block;
   height: 16px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 8px 8px;
+}
+/* 상단 여분 버튼(아래 화살표), 하단 여분 버튼(위 화살표) 숨김 */
+.win-body ::-webkit-scrollbar-button:vertical:start:increment,
+.chatlog::-webkit-scrollbar-button:vertical:start:increment,
+.char-grid::-webkit-scrollbar-button:vertical:start:increment,
+.scroll::-webkit-scrollbar-button:vertical:start:increment,
+.win-body ::-webkit-scrollbar-button:vertical:end:decrement,
+.chatlog::-webkit-scrollbar-button:vertical:end:decrement,
+.char-grid::-webkit-scrollbar-button:vertical:end:decrement,
+.scroll::-webkit-scrollbar-button:vertical:end:decrement{ display: none; }
+/* 위 화살표 */
+.win-body ::-webkit-scrollbar-button:vertical:decrement,
+.chatlog::-webkit-scrollbar-button:vertical:decrement,
+.char-grid::-webkit-scrollbar-button:vertical:decrement,
+.scroll::-webkit-scrollbar-button:vertical:decrement{
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M4 2 L7 6 L1 6 Z' fill='%23000'/%3E%3C/svg%3E");
+}
+/* 아래 화살표 */
+.win-body ::-webkit-scrollbar-button:vertical:increment,
+.chatlog::-webkit-scrollbar-button:vertical:increment,
+.char-grid::-webkit-scrollbar-button:vertical:increment,
+.scroll::-webkit-scrollbar-button:vertical:increment{
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M4 6 L1 2 L7 2 Z' fill='%23000'/%3E%3C/svg%3E");
 }
 
 /* ─── AI dropdown ───────────────────────────────────────────────────────── */
