@@ -245,7 +245,7 @@ body[data-art="modern"] .win-controls button:nth-child(3){background:#ff5f57}
   border: 1px solid var(--gray-dark);
   padding: 4px 14px;
   cursor: pointer;
-  border-radius: var(--radius);
+  border-radius: 0;
   letter-spacing: 0;
   position: relative;
   min-height: 23px;
@@ -302,7 +302,7 @@ body[data-art="modern"] .btn{
   border: 1px solid var(--gray-dark);
   padding: 3px 5px;
   width: 100%;
-  border-radius: var(--radius);
+  border-radius: 0;
   outline: none;
   box-shadow:
     inset  1px  1px 0 var(--gray-shadow),
@@ -838,12 +838,11 @@ body[data-art="modern"] .msg .av{border-radius: 50%; box-shadow:none; border-col
   display:flex; gap: 6px;
   padding: 6px;
   background: var(--gray-face);
-  border-radius: var(--radius);
+  border-radius: 0;
   flex-shrink:0;
   align-items: center;
 }
 .composer .field{flex:1; field-sizing: content; min-height: 22px; max-height: 80px; overflow: auto; height: auto;}
-.composer .btn.primary::after{ content: "전송"; font-size: 12px; }
 
 /* ─── Character grid ────────────────────────────────────────────────────── */
 .char-grid{
