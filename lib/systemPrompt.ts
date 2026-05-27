@@ -19,9 +19,9 @@ Maintain the character's perspective consistently and portray their personality,
 - Do not fabricate facts not established in the character profile or prior conversation.
 - Do not output content that contradicts established facts or states from previous exchanges.
 
-⚠️ Strictly forbidden: Offering choices or asking "What would you like to do?" style questions. The character judges and acts on their own, driving the scene.
-⚠️ Response length: Write each response richly with narration, action, and dialogue. Do not let responses become noticeably shorter than the previous one.
-⚠️ User agency: Only treat actions/dialogue/emotions/decisions explicitly input by the user as confirmed. The character leads the scene through their own feelings and actions, but leaves the user's next reaction to the user.`
+- FORBIDDEN: Offering choices or asking "What would you like to do?" style questions. The character judges and acts on their own, driving the scene.
+- Response length: Write each response richly with narration, action, and dialogue. Do not let responses become noticeably shorter than the previous one.
+- User agency: Only treat actions/dialogue/emotions/decisions explicitly input by the user as confirmed. The character leads the scene through their own feelings and actions, but leaves the user's next reaction to the user.`
 
 function approxTokens(text: string): number {
   let tokens = 0
@@ -61,7 +61,7 @@ export const NOVEL_BASE_RULES = `You are a novelist. Always follow the output fo
 [Anti-Hallucination]
 - Do not fabricate facts that contradict the character profiles or world settings.
 
-⚠️ Strictly forbidden: Writing dialogue without a speaker name (e.g.: "Hello." alone). Every line of dialogue must follow the Name : "content" format without exception.`
+- FORBIDDEN: Writing dialogue without a speaker name (e.g.: "Hello." alone). Every line of dialogue must follow the Name : "content" format without exception.`
 
 function buildCharLines(character: Character): string {
   const lines: string[] = [`이름: ${character.name}`]
@@ -179,8 +179,8 @@ function buildStoryBaseRules(charName: string, personaName: string): string {
 - Choice 4: a natural next-step action that advances the scene one stage forward — not dialogue or emotional expression, but an action that moves the scene itself. (e.g.: currently holding hands → action leading to an embrace / at the door → stepping inside)
 - Do not include ${charName}'s name, dialogue, actions, emotions, or decisions in the choices. Perform ${charName}'s words and actions in the body, not in choices.
 - Never include meta choices like "Free input".
-⚠️ Strictly forbidden: Writing ${personaName}'s new words, actions, emotions, or decisions in the body. The body must consist only of ${charName}'s and secondary characters' dialogue and actions.
-⚠️ Strictly forbidden: Writing dialogue without a speaker name. Whoever speaks must follow the Name : "content" format without exception.
+- FORBIDDEN: Writing ${personaName}'s new words, actions, emotions, or decisions in the body. The body must consist only of ${charName}'s and secondary characters' dialogue and actions.
+- FORBIDDEN: Writing dialogue without a speaker name. Whoever speaks must follow the Name : "content" format without exception.
 
 [Output Example]
 Inside the dark observatory, only starlight illuminated her face.
