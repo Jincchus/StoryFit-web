@@ -47,10 +47,11 @@ const USER_CONTROL_PATTERNS = [
   /유저는\s+[^.?!\n]*(?:했다|하였다|말했다|느꼈다|생각했다|결심했다)/,
 ]
 
-interface ResponseRevisionOptions {
+export interface ResponseRevisionOptions {
   allowChoices?: boolean
   forbiddenChoiceNames?: string[]
   requiredBodyNames?: string[]
+  personaName?: string
 }
 
 function escapeRegExp(value: string): string {
@@ -96,6 +97,8 @@ export function needsResponseRevision(text: string, options: boolean | ResponseR
   const allowChoices = typeof options === 'boolean' ? options : !!options.allowChoices
   const forbiddenChoiceNames = typeof options === 'boolean' ? [] : options.forbiddenChoiceNames ?? []
   const requiredBodyNames = typeof options === 'boolean' ? [] : options.requiredBodyNames ?? []
+  const personaName = typeof options === 'boolean' ? undefined : options.personaName
+
   const trimmed = text.trim()
   if (!trimmed) return false
   if (trimmed.length < 350) return true
@@ -103,6 +106,20 @@ export function needsResponseRevision(text: string, options: boolean | ResponseR
   if (allowChoices && hasForbiddenChoiceSpeaker(trimmed, forbiddenChoiceNames)) return true
   if (allowChoices && missesRequiredBodySpeaker(trimmed, requiredBodyNames)) return true
   if (USER_CONTROL_PATTERNS.some(pattern => pattern.test(trimmed))) return true
+
+  if (personaName) {
+    const escapedPersona = escapeRegExp(personaName)
+    const bodyBlock = getBodyBlock(trimmed)
+    
+    // Check for "PersonaName : " in the body block
+    const personaDialoguePattern = new RegExp(`(?:^|\\n)\\s*${escapedPersona}\\s*:`, 'u')
+    if (personaDialoguePattern.test(bodyBlock)) return true
+
+    // Check for "PersonaName did X / felt Y" actions in the body block
+    const personaActionPattern = new RegExp(`${escapedPersona}(?:은|는|이|가)?\\s+[^.?!\\n]*(?:했다|하였다|말했다|느꼈다|생각했다|결심했다|고개를|손을|걸음을)`, 'u')
+    if (personaActionPattern.test(bodyBlock)) return true
+  }
+
   return false
 }
 

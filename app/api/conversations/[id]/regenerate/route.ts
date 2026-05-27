@@ -158,6 +158,7 @@ async function regenerateAsync({
       allowChoices: conv.mode === 'story',
       forbiddenChoiceNames: conv.mode === 'story' ? [character.name] : [],
       requiredBodyNames: conv.mode === 'story' ? [character.name] : [],
+      personaName: conv.personaCharacter?.name ?? '유저',
     }
 
     if (needsResponseRevision(cleanText, revisionOptions)) {
