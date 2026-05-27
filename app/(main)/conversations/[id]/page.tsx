@@ -521,7 +521,7 @@ export default function ChatPage() {
   }
 
   if (loadingConv) return (
-    <Win title="채팅" icon={PixelIcons.chat}>
+    <Win title="채팅" icon={PixelIcons.chat} noTitle>
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4 }}>
         <div className="tiny muted">대화 불러오는 중...</div>
       </div>
@@ -586,7 +586,7 @@ export default function ChatPage() {
         </div>
       </>
     )}
-    <Win title={isTikiTaka ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat}>
+    <Win title={isTikiTaka ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat} noTitle>
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
         <div className="chat-header spread">
           <div className="hstack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
