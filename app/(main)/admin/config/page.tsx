@@ -69,10 +69,11 @@ function Tooltip({ text }: { text: string }) {
       }}>?</span>
       {visible && (
         <div style={{
-          position: 'absolute', bottom: '100%', left: 0, marginBottom: 6,
+          position: 'fixed', zIndex: 9999,
           background: 'var(--chrome-bg)', border: '1px solid var(--chrome-border)',
-          padding: '8px 10px', fontSize: 10, color: 'var(--ink)', whiteSpace: 'pre',
-          lineHeight: 1.7, zIndex: 999, minWidth: 260, boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          padding: '8px 10px', fontSize: 10, color: 'var(--ink)', whiteSpace: 'pre-wrap',
+          lineHeight: 1.7, width: 260, boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          right: 16, bottom: 80,
         }}>{text}</div>
       )}
     </span>
