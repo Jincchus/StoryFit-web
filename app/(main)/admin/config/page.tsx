@@ -55,12 +55,27 @@ const STORY_CLOSING_KO = `[최우선 준수]
 - *필수* 직전 대화에 이미 있는 대사·행동·묘사를 반복 출력하지 말것`
 
 function Tooltip({ text }: { text: string }) {
+  const [visible, setVisible] = useState(false)
   return (
-    <span title={text} style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: 14, height: 14, borderRadius: '50%', border: '1px solid var(--chrome-border)',
-      fontSize: 9, color: 'var(--ink-soft)', cursor: 'help', marginLeft: 4, flexShrink: 0,
-    }}>?</span>
+    <span
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', flexShrink: 0, marginLeft: 4 }}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 14, height: 14, borderRadius: '50%', border: '1px solid var(--chrome-border)',
+        fontSize: 9, color: 'var(--ink-soft)', cursor: 'help',
+      }}>?</span>
+      {visible && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: 0, marginBottom: 6,
+          background: 'var(--chrome-bg)', border: '1px solid var(--chrome-border)',
+          padding: '8px 10px', fontSize: 10, color: 'var(--ink)', whiteSpace: 'pre',
+          lineHeight: 1.7, zIndex: 999, minWidth: 260, boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        }}>{text}</div>
+      )}
+    </span>
   )
 }
 
