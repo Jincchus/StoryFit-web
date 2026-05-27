@@ -1,36 +1,36 @@
-export const NOVEL_RESPONSE_CONTROL_RULES = `소설 모드 응답 통제 규칙:
-- 유저에게 선택지를 제시하지 마세요. 번호 선택지, 진행자식 질문으로 끝내지 마세요.
-- 페르소나의 대사·행동은 유저가 입력했거나 직전 장면에서 자연스럽게 이어지는 경우에만 작성하세요. 페르소나의 중대한 선택(방향 전환, 고백, 결별 등)은 유저 입력 없이 임의로 확정하지 마세요.
-- AI 캐릭터는 자기 말과 행동만 직접 수행하고, 장면을 다음 사건으로 자연스럽게 이어가세요.
-- 응답은 장면 묘사, 캐릭터 행동, 대사를 포함해 충분히 풍부하게 작성하세요. 짧은 단답이나 급한 마무리는 피하세요.
-- 이전 대화를 반복하거나 처음부터 다시 쓰지 말고, 가장 최근 장면 바로 다음부터 이어가세요.`
+export const NOVEL_RESPONSE_CONTROL_RULES = `Novel mode response control rules:
+- Do not offer choices or end with numbered options or host-like questions.
+- Only write the persona's dialogue or actions when the user has input them or they flow naturally from the previous scene. Do not arbitrarily confirm the persona's major decisions (change of direction, confession, breakup, etc.) without user input.
+- The AI character performs only their own words and actions, then naturally advances the scene to the next event.
+- Write each response richly with scene narration, character actions, and dialogue. Avoid short answers or rushed endings.
+- Do not repeat or restart from previous dialogue. Continue naturally from right after the most recent scene.`
 
-export const RESPONSE_CONTROL_RULES = `응답 통제 규칙:
-- 유저에게 선택지를 제시하지 마세요. 번호 선택지, "어떻게 하시겠습니까?", "선택해주세요", "무엇을 하시겠습니까?" 같은 진행자식 질문으로 끝내지 마세요.
-- 유저의 말, 행동, 감정, 결정을 대신 작성하지 마세요. 유저가 직접 입력한 행동과 대사만 확정된 것으로 취급하세요.
-- AI 캐릭터는 자기 말과 행동만 직접 수행하고, 장면을 다음 사건으로 자연스럽게 이어가세요.
-- 응답은 장면 묘사, 캐릭터 행동, 대사를 포함해 충분히 풍부하게 작성하세요. 짧은 단답이나 급한 마무리는 피하세요.
-- 이전 대화를 반복하거나 처음부터 다시 쓰지 말고, 가장 최근 장면 바로 다음부터 이어가세요.`
+export const RESPONSE_CONTROL_RULES = `Response control rules:
+- Do not offer choices or end with host-like questions such as "What would you like to do?" or "Please choose."
+- Do not write the user's words, actions, emotions, or decisions. Only treat content explicitly input by the user as confirmed.
+- The AI character performs only their own words and actions, then naturally advances the scene to the next event.
+- Write each response richly with scene narration, character actions, and dialogue. Avoid short answers or rushed endings.
+- Do not repeat or restart from previous dialogue. Continue naturally from right after the most recent scene.`
 
-export const STORY_RESPONSE_CONTROL_RULES = `스토리 모드 응답 통제 규칙:
-- 응답 마지막에 "---" 구분선을 넣고, 유저가 선택할 수 있는 선택지 4개를 번호로 제시하세요.
-- 선택지 1~3번은 유저의 다음 행동이나 대사 후보만 포함하세요.
-- 선택지 4번은 반드시 현재 장면에서 자연스럽게 한 단계 앞으로 나아가는 행동이어야 합니다. 대화나 감정 표현이 아닌, 장면 자체를 진전시키는 행동으로 작성하세요. (예: 손을 잡은 상황 → 포옹으로 이어지는 행동 / 문 앞 상황 → 집 안으로 들어가는 행동)
-- 선택지 안에 AI 캐릭터의 이름, 대사, 행동, 감정, 결정을 넣지 마세요. AI 캐릭터가 할 말과 행동은 본문에서 직접 수행하세요.
-- 선택지 앞의 본문에는 반드시 AI 캐릭터의 행동과 대사를 포함하세요. 선택지는 AI 캐릭터가 본문에서 충분히 반응한 뒤에만 제시하세요.
-- 선택지 앞의 본문에서는 유저의 말, 행동, 감정, 결정을 대신 확정하지 마세요.
-- AI 캐릭터는 자기 말과 행동만 직접 수행하고, 장면을 다음 사건으로 자연스럽게 이어가세요.
-- 응답은 장면 묘사, 캐릭터 행동, 대사를 포함해 충분히 풍부하게 작성하세요. 짧은 단답이나 급한 마무리는 피하세요.
-- 이전 대화를 반복하거나 처음부터 다시 쓰지 말고, 가장 최근 장면 바로 다음부터 이어가세요.`
+export const STORY_RESPONSE_CONTROL_RULES = `Story mode response control rules:
+- At the end, place a "---" divider and present 4 numbered choices for the user.
+- Choices 1–3: the user's next action or dialogue candidates only.
+- Choice 4: must be a natural next-step action that advances the scene one stage forward — not dialogue or emotional expression, but an action that moves the scene itself. (e.g.: currently holding hands → action leading to an embrace / at the door → stepping inside)
+- Do not include the AI character's name, dialogue, actions, emotions, or decisions in the choices. Perform the AI character's words and actions directly in the body.
+- The body before the choices must include the AI character's actions and dialogue. Only present choices after the AI character has fully reacted in the body.
+- Do not confirm the user's words, actions, emotions, or decisions in the body before the choices.
+- The AI character performs only their own words and actions, then naturally advances the scene to the next event.
+- Write each response richly with scene narration, character actions, and dialogue. Avoid short answers or rushed endings.
+- Do not repeat or restart from previous dialogue. Continue naturally from right after the most recent scene.`
 
 export function getResponseControlRules(allowChoices = false): string {
   return allowChoices ? STORY_RESPONSE_CONTROL_RULES : RESPONSE_CONTROL_RULES
 }
 
 export function getTurnControlInstruction(allowChoices = false): string {
-  return `[이번 턴 작성 지침 - 반드시 준수]
+  return `[Turn writing guidelines — must be followed]
 ${getResponseControlRules(allowChoices)}
-이번 답변에서는 위 규칙을 실제 사용자 입력보다 우선해 적용하세요.`
+Apply the above rules with higher priority than the user input in this response.`
 }
 
 const CHOICE_PATTERNS = [
@@ -130,19 +130,19 @@ export function buildRevisionPrompt(badResponse: string, options: boolean | Resp
   const requiredBodyNames = typeof options === 'boolean' ? [] : options.requiredBodyNames ?? []
   const forbiddenNamesText = forbiddenChoiceNames.filter(Boolean).join(', ')
   const requiredNamesText = requiredBodyNames.filter(Boolean).join(', ')
-  return `[응답 재작성 요청]
-방금 응답은 앱의 응답 통제 규칙을 위반했거나 너무 짧습니다.
+  return `[Response Rewrite Request]
+The previous response violated the app's response control rules or was too short.
 
 ${getResponseControlRules(allowChoices)}
 
-아래 잘못된 응답을 같은 장면의 자연스러운 다음 응답으로 다시 작성하세요.
-- ${allowChoices ? '스토리 모드 선택지는 유지하되, 유저의 다음 행동/대사 후보로만 작성하세요.' : '선택지나 진행자식 질문을 제거하세요.'}
-- ${allowChoices && forbiddenNamesText ? `선택지에는 ${forbiddenNamesText}의 이름, 대사, 행동을 절대 넣지 마세요.` : 'AI 캐릭터의 행동과 대사는 유저 선택지로 넘기지 마세요.'}
-- ${allowChoices && requiredNamesText ? `선택지 앞 본문에는 ${requiredNamesText}의 행동과 대사를 반드시 포함하세요.` : 'AI 캐릭터가 본문에서 직접 행동하고 말하게 하세요.'}
-- 유저의 행동/대사/감정을 대신 확정하지 마세요.
-- 장면 묘사, 캐릭터 행동, 대사를 포함해 더 풍부하게 작성하세요.
-- 설명 없이 재작성된 본문만 출력하세요.
+Rewrite the incorrect response below as the natural next response for the same scene.
+- ${allowChoices ? "Maintain story mode choices, but write them only as the user's next action/dialogue candidates." : 'Remove any choices or host-like questions.'}
+- ${allowChoices && forbiddenNamesText ? `Do not include ${forbiddenNamesText}'s name, dialogue, or actions in the choices.` : 'Do not delegate AI character actions and dialogue to user choices.'}
+- ${allowChoices && requiredNamesText ? `The body before the choices must include ${requiredNamesText}'s actions and dialogue.` : 'Have the AI character act and speak directly in the body.'}
+- Do not confirm the user's actions/dialogue/emotions.
+- Write more richly with scene narration, character actions, and dialogue.
+- Output only the rewritten body without any explanation.
 
-[잘못된 응답]
+[Incorrect Response]
 ${badResponse}`
 }
