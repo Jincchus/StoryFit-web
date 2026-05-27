@@ -1,0 +1,496 @@
+/* ─── KakaoTalk Theme ──────────────────────────────────────────────────────
+   data-art="kakao" 으로 활성화
+   컨셉: 카카오톡 옐로우 & 블루그레이 채팅 UI
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="kakao"] {
+  --kakao-yellow:   #fee500;
+  --kakao-yellow-d: #fdd835;
+  --kakao-brown:    #3c1e1e;
+
+  --bg-1:  #abc1d1;
+  --bg-2:  #f7f7f7;
+  --bg-3:  #ededed;
+  --paper: #ffffff;
+  --paper-2: #f7f7f7;
+
+  --ink:      #191919;
+  --ink-soft: #888888;
+
+  --line:     #e7e7e7;
+  --hairline: #f0f0f0;
+
+  --accent:   #fee500;
+  --hot-pink: #fee500;
+  --pink:     #ff4040;
+  --purple:   #7b47f7;
+  --mint:     #00b900;
+
+  --chrome-face:   #ffffff;
+  --chrome-border: #e7e7e7;
+  --chrome-shadow: rgba(0,0,0,.08);
+  --chrome-hi:     #ffffff;
+  --title-grad:    linear-gradient(135deg, #fee500, #fdd835);
+
+  --bubble-other: #ffffff;
+  --bubble-you:   #fee500;
+
+  --font-pixel: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-title: "Pretendard", -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-body:  "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-mono:  ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius:      10px;
+  --shadow-step: 0px;
+  --hairline-px: 1px;
+
+  background: #abc1d1;
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: #191919;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .shell {
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  box-shadow: 0 0 0 8px #1a1a1a, 0 30px 80px rgba(0,0,0,.30);
+}
+
+body[data-art="kakao"] .shell-body {
+  background: #ffffff;
+  background-image: none;
+}
+
+body[data-art="kakao"] .shell-title {
+  background: #ffffff;
+  color: #191919;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--hairline);
+  text-shadow: none;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .win {
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-art="kakao"] .win-title {
+  background: #ffffff;
+  color: #191919;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid var(--hairline);
+  text-shadow: none;
+  border-radius: 0;
+  min-height: 52px;
+  padding: 12px 16px;
+}
+
+body[data-art="kakao"] .win-controls { display: none; }
+
+body[data-art="kakao"] .win-body {
+  background: #ffffff;
+  border: none;
+  box-shadow: none;
+  padding: 12px 16px;
+  border-radius: 0;
+}
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .btn {
+  background: #ffffff;
+  color: #191919;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: none;
+  text-shadow: none;
+  transition: background 0.12s, opacity 0.12s;
+}
+
+body[data-art="kakao"] .btn:hover { background: var(--bg-2); }
+body[data-art="kakao"] .btn:active { opacity: 0.7; transform: none; box-shadow: none; }
+
+body[data-art="kakao"] .btn.primary {
+  background: var(--kakao-yellow);
+  border-color: var(--kakao-yellow);
+  color: var(--kakao-brown);
+  font-weight: 700;
+  text-shadow: none;
+}
+body[data-art="kakao"] .btn.primary:hover { background: var(--kakao-yellow-d); border-color: var(--kakao-yellow-d); }
+
+body[data-art="kakao"] .btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #888888;
+  box-shadow: none;
+}
+body[data-art="kakao"] .btn.ghost:hover { background: var(--bg-2); color: #191919; }
+
+body[data-art="kakao"] .btn.danger {
+  background: transparent;
+  color: #ff4040;
+  border-color: transparent;
+  box-shadow: none;
+}
+body[data-art="kakao"] .btn.danger:hover { background: rgba(255,64,64,.06); }
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .field {
+  background: #ffffff;
+  color: #191919;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--font-body);
+}
+body[data-art="kakao"] .field::placeholder { color: #b0b0b0; }
+body[data-art="kakao"] .field:focus { border-color: #888888; box-shadow: none; }
+
+body[data-art="kakao"] .label {
+  color: #191919;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .chatlog {
+  background: #abc1d1;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 14px;
+  color: #191919;
+  gap: 4px;
+}
+
+/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .bubble {
+  background: #ffffff;
+  color: #191919;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 8px 12px;
+}
+
+body[data-art="kakao"] .seq-block.seq-right .bubble {
+  background: var(--kakao-yellow);
+  color: var(--kakao-brown);
+  border: none;
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+body[data-art="kakao"] .bubble-char    { background: #e8f4ff !important; color: #1a4a7a !important; }
+body[data-art="kakao"] .bubble-third   { background: #e8fff0 !important; color: #1a5a2a !important; }
+body[data-art="kakao"] .bubble-persona { background: var(--kakao-yellow) !important; color: var(--kakao-brown) !important; }
+
+body[data-art="kakao"] .msg .who { color: #2d2d2d; font-size: 12px; font-weight: 500; }
+body[data-art="kakao"] .seq-speaker { color: #2d2d2d; font-size: 12px; font-weight: 500; }
+
+/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
+body[data-art="kakao"] .composer {
+  background: #ffffff;
+  border: none;
+  border-top: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 6px 10px;
+  gap: 6px;
+}
+
+body[data-art="kakao"] .composer .field {
+  border-radius: 20px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  height: 36px;
+  padding: 8px 14px;
+}
+
+body[data-art="kakao"] .composer .btn.primary {
+  background: var(--kakao-yellow);
+  border-color: var(--kakao-yellow);
+  color: var(--kakao-brown);
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  padding: 0;
+  font-size: 0;
+  justify-content: center;
+}
+body[data-art="kakao"] .composer .btn.primary::after {
+  content: "→";
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .dock {
+  background: #ffffff;
+  border-top: 1px solid var(--hairline);
+  box-shadow: none;
+  padding: 6px 8px 8px;
+}
+
+body[data-art="kakao"] .dock .start {
+  background: transparent;
+  color: #888888;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: none;
+}
+body[data-art="kakao"] .dock .start:hover { color: #191919; background: transparent; }
+
+body[data-art="kakao"] .dock .clock {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: #b0b0b0;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+body[data-art="kakao"] .dock-tab {
+  background: transparent;
+  color: #888888;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+body[data-art="kakao"] .dock-tab:hover { color: #191919; }
+body[data-art="kakao"] .dock-tab.active {
+  color: #191919;
+  font-weight: 700;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .start-menu {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+body[data-art="kakao"] .start-menu-item { color: #191919; font-size: 14px; border-radius: 8px; }
+body[data-art="kakao"] .start-menu-item:hover { background: var(--bg-2); }
+body[data-art="kakao"] .start-menu-item.danger { color: #ff4040; }
+body[data-art="kakao"] .start-menu-item.danger:hover { background: rgba(255,64,64,.06); }
+body[data-art="kakao"] .start-menu-divider { background: var(--hairline); }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="kakao"] .row {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px 4px;
+}
+body[data-art="kakao"] .row:hover { background: var(--bg-2); }
+
+body[data-art="kakao"] .row .thumb {
+  border: none;
+  border-radius: 14px;
+  background: var(--bg-3);
+}
+body[data-art="kakao"] .row .meta h4 { color: #191919; font-size: 15px; font-weight: 700; }
+body[data-art="kakao"] .row .meta p { color: #888888; font-size: 13px; }
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="kakao"] .char-card {
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  box-shadow: none;
+}
+body[data-art="kakao"] .char-card:hover { background: var(--bg-2); border-color: var(--line); transform: none; box-shadow: none; }
+body[data-art="kakao"] .char-card.selected {
+  background: #fffbe5;
+  border: 2px solid var(--kakao-yellow);
+  outline: none;
+}
+body[data-art="kakao"] .char-card .pic-wrap {
+  border: none;
+  border-radius: 16px;
+  background: var(--bg-3);
+}
+body[data-art="kakao"] .char-card h4 { color: #191919; }
+body[data-art="kakao"] .char-card p { color: #888888; }
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="kakao"] .side-panel {
+  background: #ffffff;
+  border: none;
+  border-left: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+}
+body[data-art="kakao"] .side-panel-header { border-color: var(--hairline); color: #191919; }
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .chat-header {
+  background: #ffffff;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  color: #191919;
+}
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .tag {
+  background: var(--bg-2);
+  color: #888888;
+  border: none;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 11px;
+}
+body[data-art="kakao"] .tag:hover,
+body[data-art="kakao"] .tag.active,
+body[data-art="kakao"] .tag-selected {
+  background: var(--kakao-yellow);
+  color: var(--kakao-brown);
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="kakao"] .msg-action-btn {
+  background: rgba(0,0,0,.05);
+  border: none;
+  border-radius: 6px;
+  color: #888888;
+  box-shadow: none;
+  font-size: 11px;
+}
+body[data-art="kakao"] .msg-action-btn:hover { color: #191919; background: rgba(0,0,0,.10); }
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="kakao"] .ai-pill {
+  background: #ffffff;
+  color: #191919;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: none;
+  font-weight: 600;
+}
+body[data-art="kakao"] .ai-pill:hover { background: var(--bg-2); }
+
+body[data-art="kakao"] .ai-dropdown {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+body[data-art="kakao"] .ai-dropdown-item { color: #191919; border-radius: 8px; font-size: 14px; }
+body[data-art="kakao"] .ai-dropdown-item:hover { background: var(--bg-2); }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .form-section {
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  box-shadow: none;
+}
+body[data-art="kakao"] .form-section-title { color: #888888; }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="kakao"] .persona-option,
+body[data-art="kakao"] .ai-model-option {
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  box-shadow: none;
+}
+body[data-art="kakao"] .persona-option:hover,
+body[data-art="kakao"] .ai-model-option:hover:not(.disabled) { background: var(--bg-2); }
+body[data-art="kakao"] .persona-option.selected,
+body[data-art="kakao"] .ai-model-option.selected {
+  outline: 2px solid var(--kakao-yellow);
+  background: #fffbe5;
+}
+
+/* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
+body[data-art="kakao"] .login-title {
+  background: linear-gradient(135deg, #3c1e1e, #fee500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+body[data-art="kakao"] .login-card {
+  background: #ffffff;
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.08);
+  padding: 24px;
+}
+
+/* ─── 홈 아이콘 (.di) ────────────────────────────────────────────────────── */
+body[data-art="kakao"] .di {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+body[data-art="kakao"] .di:hover { opacity: 0.75; }
+
+body[data-art="kakao"] .di-pic {
+  width: 52px;
+  height: 52px;
+  background: var(--kakao-yellow);
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  transition: box-shadow 0.12s;
+}
+body[data-art="kakao"] .di:hover .di-pic {
+  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+
+body[data-art="kakao"] .di span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--kakao-brown);
+  text-align: center;
+  white-space: pre-line;
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="kakao"] ::-webkit-scrollbar { width: 6px; height: 6px; }
+body[data-art="kakao"] ::-webkit-scrollbar-track { background: transparent; }
+body[data-art="kakao"] ::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.18);
+  border-radius: 999px;
+}
+body[data-art="kakao"] .chatlog::-webkit-scrollbar-thumb { background: rgba(0,0,0,.25); }
+body[data-art="kakao"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.32); }
+
+body[data-art="kakao"] .tag-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,.18) transparent; }
+body[data-art="kakao"] .tag-scroll::-webkit-scrollbar { height: 4px; }
+body[data-art="kakao"] .tag-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.18);
+  border-radius: 999px;
+}

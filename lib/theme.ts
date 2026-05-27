@@ -11,11 +11,13 @@ export const THEMES = [
   { id: 'crazyarcade', label: 'Neon Blue',      desc: '다크 네이비 & 네온 블루',   palette: ['#1a1a2e', '#0066ff', '#ffcc00', '#2ae0ff'] },
   { id: 'block',       label: 'Block',          desc: '장난감·블록·원색 게임 UI',   palette: ['#FFEBCD', '#FFFFFF', '#FF3B30', '#FFCC00'] },
   { id: 'cyworld',     label: 'Aqua Orange',    desc: '라이트 아쿠아 & 오렌지',    palette: ['#e3f2fd', '#f6f6f6', '#ff6600', '#a6a6a6'] },
+  { id: 'kakao',       label: 'KakaoTalk',      desc: '카카오톡 옐로우 & 화이트',   palette: ['#ffffff', '#abc1d1', '#fee500', '#191919'] },
+  { id: 'x',           label: 'X (Twitter)',    desc: '다크 잉크 & 블루 DM',       palette: ['#ffffff', '#f7f9f9', '#1d9bf0', '#0f1419'] },
 ] as const
 
 export type ThemeId = typeof THEMES[number]['id']
 
-const EXTERNAL_THEMES = new Set(['modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld'])
+const EXTERNAL_THEMES = new Set(['modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld', 'kakao', 'x'])
 
 export function applyTheme(theme: string): void {
   if (typeof document === 'undefined') return

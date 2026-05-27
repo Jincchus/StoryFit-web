@@ -1,0 +1,518 @@
+/* ─── X (Twitter) Theme ────────────────────────────────────────────────────
+   data-art="x" 으로 활성화
+   컨셉: X.com 라이트 DM UI — 다크 잉크 & 블루 액센트
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="x"] {
+  --accent:       #1d9bf0;
+  --accent-hover: #1a8cd8;
+
+  --bg-1:  #f7f9f9;
+  --bg-2:  #f7f9f9;
+  --bg-3:  #eff3f4;
+  --paper: #ffffff;
+  --paper-2: #f7f9f9;
+
+  --ink:      #0f1419;
+  --ink-2:    #1c2229;
+  --ink-soft: #536471;
+
+  --line:        #eff3f4;
+  --hairline:    #eff3f4;
+  --line-strong: #cfd9de;
+
+  --hot-pink: #1d9bf0;
+  --pink:     #f4212e;
+  --purple:   #7b47f7;
+  --mint:     #00ba7c;
+
+  --chrome-face:   #ffffff;
+  --chrome-border: #eff3f4;
+  --chrome-shadow: rgba(0,0,0,.08);
+  --chrome-hi:     #ffffff;
+  --title-grad:    linear-gradient(135deg, #1d9bf0, #1a8cd8);
+
+  --bubble-other: #eff3f4;
+  --bubble-you:   #1d9bf0;
+
+  --font-pixel: "Pretendard", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-title: "Pretendard", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-body:  "Pretendard", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-mono:  ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius:      16px;
+  --shadow-step: 0px;
+  --hairline-px: 1px;
+
+  background: #f5f8fa;
+  font-family: var(--font-body);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: #0f1419;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="x"] .shell {
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  box-shadow: 0 0 0 8px #1a1a1a, 0 30px 80px rgba(0,0,0,.30);
+}
+
+body[data-art="x"] .shell-body {
+  background: #ffffff;
+  background-image: none;
+}
+
+body[data-art="x"] .shell-title {
+  background: #ffffff;
+  color: #0f1419;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  border-bottom: 1px solid var(--hairline);
+  text-shadow: none;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="x"] .win {
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body[data-art="x"] .win-title {
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #0f1419;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid var(--hairline);
+  text-shadow: none;
+  border-radius: 0;
+  min-height: 53px;
+  padding: 14px 16px;
+}
+
+body[data-art="x"] .win-controls { display: none; }
+
+body[data-art="x"] .win-body {
+  background: #ffffff;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="x"] .btn {
+  background: #ffffff;
+  color: #0f1419;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: none;
+  text-shadow: none;
+  transition: background 0.12s, opacity 0.12s;
+  min-height: 32px;
+}
+
+body[data-art="x"] .btn:hover { background: var(--bg-2); }
+body[data-art="x"] .btn:active { opacity: 0.7; transform: none; box-shadow: none; }
+
+body[data-art="x"] .btn.primary {
+  background: #0f1419;
+  border-color: #0f1419;
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: none;
+}
+body[data-art="x"] .btn.primary:hover { background: #1c2229; }
+
+body[data-art="x"] .btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #0f1419;
+  box-shadow: none;
+}
+body[data-art="x"] .btn.ghost:hover { background: var(--bg-2); }
+
+body[data-art="x"] .btn.danger {
+  background: transparent;
+  color: #f4212e;
+  border-color: transparent;
+  box-shadow: none;
+}
+body[data-art="x"] .btn.danger:hover { background: rgba(244,33,46,.06); }
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="x"] .field {
+  background: #ffffff;
+  color: #0f1419;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 15px;
+  font-family: var(--font-body);
+  transition: border-color 0.15s;
+}
+body[data-art="x"] .field::placeholder { color: #536471; }
+body[data-art="x"] .field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+body[data-art="x"] .label {
+  color: #536471;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="x"] .chatlog {
+  background: #ffffff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 15px;
+  color: #0f1419;
+  gap: 4px;
+  padding: 14px 16px 8px;
+}
+
+/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
+body[data-art="x"] .bubble {
+  background: #eff3f4;
+  color: #0f1419;
+  border: none;
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  box-shadow: none;
+  font-size: 15px;
+  line-height: 1.35;
+  padding: 10px 14px;
+}
+
+body[data-art="x"] .seq-block.seq-right .bubble {
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 18px;
+  border-bottom-right-radius: 4px;
+  box-shadow: none;
+}
+
+body[data-art="x"] .bubble-char    { background: #e8f4ff !important; color: #0a4a7a !important; border-radius: 18px 18px 18px 4px !important; }
+body[data-art="x"] .bubble-third   { background: #e8fff0 !important; color: #0a4a20 !important; border-radius: 18px 18px 18px 4px !important; }
+body[data-art="x"] .bubble-persona { background: var(--accent) !important; color: #ffffff !important; border-radius: 18px 18px 4px 18px !important; }
+
+body[data-art="x"] .msg .who { color: #536471; font-size: 13px; }
+body[data-art="x"] .seq-speaker { color: #536471; font-size: 13px; }
+
+/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
+body[data-art="x"] .composer {
+  background: #ffffff;
+  border: none;
+  border-top: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px 14px;
+  gap: 8px;
+}
+
+body[data-art="x"] .composer .field {
+  border-radius: 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  height: 38px;
+  padding: 8px 16px;
+  font-size: 15px;
+}
+body[data-art="x"] .composer .field:focus { box-shadow: none; border-color: var(--accent); }
+
+body[data-art="x"] .composer .btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  border-radius: 50%;
+  width: 38px; height: 38px;
+  padding: 0;
+  font-size: 0;
+  justify-content: center;
+}
+body[data-art="x"] .composer .btn.primary::after {
+  content: "→";
+  font-size: 18px;
+  font-weight: 700;
+}
+body[data-art="x"] .composer .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="x"] .dock {
+  background: #ffffff;
+  border-top: 1px solid var(--hairline);
+  box-shadow: none;
+  padding: 10px 6px;
+}
+
+body[data-art="x"] .dock .start {
+  background: transparent;
+  color: #0f1419;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 700;
+  text-shadow: none;
+}
+body[data-art="x"] .dock .start:hover { color: var(--accent); background: transparent; }
+
+body[data-art="x"] .dock .clock {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: #8b98a5;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+body[data-art="x"] .dock-tab {
+  background: transparent;
+  color: #536471;
+  border: none;
+  border-radius: 999px;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+body[data-art="x"] .dock-tab:hover { background: var(--bg-2); color: #0f1419; }
+body[data-art="x"] .dock-tab.active {
+  color: #0f1419;
+  font-weight: 800;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="x"] .start-menu {
+  background: #ffffff;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.12);
+}
+body[data-art="x"] .start-menu-item { color: #0f1419; font-size: 15px; border-radius: 0; }
+body[data-art="x"] .start-menu-item:hover { background: var(--bg-2); }
+body[data-art="x"] .start-menu-item.danger { color: #f4212e; }
+body[data-art="x"] .start-menu-item.danger:hover { background: rgba(244,33,46,.06); }
+body[data-art="x"] .start-menu-divider { background: var(--hairline); }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="x"] .row {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 16px;
+}
+body[data-art="x"] .row:hover { background: var(--bg-2); }
+
+body[data-art="x"] .row .thumb {
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-3);
+}
+body[data-art="x"] .row .meta h4 { color: #0f1419; font-size: 15px; font-weight: 700; }
+body[data-art="x"] .row .meta p { color: #536471; font-size: 14px; }
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="x"] .char-card {
+  background: #ffffff;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+body[data-art="x"] .char-card:hover { background: var(--bg-2); transform: none; box-shadow: none; }
+body[data-art="x"] .char-card.selected {
+  background: rgba(29,155,240,.06);
+  outline: none;
+}
+body[data-art="x"] .char-card .pic-wrap {
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-3);
+}
+body[data-art="x"] .char-card h4 { color: #0f1419; font-size: 15px; text-align: left; }
+body[data-art="x"] .char-card p { color: #536471; font-size: 13px; text-align: left; }
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="x"] .side-panel {
+  background: #ffffff;
+  border: none;
+  border-left: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+}
+body[data-art="x"] .side-panel-header { border-color: var(--hairline); color: #0f1419; }
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="x"] .chat-header {
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  color: #0f1419;
+}
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="x"] .tag {
+  background: var(--bg-3);
+  color: #536471;
+  border: none;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 12px;
+}
+body[data-art="x"] .tag:hover,
+body[data-art="x"] .tag.active,
+body[data-art="x"] .tag-selected {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="x"] .msg-action-btn {
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: #536471;
+  box-shadow: none;
+  font-size: 11px;
+}
+body[data-art="x"] .msg-action-btn:hover { color: var(--accent); background: rgba(29,155,240,.1); }
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="x"] .ai-pill {
+  background: transparent;
+  color: #0f1419;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  box-shadow: none;
+  font-weight: 700;
+  font-size: 13px;
+}
+body[data-art="x"] .ai-pill:hover { background: var(--bg-2); }
+
+body[data-art="x"] .ai-dropdown {
+  background: #ffffff;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.12);
+}
+body[data-art="x"] .ai-dropdown-item { color: #0f1419; border-radius: 0; font-size: 15px; }
+body[data-art="x"] .ai-dropdown-item:hover { background: var(--bg-2); }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="x"] .form-section {
+  background: #ffffff;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 16px;
+}
+body[data-art="x"] .form-section-title { color: #536471; letter-spacing: 0; }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="x"] .persona-option,
+body[data-art="x"] .ai-model-option {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: none;
+}
+body[data-art="x"] .persona-option:hover,
+body[data-art="x"] .ai-model-option:hover:not(.disabled) { background: var(--bg-2); }
+body[data-art="x"] .persona-option.selected,
+body[data-art="x"] .ai-model-option.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  background: rgba(29,155,240,.04);
+}
+
+/* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
+body[data-art="x"] .login-title {
+  background: linear-gradient(135deg, #0f1419, #1d9bf0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+body[data-art="x"] .login-card {
+  background: #ffffff;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.08);
+  padding: 24px;
+}
+
+/* ─── 홈 아이콘 (.di) ────────────────────────────────────────────────────── */
+body[data-art="x"] .di {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+body[data-art="x"] .di:hover { opacity: 0.75; }
+
+body[data-art="x"] .di-pic {
+  width: 52px;
+  height: 52px;
+  background: #0f1419;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.20);
+  transition: background 0.12s;
+}
+body[data-art="x"] .di:hover .di-pic { background: #1c2229; }
+
+body[data-art="x"] .di span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #536471;
+  text-align: center;
+  white-space: pre-line;
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="x"] ::-webkit-scrollbar { width: 6px; height: 6px; }
+body[data-art="x"] ::-webkit-scrollbar-track { background: transparent; }
+body[data-art="x"] ::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+}
+body[data-art="x"] ::-webkit-scrollbar-thumb:hover { background: #8b98a5; }
+
+body[data-art="x"] .tag-scroll { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+body[data-art="x"] .tag-scroll::-webkit-scrollbar { height: 4px; }
+body[data-art="x"] .tag-scroll::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+}
