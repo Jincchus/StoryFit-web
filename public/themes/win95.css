@@ -979,6 +979,31 @@ body[data-art="modern"] .char-card .pic-wrap{ border-radius: 50% }
 .scroll::-webkit-scrollbar-button:vertical:increment{
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M4 6 L1 2 L7 2 Z' fill='%23000'/%3E%3C/svg%3E");
 }
+/* 좌우 여분 버튼 숨김 */
+.win-body ::-webkit-scrollbar-button:horizontal:start:increment,
+.chatlog::-webkit-scrollbar-button:horizontal:start:increment,
+.char-grid::-webkit-scrollbar-button:horizontal:start:increment,
+.scroll::-webkit-scrollbar-button:horizontal:start:increment,
+.win-body ::-webkit-scrollbar-button:horizontal:end:decrement,
+.chatlog::-webkit-scrollbar-button:horizontal:end:decrement,
+.char-grid::-webkit-scrollbar-button:horizontal:end:decrement,
+.scroll::-webkit-scrollbar-button:horizontal:end:decrement{ display: none; }
+/* 왼쪽 화살표 */
+.win-body ::-webkit-scrollbar-button:horizontal:decrement,
+.chatlog::-webkit-scrollbar-button:horizontal:decrement,
+.char-grid::-webkit-scrollbar-button:horizontal:decrement,
+.scroll::-webkit-scrollbar-button:horizontal:decrement{
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M2 4 L6 1 L6 7 Z' fill='%23000'/%3E%3C/svg%3E");
+}
+/* 오른쪽 화살표 */
+.win-body ::-webkit-scrollbar-button:horizontal:increment,
+.chatlog::-webkit-scrollbar-button:horizontal:increment,
+.char-grid::-webkit-scrollbar-button:horizontal:increment,
+.scroll::-webkit-scrollbar-button:horizontal:increment{
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M6 4 L2 1 L2 7 Z' fill='%23000'/%3E%3C/svg%3E");
+}
+/* 페이지 내 모든 스크롤바 thumb 사각형 강제 */
+::-webkit-scrollbar-thumb{ border-radius: 0 !important; }
 
 /* ─── AI dropdown ───────────────────────────────────────────────────────── */
 .ai-pill{
