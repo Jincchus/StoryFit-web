@@ -10,9 +10,10 @@ RUN npm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+RUN echo "" > .env
 COPY . .
 RUN npx prisma generate
-RUN touch /app/.env && npm run build
+RUN npm run build
 
 FROM base AS runner
 WORKDIR /app
