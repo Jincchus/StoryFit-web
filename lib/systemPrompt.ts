@@ -46,6 +46,8 @@ interface BuildSystemPromptParams {
   modeRules?: string
   personalRules?: string
   closingRules?: string
+  statsConfig?: { name: string; value: number; min: number; max: number }[]
+  inventory?: { name: string; qty: number; description?: string }[]
 }
 
 export const NOVEL_BASE_RULES = `You are a novelist. Always follow the output format below:
@@ -207,6 +209,8 @@ export function buildStorySystemPrompt({
   modeRules,
   personalRules,
   closingRules,
+  statsConfig,
+  inventory,
 }: BuildSystemPromptParams): string {
   const personaName = personaCharacter?.name ?? '유저'
   const parts: string[] = []
@@ -221,6 +225,14 @@ export function buildStorySystemPrompt({
     parts.push(`[유저 역할]\n이름: ${personaCharacter.name}${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
   if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}`)
+  if (statsConfig && statsConfig.length > 0) {
+    const statsLines = statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')
+    parts.push(`[현재 스탯]\n${statsLines}`)
+  }
+  if (inventory && inventory.length > 0) {
+    const invLines = inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')
+    parts.push(`[현재 인벤토리]\n${invLines}`)
+  }
   parts.push(`[캐릭터 설정]\n${buildCharLines(character)}`)
   if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
   if (character.exampleDialogues?.trim()) parts.push(`[예시 대화]\n${character.exampleDialogues}`)

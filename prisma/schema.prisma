@@ -153,6 +153,8 @@ model Message {
   isStreaming    Boolean      @default(false)
   inputTokens    Int          @default(0)
   outputTokens   Int          @default(0)
+  inventoryDelta Json?
+  statsDelta     Json?
   createdAt      DateTime     @default(now())
 }
 

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
+import { rollbackInventoryDelta } from '@/lib/inventoryEval'
+import { rollbackStatsDelta } from '@/lib/statsEval'
+import type { InventoryItem, StatEntry } from '@/types'
 
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -84,8 +87,26 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const { messageId } = await req.json()
   if (!messageId) return NextResponse.json({ error: 'messageId가 필요합니다.' }, { status: 400 })
 
-  const msg = await prisma.message.findUnique({ where: { id: messageId }, select: { conversationId: true } })
+  const msg = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { conversationId: true, role: true, inventoryDelta: true, statsDelta: true },
+  })
   if (!msg || msg.conversationId !== params.id) return NextResponse.json({ error: '메시지를 찾을 수 없습니다.' }, { status: 404 })
+
+  if (msg.role === 'assistant' && (msg.inventoryDelta || msg.statsDelta)) {
+    const conv = await prisma.conversation.findUnique({
+      where: { id: params.id },
+      select: { inventory: true, statsConfig: true, inventoryEnabled: true, statsEnabled: true },
+    })
+    if (conv) {
+      if (conv.inventoryEnabled && msg.inventoryDelta && Array.isArray(conv.inventory)) {
+        await rollbackInventoryDelta(params.id, msg.inventoryDelta as any, conv.inventory as InventoryItem[]).catch(() => {})
+      }
+      if (conv.statsEnabled && msg.statsDelta && Array.isArray(conv.statsConfig)) {
+        await rollbackStatsDelta(params.id, msg.statsDelta as any, conv.statsConfig as StatEntry[]).catch(() => {})
+      }
+    }
+  }
 
   await prisma.message.delete({ where: { id: messageId } })
   return new NextResponse(null, { status: 204 })

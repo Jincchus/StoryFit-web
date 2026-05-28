@@ -97,7 +97,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const systemPrompt = conv.mode === 'novel'
     ? buildNovelSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
     : conv.mode === 'story'
-      ? buildStorySystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
+      ? buildStorySystemPrompt({
+          ...basePromptParams,
+          character: makeCharParam(character),
+          statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
+          inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
+        })
       : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
   const recentMsgs = conv.messages.slice(-15)
@@ -221,10 +226,10 @@ async function generateAsync({
     triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
 
     if (conv.mode === 'story' && conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0) {
-      triggerStatsEvaluation(convId, history[history.length - 1]?.parts[0].text ?? '', fullText, conv.statsConfig)
+      triggerStatsEvaluation(convId, msgId, history[history.length - 1]?.parts[0].text ?? '', fullText, conv.statsConfig)
     }
     if (conv.mode === 'story' && conv.inventoryEnabled && Array.isArray(conv.inventory)) {
-      triggerInventoryEvaluation(convId, history[history.length - 1]?.parts[0].text ?? '', fullText, conv.inventory)
+      triggerInventoryEvaluation(convId, msgId, history[history.length - 1]?.parts[0].text ?? '', fullText, conv.inventory)
     }
   } catch (err: any) {
     clearTimeout(timeoutId)

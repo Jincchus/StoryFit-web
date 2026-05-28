@@ -9,17 +9,19 @@ function extractJson(raw: string): string {
 
 export function triggerStatsEvaluation(
   convId: string,
+  msgId: string,
   userMsg: string,
   aiMsg: string,
   currentStats: StatEntry[],
 ): void {
-  evalAndUpdate(convId, userMsg, aiMsg, currentStats).catch(err =>
+  evalAndUpdate(convId, msgId, userMsg, aiMsg, currentStats).catch(err =>
     console.error('[statsEval] error:', err),
   )
 }
 
 async function evalAndUpdate(
   convId: string,
+  msgId: string,
   userMsg: string,
   aiMsg: string,
   currentStats: StatEntry[],
@@ -50,11 +52,24 @@ AI 반응 (요약): ${aiMsg.slice(0, 400)}
       return { ...s, value: Math.max(s.min, Math.min(s.max, s.value + delta)) }
     })
 
-    await prisma.conversation.update({
-      where: { id: convId },
-      data: { statsConfig: updated },
-    })
+    await Promise.all([
+      prisma.conversation.update({ where: { id: convId }, data: { statsConfig: updated } }),
+      prisma.message.update({ where: { id: msgId }, data: { statsDelta: deltas } }),
+    ])
   } catch {
     // silent fail — stats eval is non-critical
   }
+}
+
+export async function rollbackStatsDelta(
+  convId: string,
+  deltas: Record<string, number>,
+  currentStats: StatEntry[],
+): Promise<StatEntry[]> {
+  const updated = currentStats.map(s => {
+    const delta = deltas[s.name] ?? 0
+    return { ...s, value: Math.max(s.min, Math.min(s.max, s.value - delta)) }
+  })
+  await prisma.conversation.update({ where: { id: convId }, data: { statsConfig: updated } })
+  return updated
 }
