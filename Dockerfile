@@ -12,7 +12,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
-RUN touch .env && npm run build
+RUN touch /app/.env && npm run build
 
 FROM base AS runner
 WORKDIR /app
