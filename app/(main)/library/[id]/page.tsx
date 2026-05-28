@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import PixelAvatar from '@/components/ui/PixelAvatar'
+import { parseNovelBlocks } from '@/lib/parseBlocks'
 
 interface Msg {
   id: string
@@ -51,6 +52,39 @@ function renderContent(text: string) {
   })
 }
 
+function parseStoryChoices(content: string): { body: string; choices: string[] } {
+  const lines = content.split('\n')
+  let sepIdx = -1
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].trim() === '---') { sepIdx = i; break }
+  }
+  if (sepIdx === -1) return { body: content, choices: [] }
+  const body = lines.slice(0, sepIdx).join('\n').trim()
+  const choices = lines.slice(sepIdx + 1).map(l => l.replace(/^\d+[\.\)]\s*/, '').trim()).filter(Boolean)
+  return { body, choices }
+}
+
+function NarrationLine({ text }: { text: string }) {
+  const lines = text.split('\n')
+  return (
+    <>
+      {lines.map((line, i) => {
+        if (!line.trim()) return <div key={i} style={{ height: 6 }} />
+        const parts = line.split(/(\*[^*]+\*)/)
+        return (
+          <p key={i} style={{ margin: '0 0 6px', fontSize: 13, lineHeight: 1.9, color: 'var(--ink)' }}>
+            {parts.map((p, j) =>
+              p.startsWith('*') && p.endsWith('*')
+                ? <em key={j} style={{ color: 'var(--ink-soft)' }}>{p.slice(1, -1)}</em>
+                : <span key={j}>{p}</span>
+            )}
+          </p>
+        )
+      })}
+    </>
+  )
+}
+
 export default function LibraryReadPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -58,6 +92,7 @@ export default function LibraryReadPage() {
   const [branchMsgId, setBranchMsgId] = useState<string | null>(null)
   const [branchDesc, setBranchDesc] = useState('')
   const [branching, setBranching] = useState(false)
+  const [expandedChoices, setExpandedChoices] = useState<Set<string>>(new Set())
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -88,6 +123,10 @@ export default function LibraryReadPage() {
     </div>
   )
 
+  const isStory = conv.mode === 'story'
+  const useProseLayout = conv.mode === 'novel' || isStory
+  const personaName = conv.personaCharacter?.name?.toLowerCase() ?? ''
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{
@@ -106,10 +145,102 @@ export default function LibraryReadPage() {
         {conv.messages.map((msg, idx) => {
           const isUser = msg.role === 'user'
           const char = msg.characterId ? charMap[msg.characterId] : conv.characters[0]?.character
-          const persona = conv.personaCharacter
-          const speaker = isUser ? persona : char
           const isLast = idx === conv.messages.length - 1
 
+          if (useProseLayout) {
+            if (isUser) {
+              return (
+                <div key={msg.id} style={{
+                  borderLeft: '2px solid var(--lavender)',
+                  padding: '6px 10px',
+                  background: 'rgba(124, 79, 192, 0.07)',
+                  borderRadius: '0 4px 4px 0',
+                }}>
+                  <div style={{ fontSize: 9, color: 'var(--lavender)', letterSpacing: '1.5px', marginBottom: 3, fontFamily: 'monospace' }}>SCENE</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic', lineHeight: 1.6 }}>{msg.content}</div>
+                </div>
+              )
+            }
+
+            const storyParsed = isStory ? parseStoryChoices(msg.content) : null
+            const bodyText = storyParsed ? storyParsed.body : msg.content
+            const blocks = parseNovelBlocks(bodyText)
+            const isExpanded = expandedChoices.has(msg.id)
+
+            return (
+              <div key={msg.id}>
+                {blocks.map((block, i) => {
+                  if (block.type === 'narration') {
+                    return <NarrationLine key={i} text={block.text} />
+                  }
+                  const rawSpeaker = block.speaker?.replace(/^\[|\]$/g, '').trim() ?? char?.name ?? ''
+                  const speakerChar = conv.characters.find(cc =>
+                    cc.character.name.toLowerCase() === rawSpeaker.toLowerCase()
+                  )?.character ?? (personaName && rawSpeaker.toLowerCase() === personaName ? conv.personaCharacter : null)
+                  return (
+                    <div key={i} style={{ marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--hairline)', flexShrink: 0 }}>
+                          {speakerChar?.avatarUrl
+                            ? <img src={speakerChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                            : <PixelAvatar kind="custom" size={20} />
+                          }
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-soft)' }}>{rawSpeaker}</span>
+                      </div>
+                      <div style={{ paddingLeft: 26, fontSize: 13, lineHeight: 1.8, color: 'var(--ink)' }}>
+                        {block.type === 'thought'
+                          ? <em style={{ color: 'var(--ink-soft)' }}>'{block.text}'</em>
+                          : <span>"{block.text}"</span>
+                        }
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {isStory && storyParsed && storyParsed.choices.length > 0 && (
+                  <div style={{ border: '1px solid var(--hairline)', borderRadius: 4, overflow: 'hidden', marginTop: 4 }}>
+                    <button
+                      className="btn ghost"
+                      style={{ width: '100%', padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 0 }}
+                      onClick={() => setExpandedChoices(prev => {
+                        const next = new Set(prev)
+                        next.has(msg.id) ? next.delete(msg.id) : next.add(msg.id)
+                        return next
+                      })}
+                    >
+                      <span style={{ fontSize: 10, color: 'var(--lavender)', fontFamily: 'monospace', letterSpacing: 1 }}>
+                        CHOICES <span style={{ color: 'var(--ink-soft)' }}>{storyParsed.choices.length}개</span>
+                      </span>
+                      <span style={{ fontSize: 10 }}>{isExpanded ? '▲' : '▼'}</span>
+                    </button>
+                    {isExpanded && (
+                      <div style={{ padding: '6px 10px 8px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {storyParsed.choices.map((choice, ci) => (
+                          <div key={ci} style={{ fontSize: 11, color: 'var(--ink-soft)', padding: '3px 0' }}>
+                            {ci + 1}. {choice}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!isLast && (
+                  <div style={{ marginTop: 6 }}>
+                    <button
+                      className="btn ghost"
+                      style={{ fontSize: 9, padding: '2px 7px', opacity: 0.6 }}
+                      onClick={() => { setBranchMsgId(msg.id); setBranchDesc('') }}
+                    >⑂ 여기서 분기</button>
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          // roleplay / tikiTaka — 기존 버블 레이아웃 유지
+          const speaker = isUser ? conv.personaCharacter : char
           return (
             <div key={msg.id} style={{ position: 'relative' }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
