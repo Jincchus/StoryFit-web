@@ -22,6 +22,14 @@ interface Conv {
   messages: Msg[]
 }
 
+interface BranchInfo {
+  id: string
+  version: number
+  branchDescription: string
+  branchFromMessageId: string | null
+  rootConversationId: string | null
+}
+
 function renderContent(text: string) {
   const lines = text.split('\n').filter(Boolean)
   return lines.map((line, i) => {
@@ -93,10 +101,12 @@ export default function LibraryReadPage() {
   const [branchDesc, setBranchDesc] = useState('')
   const [branching, setBranching] = useState(false)
   const [expandedChoices, setExpandedChoices] = useState<Set<string>>(new Set())
+  const [branches, setBranches] = useState<BranchInfo[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     api.get(`/api/conversations/${id}`).then(setConv)
+    api.get(`/api/conversations/${id}/branches`).then(setBranches).catch(() => {})
   }, [id])
 
   const charMap = Object.fromEntries(
@@ -140,6 +150,29 @@ export default function LibraryReadPage() {
         <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.back()}>← 서재</button>
         <div style={{ flex: 1, fontWeight: 700, fontSize: 13 }}>{conv.title}</div>
       </div>
+
+      {branches.length > 1 && (
+        <div style={{
+          display: 'flex', gap: 4, padding: '6px 14px',
+          borderBottom: '1px solid var(--hairline)',
+          overflowX: 'auto', flexShrink: 0,
+        }}>
+          {branches.map(b => {
+            const isCurrent = b.id === id
+            return (
+              <button
+                key={b.id}
+                className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
+                style={{ fontSize: 10, padding: '2px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                title={b.branchDescription || undefined}
+                onClick={() => !isCurrent && router.push(`/library/${b.id}`)}
+              >
+                v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <div className="scroll" style={{ flex: 1, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         {conv.messages.map((msg, idx) => {
