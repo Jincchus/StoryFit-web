@@ -169,7 +169,7 @@ export default function SettingsPage() {
     <Win title="설정" icon={PixelIcons.settings}>
       <div className="vstack" style={{ gap: 0, flex: 1, minHeight: 0 }}>
         {/* 탭 바 */}
-        <div className="hstack" style={{ gap: 2, padding: '4px 4px 0', borderBottom: '1px solid var(--chrome-border)', flexShrink: 0, flexWrap: 'wrap' }}>
+        <div className="hstack" style={{ gap: 2, padding: '4px 4px 0', borderBottom: '1px solid var(--chrome-border)', flexShrink: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
           {TABS.map(t => (
             <button
               key={t.id}
