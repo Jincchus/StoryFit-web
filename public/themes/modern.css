@@ -18,7 +18,7 @@
   --radius-lg:   18px;
   --bubble-other:    #f3e6ff;
   --bubble-you:      linear-gradient(180deg, #ffa8da 0%, #ff6fb5 100%);
-  --bubble-you-text: #fff;
+  --bubble-you-text: #a888c4;
   /* 레거시 컴포넌트 변수 */
   --chrome-face:   #ffffff;
   --chrome-shadow: #d8c3e8;
@@ -55,6 +55,9 @@ body[data-art="modern"] .btn {
   border-radius: 14px;
   box-shadow: 0 2px 0 #d8c3e8;
   font-family: "Gowun Dodum", system-ui, sans-serif;
+}
+body[data-art="modern"] .btn.ghost {
+  color: #a888c4;
 }
 body[data-art="modern"] .btn.primary {
   background: linear-gradient(180deg, #ffa8da, #ff6fb5);
