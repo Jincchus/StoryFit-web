@@ -65,7 +65,7 @@ function ChatNarration({ text }: { text: string }) {
 interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null }
 interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string } }
 interface Conv {
-  id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string
+  id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
   inventoryEnabled: boolean; inventory: { name: string; qty: number; description?: string }[] | null
   characters: ConvChar[]
@@ -518,6 +518,11 @@ export default function ChatPage() {
   const handleScenarioDescription = (value: string) => {
     setConv(c => c ? { ...c, scenarioDescription: value } : c)
     debouncedPatch('scenarioDescription', value)
+  }
+
+  const handleBranchDescription = (value: string) => {
+    setConv(c => c ? { ...c, branchDescription: value } : c)
+    debouncedPatch('branchDescription', value)
   }
 
   if (loadingConv) return (
@@ -992,6 +997,20 @@ export default function ChatPage() {
                 <span style={{ fontWeight: 700, fontSize: 11 }}>대화 설정</span>
                 <button className="btn ghost" style={{ padding: '1px 5px', fontSize: 11 }} onClick={() => setShowPanel(false)}>×</button>
               </div>
+
+              {branches.length > 1 && (
+                <div className="side-section">
+                  <div className="label">분기 설명 <span className="tiny muted">(현재 버전: v{branches.find(b => b.id === params.id)?.version ?? 1})</span></div>
+                  <input
+                    className="field"
+                    style={{ fontSize: 11 }}
+                    placeholder="예: 루나가 거절하는 방향"
+                    value={conv.branchDescription ?? ''}
+                    onChange={e => handleBranchDescription(e.target.value)}
+                    maxLength={100}
+                  />
+                </div>
+              )}
 
               <div className="side-section">
                 <div className="label">대화 제목</div>
