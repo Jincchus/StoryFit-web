@@ -361,6 +361,12 @@ body[data-art="crazyarcade"] .side-panel {
 
 body[data-art="crazyarcade"] .side-panel-header { border-color: rgba(42,224,255,0.3); color: #2ae0ff; }
 body[data-art="crazyarcade"] .side-section { border-color: rgba(255,255,255,0.08); }
+body[data-art="crazyarcade"] .side-panel,
+body[data-art="crazyarcade"] .win-body {
+  --ink-soft: rgba(255,255,255,0.75);
+  --ink-muted: rgba(255,255,255,0.55);
+}
+body[data-art="crazyarcade"] .info-tip { color: rgba(255,255,255,0.75) !important; }
 
 /* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
 body[data-art="crazyarcade"] .chat-header {
