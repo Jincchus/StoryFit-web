@@ -230,7 +230,7 @@ body[data-art="cyworld"] .seq-block.seq-right .bubble {
 
 body[data-art="cyworld"] .bubble-char    { background: #e8f4fd !important; border-color: #93c8e8 !important; }
 body[data-art="cyworld"] .bubble-third   { background: #edf7ee !important; border-color: #8ec89a !important; }
-body[data-art="cyworld"] .bubble-persona { background: #fff3e0 !important; border-color: #ffb366 !important; }
+body[data-art="cyworld"] .bubble-persona { background: #fff3e0 !important; border-color: #ffb366 !important; color: #ffb366 !important; }
 
 body[data-art="cyworld"] .msg .who { color: var(--accent); font-size: 10px; font-weight: 700; }
 body[data-art="cyworld"] .seq-speaker { color: var(--accent); font-size: 10px; font-weight: 700; }

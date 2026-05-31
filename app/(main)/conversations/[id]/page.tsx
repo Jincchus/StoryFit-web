@@ -390,7 +390,22 @@ export default function ChatPage() {
     utter.onend = () => setSpeakingId(null)
     utter.onerror = () => setSpeakingId(null)
     setSpeakingId(id)
-    window.speechSynthesis.speak(utter)
+
+    const doSpeak = () => {
+      const voices = window.speechSynthesis.getVoices()
+      const koVoice = voices.find(v => v.lang.startsWith('ko'))
+      if (koVoice) utter.voice = koVoice
+      window.speechSynthesis.speak(utter)
+    }
+
+    if (window.speechSynthesis.getVoices().length > 0) {
+      doSpeak()
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null
+        doSpeak()
+      }
+    }
   }
   const stopSpeaking = () => { window.speechSynthesis.cancel(); setSpeakingId(null) }
 
