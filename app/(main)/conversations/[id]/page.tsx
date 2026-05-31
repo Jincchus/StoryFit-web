@@ -821,20 +821,9 @@ export default function ChatPage() {
                     {/* ── 호버/탭 액션 ── */}
                     {!isEditing && (
                       <div className={`msg-actions ${isYou ? 'you' : ''}`}>
-                        {isLast && isLastAssistant && !isYou && (
-                          <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>
-                        )}
-                        {/* ── TTS 스피커 버튼 ── */}
-                        {!isYou && (
-                          <button
-                            className="msg-action-btn"
-                            style={{ color: speakingId === m.id ? 'var(--pink)' : undefined }}
-                            onClick={() => speakingId === m.id ? stopSpeaking() : speak(m.content, m.id)}
-                          >{speakingId === m.id ? '■ 정지' : '🔊'}</button>
-                        )}
-                        {/* ── /TTS 스피커 버튼 ── */}
+                        {/* 재생성 내비 — 첫 줄 중앙 */}
                         {!isYou && (m.branchCount ?? 1) > 1 && m.siblingIds && (
-                          <div className="hstack" style={{ gap: 2, alignItems: 'center' }}>
+                          <div className="msg-actions-row" style={{ justifyContent: 'center' }}>
                             <button className="msg-action-btn" style={{ padding: '1px 5px' }}
                               onClick={async () => {
                                 const ids = m.siblingIds!
@@ -852,12 +841,25 @@ export default function ChatPage() {
                               }}>→</button>
                           </div>
                         )}
-                        <button className="msg-action-btn" onClick={() => startEdit(m.id)}>✏ 편집</button>
-                        <button
-                          className="msg-action-btn"
-                          onClick={() => { setBranchTargetMsgId(m.id); setBranchDesc(''); setShowBranchModal(true) }}
-                        >⑂ 분기</button>
-                        <button className="msg-action-btn danger" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
+                        {/* 액션 버튼 — 둘째 줄 */}
+                        <div className="msg-actions-row">
+                          {isLast && isLastAssistant && !isYou && (
+                            <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>
+                          )}
+                          {!isYou && (
+                            <button
+                              className="msg-action-btn"
+                              style={{ color: speakingId === m.id ? 'var(--pink)' : undefined }}
+                              onClick={() => speakingId === m.id ? stopSpeaking() : speak(m.content, m.id)}
+                            >{speakingId === m.id ? '■ 정지' : '🔊'}</button>
+                          )}
+                          <button className="msg-action-btn" onClick={() => startEdit(m.id)}>✏ 편집</button>
+                          <button
+                            className="msg-action-btn"
+                            onClick={() => { setBranchTargetMsgId(m.id); setBranchDesc(''); setShowBranchModal(true) }}
+                          >⑂ 분기</button>
+                          <button className="msg-action-btn danger" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
+                        </div>
                       </div>
                     )}
                   </div>

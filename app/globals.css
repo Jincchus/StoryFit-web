@@ -772,9 +772,10 @@ body[data-crt="on"]::after{
 /* ─── Message actions ─────────────────────────────────────────────────────── */
 .msg-wrap { display: flex; flex-direction: column; gap: 2px; }
 .msg-wrap.you { align-items: flex-end; }
-.msg-actions { display: flex; gap: 4px; padding-left: 4px; opacity: 0; transition: opacity .12s; pointer-events: none; flex-wrap: wrap; }
+.msg-actions { display: flex; flex-direction: column; gap: 3px; padding-left: 4px; opacity: 0; transition: opacity .12s; pointer-events: none; }
 .msg-seq:hover .msg-actions, .msg-seq.active .msg-actions { opacity: 1; pointer-events: auto; }
-.msg-actions.you { padding-left: 0; padding-right: 4px; justify-content: flex-end; }
+.msg-actions.you { padding-left: 0; padding-right: 4px; align-items: flex-end; }
+.msg-actions-row { display: flex; gap: 4px; align-items: center; }
 .msg-action-btn { appearance: none; font-family: var(--font-body); font-size: 12px; font-weight: 500; padding: 2px 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; color: var(--ink-soft); white-space: nowrap; }
 .msg-action-btn:hover { color: var(--accent); border-color: var(--accent); }
 .msg-action-btn.danger:hover { color: var(--red); border-color: var(--red); }
