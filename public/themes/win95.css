@@ -842,7 +842,7 @@ body[data-art="modern"] .msg .av{border-radius: 50%; box-shadow:none; border-col
   flex-shrink:0;
   align-items: center;
 }
-.composer .field{flex:1; field-sizing: content; min-height: 22px; max-height: 80px; overflow: auto; height: auto;}
+.composer .field{flex:1; field-sizing: content; min-height: 22px; max-height: 80px; overflow: auto; height: auto; border-radius: 0 !important;}
 
 /* ─── Character grid ────────────────────────────────────────────────────── */
 .char-grid{
@@ -1196,4 +1196,9 @@ body[data-art="win95"] .dock-tab.active {
   background: var(--gray-light);
   color: var(--ink);
   border-color: var(--gray-dark);
+}
+
+body[data-art="win95"] textarea.field,
+body[data-art="win95"] .composer .field {
+  border-radius: 0 !important;
 }

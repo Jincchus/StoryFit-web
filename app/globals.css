@@ -759,8 +759,8 @@ body[data-crt="on"]::after{
 /* ─── Bubble 색상 (캐릭터별) ──────────────────────────────────────────────── */
 .bubble-char    { background: rgba(0,149,246,.08)  !important; border-color: rgba(0,149,246,.25) !important; }
 .bubble-third   { background: rgba(0,200,83,.08)   !important; border-color: rgba(0,200,83,.25)  !important; }
-.bubble-persona { background: rgba(237,73,86,.08)  !important; border-color: rgba(237,73,86,.25) !important; }
-.bubble-author  { background: rgba(245,158,11,.08) !important; border-color: rgba(245,158,11,.25) !important; }
+.bubble-persona { background: rgba(237,73,86,.08)  !important; border-color: rgba(237,73,86,.25) !important; color: var(--ink) !important; }
+.bubble-author  { background: rgba(245,158,11,.08) !important; border-color: rgba(245,158,11,.25) !important; color: var(--ink) !important; }
 .bubble-char.thought-bubble    { background: rgba(0,149,246,.04)  !important; border-color: rgba(0,149,246,.12) !important; }
 .bubble-third.thought-bubble   { background: rgba(0,200,83,.04)   !important; border-color: rgba(0,200,83,.12)  !important; }
 .bubble-persona.thought-bubble { background: rgba(237,73,86,.04)  !important; border-color: rgba(237,73,86,.12) !important; }
