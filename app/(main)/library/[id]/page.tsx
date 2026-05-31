@@ -102,6 +102,8 @@ export default function LibraryReadPage() {
   const [branching, setBranching] = useState(false)
   const [expandedChoices, setExpandedChoices] = useState<Set<string>>(new Set())
   const [branches, setBranches] = useState<BranchInfo[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -112,6 +114,13 @@ export default function LibraryReadPage() {
   const charMap = Object.fromEntries(
     (conv?.characters ?? []).map(cc => [cc.character.id, cc.character])
   )
+
+  const saveEdit = async (msgId: string) => {
+    if (!editContent.trim()) return
+    await api.patch(`/api/conversations/${id}/messages`, { messageId: msgId, content: editContent.trim() })
+    setConv(c => c ? { ...c, messages: c.messages.map(m => m.id === msgId ? { ...m, content: editContent.trim() } : m) } : c)
+    setEditingId(null)
+  }
 
   const handleBranch = async () => {
     if (!branchMsgId || branching) return
@@ -189,8 +198,21 @@ export default function LibraryReadPage() {
                   background: 'rgba(124, 79, 192, 0.07)',
                   borderRadius: '0 4px 4px 0',
                 }}>
-                  <div style={{ fontSize: 9, color: 'var(--lavender)', letterSpacing: '1.5px', marginBottom: 3, fontFamily: 'monospace' }}>SCENE</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic', lineHeight: 1.6 }}>{msg.content}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <div style={{ fontSize: 9, color: 'var(--lavender)', letterSpacing: '1.5px', fontFamily: 'monospace' }}>SCENE</div>
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px', opacity: 0.6 }} onClick={() => { setEditingId(msg.id); setEditContent(msg.content) }}>✏</button>
+                  </div>
+                  {editingId === msg.id ? (
+                    <div className="vstack" style={{ gap: 4 }}>
+                      <textarea className="field" rows={3} style={{ fontSize: 12 }} value={editContent} onChange={e => setEditContent(e.target.value)} autoFocus />
+                      <div className="hstack" style={{ gap: 4 }}>
+                        <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => saveEdit(msg.id)}>저장</button>
+                        <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic', lineHeight: 1.6 }}>{msg.content}</div>
+                  )}
                 </div>
               )
             }
@@ -259,13 +281,19 @@ export default function LibraryReadPage() {
                   </div>
                 )}
 
-                {!isLast && (
-                  <div style={{ marginTop: 6 }}>
-                    <button
-                      className="btn ghost"
-                      style={{ fontSize: 9, padding: '2px 7px', opacity: 0.6 }}
-                      onClick={() => { setBranchMsgId(msg.id); setBranchDesc('') }}
-                    >⑂ 여기서 분기</button>
+                <div style={{ marginTop: 6, display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px', opacity: 0.6 }} onClick={() => { setEditingId(msg.id); setEditContent(msg.content) }}>✏ 편집</button>
+                  {!isLast && (
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px', opacity: 0.6 }} onClick={() => { setBranchMsgId(msg.id); setBranchDesc('') }}>⑂ 분기</button>
+                  )}
+                </div>
+                {editingId === msg.id && (
+                  <div className="vstack" style={{ gap: 4, marginTop: 6 }}>
+                    <textarea className="field" rows={5} style={{ fontSize: 13 }} value={editContent} onChange={e => setEditContent(e.target.value)} autoFocus />
+                    <div className="hstack" style={{ gap: 4 }}>
+                      <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => saveEdit(msg.id)}>저장</button>
+                      <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -287,28 +315,35 @@ export default function LibraryReadPage() {
                   <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginBottom: 4, fontWeight: 600 }}>
                     {speaker?.name ?? (isUser ? '유저' : '캐릭터')}
                   </div>
-                  <div style={{
-                    background: isUser ? 'var(--bubble-you)' : 'var(--bubble-other)',
-                    color: isUser ? 'var(--bubble-you-text)' : 'var(--ink)',
-                    borderRadius: 'var(--radius)',
-                    padding: '10px 14px',
-                    fontSize: 13,
-                    lineHeight: 1.7,
-                  }}>
-                    {renderContent(msg.content)}
-                  </div>
+                  {editingId === msg.id ? (
+                    <div className="vstack" style={{ gap: 4 }}>
+                      <textarea className="field" rows={4} style={{ fontSize: 13 }} value={editContent} onChange={e => setEditContent(e.target.value)} autoFocus />
+                      <div className="hstack" style={{ gap: 4 }}>
+                        <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => saveEdit(msg.id)}>저장</button>
+                        <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setEditingId(null)}>취소</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{
+                      background: isUser ? 'var(--bubble-you)' : 'var(--bubble-other)',
+                      color: isUser ? 'var(--bubble-you-text)' : 'var(--ink)',
+                      borderRadius: 'var(--radius)',
+                      padding: '10px 14px',
+                      fontSize: 13,
+                      lineHeight: 1.7,
+                    }}>
+                      {renderContent(msg.content)}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {!isUser && !isLast && (
-                <div style={{ marginTop: 6, marginLeft: 42 }}>
-                  <button
-                    className="btn ghost"
-                    style={{ fontSize: 9, padding: '2px 7px', opacity: 0.6 }}
-                    onClick={() => { setBranchMsgId(msg.id); setBranchDesc('') }}
-                  >⑂ 여기서 분기</button>
-                </div>
-              )}
+              <div style={{ marginTop: 6, marginLeft: 42, display: 'flex', gap: 4 }}>
+                <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px', opacity: 0.6 }} onClick={() => { setEditingId(msg.id); setEditContent(msg.content) }}>✏ 편집</button>
+                {!isUser && !isLast && (
+                  <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px', opacity: 0.6 }} onClick={() => { setBranchMsgId(msg.id); setBranchDesc('') }}>⑂ 분기</button>
+                )}
+              </div>
             </div>
           )
         })}
