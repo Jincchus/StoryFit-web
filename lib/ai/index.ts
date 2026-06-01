@@ -8,23 +8,24 @@ export function deduplicatePreviousContent(newText: string, prevText: string): s
   if (!prevText?.trim() || !newText?.trim()) return newText
   const newLines = newText.split('\n')
   const prevSet = new Set(
-    prevText.split('\n').map(l => l.trim()).filter(l => l.length > 10)
+    prevText.split('\n').map(l => l.trim()).filter(l => l.length > 15)
   )
-  let lastRepeatIdx = -1
-  let consecutiveNew = 0
-  for (let i = 0; i < Math.min(newLines.length, 40); i++) {
+  // 앞에서부터 연속으로 이전 응답과 일치하는 줄만 제거
+  // 새로운 줄이 나오면 즉시 중단 (중간에 흩어진 매칭은 무시)
+  let cutIdx = 0
+  let repeatStreak = 0
+  for (let i = 0; i < Math.min(newLines.length, 30); i++) {
     const line = newLines[i].trim()
-    if (line.length < 10) continue
+    if (line.length < 15) continue
     if (prevSet.has(line)) {
-      lastRepeatIdx = i
-      consecutiveNew = 0
+      repeatStreak++
+      cutIdx = i + 1
     } else {
-      consecutiveNew++
-      if (consecutiveNew >= 3) break
+      break // 새로운 줄이 나오면 즉시 중단
     }
   }
-  if (lastRepeatIdx >= 0) {
-    const remaining = newLines.slice(lastRepeatIdx + 1).join('\n').trimStart()
+  if (repeatStreak >= 2) {
+    const remaining = newLines.slice(cutIdx).join('\n').trimStart()
     return remaining || newText
   }
   return newText
