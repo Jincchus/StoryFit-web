@@ -31,6 +31,8 @@ export default function NewConversationPage() {
   const [safetyLevel, setSafetyLevel] = useState<'strict' | 'standard' | 'relaxed'>('standard')
   const [temperature, setTemperature] = useState(0.9)
   const [frequencyPenalty, setFrequencyPenalty] = useState(0.3)
+  const [maxOutputTokens, setMaxOutputTokens] = useState(8192)
+  const [thinkingBudget, setThinkingBudget] = useState(0)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
@@ -43,6 +45,8 @@ export default function NewConversationPage() {
       setTagPool(tagData)
       setStatTagPool(statTagData)
       setAllChars(chars)
+      setMaxOutputTokens(userSettings.defaultMaxOutputTokens ?? 8192)
+      setThinkingBudget(userSettings.defaultThinkingBudget ?? 0)
       if (draft.charId) {
         const found = chars.find((c: Character) => c.id === draft.charId) ?? null
         if (found) {
@@ -109,6 +113,8 @@ export default function NewConversationPage() {
         safetyLevel,
         temperature,
         frequencyPenalty,
+        maxOutputTokens,
+        thinkingBudget,
         statsEnabled: mode === 'story' && statsEnabled && selectedStats.length > 0,
         statsConfig,
         inventoryEnabled: mode === 'story' && inventoryEnabled,
@@ -489,6 +495,28 @@ export default function NewConversationPage() {
                   <div className="spread" style={{ marginTop: 2 }}>
                     <span className="tiny muted">반복 허용</span>
                     <span className="tiny muted">강하게 억제</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">
+                    응답 최대 길이: {(maxOutputTokens / 1024).toFixed(0)}K (~{Math.round(maxOutputTokens / 2).toLocaleString()}자)
+                    <ParamTooltip text={"AI 답변의 최대 길이를 조절합니다.\n\n낮을수록: 짧고 빠른 응답\n높을수록: 길고 깊이 있는 응답, 문장이 중간에 잘리는 일이 줄어듦 (생성 시간 ↑)\n\n한글 기준 약 1토큰=0.5자입니다."} />
+                  </label>
+                  <input type="range" className="param-slider" min={4096} max={32768} step={4096} value={maxOutputTokens} onChange={e => setMaxOutputTokens(parseInt(e.target.value))} />
+                  <div className="spread" style={{ marginTop: 2 }}>
+                    <span className="tiny muted">짧게</span>
+                    <span className="tiny muted">길게</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">
+                    깊이감(사고): {thinkingBudget === 0 ? '끄기(빠름)' : `${(thinkingBudget / 1024).toFixed(1)}K`}
+                    <ParamTooltip text={"답변 전에 AI가 장면을 설계하는 사고 예산입니다.\n\n끄기(0): 즉시 생성, 가장 빠름\n높을수록: 장면 구성·일관성·깊이 향상, 단 첫 응답까지 지연이 늘어남"} />
+                  </label>
+                  <input type="range" className="param-slider" min={0} max={8192} step={512} value={thinkingBudget} onChange={e => setThinkingBudget(parseInt(e.target.value))} />
+                  <div className="spread" style={{ marginTop: 2 }}>
+                    <span className="tiny muted">빠름</span>
+                    <span className="tiny muted">깊게</span>
                   </div>
                 </div>
               </div>

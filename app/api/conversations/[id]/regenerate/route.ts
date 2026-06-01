@@ -167,6 +167,8 @@ async function regenerateAsync({
         messages: history,
         temperature: character.temperature,
         frequencyPenalty: character.frequencyPenalty,
+        maxOutputTokens: conv.maxOutputTokens,
+        thinkingBudget: conv.thinkingBudget,
         safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
       },
       chunk => {
@@ -261,6 +263,8 @@ async function regenerateControlledResponse({
       ],
       temperature: Math.min(Number(character.temperature ?? 0.9), 0.75),
       frequencyPenalty: character.frequencyPenalty,
+      maxOutputTokens: conv.maxOutputTokens,
+      thinkingBudget: conv.thinkingBudget,
       safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
     },
     chunk => { revisedText += chunk },

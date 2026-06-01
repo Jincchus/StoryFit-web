@@ -18,6 +18,8 @@ export interface Character {
   safetyLevel: SafetyLevel
   temperature: number
   frequencyPenalty: number
+  maxOutputTokens?: number
+  thinkingBudget?: number
   isPreset: boolean
 }
 

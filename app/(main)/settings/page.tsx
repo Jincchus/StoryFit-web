@@ -47,6 +47,8 @@ export default function SettingsPage() {
   // params
   const [temperature, setTemperature] = useState(0.9)
   const [frequencyPenalty, setFrequencyPenalty] = useState(0.3)
+  const [maxOutputTokens, setMaxOutputTokens] = useState(8192)
+  const [thinkingBudget, setThinkingBudget] = useState(0)
   const [safetyLevel, setSafetyLevel] = useState('standard')
   const [defaultAI, setDefaultAI] = useState('gemini')
   const [paramSaved, setParamSaved] = useState(false)
@@ -81,6 +83,8 @@ export default function SettingsPage() {
       setAdminGlobalRules(data.adminGlobalRules ?? '')
       setTemperature(data.defaultTemperature ?? 0.9)
       setFrequencyPenalty(data.defaultFrequencyPenalty ?? 0.3)
+      setMaxOutputTokens(data.defaultMaxOutputTokens ?? 8192)
+      setThinkingBudget(data.defaultThinkingBudget ?? 0)
       setSafetyLevel(data.defaultSafetyLevel ?? 'standard')
       setDefaultAI(data.defaultAI ?? 'gemini')
       setCurrentTheme(data.theme ?? 'retro')
@@ -108,7 +112,7 @@ export default function SettingsPage() {
   const saveParams = async () => {
     setParamLoading(true); setParamSaved(false)
     try {
-      await api.patch('/api/user/settings', { defaultTemperature: temperature, defaultFrequencyPenalty: frequencyPenalty, defaultSafetyLevel: safetyLevel, defaultAI })
+      await api.patch('/api/user/settings', { defaultTemperature: temperature, defaultFrequencyPenalty: frequencyPenalty, defaultMaxOutputTokens: maxOutputTokens, defaultThinkingBudget: thinkingBudget, defaultSafetyLevel: safetyLevel, defaultAI })
       setParamSaved(true); setTimeout(() => setParamSaved(false), 2000)
     } finally { setParamLoading(false) }
   }
@@ -267,6 +271,28 @@ export default function SettingsPage() {
                 <div className="spread" style={{ marginTop: 2 }}>
                   <span className="tiny muted">반복 허용</span>
                   <span className="tiny muted">강하게 억제</span>
+                </div>
+              </div>
+              <div>
+                <label className="label">
+                  응답 최대 길이: {(maxOutputTokens / 1024).toFixed(0)}K (~{Math.round(maxOutputTokens / 2).toLocaleString()}자)
+                  <ParamTooltip text={"AI 답변의 최대 길이를 조절합니다.\n\n낮을수록: 짧고 빠른 응답\n높을수록: 길고 깊이 있는 응답, 문장이 중간에 잘리는 일이 줄어듦 (생성 시간 ↑)\n\n한글 기준 약 1토큰=0.5자입니다."} />
+                </label>
+                <input type="range" className="param-slider" min={4096} max={32768} step={4096} value={maxOutputTokens} onChange={e => setMaxOutputTokens(parseInt(e.target.value))} />
+                <div className="spread" style={{ marginTop: 2 }}>
+                  <span className="tiny muted">짧게</span>
+                  <span className="tiny muted">길게</span>
+                </div>
+              </div>
+              <div>
+                <label className="label">
+                  깊이감(사고): {thinkingBudget === 0 ? '끄기(빠름)' : `${(thinkingBudget / 1024).toFixed(1)}K`}
+                  <ParamTooltip text={"답변 전에 AI가 장면을 설계하는 사고 예산입니다.\n\n끄기(0): 즉시 생성, 가장 빠름\n높을수록: 장면 구성·일관성·깊이 향상, 단 첫 응답까지 지연이 늘어남"} />
+                </label>
+                <input type="range" className="param-slider" min={0} max={8192} step={512} value={thinkingBudget} onChange={e => setThinkingBudget(parseInt(e.target.value))} />
+                <div className="spread" style={{ marginTop: 2 }}>
+                  <span className="tiny muted">빠름</span>
+                  <span className="tiny muted">깊게</span>
                 </div>
               </div>
               <div className="hstack" style={{ gap: 6 }}>

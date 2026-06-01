@@ -20,6 +20,8 @@ export interface GeminiChatParams {
   messages: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>
   temperature?: number
   frequencyPenalty?: number
+  maxOutputTokens?: number
+  thinkingBudget?: number
   safetyLevel?: SafetyLevel
 }
 
@@ -33,8 +35,9 @@ async function streamViaApiKey(
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   const generationConfig = {
     temperature: params.temperature ?? 0.9,
-    maxOutputTokens: 8192,
-    thinkingConfig: { thinkingBudget: 0 },
+    frequencyPenalty: params.frequencyPenalty ?? 0.3,
+    maxOutputTokens: params.maxOutputTokens ?? 8192,
+    thinkingConfig: { thinkingBudget: params.thinkingBudget ?? 0 },
   }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
@@ -99,8 +102,9 @@ async function streamViaVertex(
     config: {
       systemInstruction: params.systemPrompt,
       temperature: params.temperature ?? 0.9,
-      maxOutputTokens: 8192,
-      thinkingConfig: { thinkingBudget: 0 },
+      frequencyPenalty: params.frequencyPenalty ?? 0.3,
+      maxOutputTokens: params.maxOutputTokens ?? 8192,
+      thinkingConfig: { thinkingBudget: params.thinkingBudget ?? 0 },
     },
   })
 

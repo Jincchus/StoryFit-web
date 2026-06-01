@@ -171,6 +171,8 @@ async function generateAsync({
         messages: history,
         temperature: conv.temperature,
         frequencyPenalty: conv.frequencyPenalty,
+        maxOutputTokens: conv.maxOutputTokens,
+        thinkingBudget: conv.thinkingBudget,
         safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
       },
       chunk => {
@@ -269,6 +271,8 @@ async function regenerateControlledResponse({
       ],
       temperature: Math.min(Number(character.temperature ?? conv.temperature ?? 0.9), 0.75),
       frequencyPenalty: conv.frequencyPenalty,
+      maxOutputTokens: conv.maxOutputTokens,
+      thinkingBudget: conv.thinkingBudget,
       safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
     },
     chunk => { revisedText += chunk },
@@ -338,6 +342,8 @@ async function streamTikiTaka({
               messages,
               temperature: conv.temperature,
               frequencyPenalty: conv.frequencyPenalty,
+              maxOutputTokens: conv.maxOutputTokens,
+              thinkingBudget: conv.thinkingBudget,
               safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
             },
             chunk => {

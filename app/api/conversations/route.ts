@@ -51,6 +51,8 @@ export async function POST(req: NextRequest) {
       tags: body.tags ?? [],
       temperature: body.temperature ?? 0.9,
       frequencyPenalty: body.frequencyPenalty ?? 0.3,
+      maxOutputTokens: body.maxOutputTokens ?? 8192,
+      thinkingBudget: body.thinkingBudget ?? 0,
       safetyLevel: body.safetyLevel ?? 'standard',
       statsEnabled: body.statsEnabled ?? false,
       statsConfig: body.statsConfig ?? null,

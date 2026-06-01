@@ -9,6 +9,8 @@ const USER_SELECT = {
   personalRulesStory: true,
   defaultTemperature: true,
   defaultFrequencyPenalty: true,
+  defaultMaxOutputTokens: true,
+  defaultThinkingBudget: true,
   defaultSafetyLevel: true,
   defaultAI: true,
   theme: true,
@@ -43,6 +45,8 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.personalRulesStory === 'string') data.personalRulesStory = body.personalRulesStory
   if (typeof body.defaultTemperature === 'number') data.defaultTemperature = Math.max(0, Math.min(2, body.defaultTemperature))
   if (typeof body.defaultFrequencyPenalty === 'number') data.defaultFrequencyPenalty = Math.max(0, Math.min(2, body.defaultFrequencyPenalty))
+  if (typeof body.defaultMaxOutputTokens === 'number') data.defaultMaxOutputTokens = Math.max(2048, Math.min(32768, Math.round(body.defaultMaxOutputTokens)))
+  if (typeof body.defaultThinkingBudget === 'number') data.defaultThinkingBudget = Math.max(0, Math.min(8192, Math.round(body.defaultThinkingBudget)))
   if (['strict', 'standard', 'relaxed'].includes(body.defaultSafetyLevel)) data.defaultSafetyLevel = body.defaultSafetyLevel
   if (['gemini', 'claude', 'chatgpt'].includes(body.defaultAI)) data.defaultAI = body.defaultAI
   if (['retro', 'modern', 'modernwhite', 'win95', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld'].includes(body.theme)) data.theme = body.theme
