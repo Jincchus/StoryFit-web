@@ -99,6 +99,7 @@ export default function ChatPage() {
   const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
   const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
   const [selectedMemoryIds, setSelectedMemoryIds] = useState<Set<string>>(new Set())
+  const [expandedPromotedIds, setExpandedPromotedIds] = useState<Set<string>>(new Set())
   const [hasNew, setHasNew] = useState(false)
   const shouldScrollRef = useRef(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -1261,28 +1262,53 @@ export default function ChatPage() {
                 ) : (
                   memories.map((mem, i) => {
                     const checked = selectedMemoryIds.has(mem.id)
+                    const isPromoted = !!conv?.coreMemory && conv.coreMemory.includes(mem.summary)
+                    const isExpanded = expandedPromotedIds.has(mem.id)
+                    const toggleExpand = (e: React.MouseEvent) => {
+                      e.stopPropagation()
+                      setExpandedPromotedIds(prev => {
+                        const next = new Set(prev)
+                        next.has(mem.id) ? next.delete(mem.id) : next.add(mem.id)
+                        return next
+                      })
+                    }
                     return (
                       <div
                         key={mem.id}
-                        style={{ marginBottom: 6, padding: 6, background: checked ? 'var(--lavender)' : 'var(--pane)', borderRadius: 'var(--radius)', border: `1px solid ${checked ? 'var(--pink)' : 'var(--chrome-border)'}`, cursor: 'pointer' }}
-                        onClick={() => setSelectedMemoryIds(prev => {
+                        style={{
+                          marginBottom: 6, padding: 6, borderRadius: 'var(--radius)', cursor: 'pointer',
+                          background: isPromoted ? 'color-mix(in srgb, var(--accent, #0095f6) 10%, var(--pane))' : checked ? 'var(--lavender)' : 'var(--pane)',
+                          border: `1px solid ${isPromoted ? 'color-mix(in srgb, var(--accent, #0095f6) 40%, transparent)' : checked ? 'var(--pink)' : 'var(--chrome-border)'}`,
+                          opacity: isPromoted && !isExpanded ? 0.65 : 1,
+                        }}
+                        onClick={isPromoted ? toggleExpand : () => setSelectedMemoryIds(prev => {
                           const next = new Set(prev)
                           next.has(mem.id) ? next.delete(mem.id) : next.add(mem.id)
                           return next
                         })}
                       >
-                        <div className="spread" style={{ marginBottom: 4 }}>
+                        <div className="spread" style={{ marginBottom: isPromoted && !isExpanded ? 0 : 4 }}>
                           <div className="hstack" style={{ gap: 5 }}>
-                            <input type="checkbox" checked={checked} onChange={() => {}} style={{ cursor: 'pointer' }} />
+                            {isPromoted
+                              ? <span style={{ fontSize: 9, color: 'var(--accent, #0095f6)', fontWeight: 700 }}>↑ 핵심</span>
+                              : <input type="checkbox" checked={checked} onChange={() => {}} style={{ cursor: 'pointer' }} />
+                            }
                             <div style={{ fontSize: 9, color: 'var(--ink-soft)' }}>요약 #{i + 1}</div>
                           </div>
-                          <button
-                            className="msg-action-btn danger"
-                            style={{ fontSize: 9 }}
-                            onClick={e => { e.stopPropagation(); handleDeleteMemory(mem.id) }}
-                          >✕</button>
+                          <div className="hstack" style={{ gap: 4 }}>
+                            {isPromoted && (
+                              <span style={{ fontSize: 9, color: 'var(--ink-soft)' }}>{isExpanded ? '▲' : '▼'}</span>
+                            )}
+                            <button
+                              className="msg-action-btn danger"
+                              style={{ fontSize: 9 }}
+                              onClick={e => { e.stopPropagation(); handleDeleteMemory(mem.id) }}
+                            >✕</button>
+                          </div>
                         </div>
-                        <div className="tiny muted" style={{ lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{mem.summary}</div>
+                        {(!isPromoted || isExpanded) && (
+                          <div className="tiny muted" style={{ lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{mem.summary}</div>
+                        )}
                       </div>
                     )
                   })
