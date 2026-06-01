@@ -12,6 +12,9 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 import type { AIProvider, Character } from '@/types'
 import { getConvStream, clearConvStream, subscribeConvStream, runConvStream, runConvRegenerate } from '@/lib/conversationStream'
+import { useSpeech } from './_hooks/useSpeech'
+import { useLorebook } from './_hooks/useLorebook'
+import { useMemoryPanel } from './_hooks/useMemoryPanel'
 
 function editDistance(a: string, b: string): number {
   const m = a.length, n = b.length
@@ -67,7 +70,7 @@ function ChatNarration({ text }: { text: string }) {
   )
 }
 
-interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null }
+interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null; inputTokens?: number; outputTokens?: number }
 interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string } }
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
@@ -98,13 +101,7 @@ export default function ChatPage() {
   const [allChars, setAllChars] = useState<Character[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
-  const [lorebooks, setLorebooks] = useState<LbEntry[]>([])
-  const [lorebookAdd, setLorebookAdd] = useState(false)
-  const [lorebookEditId, setLorebookEditId] = useState<string | null>(null)
-  const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
-  const [memories, setMemories] = useState<{ id: string; summary: string; createdAt: string }[]>([])
-  const [selectedMemoryIds, setSelectedMemoryIds] = useState<Set<string>>(new Set())
-  const [expandedPromotedIds, setExpandedPromotedIds] = useState<Set<string>>(new Set())
+  // 로어북/메모리/STT-TTS → 커스텀 훅으로 분리 (아래에서 초기화)
   const [hasNew, setHasNew] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -115,17 +112,11 @@ export default function ChatPage() {
   const [toast, setToast] = useState('')
   const [infoTip, setInfoTip] = useState<string | null>(null)
   const [sendErrorRetryable, setSendErrorRetryable] = useState(false)
-  const [lorebookError, setLorebookError] = useState(false)
-  const [memoryError, setMemoryError] = useState(false)
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [showBranchModal, setShowBranchModal] = useState(false)
   const [branchTargetMsgId, setBranchTargetMsgId] = useState<string | null>(null)
   const [branchDesc, setBranchDesc] = useState('')
   const [creatingBranch, setCreatingBranch] = useState(false)
-  // ── STT/TTS ──────────────────────────────────────────────────────────
-  const [isListening, setIsListening] = useState(false)
-  const [speakingId, setSpeakingId] = useState<string | null>(null)
-  // ── /STT/TTS ─────────────────────────────────────────────────────────
   const logRef = useRef<HTMLDivElement>(null)
   const scrollSnapRef = useRef<{ top: number; height: number } | null>(null)
   const typingRef = useRef(false)
@@ -135,9 +126,6 @@ export default function ChatPage() {
   const streamUnsubRef = useRef<(() => void) | null>(null)
   const [typingDuration, setTypingDuration] = useState(0)
   const typingStartRef = useRef(0)
-  // ── STT/TTS ──────────────────────────────────────────────────────────
-  const recognitionRef = useRef<any>(null)
-  // ── /STT/TTS ─────────────────────────────────────────────────────────
 
   useEffect(() => { typingRef.current = typing }, [typing])
 
@@ -215,60 +203,12 @@ export default function ChatPage() {
   }, [loadConv, params.id])
 
   useEffect(() => {
-    api.get(`/api/lorebooks?conversationId=${params.id}`).then(setLorebooks).catch(() => setLorebookError(true))
-    api.get(`/api/conversations/${params.id}/memories`).then(setMemories).catch(() => setMemoryError(true))
     api.get(`/api/conversations/${params.id}/branches`).then(setBranches).catch(() => {})
   }, [params.id])
-
-  const handleDeleteMemory = async (memoryId: string) => {
-    try {
-      await api.delete(`/api/conversations/${params.id}/memories`, { memoryId })
-      setMemories(prev => prev.filter(m => m.id !== memoryId))
-    } catch { setToast('메모리 삭제에 실패했습니다') }
-  }
-
-  const handlePromoteMemories = async () => {
-    const selected = memories.filter(m => selectedMemoryIds.has(m.id))
-    if (!selected.length || !conv) return
-    const added = selected.map(m => m.summary).join('\n\n')
-    const updated = conv.coreMemory.trim() ? conv.coreMemory.trim() + '\n\n' + added : added
-    await handleCoreMemory(updated)
-    setSelectedMemoryIds(new Set())
-    setToast('핵심 메모리에 추가됐습니다')
-  }
 
   useEffect(() => {
     api.get('/api/characters').then(setAllChars).catch(() => {})
   }, [])
-
-  const handleAddLorebook = async () => {
-    const keyword = lbForm.keywords.split(',').map(k => k.trim()).filter(Boolean)
-    if (!keyword.length || !lbForm.content.trim()) return
-    try {
-      const entry = await api.post('/api/lorebooks', {
-        keyword, content: lbForm.content, priority: lbForm.priority, scanDepth: lbForm.scanDepth,
-        conversationId: params.id, scope: 'conversation', scopeId: params.id,
-      })
-      setLorebooks(prev => [...prev, entry])
-      setLbForm({ keywords: '', content: '', priority: 0, scanDepth: 5 })
-      setLorebookAdd(false)
-    } catch { setToast('로어북 추가에 실패했습니다') }
-  }
-
-  const handlePatchLorebook = async (id: string, data: Partial<LbEntry>) => {
-    try {
-      const updated = await api.patch(`/api/lorebooks/${id}`, data)
-      setLorebooks(prev => prev.map(e => e.id === id ? updated : e))
-      setLorebookEditId(null)
-    } catch { setToast('로어북 수정에 실패했습니다') }
-  }
-
-  const handleDeleteLorebook = async (id: string) => {
-    try {
-      await api.delete(`/api/lorebooks/${id}`)
-      setLorebooks(prev => prev.filter(e => e.id !== id))
-    } catch { setToast('로어북 삭제에 실패했습니다') }
-  }
 
   const loadMore = async () => {
     if (loadingMore || !hasMore || !oldestIdRef.current) return
@@ -359,6 +299,13 @@ export default function ChatPage() {
     }
   }, [params.id])
 
+  const fillComposer = (content: string) => {
+    if (composerRef.current) {
+      composerRef.current.value = content
+      composerRef.current.focus()
+    }
+  }
+
   const send = (content?: string) => {
     const msg = content ?? composerRef.current?.value ?? ''
     if (!msg.trim() || typing) return
@@ -387,62 +334,17 @@ export default function ChatPage() {
     loadConv().catch(() => {})
   }
 
-  // ── STT/TTS ──────────────────────────────────────────────────────────
-  const startListening = () => {
-    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
-    if (!SR) return
-    const recognition = new SR()
-    recognition.lang = 'ko-KR'
-    recognition.continuous = false
-    recognition.interimResults = false
-    recognition.onresult = (e: any) => {
-      const transcript = e.results[0][0].transcript
-      if (composerRef.current) {
-        composerRef.current.value = composerRef.current.value ? composerRef.current.value + ' ' + transcript : transcript
-      }
-      composerRef.current?.focus()
-    }
-    recognition.onend = () => setIsListening(false)
-    recognition.onerror = () => setIsListening(false)
-    recognitionRef.current = recognition
-    recognition.start()
-    setIsListening(true)
-  }
-  const stopListening = () => { recognitionRef.current?.stop(); setIsListening(false) }
-
-  const speak = (content: string, id: string) => {
-    window.speechSynthesis.cancel()
-    if (speakingId === id) { setSpeakingId(null); return }
-    const plain = content.replace(/\*([^*]+)\*/g, '$1').replace(/["""]/g, '')
-    const utter = new SpeechSynthesisUtterance(plain)
-    utter.lang = 'ko-KR'
-    utter.rate = 1.0
-    utter.onend = () => setSpeakingId(null)
-    utter.onerror = () => setSpeakingId(null)
-    setSpeakingId(id)
-
-    const doSpeak = () => {
-      const voices = window.speechSynthesis.getVoices()
-      const koVoice = voices.find(v => v.lang.startsWith('ko'))
-      if (koVoice) utter.voice = koVoice
-      window.speechSynthesis.speak(utter)
-    }
-
-    if (window.speechSynthesis.getVoices().length > 0) {
-      doSpeak()
-    } else {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null
-        doSpeak()
-      }
-    }
-  }
-  const stopSpeaking = () => { window.speechSynthesis.cancel(); setSpeakingId(null) }
-
-  useEffect(() => {
-    return () => { try { recognitionRef.current?.stop() } catch {} try { window.speechSynthesis?.cancel() } catch {} }
-  }, [])
-  // ── /STT/TTS ─────────────────────────────────────────────────────────
+  // ── 커스텀 훅 인스턴스화 ──────────────────────────────────────────────
+  const { isListening, speakingId, startListening, stopListening, speak, stopSpeaking } = useSpeech(composerRef)
+  const {
+    lorebooks, lorebookAdd, setLorebookAdd,
+    lorebookEditId, setLorebookEditId,
+    lbForm, setLbForm,
+    lorebookError,
+    handleAddLorebook, handlePatchLorebook, handleDeleteLorebook,
+  } = useLorebook(params.id, setToast)
+  // useMemoryPanel은 handleCoreMemory 선언 이후에 초기화 (아래 참고)
+  // ── /커스텀 훅 ────────────────────────────────────────────────────────
 
   const handleCreateBranch = async () => {
     if (!branchTargetMsgId || creatingBranch) return
@@ -559,6 +461,14 @@ export default function ChatPage() {
     setConv(c => c ? { ...c, coreMemory: value } : c)
     debouncedPatch('coreMemory', value)
   }
+
+  // handleCoreMemory 이후에 메모리 훅 초기화
+  const {
+    memories, memoryError,
+    selectedMemoryIds, expandedPromotedIds,
+    handleDeleteMemory, handlePromoteMemories,
+    toggleMemorySelect, toggleExpandPromoted,
+  } = useMemoryPanel(params.id, setToast, handleCoreMemory, conv?.coreMemory ?? '')
 
   const handleStatusTimeline = (value: string) => {
     setConv(c => c ? { ...c, statusTimeline: value } : c)
@@ -851,15 +761,40 @@ export default function ChatPage() {
                     {isStory && !isYou && isLast && !typing && storyParsed && storyParsed.choices.length > 0 && (
                       <div className="vstack" style={{ gap: 5, marginTop: 8, paddingLeft: 4 }}>
                         {storyParsed.choices.map((choice, i) => (
-                          <button
-                            key={i}
-                            className="btn ghost"
-                            style={{ textAlign: 'left', fontSize: 11, padding: '5px 10px', lineHeight: 1.5, whiteSpace: 'normal' }}
-                            onClick={() => send(choice)}
-                          >
-                            {i + 1}. {choice}
-                          </button>
+                          <div key={i} className="hstack" style={{ gap: 4, alignItems: 'stretch' }}>
+                            <button
+                              className="btn ghost"
+                              style={{ flex: 1, textAlign: 'left', fontSize: 11, padding: '5px 10px', lineHeight: 1.5, whiteSpace: 'normal' }}
+                              onClick={() => send(choice)}
+                            >
+                              {i + 1}. {choice}
+                            </button>
+                            <button
+                              className="btn ghost"
+                              style={{ fontSize: 10, padding: '0 7px', flexShrink: 0 }}
+                              title="수정 후 전송"
+                              onClick={() => fillComposer(choice)}
+                            >✏</button>
+                          </div>
                         ))}
+                        {/* 이어쓰기: 본문이 짧을 때만 표시 */}
+                        {storyParsed.body.length < 350 && (
+                          <button
+                            className="btn ghost"
+                            style={{ fontSize: 10, padding: '3px 10px', opacity: 0.7, alignSelf: 'flex-start' }}
+                            onClick={() => send('(계속 써줘)')}
+                          >계속 →</button>
+                        )}
+                      </div>
+                    )}
+                    {/* 이어쓰기 — 스토리 외 모드, 마지막 AI 응답이 짧을 때 */}
+                    {!isStory && !isYou && isLast && !typing && m.content.length < 350 && (
+                      <div style={{ paddingLeft: 4, marginTop: 4 }}>
+                        <button
+                          className="btn ghost"
+                          style={{ fontSize: 10, padding: '3px 10px', opacity: 0.7 }}
+                          onClick={() => send('(계속 써줘)')}
+                        >계속 →</button>
                       </div>
                     )}
 
@@ -905,6 +840,12 @@ export default function ChatPage() {
                           >⑂ 분기</button>
                           <button className="msg-action-btn danger" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
                         </div>
+                      </div>
+                    )}
+                    {/* 토큰 사용량 — 마지막 AI 메시지에만 */}
+                    {isLast && !isYou && (m.inputTokens ?? 0) > 0 && (
+                      <div style={{ fontSize: 9, color: 'var(--ink-soft)', opacity: 0.55, paddingLeft: 4, marginTop: 2 }}>
+                        in {m.inputTokens?.toLocaleString()} / out {m.outputTokens?.toLocaleString()} tok
                       </div>
                     )}
                   </div>
@@ -1308,14 +1249,6 @@ export default function ChatPage() {
                     const checked = selectedMemoryIds.has(mem.id)
                     const isPromoted = !!conv?.coreMemory && conv.coreMemory.includes(mem.summary)
                     const isExpanded = expandedPromotedIds.has(mem.id)
-                    const toggleExpand = (e: React.MouseEvent) => {
-                      e.stopPropagation()
-                      setExpandedPromotedIds(prev => {
-                        const next = new Set(prev)
-                        next.has(mem.id) ? next.delete(mem.id) : next.add(mem.id)
-                        return next
-                      })
-                    }
                     return (
                       <div
                         key={mem.id}
@@ -1325,11 +1258,9 @@ export default function ChatPage() {
                           border: `1px solid ${isPromoted ? 'color-mix(in srgb, var(--accent, #0095f6) 40%, transparent)' : checked ? 'var(--pink)' : 'var(--chrome-border)'}`,
                           opacity: isPromoted && !isExpanded ? 0.65 : 1,
                         }}
-                        onClick={isPromoted ? toggleExpand : () => setSelectedMemoryIds(prev => {
-                          const next = new Set(prev)
-                          next.has(mem.id) ? next.delete(mem.id) : next.add(mem.id)
-                          return next
-                        })}
+                        onClick={isPromoted
+                          ? (e) => { e.stopPropagation(); toggleExpandPromoted(mem.id) }
+                          : () => toggleMemorySelect(mem.id)}
                       >
                         <div className="spread" style={{ marginBottom: isPromoted && !isExpanded ? 0 : 4 }}>
                           <div className="hstack" style={{ gap: 5 }}>

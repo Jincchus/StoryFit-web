@@ -80,7 +80,7 @@ async function evalStory(opts: StoryEvalOptions): Promise<StoryEvalResult | null
   const userPrompt = `아래 스토리 교환을 분석해 JSON으로 반환하세요.
 
 유저 행동: ${opts.userMsg}
-스토리 전개: ${opts.aiMsg.slice(0, 500)}
+스토리 전개: ${opts.aiMsg.slice(0, 1200)}
 ${statsSection}${inventorySection}
 
 반환 형식 (JSON만, 설명 없이):

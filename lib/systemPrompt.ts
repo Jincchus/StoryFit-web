@@ -246,10 +246,18 @@ export function buildStorySystemPrompt({
   return parts.join('\n\n---\n\n')
 }
 
-export function matchLorebook(entries: LorebookEntry[], recentMessages: { content: string }[], scanDepth: number = 5): LorebookEntry[] {
-  const recent = recentMessages.slice(-scanDepth).map(m => m.content.toLowerCase())
+export function matchLorebook(entries: LorebookEntry[], recentMessages: { content: string }[]): LorebookEntry[] {
   return entries.filter(entry => {
     if (!entry.isEnabled) return false
-    return entry.keyword.some(kw => recent.some(msg => msg.includes(kw.toLowerCase())))
+    // 엔트리별 scanDepth 적용 (기본 5)
+    const depth = typeof entry.scanDepth === 'number' && entry.scanDepth > 0 ? entry.scanDepth : 5
+    const recent = recentMessages.slice(-depth).map(m => m.content.toLowerCase())
+    return entry.keyword.some(kw => {
+      const kwNorm = kw.trim().toLowerCase()
+      if (!kwNorm) return false
+      // 단어 경계 매칭: 공백/구두점/문장 시작·끝 기준
+      const re = new RegExp(`(^|[\\s,\\.\\!\\?\\(\\)"'\\[\\]])(${kwNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})([\\s,\\.\\!\\?\\(\\)"'\\[\\]]|$)`)
+      return recent.some(msg => re.test(msg))
+    })
   })
 }
