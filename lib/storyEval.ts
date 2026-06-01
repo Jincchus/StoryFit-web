@@ -95,17 +95,20 @@ ${statsSection}${inventorySection}
 - inventory.add: 획득 아이템. inventory.remove: 소모·분실 아이템. 변화 없으면 빈 배열
 - statusTimeline: 반드시 작성. 현재 씬 상태를 간결하게 불릿(•) 형식으로`
 
-  try {
-    const raw = await generateText(systemPrompt, userPrompt)
-    const parsed: any = JSON.parse(extractJson(raw))
-    return {
-      statsDelta: (needsStats && parsed.stats) ? parsed.stats : {},
-      inventoryDelta: (needsInventory && parsed.inventory) ? parsed.inventory : { add: [], remove: [] },
-      statusTimeline: typeof parsed.statusTimeline === 'string' ? parsed.statusTimeline.trim() : '',
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await generateText(systemPrompt, userPrompt)
+      const parsed: any = JSON.parse(extractJson(raw))
+      return {
+        statsDelta: (needsStats && parsed.stats) ? parsed.stats : {},
+        inventoryDelta: (needsInventory && parsed.inventory) ? parsed.inventory : { add: [], remove: [] },
+        statusTimeline: typeof parsed.statusTimeline === 'string' ? parsed.statusTimeline.trim() : '',
+      }
+    } catch {
+      if (attempt === 1) return null
     }
-  } catch {
-    return null
   }
+  return null
 }
 
 async function applyEval(opts: StoryEvalOptions, result: StoryEvalResult): Promise<void> {

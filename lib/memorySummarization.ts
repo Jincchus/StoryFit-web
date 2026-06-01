@@ -12,8 +12,21 @@ async function summarizeMessages(
     .map(m => `${m.role === 'user' ? '유저' : '캐릭터'}: ${m.content}`)
     .join('\n')
 
-  const systemPrompt = `당신은 롤플레이 대화 요약 도우미입니다. 캐릭터 설정: ${characterSystemPrompt}`
-  const userPrompt = `아래 대화를 3~5개의 핵심 사실 중심 불릿 포인트로 요약하세요. 인물들의 외모, 의상(옷차림), 장소(위치) 변화 및 핵심 행동과 관계 변화를 반드시 포함하고, 추측하지 마세요. 반드시 한국어로 요약하세요.\n\n${transcript}`
+  const systemPrompt = `당신은 롤플레이 대화 요약 전문가입니다. 캐릭터 설정: ${characterSystemPrompt}`
+  const userPrompt = `아래 대화를 4~6개의 불릿 포인트로 요약하세요.
+
+우선순위 (높은 것부터):
+1. 관계 변화 · 감정 변화 · 중요한 결정 (반드시 포함)
+2. 장소·시간·상황 전환
+3. 외모·의상·소지품 변화
+4. 주요 행동과 사건 전개
+
+규칙:
+- 추측하지 말고 대화에 명시된 내용만 작성
+- 각 항목은 "•" 로 시작
+- 반드시 한국어로 작성
+
+대화:\n${transcript}`
 
   return generateText(systemPrompt, userPrompt)
 }

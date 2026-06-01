@@ -13,6 +13,7 @@ interface ConvItem {
   currentAI: string
   updatedAt: string
   isPinned: boolean
+  tags: string[]
   characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
   messages: { content: string }[]
   personaCharacter?: { name: string } | null
@@ -53,6 +54,8 @@ export default function ChatListPage() {
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [query, setQuery] = useState('')
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all')
+  const [tagFilter, setTagFilter] = useState<string>('')
+  const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent')
 
   useEffect(() => {
     api.get('/api/conversations')
@@ -98,12 +101,25 @@ export default function ChatListPage() {
     setConversations(prev => prev.filter(c => c.id !== id))
   }
 
+  // 전체 태그 목록 (중복 제거)
+  const allTags = Array.from(new Set(conversations.flatMap(c => c.tags ?? []))).sort()
+
   const filtered = conversations.filter(c => {
     if (modeFilter !== 'all' && c.mode !== modeFilter) return false
+    if (tagFilter && !(c.tags ?? []).includes(tagFilter)) return false
     if (!query.trim()) return true
     const q = query.toLowerCase()
     return c.title.toLowerCase().includes(q) ||
       c.characters.some(cc => cc.character.name.toLowerCase().includes(q))
+  }).sort((a, b) => {
+    if (sortBy === 'name') {
+      const na = a.characters[0]?.character.name ?? a.title
+      const nb = b.characters[0]?.character.name ?? b.title
+      return na.localeCompare(nb, 'ko')
+    }
+    // recent: 핀 우선, 그 다음 updatedAt
+    if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   })
 
   const handleDeleteSelected = async () => {
@@ -197,7 +213,31 @@ export default function ChatListPage() {
               onClick={() => setModeFilter(f.key)}
             >{f.label}</button>
           ))}
+          <div style={{ flex: 1 }} />
+          <button
+            className={`btn ${sortBy === 'name' ? 'primary' : 'ghost'}`}
+            style={{ fontSize: 10, padding: '2px 8px' }}
+            onClick={() => setSortBy(s => s === 'recent' ? 'name' : 'recent')}
+            title="정렬 전환"
+          >{sortBy === 'recent' ? '⏱ 최신순' : '가나다순'}</button>
         </div>
+        {allTags.length > 0 && (
+          <div className="hstack" style={{ flexShrink: 0, gap: 4, flexWrap: 'wrap' }}>
+            <button
+              className={`btn ${tagFilter === '' ? 'primary' : 'ghost'}`}
+              style={{ fontSize: 9, padding: '1px 7px' }}
+              onClick={() => setTagFilter('')}
+            ># 전체</button>
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                className={`btn ${tagFilter === tag ? 'primary' : 'ghost'}`}
+                style={{ fontSize: 9, padding: '1px 7px' }}
+                onClick={() => setTagFilter(t => t === tag ? '' : tag)}
+              >#{tag}</button>
+            ))}
+          </div>
+        )}
 
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           {loading ? (

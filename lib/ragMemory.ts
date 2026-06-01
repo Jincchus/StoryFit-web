@@ -16,6 +16,11 @@ export async function retrieveRelevantMemories(
     take: 2,
   })
 
+  // 짧은 입력(인사말 등)은 임베딩 API 호출 스킵 → 최근 메모리만 반환
+  if (queryText.trim().length < 15) {
+    return recentMemories.map(m => m.summary).reverse()
+  }
+
   let relevantMemories: { id: string; summary: string; createdAt: Date }[] = []
 
   try {
