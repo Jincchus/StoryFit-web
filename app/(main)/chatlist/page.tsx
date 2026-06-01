@@ -241,9 +241,15 @@ export default function ChatListPage() {
 
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           {loading ? (
-            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink-soft)' }}>
-              <div className="tiny muted">불러오는 중...</div>
-            </div>
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="skeleton-row">
+                <div className="skeleton skeleton-thumb" />
+                <div className="skeleton-lines">
+                  <div className="skeleton skeleton-line medium" />
+                  <div className="skeleton skeleton-line short" />
+                </div>
+              </div>
+            ))
           ) : error ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
               <div style={{ fontSize: 32 }}>⚠</div>
@@ -252,7 +258,20 @@ export default function ChatListPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
-              <div style={{ fontSize: 32 }}>♡</div>
+              <svg viewBox="0 0 16 16" width="40" height="40" shapeRendering="crispEdges" style={{ display:'block', margin:'0 auto' }}>
+                <rect x="1" y="4" width="3" height="2" fill="var(--hot-pink)"/>
+                <rect x="4" y="3" width="2" height="1" fill="var(--hot-pink)"/>
+                <rect x="6" y="2" width="2" height="1" fill="var(--hot-pink)"/>
+                <rect x="8" y="2" width="2" height="1" fill="var(--hot-pink)"/>
+                <rect x="10" y="3" width="2" height="1" fill="var(--hot-pink)"/>
+                <rect x="12" y="4" width="3" height="2" fill="var(--hot-pink)"/>
+                <rect x="1" y="6" width="14" height="3" fill="var(--hot-pink)"/>
+                <rect x="2" y="9" width="12" height="2" fill="var(--hot-pink)"/>
+                <rect x="3" y="11" width="10" height="2" fill="var(--hot-pink)"/>
+                <rect x="5" y="13" width="6" height="1" fill="var(--hot-pink)"/>
+                <rect x="6" y="14" width="4" height="1" fill="var(--hot-pink)"/>
+                <rect x="7" y="15" width="2" height="1" fill="var(--hot-pink)"/>
+              </svg>
               {query.trim() || modeFilter !== 'all'
                 ? <div style={{ marginTop: 8 }}>검색 결과가 없어요</div>
                 : <>

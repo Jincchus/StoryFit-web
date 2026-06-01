@@ -24,6 +24,7 @@ export default function CharactersPage() {
   const router = useRouter()
   const { draft, dispatch } = useApp()
   const [characters, setCharacters] = useState<Character[]>([])
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [importing, setImporting] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -31,7 +32,7 @@ export default function CharactersPage() {
   const [importUrl, setImportUrl] = useState('')
 
   useEffect(() => {
-    api.get('/api/characters').then(setCharacters).catch(e => setError(e.message))
+    api.get('/api/characters').then(data => { setCharacters(data); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
   }, [])
 
   const handleImport = async () => {
@@ -132,6 +133,16 @@ export default function CharactersPage() {
           </div>
         )}
 
+        {loading ? (
+          <div className="char-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 8 }}>
+                <div className="skeleton" style={{ width: 72, height: 72, borderRadius: 'var(--radius)' }} />
+                <div className="skeleton skeleton-line medium" style={{ width: '70%' }} />
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="char-grid scroll">
           {characters.map(c => (
             <div
@@ -168,6 +179,7 @@ export default function CharactersPage() {
             <p>태그·추가정보로<br />직접 설정</p>
           </div>
         </div>
+        )}
       </div>
     </Win>
     </>

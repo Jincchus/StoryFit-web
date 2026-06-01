@@ -1,10 +1,12 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 
-export function useSpeech(composerRef: React.RefObject<HTMLTextAreaElement>) {
+export function useSpeech(composerRef: React.RefObject<HTMLTextAreaElement>, ttsRate = 1.0) {
   const [isListening, setIsListening] = useState(false)
   const [speakingId, setSpeakingId] = useState<string | null>(null)
   const recognitionRef = useRef<any>(null)
+  const ttsRateRef = useRef(ttsRate)
+  useEffect(() => { ttsRateRef.current = ttsRate }, [ttsRate])
 
   const startListening = () => {
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
@@ -40,7 +42,7 @@ export function useSpeech(composerRef: React.RefObject<HTMLTextAreaElement>) {
     const plain = content.replace(/\*([^*]+)\*/g, '$1').replace(/["""]/g, '')
     const utter = new SpeechSynthesisUtterance(plain)
     utter.lang = 'ko-KR'
-    utter.rate = 1.0
+    utter.rate = ttsRateRef.current
     utter.onend = () => setSpeakingId(null)
     utter.onerror = () => setSpeakingId(null)
     setSpeakingId(id)

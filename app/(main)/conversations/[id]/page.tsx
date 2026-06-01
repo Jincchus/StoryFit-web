@@ -39,6 +39,19 @@ function isSamePerson(a: string, b: string): boolean {
   return editDistance(na, nb) <= maxDist
 }
 
+function ComposerCharCount({ composerRef }: { composerRef: React.RefObject<HTMLTextAreaElement> }) {
+  const [len, setLen] = useState(0)
+  useEffect(() => {
+    const el = composerRef.current
+    if (!el) return
+    const handler = () => setLen(el.value.length)
+    el.addEventListener('input', handler)
+    return () => el.removeEventListener('input', handler)
+  }, [composerRef])
+  if (len < 50) return null
+  return <div className="tiny muted" style={{ textAlign: 'right', paddingRight: 2, fontSize: 9, opacity: 0.6 }}>{len}자</div>
+}
+
 const STORY_SEP_RE = /^(-{3,}|\*{3,}|={3,})\s*$/
 
 function parseStoryChoices(content: string): { body: string; choices: string[] } {
@@ -131,6 +144,28 @@ export default function ChatPage() {
 
   useEffect(() => { typingRef.current = typing }, [typing])
 
+  // 스토리 선택지 1~4 숫자키 단축키
+  const convModeRef = useRef('')
+  const messagesRef = useRef(messages)
+  useEffect(() => { messagesRef.current = messages }, [messages])
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (convModeRef.current !== 'story') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'TEXTAREA' || tag === 'INPUT') return
+      const n = parseInt(e.key)
+      if (n >= 1 && n <= 4 && !typingRef.current) {
+        const lastAiMsg = [...messagesRef.current].reverse().find(m => m.role === 'assistant')
+        if (!lastAiMsg) return
+        const { choices } = parseStoryChoices(lastAiMsg.content)
+        if (choices[n - 1]) { e.preventDefault(); send(choices[n - 1]) }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   useEffect(() => {
     if (!typing || streaming) { setTypingDuration(0); return }
     const id = setInterval(() => setTypingDuration(Math.floor((Date.now() - typingStartRef.current) / 1000)), 1000)
@@ -150,6 +185,7 @@ export default function ChatPage() {
       setMessages(msgRes.messages)
       setHasMore(msgRes.hasMore)
       oldestIdRef.current = msgRes.oldestId
+      convModeRef.current = data.mode
       setModel(data.currentAI as AIProvider)
     } catch {
       // 언마운트 중 호출되거나 네트워크 오류 시 무시
@@ -337,7 +373,9 @@ export default function ChatPage() {
   }
 
   // ── 커스텀 훅 인스턴스화 ──────────────────────────────────────────────
-  const { isListening, speakingId, startListening, stopListening, speak, stopSpeaking } = useSpeech(composerRef)
+  const [ttsRate, setTtsRate] = useState(1.0)
+  useEffect(() => { setTtsRate(parseFloat(localStorage.getItem('sf_tts_rate') ?? '1.0')) }, [])
+  const { isListening, speakingId, startListening, stopListening, speak, stopSpeaking } = useSpeech(composerRef, ttsRate)
   const {
     lorebooks, lorebookAdd, setLorebookAdd,
     lorebookEditId, setLorebookEditId,
@@ -568,7 +606,10 @@ export default function ChatPage() {
               <div className="hstack" style={{ gap: 5, overflow: 'hidden' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {isTikiTaka ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
-                  {conv.personaCharacter && <span className="muted" style={{ fontWeight: 400 }}> · {conv.personaCharacter.name}</span>}
+                  {conv.personaCharacter
+                    ? <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-soft)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 변경">· {conv.personaCharacter.name} ▾</button>
+                    : <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-faint)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 설정">+ 페르소나</button>
+                  }
                 </span>
                 <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '티키타카' : isStory ? '스토리' : '롤플레이'}</span>
               </div>
@@ -923,6 +964,7 @@ export default function ChatPage() {
                 <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setSendError('')}>닫기</button>
               </div>
             )}
+            <div className="vstack" style={{ gap: 0 }}>
             <div className="composer" style={{ alignItems: 'flex-end' }}>
               <textarea
                 ref={composerRef}
@@ -931,7 +973,13 @@ export default function ChatPage() {
                 style={{ resize: 'none', overflow: 'auto', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
                 placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요…' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : isStory ? '직접 입력하거나 선택지를 클릭하세요…' : `${char.name}에게 말 걸기…`}
                 disabled={typing}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+                  if (e.key === 'ArrowUp' && !composerRef.current?.value && lastSentRef.current) {
+                    e.preventDefault()
+                    if (composerRef.current) composerRef.current.value = lastSentRef.current
+                  }
+                }}
               />
               {/* ── STT 마이크 버튼 ── */}
               <button
@@ -944,6 +992,9 @@ export default function ChatPage() {
               >{isListening ? '⏹' : '🎤'}</button>
               {/* ── /STT 마이크 버튼 ── */}
               <button className="btn primary" onClick={() => send()} disabled={typing}>전송</button>
+            </div>
+            {/* 글자 수 힌트 — 50자 이상일 때만 */}
+            <ComposerCharCount composerRef={composerRef} />
             </div>
           </div>
 

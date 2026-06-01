@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { AppProvider } from '@/providers/AppProvider'
 import Dock from '@/components/shell/Dock'
@@ -20,13 +20,15 @@ function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const isChatPage = pathname.startsWith('/conversations/') && pathname !== '/conversations/new'
   const label = SCREEN_LABELS[pathname] ?? (isChatPage ? '채팅' : '')
+  const [wideMode, setWideMode] = useState(false)
 
   useEffect(() => {
     if (!getAccessToken()) router.replace('/login')
+    setWideMode(localStorage.getItem('sf_wide') === '1')
   }, [])
 
   return (
-    <div className="shell-wrap">
+    <div className={`shell-wrap${wideMode ? ' wide' : ''}`}>
       <div className="shell">
         <div className="shell-title">
           <div className="hstack" style={{ gap: 6 }}>

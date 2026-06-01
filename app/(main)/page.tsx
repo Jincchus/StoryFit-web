@@ -16,7 +16,7 @@ const BASE_ICONS = [
 const ADMIN_ICON = { label: '관리자\n패널', icon: PixelIcons.settings, href: '/admin' }
 
 const STEPS = [
-  { num: 1, label: '캐릭터 만들기', desc: '대화 상대 & 내 역할 설정', href: '/characters', icon: <PixelAvatar kind="custom" size={20} /> },
+  { num: 1, label: '캐릭터 고르기', desc: '프리셋 선택 or 직접 만들기', href: '/characters', icon: <PixelAvatar kind="custom" size={20} /> },
   { num: 2, label: '대화 시작', desc: '캐릭터를 골라 시작!', href: '/conversations/new', icon: PixelIcons.chat },
 ]
 

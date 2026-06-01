@@ -57,6 +57,11 @@ export default function SettingsPage() {
   // theme
   const [currentTheme, setCurrentTheme] = useState('retro')
   const [themeSaved, setThemeSaved] = useState(false)
+  const [wideMode, setWideMode] = useState(false)
+
+  // local prefs (localStorage)
+  const [ttsRate, setTtsRateState] = useState(1.0)
+  useEffect(() => { setTtsRateState(parseFloat(localStorage.getItem('sf_tts_rate') ?? '1.0')) }, [])
 
   // security
   const [currentPw, setCurrentPw] = useState('')
@@ -89,6 +94,7 @@ export default function SettingsPage() {
       setDefaultAI(data.defaultAI ?? 'gemini')
       setCurrentTheme(data.theme ?? 'retro')
     }).catch(() => {})
+    setWideMode(localStorage.getItem('sf_wide') === '1')
   }, [])
 
   useEffect(() => {
@@ -299,6 +305,23 @@ export default function SettingsPage() {
                 <button className="btn primary" disabled={paramLoading} onClick={saveParams}>{paramLoading ? '저장 중...' : '✦ 저장'}</button>
                 {paramSaved && <span className="tiny" style={{ color: '#22a06b' }}>✓ 저장됨</span>}
               </div>
+
+              <div style={{ fontSize: 12, fontWeight: 700, borderTop: '1px solid var(--chrome-border)', paddingTop: 12, marginTop: 4 }}>로컬 설정 <span className="tiny muted" style={{ fontWeight: 400 }}>(이 기기에만 적용)</span></div>
+              <div>
+                <label className="label">TTS 읽기 속도: {ttsRate.toFixed(1)}x</label>
+                <input type="range" className="param-slider" min={0.5} max={2.0} step={0.1}
+                  value={ttsRate}
+                  onChange={e => {
+                    const v = parseFloat(e.target.value)
+                    setTtsRateState(v)
+                    localStorage.setItem('sf_tts_rate', String(v))
+                  }}
+                />
+                <div className="spread" style={{ marginTop: 2 }}>
+                  <span className="tiny muted">느림 (0.5x)</span>
+                  <span className="tiny muted">빠름 (2.0x)</span>
+                </div>
+              </div>
             </div>
           )}
 
@@ -337,6 +360,28 @@ export default function SettingsPage() {
                 ))}
               </div>
               {themeSaved && <span className="tiny" style={{ color: '#22a06b' }}>✓ 저장됨</span>}
+
+              {/* 레이아웃 섹션 */}
+              <div className="vstack" style={{ gap: 8, marginTop: 12 }}>
+                <div className="label">레이아웃</div>
+                <label className="hstack" style={{ gap: 10, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={wideMode}
+                    onChange={e => {
+                      const v = e.target.checked
+                      setWideMode(v)
+                      localStorage.setItem('sf_wide', v ? '1' : '0')
+                      // shell-wrap에 즉시 반영
+                      document.querySelector('.shell-wrap')?.classList.toggle('wide', v)
+                    }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>넓게 보기 (데스크톱)</div>
+                    <div className="tiny muted">채팅 창을 680px로 확장합니다. 작은 화면에선 효과 없음.</div>
+                  </div>
+                </label>
+              </div>
             </div>
           )}
 
