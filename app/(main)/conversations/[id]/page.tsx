@@ -35,15 +35,20 @@ function isSamePerson(a: string, b: string): boolean {
   return editDistance(na, nb) <= maxDist
 }
 
+const STORY_SEP_RE = /^(-{3,}|\*{3,}|={3,})\s*$/
+
 function parseStoryChoices(content: string): { body: string; choices: string[] } {
   const lines = content.split('\n')
   let sepIdx = -1
   for (let i = lines.length - 1; i >= 0; i--) {
-    if (lines[i].trim() === '---') { sepIdx = i; break }
+    if (STORY_SEP_RE.test(lines[i].trim())) { sepIdx = i; break }
   }
   if (sepIdx === -1) return { body: content, choices: [] }
   const body = lines.slice(0, sepIdx).join('\n').trim()
-  const choices = lines.slice(sepIdx + 1).map(l => l.replace(/^\d+[\.\)]\s*/, '').trim()).filter(Boolean)
+  const choices = lines
+    .slice(sepIdx + 1)
+    .map(l => l.replace(/^[①②③④⑤][\s.]*/,'').replace(/^\d+[\.\)]\s*/, '').trim())
+    .filter(Boolean)
   return { body, choices }
 }
 
@@ -101,6 +106,9 @@ export default function ChatPage() {
   const [selectedMemoryIds, setSelectedMemoryIds] = useState<Set<string>>(new Set())
   const [expandedPromotedIds, setExpandedPromotedIds] = useState<Set<string>>(new Set())
   const [hasNew, setHasNew] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const oldestIdRef = useRef<string | null>(null)
   const shouldScrollRef = useRef(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -141,7 +149,7 @@ export default function ChatPage() {
 
   const loadConv = useCallback(async () => {
     try {
-      const [data, msgs]: [Conv, Msg[]] = await Promise.all([
+      const [data, msgRes]: [Conv, { messages: Msg[]; hasMore: boolean; oldestId: string | null }] = await Promise.all([
         api.get(`/api/conversations/${params.id}`),
         api.get(`/api/conversations/${params.id}/messages`),
       ])
@@ -149,7 +157,9 @@ export default function ChatPage() {
       if (logRef.current && !shouldScrollRef.current) {
         scrollSnapRef.current = { top: logRef.current.scrollTop, height: logRef.current.scrollHeight }
       }
-      setMessages(msgs)
+      setMessages(msgRes.messages)
+      setHasMore(msgRes.hasMore)
+      oldestIdRef.current = msgRes.oldestId
       setModel(data.currentAI as AIProvider)
     } catch {
       // 언마운트 중 호출되거나 네트워크 오류 시 무시
@@ -214,7 +224,7 @@ export default function ChatPage() {
     try {
       await api.delete(`/api/conversations/${params.id}/memories`, { memoryId })
       setMemories(prev => prev.filter(m => m.id !== memoryId))
-    } catch {}
+    } catch { setToast('메모리 삭제에 실패했습니다') }
   }
 
   const handlePromoteMemories = async () => {
@@ -242,7 +252,7 @@ export default function ChatPage() {
       setLorebooks(prev => [...prev, entry])
       setLbForm({ keywords: '', content: '', priority: 0, scanDepth: 5 })
       setLorebookAdd(false)
-    } catch {}
+    } catch { setToast('로어북 추가에 실패했습니다') }
   }
 
   const handlePatchLorebook = async (id: string, data: Partial<LbEntry>) => {
@@ -250,14 +260,33 @@ export default function ChatPage() {
       const updated = await api.patch(`/api/lorebooks/${id}`, data)
       setLorebooks(prev => prev.map(e => e.id === id ? updated : e))
       setLorebookEditId(null)
-    } catch {}
+    } catch { setToast('로어북 수정에 실패했습니다') }
   }
 
   const handleDeleteLorebook = async (id: string) => {
     try {
       await api.delete(`/api/lorebooks/${id}`)
       setLorebooks(prev => prev.filter(e => e.id !== id))
-    } catch {}
+    } catch { setToast('로어북 삭제에 실패했습니다') }
+  }
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || !oldestIdRef.current) return
+    setLoadingMore(true)
+    try {
+      const el = logRef.current
+      const prevHeight = el?.scrollHeight ?? 0
+      const res: { messages: Msg[]; hasMore: boolean; oldestId: string | null } =
+        await api.get(`/api/conversations/${params.id}/messages?cursor=${oldestIdRef.current}`)
+      setMessages(prev => [...res.messages, ...prev])
+      setHasMore(res.hasMore)
+      oldestIdRef.current = res.oldestId
+      // 스크롤 위치 유지
+      requestAnimationFrame(() => {
+        if (el) el.scrollTop = el.scrollHeight - prevHeight
+      })
+    } catch { setToast('이전 메시지를 불러오지 못했습니다') }
+    finally { setLoadingMore(false) }
   }
 
   const scrollToBottom = () => {
@@ -426,6 +455,7 @@ export default function ChatPage() {
       router.push(`/conversations/${id}`)
     } catch {
       setCreatingBranch(false)
+      setToast('분기 생성에 실패했습니다')
     }
   }
 
@@ -433,7 +463,7 @@ export default function ChatPage() {
     try {
       await api.delete(`/api/conversations/${params.id}/messages`, { messageId: msgId })
       setMessages(prev => prev.filter(m => m.id !== msgId))
-    } catch {}
+    } catch { setToast('메시지 삭제에 실패했습니다') }
     setConfirmDeleteId(null)
   }
 
@@ -484,15 +514,19 @@ export default function ChatPage() {
 
   const handleTitleSave = async () => {
     if (!titleInput.trim() || !conv) return
-    await api.patch(`/api/conversations/${params.id}`, { title: titleInput.trim() })
-    setConv(c => c ? { ...c, title: titleInput.trim() } : c)
-    setEditingTitle(false)
+    try {
+      await api.patch(`/api/conversations/${params.id}`, { title: titleInput.trim() })
+      setConv(c => c ? { ...c, title: titleInput.trim() } : c)
+      setEditingTitle(false)
+    } catch { setToast('제목 저장에 실패했습니다') }
   }
 
   const handlePersonaChange = async (charId: string | null) => {
-    await api.patch(`/api/conversations/${params.id}`, { personaCharacterId: charId })
-    const found = allChars.find(c => c.id === charId) ?? null
-    setConv(c => c ? { ...c, personaCharacter: found ? { id: found.id, name: found.name, avatarUrl: found.avatarUrl ?? null, tags: found.tags ?? [], additionalInfo: found.additionalInfo ?? '' } : null } : c)
+    try {
+      await api.patch(`/api/conversations/${params.id}`, { personaCharacterId: charId })
+      const found = allChars.find(c => c.id === charId) ?? null
+      setConv(c => c ? { ...c, personaCharacter: found ? { id: found.id, name: found.name, avatarUrl: found.avatarUrl ?? null, tags: found.tags ?? [], additionalInfo: found.additionalInfo ?? '' } : null } : c)
+    } catch { setToast('페르소나 변경에 실패했습니다') }
   }
 
   const pendingPatchRef = useRef<Record<string, string>>({})
@@ -690,6 +724,16 @@ export default function ChatPage() {
                           : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
                     }
                   </div>
+                </div>
+              )}
+              {hasMore && (
+                <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                  <button
+                    className="btn ghost"
+                    style={{ fontSize: 10, padding: '3px 12px' }}
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                  >{loadingMore ? '불러오는 중...' : '▲ 이전 메시지 보기'}</button>
                 </div>
               )}
               {messages.map(m => {

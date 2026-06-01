@@ -59,13 +59,16 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+const SEP_RE = /\n(-{3,}|\*{3,}|={3,})\s*\n/
+
 function getChoiceBlock(text: string): string {
-  const parts = text.split(/\n---+\s*\n/)
-  return parts.length > 1 ? parts[parts.length - 1] : ''
+  const parts = text.split(SEP_RE)
+  // split with capture group → [body, sep, choices]
+  return parts.length >= 3 ? parts[parts.length - 1] : ''
 }
 
 function getBodyBlock(text: string): string {
-  return text.split(/\n---+\s*\n/)[0] ?? text
+  return text.split(SEP_RE)[0] ?? text
 }
 
 function hasForbiddenChoiceSpeaker(text: string, names: string[] = []): boolean {

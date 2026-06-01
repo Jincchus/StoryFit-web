@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { rollbackInventoryDelta } from '@/lib/inventoryEval'
-import { rollbackStatsDelta } from '@/lib/statsEval'
+import { rollbackInventoryDelta, rollbackStatsDelta } from '@/lib/storyEval'
 import type { InventoryItem, StatEntry } from '@/types'
 
+
+const PAGE_SIZE = 50
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -13,25 +14,56 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const conv = await prisma.conversation.findUnique({ where: { id: params.id }, select: { userId: true } })
   if (!conv || conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
-  const allMessages = await prisma.message.findMany({
+  // cursor: 이 메시지 id 이전 것들을 로드 (없으면 가장 최근 PAGE_SIZE개)
+  const cursor = req.nextUrl.searchParams.get('cursor')
+
+  // sibling 계산을 위해 전체 메시지 id+parentId+isSelected만 가져옴 (lightweight)
+  const allMeta = await prisma.message.findMany({
     where: { conversationId: params.id },
     orderBy: { createdAt: 'asc' },
+    select: { id: true, parentId: true, isSelected: true, isStreaming: true, createdAt: true },
   })
 
-  // group by parentId to compute sibling counts
-  const byParent = new Map<string, typeof allMessages>()
-  for (const m of allMessages) {
+  const byParent = new Map<string, typeof allMeta>()
+  for (const m of allMeta) {
     const key = m.parentId ?? '__root__'
     if (!byParent.has(key)) byParent.set(key, [])
     byParent.get(key)!.push(m)
   }
 
-  const selected = allMessages.filter(m => m.isSelected && !m.isStreaming)
-  return NextResponse.json(selected.map(m => {
-    const siblings = byParent.get(m.parentId ?? '__root__') ?? [m]
-    const branchIndex = siblings.findIndex(s => s.id === m.id) + 1
-    return { ...m, branchCount: siblings.length, branchIndex, siblingIds: siblings.map(s => s.id) }
-  }))
+  const selectedAll = allMeta.filter(m => m.isSelected && !m.isStreaming)
+
+  // 커서 위치 찾기 → 커서 이전(exclusive) PAGE_SIZE개
+  let pageSlice: typeof selectedAll
+  let hasMore = false
+  if (cursor) {
+    const cursorIdx = selectedAll.findIndex(m => m.id === cursor)
+    const end = cursorIdx === -1 ? selectedAll.length : cursorIdx
+    const start = Math.max(0, end - PAGE_SIZE)
+    pageSlice = selectedAll.slice(start, end)
+    hasMore = start > 0
+  } else {
+    const start = Math.max(0, selectedAll.length - PAGE_SIZE)
+    pageSlice = selectedAll.slice(start)
+    hasMore = start > 0
+  }
+
+  // 실제 content 포함 전체 필드는 페이지 메시지만 조회
+  const pageIds = new Set(pageSlice.map(m => m.id))
+  const fullMessages = await prisma.message.findMany({
+    where: { id: { in: Array.from(pageIds) } },
+    orderBy: { createdAt: 'asc' },
+  })
+
+  return NextResponse.json({
+    messages: fullMessages.map(m => {
+      const siblings = byParent.get(m.parentId ?? '__root__') ?? [m]
+      const branchIndex = siblings.findIndex(s => s.id === m.id) + 1
+      return { ...m, branchCount: siblings.length, branchIndex, siblingIds: siblings.map(s => s.id) }
+    }),
+    hasMore,
+    oldestId: pageSlice[0]?.id ?? null,
+  })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

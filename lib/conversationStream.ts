@@ -85,7 +85,7 @@ function startPoll(convId: string, msgId: string) {
     _notify(convId)
   }
 
-  pollId = setInterval(tick, 1500)
+  pollId = setInterval(tick, 600)
   const s = _store.get(convId)
   if (s) s.pollId = pollId
   tick()
