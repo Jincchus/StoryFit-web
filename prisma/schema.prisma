@@ -134,6 +134,8 @@ model Conversation {
   lorebooks       Lorebook[]
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
+
+  @@index([userId, updatedAt])
 }
 
 model ConversationCharacter {
@@ -162,6 +164,9 @@ model Message {
   inventoryDelta Json?
   statsDelta     Json?
   createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, isSelected, isStreaming])
 }
 
 model AdminLog {
@@ -181,6 +186,8 @@ model Memory {
   messageRangeEnd    String
   embedding          Unsupported("vector(768)")?
   createdAt          DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 model Lorebook {
@@ -196,6 +203,9 @@ model Lorebook {
   conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   characterId    String?
   character      Character?   @relation(fields: [characterId], references: [id])
+
+  @@index([conversationId])
+  @@index([scope, scopeId])
 }
 
 model AiErrorLog {
@@ -210,4 +220,6 @@ model AiErrorLog {
   message        String   @default("")
   inputTokens    Int      @default(0)
   outputTokens   Int      @default(0)
+
+  @@index([createdAt])
 }

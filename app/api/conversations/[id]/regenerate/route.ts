@@ -3,10 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import type { InventoryItem, StatEntry } from '@/types'
-import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent } from '@/lib/ai'
+import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent, sliceByTokenBudget } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
-import { triggerStatsEvaluation, rollbackStatsDelta } from '@/lib/statsEval'
-import { triggerInventoryEvaluation, rollbackInventoryDelta } from '@/lib/inventoryEval'
+import { triggerStoryEvaluation, rollbackStatsDelta, rollbackInventoryDelta } from '@/lib/storyEval'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { appendTurnControlInstruction, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
@@ -105,7 +104,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const latestUserId = [...historyMsgs].reverse().find(m => m.role === 'user')?.id
   const allowChoices = conv.mode === 'story'
-  const history = historyMsgs.slice(-15).reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
+  const history = sliceByTokenBudget(historyMsgs, 5000).reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
     const contentForModel = m.id === latestUserId ? appendTurnControlInstruction(m.content, allowChoices) : m.content
     const last = acc[acc.length - 1]
@@ -222,11 +221,17 @@ async function regenerateAsync({
         where: { id: convId },
         select: { statsConfig: true, inventory: true, statsEnabled: true, inventoryEnabled: true },
       }).catch(() => null)
-      if (freshConv2?.statsEnabled && Array.isArray(freshConv2.statsConfig) && (freshConv2.statsConfig as any[]).length > 0) {
-        triggerStatsEvaluation(convId, msgId, history[history.length - 1]?.parts[0].text ?? '', cleanText, freshConv2.statsConfig as StatEntry[])
-      }
-      if (freshConv2?.inventoryEnabled && Array.isArray(freshConv2.inventory)) {
-        triggerInventoryEvaluation(convId, msgId, history[history.length - 1]?.parts[0].text ?? '', cleanText, freshConv2.inventory as InventoryItem[])
+      if (freshConv2) {
+        triggerStoryEvaluation({
+          convId,
+          msgId,
+          userMsg: history[history.length - 1]?.parts[0].text ?? '',
+          aiMsg: cleanText,
+          currentStats: Array.isArray(freshConv2.statsConfig) ? freshConv2.statsConfig as any : null,
+          currentInventory: Array.isArray(freshConv2.inventory) ? freshConv2.inventory as any : null,
+          statsEnabled: freshConv2.statsEnabled && Array.isArray(freshConv2.statsConfig) && (freshConv2.statsConfig as any[]).length > 0,
+          inventoryEnabled: freshConv2.inventoryEnabled && Array.isArray(freshConv2.inventory),
+        })
       }
     }
   } catch (err: any) {

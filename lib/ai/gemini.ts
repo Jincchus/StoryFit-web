@@ -143,18 +143,19 @@ export async function streamGeminiChat(
 }
 
 export async function generateText(systemPrompt: string, userPrompt: string): Promise<string> {
+  const utilConfig = { maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
   if (process.env.GEMINI_PROVIDER === 'vertex') {
     const { VertexAI } = await import('@google-cloud/vertexai')
     const vertexAI = new VertexAI({
       project: process.env.GOOGLE_CLOUD_PROJECT!,
       location: process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1',
     })
-    const model = vertexAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL, systemInstruction: systemPrompt })
+    const model = vertexAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL, systemInstruction: systemPrompt, generationConfig: utilConfig })
     const result = await model.generateContent(userPrompt)
     return (result.response.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
   }
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-  const model = genAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL, systemInstruction: systemPrompt, tools: [] })
+  const model = genAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL, systemInstruction: systemPrompt, generationConfig: utilConfig, tools: [] })
   const result = await model.generateContent(userPrompt)
   return result.response.text().trim()
 }

@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
-import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent } from '@/lib/ai'
+import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent, sliceByTokenBudget } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
-import { triggerStatsEvaluation } from '@/lib/statsEval'
-import { triggerInventoryEvaluation } from '@/lib/inventoryEval'
+import { triggerStoryEvaluation } from '@/lib/storyEval'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
@@ -105,7 +104,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         })
       : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
-  const recentMsgs = conv.messages.slice(-15)
+  const recentMsgs = sliceByTokenBudget(conv.messages, 5000)
   const allowChoices = conv.mode === 'story'
   const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
@@ -227,11 +226,17 @@ async function generateAsync({
 
     triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
 
-    if (conv.mode === 'story' && conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0) {
-      triggerStatsEvaluation(convId, msgId, history[history.length - 1]?.parts[0].text ?? '', fullText, conv.statsConfig)
-    }
-    if (conv.mode === 'story' && conv.inventoryEnabled && Array.isArray(conv.inventory)) {
-      triggerInventoryEvaluation(convId, msgId, history[history.length - 1]?.parts[0].text ?? '', fullText, conv.inventory)
+    if (conv.mode === 'story') {
+      triggerStoryEvaluation({
+        convId,
+        msgId,
+        userMsg: history[history.length - 1]?.parts[0].text ?? '',
+        aiMsg: cleanText,
+        currentStats: Array.isArray(conv.statsConfig) ? conv.statsConfig as any : null,
+        currentInventory: Array.isArray(conv.inventory) ? conv.inventory as any : null,
+        statsEnabled: conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0,
+        inventoryEnabled: conv.inventoryEnabled && Array.isArray(conv.inventory),
+      })
     }
   } catch (err: any) {
     clearTimeout(timeoutId)
@@ -308,7 +313,7 @@ async function streamTikiTaka({
   encoder: TextEncoder
   abortController: AbortController
 }) {
-  const preTurnHistory = buildGeminiHistory(conv.messages.slice(-15))
+  const preTurnHistory = buildGeminiHistory(sliceByTokenBudget(conv.messages, 5000))
 
   const stream = new ReadableStream({
     async start(controller) {

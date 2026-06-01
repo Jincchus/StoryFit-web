@@ -4,6 +4,34 @@ import { streamGeminiChat, type GeminiChatParams, type StreamResult } from './ge
 export type StreamChatParams = GeminiChatParams & { provider: AIProvider }
 export type { StreamResult }
 
+// 한글 2토큰, 그 외 0.25토큰 근사치
+export function approxTokens(text: string): number {
+  let tokens = 0
+  for (const ch of text) {
+    const code = ch.charCodeAt(0)
+    tokens += code >= 0xAC00 && code <= 0xD7A3 ? 2 : 0.25
+  }
+  return Math.ceil(tokens)
+}
+
+// 메시지 배열을 뒤에서부터 토큰 예산 안에서 슬라이스
+// minMessages: 예산 초과해도 최소 보장할 메시지 수
+export function sliceByTokenBudget<T extends { content: string }>(
+  messages: T[],
+  budget: number,
+  minMessages = 2,
+): T[] {
+  let total = 0
+  let start = messages.length
+  while (start > 0) {
+    const tokens = approxTokens(messages[start - 1].content)
+    if (total + tokens > budget && messages.length - start >= minMessages) break
+    total += tokens
+    start--
+  }
+  return messages.slice(start)
+}
+
 export function deduplicatePreviousContent(newText: string, prevText: string): string {
   if (!prevText?.trim() || !newText?.trim()) return newText
   const newLines = newText.split('\n')
