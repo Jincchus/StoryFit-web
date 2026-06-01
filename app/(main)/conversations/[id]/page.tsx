@@ -12,6 +12,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 import type { AIProvider, Character } from '@/types'
 import { getConvStream, clearConvStream, subscribeConvStream, runConvStream, runConvRegenerate } from '@/lib/conversationStream'
+import AiPill from '@/components/ui/AiPill'
 import { useSpeech } from './_hooks/useSpeech'
 import { useLorebook } from './_hooks/useLorebook'
 import { useMemoryPanel } from './_hooks/useMemoryPanel'
@@ -97,6 +98,7 @@ export default function ChatPage() {
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
+  const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
@@ -555,7 +557,7 @@ export default function ChatPage() {
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
         <div className="chat-header spread">
           <div className="hstack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
-            <button className="btn ghost" onClick={() => router.push('/')} style={{ padding: '2px 6px', flexShrink: 0 }}>←</button>
+            <button className="btn ghost" onClick={() => router.push('/chatlist')} style={{ padding: '2px 6px', flexShrink: 0 }} aria-label="채팅 목록으로">←</button>
             <div className="thumb" style={{ width: 34, height: 34, background: 'var(--lavender)', border: '1.5px solid var(--chrome-border)', display: 'grid', placeItems: 'center', imageRendering: 'pixelated', borderRadius: 'var(--radius)', flexShrink: 0 }}>
               {char.avatarUrl
                 ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
@@ -577,10 +579,12 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
+            <AiPill modelId={model} onChange={handleModelChange} />
             {isStory && conv.inventoryEnabled && (
               <button
                 className={`btn ${showInventory ? 'primary' : 'ghost'}`}
                 style={{ padding: '3px 7px', fontSize: 10 }}
+                aria-label="인벤토리"
                 onClick={() => { setShowInventory(p => !p); setShowStats(false) }}
               >🎒</button>
             )}
@@ -588,12 +592,14 @@ export default function ChatPage() {
               <button
                 className={`btn ${showStats ? 'primary' : 'ghost'}`}
                 style={{ padding: '3px 7px', fontSize: 10 }}
+                aria-label="스탯"
                 onClick={() => { setShowStats(p => !p); setShowInventory(false) }}
               >STAT</button>
             )}
             <button
               className={`btn ${showPanel ? 'primary' : 'ghost'}`}
               style={{ padding: '3px 7px', fontSize: 10 }}
+              aria-label="대화 설정"
               onClick={() => setShowPanel(p => !p)}
             >⚙</button>
           </div>
@@ -798,6 +804,13 @@ export default function ChatPage() {
                       </div>
                     )}
 
+                    {/* ── 재생성 버튼 항상 표시 (마지막 AI 메시지) ── */}
+                    {isLast && isLastAssistant && !isYou && !isEditing && !typing && (
+                      <div style={{ paddingLeft: 4, marginTop: 2 }}>
+                        <button className="msg-action-btn" aria-label="재생성" onClick={handleRegenerate} style={{ opacity: 0.75 }}>↺ 재생성</button>
+                      </div>
+                    )}
+
                     {/* ── 호버/탭 액션 ── */}
                     {!isEditing && (
                       <div className={`msg-actions ${isYou ? 'you' : ''}`}>
@@ -824,21 +837,23 @@ export default function ChatPage() {
                         {/* 액션 버튼 — 둘째 줄 */}
                         <div className="msg-actions-row">
                           {isLast && isLastAssistant && !isYou && (
-                            <button className="msg-action-btn" onClick={handleRegenerate}>↺ 재생성</button>
+                            <button className="msg-action-btn" aria-label="재생성" onClick={handleRegenerate}>↺ 재생성</button>
                           )}
                           {!isYou && (
                             <button
                               className="msg-action-btn"
                               style={{ color: speakingId === m.id ? 'var(--pink)' : undefined }}
+                              aria-label={speakingId === m.id ? '읽기 정지' : '소리로 읽기'}
                               onClick={() => speakingId === m.id ? stopSpeaking() : speak(m.content, m.id)}
                             >{speakingId === m.id ? '■ 정지' : '🔊'}</button>
                           )}
-                          <button className="msg-action-btn" onClick={() => startEdit(m.id)}>✏ 편집</button>
+                          <button className="msg-action-btn" aria-label="편집" onClick={() => startEdit(m.id)}>✏ 편집</button>
                           <button
                             className="msg-action-btn"
+                            aria-label="분기 만들기"
                             onClick={() => { setBranchTargetMsgId(m.id); setBranchDesc(''); setShowBranchModal(true) }}
                           >⑂ 분기</button>
-                          <button className="msg-action-btn danger" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
+                          <button className="msg-action-btn danger" aria-label="메시지 삭제" onClick={() => setConfirmDeleteId(m.id)}>✕ 삭제</button>
                         </div>
                       </div>
                     )}
@@ -860,9 +875,15 @@ export default function ChatPage() {
                       <span>{streamingChar.name}</span>
                     </div>
                     {streaming
-                      ? isNovel
-                        ? <NovelScene text={streaming} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
-                        : <MessageBlocks text={streaming} />
+                      ? <>
+                          {isNovel
+                            ? <NovelScene text={streaming} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
+                            : <MessageBlocks text={streaming} />
+                          }
+                          {typingDuration >= 8 && (
+                            <div className="tiny" style={{ opacity: 0.6, marginTop: 4, fontStyle: 'italic' }}>✦ 다듬는 중…</div>
+                          )}
+                        </>
                       : <div className="bubble dots" style={{ fontSize: 18, letterSpacing: 3, padding: '6px 10px' }}>
                           {typingDuration >= 3
                             ? <span style={{ fontSize: 11, letterSpacing: 0, opacity: 0.7 }}>{typingDuration}초째 생성 중...</span>
@@ -918,6 +939,7 @@ export default function ChatPage() {
                 style={{ padding: '0 10px', fontSize: 15, flexShrink: 0, minHeight: 36 }}
                 onClick={isListening ? stopListening : startListening}
                 disabled={typing}
+                aria-label={isListening ? '녹음 중지' : '음성 입력'}
                 title={isListening ? '녹음 중지' : '음성 입력 (STT)'}
               >{isListening ? '⏹' : '🎤'}</button>
               {/* ── /STT 마이크 버튼 ── */}
@@ -995,10 +1017,10 @@ export default function ChatPage() {
               style={{ position: 'fixed', inset: 0, zIndex: 9 }}
               onClick={() => setShowPanel(false)}
             />
-            <div className="side-panel" style={{ zIndex: 10 }}>
+            <div className="side-panel">
               <div className="side-panel-header spread">
                 <span style={{ fontWeight: 700, fontSize: 11 }}>대화 설정</span>
-                <button className="btn ghost" style={{ padding: '1px 5px', fontSize: 11 }} onClick={() => setShowPanel(false)}>×</button>
+                <button className="btn ghost" style={{ padding: '1px 5px', fontSize: 11 }} aria-label="닫기" onClick={() => setShowPanel(false)}>×</button>
               </div>
 
               {branches.length > 1 && (
@@ -1110,58 +1132,57 @@ export default function ChatPage() {
               </div>
 
               <div className="side-section">
-                <div className="spread" style={{ marginBottom: 4 }}>
-                  <div className="hstack" style={{ gap: 4, alignItems: 'center' }}>
-                    <div className="label" style={{ marginBottom: 0 }}>핵심 메모리</div>
-                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'core' ? null : 'core')}>?</button>
+                <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, memory: !o.memory }))}>
+                  <span>📌 기억 · 상태</span>
+                  <span className={`acc-arrow ${panelOpen.memory ? 'open' : ''}`}>▼</span>
+                </button>
+                {panelOpen.memory && <>
+                  <div className="spread" style={{ marginBottom: 4, marginTop: 4 }}>
+                    <div className="hstack" style={{ gap: 4, alignItems: 'center' }}>
+                      <div className="label" style={{ marginBottom: 0 }}>핵심 메모리</div>
+                      <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'core' ? null : 'core')}>?</button>
+                    </div>
+                    <button
+                      className="btn ghost"
+                      style={{ fontSize: 9, padding: '1px 5px' }}
+                      onClick={async () => {
+                        const fresh = await api.get(`/api/conversations/${params.id}`).catch(() => null)
+                        if (fresh) setConv(c => c ? { ...c, coreMemory: fresh.coreMemory, statusTimeline: fresh.statusTimeline } : c)
+                      }}
+                    >↺</button>
                   </div>
-                  <button
-                    className="btn ghost"
-                    style={{ fontSize: 9, padding: '1px 5px' }}
-                    onClick={async () => {
-                      const fresh = await api.get(`/api/conversations/${params.id}`).catch(() => null)
-                      if (fresh) setConv(c => c ? { ...c, coreMemory: fresh.coreMemory, statusTimeline: fresh.statusTimeline } : c)
-                    }}
-                  >↺ 새로고침</button>
-                </div>
-                {infoTip === 'core' && (
-                  <div className="info-tip">대화 내내 AI가 절대 잊으면 안 되는 사실을 저장합니다. 직접 입력하거나, 아래 장기 메모리에서 항목을 선택해 올릴 수 있습니다.{'\n\n'}예: "유저의 이름은 하루. 쌍둥이 동생 미래가 있다. 마법을 쓸 수 없다."</div>
-                )}
-                <textarea
-                  className="field" rows={3}
-                  placeholder={"절대 잊으면 안 되는 설정을 적어두세요\n예: 유저는 마왕의 딸이다."}
-                  value={conv.coreMemory}
-                  onChange={e => handleCoreMemory(e.target.value)}
-                />
+                  {infoTip === 'core' && (
+                    <div className="info-tip">대화 내내 AI가 절대 잊으면 안 되는 사실을 저장합니다.{'\n\n'}예: "유저의 이름은 하루. 쌍둥이 동생 미래가 있다. 마법을 쓸 수 없다."</div>
+                  )}
+                  <textarea
+                    className="field" rows={3}
+                    placeholder={"절대 잊으면 안 되는 설정을 적어두세요\n예: 유저는 마왕의 딸이다."}
+                    value={conv.coreMemory}
+                    onChange={e => handleCoreMemory(e.target.value)}
+                  />
+                  <div className="label" style={{ marginTop: 8, marginBottom: 2 }}>타임라인 상태</div>
+                  <textarea
+                    className="field" rows={2}
+                    placeholder={"현재 에피소드 상태\n예: 마왕성 탐험 중 / 루나가 다리를 다침"}
+                    value={conv.statusTimeline}
+                    onChange={e => handleStatusTimeline(e.target.value)}
+                  />
+                </>}
               </div>
 
               <div className="side-section">
-                <div className="spread" style={{ marginBottom: 4 }}>
-                  <div className="label" style={{ marginBottom: 0 }}>타임라인 상태</div>
-                  <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'timeline' ? null : 'timeline')}>?</button>
-                </div>
-                {infoTip === 'timeline' && (
-                  <div className="info-tip">현재 에피소드의 상태나 진행 상황을 기록합니다. 채팅 헤더에도 표시되며 AI의 상황 인식에 활용됩니다.{'\n\n'}예: "마왕성 2층 탐험 중 / 루나가 발목을 다침"</div>
-                )}
-                <textarea
-                  className="field" rows={2}
-                  placeholder={"현재 에피소드 상태\n예: 마왕성 탐험 중 / 루나가 다리를 다침"}
-                  value={conv.statusTimeline}
-                  onChange={e => handleStatusTimeline(e.target.value)}
-                />
-              </div>
-
-              <div className="side-section">
-                <div className="spread" style={{ marginBottom: 4 }}>
-                  <div className="hstack" style={{ gap: 4, alignItems: 'center' }}>
-                    <div className="label" style={{ marginBottom: 0 }}>로어북 <span className="tiny muted">({lorebooks.length}/20)</span></div>
+                <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, lorebook: !o.lorebook }))}>
+                  <span>📖 로어북 <span className="tiny muted" style={{ fontWeight: 400 }}>({lorebooks.length})</span></span>
+                  <span className={`acc-arrow ${panelOpen.lorebook ? 'open' : ''}`}>▼</span>
+                </button>
+                {panelOpen.lorebook && <>
+                  <div className="spread" style={{ marginBottom: 4, marginTop: 4 }}>
                     <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'lorebook' ? null : 'lorebook')}>?</button>
+                    {lorebooks.length < 20
+                      ? <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setLorebookAdd(a => !a); setLorebookEditId(null) }}>+ 추가</button>
+                      : <span className="tiny muted" style={{ fontSize: 9 }}>최대 20개</span>
+                    }
                   </div>
-                  {lorebooks.length < 20
-                    ? <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setLorebookAdd(a => !a); setLorebookEditId(null) }}>+ 추가</button>
-                    : <span className="tiny muted" style={{ fontSize: 9 }}>최대 20개</span>
-                  }
-                </div>
                 {infoTip === 'lorebook' && (
                   <div className="info-tip">특정 키워드가 대화에 등장하면 관련 세계관 정보를 AI에게 자동 주입합니다. 최근 N턴(탐색깊이)만 스캔하며, 우선순위 높은 항목부터 최대 1,000 토큰까지 포함됩니다.{'\n\n'}예: 키워드 "마왕성" → "마왕성은 100년 전 악마왕이 건설한 요새로, 총 7개 층이다."</div>
                 )}
@@ -1218,20 +1239,16 @@ export default function ChatPage() {
                     )}
                   </div>
                 ))}
+                </>}
               </div>
 
               <div className="side-section">
-                <div className="spread" style={{ marginBottom: 4 }}>
-                  <div className="hstack" style={{ gap: 4, alignItems: 'center' }}>
-                    <div className="label" style={{ marginBottom: 0 }}>장기 메모리</div>
-                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'memory' ? null : 'memory')}>?</button>
-                  </div>
-                  <span className="tiny muted">10턴마다 자동 요약</span>
-                </div>
-                {infoTip === 'memory' && (
-                  <div className="info-tip">10턴마다 대화 내용을 자동으로 요약해 저장합니다. 오래된 내용도 AI가 기억할 수 있도록 도와줍니다. 체크박스로 선택해 핵심 메모리로 올릴 수 있습니다.</div>
-                )}
-                <div className="tiny muted" style={{ marginBottom: 6 }}>항목을 선택해 핵심 메모리로 올릴 수 있습니다.</div>
+                <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, longmem: !o.longmem }))}>
+                  <span>🧠 장기 메모리 <span className="tiny muted" style={{ fontWeight: 400 }}>({memories.length})</span></span>
+                  <span className={`acc-arrow ${panelOpen.longmem ? 'open' : ''}`}>▼</span>
+                </button>
+                {panelOpen.longmem && <>
+                  <div className="tiny muted" style={{ marginBottom: 6, marginTop: 4 }}>10턴마다 자동 요약 · 선택 후 핵심메모리로 올릴 수 있습니다.</div>
                 {selectedMemoryIds.size > 0 && (
                   <button
                     className="btn primary"
@@ -1288,6 +1305,7 @@ export default function ChatPage() {
                     )
                   })
                 )}
+                </>}
               </div>
             </div>
             </>

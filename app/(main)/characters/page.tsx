@@ -82,7 +82,7 @@ export default function CharactersPage() {
             <div className="tiny muted">프리셋 캐릭터 또는 직접 만들기</div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
-            <button className="btn ghost" onClick={() => router.push('/')}>← 뒤로</button>
+            <button className="btn ghost" onClick={() => router.back()}>← 뒤로</button>
             <button className="btn ghost" onClick={() => setShowUrlInput(v => !v)}>↓ 카드 가져오기</button>
             <button className="btn" onClick={() => router.push('/characters/new')}>+ 만들기</button>
             <button

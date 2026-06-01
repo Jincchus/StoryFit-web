@@ -794,6 +794,10 @@ body[data-crt="on"]::after{
 .chat-main { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; min-height: 0; }
 .chat-header { padding: 8px 14px; background: var(--paper); border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
 
+/* ─── Message fade-in on load ────────────────────────────────────────────── */
+@keyframes msg-fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.msg-seq { animation: msg-fadein 0.25s ease; }
+
 /* ─── Sequential message layout ──────────────────────────────────────────── */
 .msg-seq { display: flex; flex-direction: column; gap: 5px; padding: 2px 0; }
 .seq-block { display: flex; flex-direction: column; max-width: 72%; }
@@ -804,17 +808,33 @@ body[data-crt="on"]::after{
 .seq-narration { color: var(--ink-soft); font-style: italic; font-size: 13px; line-height: 1.65; text-align: center; padding: 1px 16px; }
 .seq-block.seq-right .bubble { background: var(--bubble-you); color: #fff; border-color: transparent; }
 
-/* ─── Side panel ──────────────────────────────────────────────────────────── */
-.side-panel { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 10px; }
+/* ─── Side panel (항상 fixed 슬라이드오버 — in-flow 채팅 찌그러짐 방지) ──── */
+.side-panel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(280px, 88vw);
+  z-index: 200;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto;
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  padding: 10px;
+  box-shadow: -4px 0 20px rgba(0,0,0,.18);
+  animation: slide-in-right 0.18s ease;
+}
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0.5; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
 .side-panel-header { font-size: 12px; font-weight: 600; padding-bottom: 8px; border-bottom: 1px solid var(--hairline); margin-bottom: 2px; flex-shrink: 0; color: var(--ink); }
+.acc-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 5px 0; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--ink); border: none; background: none; text-align: left; user-select: none; }
+.acc-toggle:hover { color: var(--accent); }
+.acc-arrow { font-size: 9px; color: var(--ink-soft); transition: transform 0.15s; }
+.acc-arrow.open { transform: rotate(180deg); }
 .side-section { display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--hairline-2); }
 .side-section:last-child { border-bottom: none }
 .lorebook-placeholder { border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 10px; text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
 .info-tip { background: var(--hairline-2); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 8px 10px; font-size: 12px; line-height: 1.65; color: var(--ink-soft); white-space: pre-wrap; margin-bottom: 2px; }
-
-@media (max-width: 680px) {
-  .side-panel { position: fixed; inset: 0; z-index: 200; width: 100%; max-width: 100%; border-radius: 0; padding: 16px; overflow-y: auto; }
-}
 
 /* ─── Login ───────────────────────────────────────────────────────────────── */
 .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; flex: 1; padding: 20px; }
