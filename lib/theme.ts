@@ -13,11 +13,13 @@ export const THEMES = [
   { id: 'cyworld',     label: 'Aqua Orange',    desc: '라이트 아쿠아 & 오렌지',    palette: ['#e3f2fd', '#f6f6f6', '#ff6600', '#a6a6a6'] },
   { id: 'kakao',       label: 'KakaoTalk',      desc: '카카오톡 옐로우 & 화이트',   palette: ['#ffffff', '#abc1d1', '#fee500', '#191919'] },
   { id: 'x',           label: 'X (Twitter)',    desc: '다크 잉크 & 블루 DM',       palette: ['#ffffff', '#f7f9f9', '#1d9bf0', '#0f1419'] },
+  { id: 'excel',       label: '엑셀',           desc: 'Microsoft Excel 클린 그린',  palette: ['#185c37', '#217346', '#e9f5ee', '#1a1a1a'] },
+  { id: 'retroexcel',  label: '레트로 엑셀',    desc: 'Excel 97 레트로 Win95',      palette: ['#c0c0c0', '#000080', '#ffffff', '#000000'] },
 ] as const
 
 export type ThemeId = typeof THEMES[number]['id']
 
-const EXTERNAL_THEMES = new Set(['modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld', 'kakao', 'x'])
+const EXTERNAL_THEMES = new Set(['modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld', 'kakao', 'x', 'excel', 'retroexcel'])
 
 export function applyTheme(theme: string): void {
   if (typeof document === 'undefined') return

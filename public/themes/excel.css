@@ -1,0 +1,223 @@
+/* StoryFit · Excel Classic (Modern Office Green) */
+
+body[data-art="excel"] {
+  font-family: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  background: #f0f4f2;
+
+  --gray: #f0f0ee;
+  --gray-face: #f6f6f4;
+  --gray-light: #ededeb;
+  --gray-hi: #ffffff;
+  --gray-shadow: #c0c0c0;
+  --gray-dark: #c8c8c8;
+
+  --navy: #217346;
+  --navy-2: #2d9d5e;
+  --teal: #f0f4f2;
+
+  --bubble-other: #e9f5ee;
+  --bubble-you: linear-gradient(180deg, #2a9159 0%, #185c37 100%);
+  --bubble-line: #217346;
+
+  --ink: #1a1a1a;
+  --ink-soft: #6b6b6b;
+  --ink-muted: #9a9a9a;
+  --selected: #217346;
+  --link: #185c37;
+
+  --font-body: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-title: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-mono: 'Consolas', 'SFMono-Regular', 'Courier New', monospace;
+  --font-pixel: 'Consolas', 'Courier New', monospace;
+
+  --radius: 3px;
+  --radius-sm: 2px;
+  --radius-lg: 4px;
+
+  --accent: #217346;
+  --red: #e53935;
+  --green: #217346;
+  --paper: #ffffff;
+  --paper-2: #f6f6f4;
+  --pane: #f6f6f4;
+  --bg-2: #ededeb;
+  --line: #c8c8c8;
+  --hairline: #d4d4d4;
+  --hairline-2: #ededed;
+
+  --chrome-face: #f6f6f4;
+  --chrome-shadow: #c0c0c0;
+  --chrome-hi: #ffffff;
+  --chrome-border: #c8c8c8;
+  --title-grad: linear-gradient(90deg, #185c37 0%, #217346 100%);
+  --hot-pink: #217346;
+  --pink: #2a9159;
+  --purple: #217346;
+  --lavender: #d4e8db;
+  --mint: #d4e8db;
+}
+
+body[data-art="excel"] #desktop-bg { background: #f0f4f2; }
+body[data-art="excel"] #stars { display: none; }
+
+/* Shell */
+body[data-art="excel"] .shell { border-color: #c8c8c8; }
+body[data-art="excel"] .shell-title { background: linear-gradient(90deg, #185c37 0%, #217346 100%); }
+
+/* Win chrome */
+body[data-art="excel"] .win { background: #f6f6f4; border-color: #c8c8c8; box-shadow: none; border-radius: 3px; }
+body[data-art="excel"] .win-title { background: linear-gradient(90deg, #185c37 0%, #217346 100%); height: 24px; border-radius: 2px 2px 0 0; }
+body[data-art="excel"] .win-controls button { background: #f6f6f4; border-color: #c8c8c8; box-shadow: none; border-radius: 2px; }
+body[data-art="excel"] .win-controls button:hover { background: #e9f5ee; }
+body[data-art="excel"] .win-body { background: #f6f6f4; }
+
+/* Dock */
+body[data-art="excel"] .dock { background: #185c37; border-top: 1px solid #0f3d22; box-shadow: none; }
+body[data-art="excel"] .dock .start { background: #217346; color: #fff; border: 1px solid #185c37; box-shadow: none; font-family: 'Segoe UI', sans-serif; }
+body[data-art="excel"] .dock .start:hover { background: #2a9159; }
+body[data-art="excel"] .dock .start.active { background: #185c37; }
+body[data-art="excel"] .dock .clock { background: #185c37; color: #fff; border-color: #0f3d22; box-shadow: none; }
+body[data-art="excel"] .dock .tray { background: #185c37; color: #fff; border-color: #0f3d22; box-shadow: none; }
+body[data-art="excel"] .dock-tab { background: #f6f6f4; border-color: #c8c8c8; color: #1a1a1a; box-shadow: none; border-radius: 2px 2px 0 0; }
+body[data-art="excel"] .dock-tab.active { background: #217346; color: #fff; border-color: #185c37; }
+
+/* Buttons */
+body[data-art="excel"] .btn {
+  background: #f6f6f4;
+  border: 1px solid #c8c8c8;
+  border-radius: 3px;
+  box-shadow: none;
+  font-family: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', sans-serif;
+  color: #1a1a1a;
+}
+body[data-art="excel"] .btn:hover { background: #e9f5ee; border-color: #217346; }
+body[data-art="excel"] .btn:active { transform: translateY(0.5px); box-shadow: none; padding: 4px 14px; }
+body[data-art="excel"] .btn:disabled { color: #9a9a9a; text-shadow: none; background: #f0f0ee; }
+body[data-art="excel"] .btn.primary { background: #217346; color: #fff; border-color: #185c37; box-shadow: none; }
+body[data-art="excel"] .btn.primary::after { display: none; }
+body[data-art="excel"] .btn.primary:hover { background: #2a9159; }
+body[data-art="excel"] .btn.ghost { background: transparent; border-color: transparent; box-shadow: none; }
+body[data-art="excel"] .btn.ghost:hover { background: #e9f5ee; border-color: #c8c8c8; padding: 2px 8px; }
+
+/* Inputs */
+body[data-art="excel"] .field {
+  border-color: #c8c8c8;
+  border-radius: 3px;
+  box-shadow: none;
+  font-family: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', sans-serif;
+}
+body[data-art="excel"] .field:focus { border-color: #217346; box-shadow: 0 0 0 2px rgba(33,115,69,.15); outline: none; }
+body[data-art="excel"] textarea.field { border-radius: 3px !important; }
+body[data-art="excel"] .composer .field { border-radius: 3px !important; }
+body[data-art="excel"] select.field {
+  background:
+    linear-gradient(#f6f6f4, #f6f6f4) right 0 top 0 / 18px 100% no-repeat,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'><path fill='%23217346' d='M0 0h8L4 5z'/></svg>") right 5px center / 8px no-repeat,
+    #fff;
+}
+
+/* Chatlog */
+body[data-art="excel"] .chatlog {
+  background: #ffffff;
+  border-color: #d0d0d0;
+  box-shadow: none;
+  border-radius: 3px;
+}
+
+/* Row items */
+body[data-art="excel"] .row { background: #fff; border-color: #d0d0d0; border-radius: 3px; box-shadow: none; }
+body[data-art="excel"] .row:hover { background: #e9f5ee; }
+
+/* Char cards */
+body[data-art="excel"] .char-card { background: #fff; border-color: #d0d0d0; border-radius: 3px; box-shadow: none; }
+body[data-art="excel"] .char-card:hover { background: #e9f5ee; border-color: #217346; box-shadow: none; }
+body[data-art="excel"] .char-card.selected { background: #217346 !important; color: #fff !important; outline: none !important; }
+body[data-art="excel"] .char-card .pic-wrap { border-color: #d0d0d0; border-radius: 3px; box-shadow: none; }
+body[data-art="excel"] .char-card .pic-wrap > * { border-radius: 2px; }
+
+/* Chat bubbles */
+body[data-art="excel"] .bubble-char { background: #e9f5ee !important; border-color: #217346 !important; border-radius: 3px !important; }
+body[data-art="excel"] .bubble-persona { background: #fff9e6 !important; border-color: #c8a000 !important; border-radius: 3px !important; }
+body[data-art="excel"] .bubble-third { background: #f4f4f4 !important; border-color: #c0c0c0 !important; border-radius: 3px !important; }
+body[data-art="excel"] .bubble-author { background: #fff3e0 !important; border-color: #e67e00 !important; border-radius: 3px !important; }
+body[data-art="excel"] .bubble-char.thought-bubble { background: #f5fbf8 !important; border-color: #a8d4b8 !important; }
+body[data-art="excel"] .bubble-persona.thought-bubble { background: #fffbf0 !important; border-color: #e0c868 !important; }
+
+/* Novel styles */
+body[data-art="excel"] .novel-speaker-char { color: #185c37 !important; }
+body[data-art="excel"] .novel-speaker-persona { color: #996600 !important; }
+body[data-art="excel"] .novel-direction { background: #f8f8f8 !important; border-color: #d0d0d0 !important; }
+body[data-art="excel"] .novel-direction-label { color: #6b6b6b !important; }
+
+/* AI pill */
+body[data-art="excel"] .ai-pill { background: #f6f6f4; border-color: #c8c8c8; box-shadow: none; border-radius: 3px; }
+body[data-art="excel"] .ai-pill .dot { background: #217346; border-color: #185c37; box-shadow: none; }
+
+/* Mode badge */
+body[data-art="excel"] .mode-badge { background: #e9f5ee; color: #185c37; border: 1px solid #217346; border-radius: 3px; font-family: 'Segoe UI', sans-serif; }
+
+/* Param slider */
+body[data-art="excel"] .param-slider { accent-color: #217346; }
+
+/* Msg action buttons */
+body[data-art="excel"] .msg-action-btn:hover { color: #185c37 !important; border-color: #217346 !important; background: #e9f5ee !important; }
+
+/* Persona / AI model selection */
+body[data-art="excel"] .persona-option.selected,
+body[data-art="excel"] .ai-model-option.selected { outline: 2px solid #217346 !important; background: #e9f5ee !important; }
+
+/* Tag selected */
+body[data-art="excel"] .tag-selected { background: #217346 !important; border-color: #185c37 !important; color: #fff !important; }
+
+/* Input focus override */
+body[data-art="excel"] .field:focus { border-color: #217346 !important; }
+
+/* Char preview bar */
+body[data-art="excel"] .char-preview-bar { border: 1px solid #c8c8c8 !important; background: #f6f6f4 !important; box-shadow: none; }
+
+/* Menubar */
+body[data-art="excel"] .menubar { background: #f6f6f4; border-bottom-color: #d0d0d0; }
+body[data-art="excel"] .menubar .mi:hover { background: #217346; }
+
+/* Thin modern scrollbars */
+body[data-art="excel"] .win-body ::-webkit-scrollbar,
+body[data-art="excel"] .chatlog::-webkit-scrollbar,
+body[data-art="excel"] .char-grid::-webkit-scrollbar,
+body[data-art="excel"] .scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+body[data-art="excel"] .win-body ::-webkit-scrollbar-track,
+body[data-art="excel"] .chatlog::-webkit-scrollbar-track,
+body[data-art="excel"] .char-grid::-webkit-scrollbar-track,
+body[data-art="excel"] .scroll::-webkit-scrollbar-track { background: #f0f0ee; border: none; background-image: none; }
+body[data-art="excel"] .win-body ::-webkit-scrollbar-thumb,
+body[data-art="excel"] .chatlog::-webkit-scrollbar-thumb,
+body[data-art="excel"] .char-grid::-webkit-scrollbar-thumb,
+body[data-art="excel"] .scroll::-webkit-scrollbar-thumb { background: #c8c8c8; border: none; box-shadow: none; border-radius: 4px !important; }
+body[data-art="excel"] .win-body ::-webkit-scrollbar-thumb:hover,
+body[data-art="excel"] .chatlog::-webkit-scrollbar-thumb:hover,
+body[data-art="excel"] .char-grid::-webkit-scrollbar-thumb:hover,
+body[data-art="excel"] .scroll::-webkit-scrollbar-thumb:hover { background: #217346; }
+body[data-art="excel"] .win-body ::-webkit-scrollbar-button,
+body[data-art="excel"] .chatlog::-webkit-scrollbar-button,
+body[data-art="excel"] .char-grid::-webkit-scrollbar-button,
+body[data-art="excel"] .scroll::-webkit-scrollbar-button { display: none; }
+
+/* Seq-right bubble (user) */
+body[data-art="excel"] .seq-block.seq-right .bubble {
+  background: linear-gradient(180deg, #2a9159 0%, #185c37 100%) !important;
+  border-color: #185c37 !important;
+  color: #fff !important;
+}
+
+/* Start menu */
+body[data-art="excel"] .start-menu { background: #f6f6f4; border: 1px solid #c8c8c8; border-radius: 3px; box-shadow: 2px 2px 6px rgba(0,0,0,.2); }
+body[data-art="excel"] .start-menu-item { font-family: 'Segoe UI', sans-serif; color: #1a1a1a; border-radius: 2px; }
+body[data-art="excel"] .start-menu-item:hover { background: #217346; color: #fff; }
+body[data-art="excel"] .start-menu-divider { background: #d0d0d0; box-shadow: none; }
+
+@media (min-width: 900px) {
+  body[data-art="excel"] .shell {
+    border-color: #c8c8c8;
+    box-shadow: 0 8px 32px rgba(0,0,0,.15);
+    border-radius: 4px;
+  }
+}

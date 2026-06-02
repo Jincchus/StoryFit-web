@@ -1,0 +1,423 @@
+/* StoryFit · Retro Excel (Excel 97 / Windows 9x) */
+
+body[data-art="retroexcel"] {
+  font-family: 'Tahoma', 'MS Sans Serif', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  background: #c0c0c0;
+  image-rendering: auto;
+
+  --gray: #c0c0c0;
+  --gray-face: #c0c0c0;
+  --gray-light: #dfdfdf;
+  --gray-hi: #ffffff;
+  --gray-shadow: #808080;
+  --gray-dark: #000000;
+
+  --navy: #000080;
+  --navy-2: #1084d0;
+  --teal: #c0c0c0;
+
+  --bubble-other: #ffffff;
+  --bubble-you: #e8e8f4;
+  --bubble-line: #808080;
+
+  --ink: #000000;
+  --ink-soft: #404040;
+  --ink-muted: #808080;
+  --selected: #000080;
+  --link: #0000a0;
+
+  --font-body: 'Tahoma', 'MS Sans Serif', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-title: 'Tahoma', 'MS Sans Serif', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-mono: 'Courier New', 'Consolas', monospace;
+  --font-pixel: 'Courier New', monospace;
+
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+
+  --accent: #000080;
+  --red: #cc0000;
+  --green: #008000;
+  --paper: #ffffff;
+  --paper-2: #ffffff;
+  --pane: #c0c0c0;
+  --bg-2: #c0c0c0;
+  --line: #000000;
+  --hairline: #808080;
+  --hairline-2: #c0c0c0;
+
+  --chrome-face: #c0c0c0;
+  --chrome-shadow: #808080;
+  --chrome-hi: #ffffff;
+  --chrome-border: #000000;
+  --title-grad: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  --hot-pink: #000080;
+  --pink: #000080;
+  --purple: #000080;
+  --lavender: #c0c0c0;
+  --mint: #c0c0c0;
+}
+
+body[data-art="retroexcel"] #desktop-bg {
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 1px, transparent 1px 2px),
+    #c0c0c0;
+}
+body[data-art="retroexcel"] #stars { display: none; }
+
+/* Shell */
+body[data-art="retroexcel"] .shell-title { background: linear-gradient(90deg, #000080 0%, #1084d0 100%); }
+body[data-art="retroexcel"] .shell {
+  border: 1px solid #000;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080,
+    inset 2px 2px 0 #dfdfdf,
+    inset -2px -2px 0 #000;
+}
+
+/* Win chrome */
+body[data-art="retroexcel"] .win {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080,
+    inset 2px 2px 0 #dfdfdf,
+    inset -2px -2px 0 #000;
+}
+body[data-art="retroexcel"] .win-title { background: linear-gradient(90deg, #000080 0%, #1084d0 100%); border-radius: 0; height: 20px; }
+body[data-art="retroexcel"] .win-controls button {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080;
+}
+body[data-art="retroexcel"] .win-controls button:active {
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff;
+}
+body[data-art="retroexcel"] .win-body { background: #c0c0c0; }
+
+/* Bevel helpers for retro excel */
+body[data-art="retroexcel"] .bevel-out {
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080,
+    inset 2px 2px 0 #dfdfdf,
+    inset -2px -2px 0 #000;
+}
+
+/* Dock / taskbar */
+body[data-art="retroexcel"] .dock {
+  background: #c0c0c0;
+  border-top: 1px solid #fff;
+  box-shadow: inset 0 1px 0 #dfdfdf;
+}
+body[data-art="retroexcel"] .dock .start {
+  background: #c0c0c0;
+  color: #000;
+  border: 1px solid #000;
+  text-shadow: none;
+  font-family: 'Tahoma', sans-serif;
+  font-weight: 700;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080,
+    inset 2px 2px 0 #dfdfdf,
+    inset -2px -2px 0 #000;
+}
+body[data-art="retroexcel"] .dock .start.active {
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff;
+}
+body[data-art="retroexcel"] .dock .clock {
+  background: #c0c0c0;
+  color: #000;
+  border: 1px solid #808080;
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff;
+}
+body[data-art="retroexcel"] .dock .tray {
+  background: #c0c0c0;
+  color: #000;
+  border: 1px solid #808080;
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff;
+}
+body[data-art="retroexcel"] .dock-tab {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  color: #000;
+  border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080;
+}
+body[data-art="retroexcel"] .dock-tab.active {
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff,
+    inset 2px 2px 0 #000;
+  font-weight: 700;
+  background: #c0c0c0;
+  color: #000;
+}
+
+/* Buttons */
+body[data-art="retroexcel"] .btn {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  border-radius: 0;
+  color: #000;
+  font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+  text-shadow: none;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080,
+    inset 2px 2px 0 #dfdfdf,
+    inset -2px -2px 0 #000;
+}
+body[data-art="retroexcel"] .btn:hover { background: #d0d0d0; }
+body[data-art="retroexcel"] .btn:active, body[data-art="retroexcel"] .btn.active {
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff,
+    inset 2px 2px 0 #000,
+    inset -2px -2px 0 #dfdfdf;
+  padding: 5px 13px 3px 15px;
+}
+body[data-art="retroexcel"] .btn:disabled { color: #808080; text-shadow: 1px 1px 0 #fff; }
+body[data-art="retroexcel"] .btn.primary { font-weight: 700; background: #c0c0c0; color: #000; }
+body[data-art="retroexcel"] .btn.primary::after { content: ""; position: absolute; inset: 3px; border: 1px dotted #000; pointer-events: none; }
+body[data-art="retroexcel"] .btn.ghost { background: transparent; border-color: transparent; box-shadow: none; }
+body[data-art="retroexcel"] .btn.ghost:hover { background: #c0c0c0; border: 1px solid #808080; padding: 1px 7px; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080; }
+
+/* Inputs */
+body[data-art="retroexcel"] .field {
+  border: 1px solid #000;
+  border-radius: 0;
+  font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff,
+    inset 2px 2px 0 #000,
+    inset -2px -2px 0 #dfdfdf;
+}
+body[data-art="retroexcel"] .field:focus { outline: 1px dotted #000; outline-offset: -3px; border-color: #000 !important; box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff, inset 2px 2px 0 #000, inset -2px -2px 0 #dfdfdf; }
+body[data-art="retroexcel"] textarea.field { border-radius: 0 !important; }
+body[data-art="retroexcel"] .composer .field { border-radius: 0 !important; }
+body[data-art="retroexcel"] select.field {
+  background:
+    linear-gradient(#c0c0c0, #c0c0c0) right 0 top 0 / 18px 100% no-repeat,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'><path fill='%23000' d='M0 0h8L4 5z'/></svg>") right 5px center / 8px no-repeat,
+    #fff;
+  border-radius: 0;
+}
+
+/* Chatlog */
+body[data-art="retroexcel"] .chatlog {
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff,
+    inset 2px 2px 0 #000,
+    inset -2px -2px 0 #dfdfdf;
+}
+
+/* Row items */
+body[data-art="retroexcel"] .row {
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 #808080,
+    inset -1px -1px 0 #fff;
+}
+body[data-art="retroexcel"] .row:hover { background: #ffffe1; }
+
+/* Char cards */
+body[data-art="retroexcel"] .char-card {
+  background: #c0c0c0;
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    inset -1px -1px 0 #808080,
+    inset 1px 1px 0 #fff,
+    inset -2px -2px 0 #000,
+    inset 2px 2px 0 #dfdfdf;
+}
+body[data-art="retroexcel"] .char-card:hover { background: #d0d0d0; transform: none; box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #fff, inset -2px -2px 0 #000, inset 2px 2px 0 #dfdfdf; }
+body[data-art="retroexcel"] .char-card:active { box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff, inset 2px 2px 0 #000; }
+body[data-art="retroexcel"] .char-card.selected { background: #000080 !important; color: #fff !important; outline: none !important; box-shadow: none !important; }
+body[data-art="retroexcel"] .char-card.selected h4, body[data-art="retroexcel"] .char-card.selected p { color: #fff; }
+body[data-art="retroexcel"] .char-card .pic-wrap {
+  border: 1px solid #000;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
+}
+body[data-art="retroexcel"] .char-card .pic-wrap > * { border-radius: 0; }
+
+/* Chat bubbles */
+body[data-art="retroexcel"] .bubble-char { background: #d6e2f6 !important; border-color: #808080 !important; border-radius: 0 !important; }
+body[data-art="retroexcel"] .bubble-persona { background: #e8f0e8 !important; border-color: #808080 !important; border-radius: 0 !important; }
+body[data-art="retroexcel"] .bubble-third { background: #e8e8d0 !important; border-color: #808080 !important; border-radius: 0 !important; }
+body[data-art="retroexcel"] .bubble-author { background: #fffbe6 !important; border-color: #808080 !important; border-radius: 0 !important; }
+body[data-art="retroexcel"] .bubble-char.thought-bubble { background: #eaf0fb !important; border-color: #a0b8d8 !important; }
+body[data-art="retroexcel"] .bubble-persona.thought-bubble { background: #e8f5e8 !important; border-color: #90c090 !important; }
+
+/* User bubble (seq-right) */
+body[data-art="retroexcel"] .seq-block.seq-right .bubble {
+  background: #e8e8f4 !important;
+  border-color: #808080 !important;
+  border-radius: 0 !important;
+}
+
+/* Novel styles */
+body[data-art="retroexcel"] .novel-speaker-char { color: #000080 !important; }
+body[data-art="retroexcel"] .novel-speaker-persona { color: #008000 !important; }
+body[data-art="retroexcel"] .novel-direction { background: #f0f0e0 !important; border-color: #808080 !important; }
+body[data-art="retroexcel"] .novel-direction-label { color: #404040 !important; }
+
+/* AI pill */
+body[data-art="retroexcel"] .ai-pill {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080;
+}
+body[data-art="retroexcel"] .ai-pill .dot { background: #008000; border-color: #000; box-shadow: inset 1px 1px 0 #80ff80; }
+
+/* Mode badge */
+body[data-art="retroexcel"] .mode-badge {
+  background: #ffff80;
+  color: #000;
+  border: 1px solid #000;
+  border-radius: 0;
+  font-family: 'Tahoma', sans-serif;
+}
+
+/* Param slider */
+body[data-art="retroexcel"] .param-slider { background: #c0c0c0; accent-color: #000080; }
+
+/* Msg action buttons */
+body[data-art="retroexcel"] .msg-action-btn:hover {
+  color: #000 !important;
+  border-color: #000 !important;
+  background: #ffff80 !important;
+}
+
+/* Persona / AI model selection */
+body[data-art="retroexcel"] .persona-option.selected,
+body[data-art="retroexcel"] .ai-model-option.selected { outline: 2px solid #000080 !important; background: #d0d8f0 !important; }
+
+/* Tag selected */
+body[data-art="retroexcel"] .tag-selected { background: #000080 !important; border-color: #000 !important; color: #fff !important; }
+
+/* Char preview bar */
+body[data-art="retroexcel"] .char-preview-bar {
+  border: 1px solid #000 !important;
+  background: #c0c0c0 !important;
+  box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
+}
+
+/* Menubar */
+body[data-art="retroexcel"] .menubar { background: #c0c0c0; border-bottom: 1px solid #808080; box-shadow: inset 0 1px 0 #fff; }
+body[data-art="retroexcel"] .menubar .mi:hover { background: #000080; color: #fff; }
+
+/* Start menu */
+body[data-art="retroexcel"] .start-menu {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  border-radius: 0;
+  padding: 2px;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080,
+    3px 3px 0 rgba(0,0,0,.4);
+}
+body[data-art="retroexcel"] .start-menu-item { font-family: 'Tahoma', sans-serif; font-size: 12px; border-radius: 0; color: #000; }
+body[data-art="retroexcel"] .start-menu-item:hover { background: #000080; color: #fff; }
+body[data-art="retroexcel"] .start-menu-item.danger { color: #000; }
+body[data-art="retroexcel"] .start-menu-item.danger:hover { background: #000080; color: #fff; }
+body[data-art="retroexcel"] .start-menu-divider { background: #808080; height: 1px; box-shadow: 0 1px 0 #fff; }
+
+/* Win95-style scrollbars */
+body[data-art="retroexcel"] .win-body ::-webkit-scrollbar,
+body[data-art="retroexcel"] .chatlog::-webkit-scrollbar,
+body[data-art="retroexcel"] .char-grid::-webkit-scrollbar,
+body[data-art="retroexcel"] .scroll::-webkit-scrollbar { width: 16px; height: 16px; }
+body[data-art="retroexcel"] .win-body ::-webkit-scrollbar-track,
+body[data-art="retroexcel"] .chatlog::-webkit-scrollbar-track,
+body[data-art="retroexcel"] .char-grid::-webkit-scrollbar-track,
+body[data-art="retroexcel"] .scroll::-webkit-scrollbar-track {
+  background: repeating-conic-gradient(#dfdfdf 0% 25%, #fff 0% 50%) 50% / 4px 4px;
+  border-left: 1px solid #808080;
+}
+body[data-art="retroexcel"] .win-body ::-webkit-scrollbar-thumb,
+body[data-art="retroexcel"] .chatlog::-webkit-scrollbar-thumb,
+body[data-art="retroexcel"] .char-grid::-webkit-scrollbar-thumb,
+body[data-art="retroexcel"] .scroll::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  border-radius: 0 !important;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -1px -1px 0 #808080,
+    inset 2px 2px 0 #dfdfdf,
+    inset -2px -2px 0 #000;
+}
+body[data-art="retroexcel"] .win-body ::-webkit-scrollbar-button,
+body[data-art="retroexcel"] .chatlog::-webkit-scrollbar-button,
+body[data-art="retroexcel"] .char-grid::-webkit-scrollbar-button,
+body[data-art="retroexcel"] .scroll::-webkit-scrollbar-button {
+  background: #c0c0c0;
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080;
+  display: block;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 8px 8px;
+}
+body[data-art="retroexcel"] .win-body ::-webkit-scrollbar-button:vertical:start:increment,
+body[data-art="retroexcel"] .chatlog::-webkit-scrollbar-button:vertical:start:increment,
+body[data-art="retroexcel"] .char-grid::-webkit-scrollbar-button:vertical:start:increment,
+body[data-art="retroexcel"] .scroll::-webkit-scrollbar-button:vertical:start:increment,
+body[data-art="retroexcel"] .win-body ::-webkit-scrollbar-button:vertical:end:decrement,
+body[data-art="retroexcel"] .chatlog::-webkit-scrollbar-button:vertical:end:decrement,
+body[data-art="retroexcel"] .char-grid::-webkit-scrollbar-button:vertical:end:decrement,
+body[data-art="retroexcel"] .scroll::-webkit-scrollbar-button:vertical:end:decrement { display: none; }
+body[data-art="retroexcel"] .win-body ::-webkit-scrollbar-button:vertical:decrement,
+body[data-art="retroexcel"] .chatlog::-webkit-scrollbar-button:vertical:decrement,
+body[data-art="retroexcel"] .char-grid::-webkit-scrollbar-button:vertical:decrement,
+body[data-art="retroexcel"] .scroll::-webkit-scrollbar-button:vertical:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M4 2 L7 6 L1 6 Z' fill='%23000'/%3E%3C/svg%3E");
+}
+body[data-art="retroexcel"] .win-body ::-webkit-scrollbar-button:vertical:increment,
+body[data-art="retroexcel"] .chatlog::-webkit-scrollbar-button:vertical:increment,
+body[data-art="retroexcel"] .char-grid::-webkit-scrollbar-button:vertical:increment,
+body[data-art="retroexcel"] .scroll::-webkit-scrollbar-button:vertical:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M4 6 L1 2 L7 2 Z' fill='%23000'/%3E%3C/svg%3E");
+}
+
+@media (min-width: 900px) {
+  body[data-art="retroexcel"] .shell {
+    box-shadow:
+      inset 1px 1px 0 #fff,
+      inset -1px -1px 0 #808080,
+      inset 2px 2px 0 #dfdfdf,
+      inset -2px -2px 0 #000,
+      2px 2px 0 rgba(0,0,0,.35);
+  }
+}
