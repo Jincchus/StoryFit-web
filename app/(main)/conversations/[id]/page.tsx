@@ -454,6 +454,13 @@ export default function ChatPage() {
     await api.patch(`/api/conversations/${params.id}`, { currentAI: id })
   }
 
+  const handleInventoryDelete = async (index: number) => {
+    if (!conv?.inventory) return
+    const next = conv.inventory.filter((_, i) => i !== index)
+    setConv(c => c ? { ...c, inventory: next } : c)
+    await api.patch(`/api/conversations/${params.id}`, { inventory: next }).catch(() => {})
+  }
+
   const handleTitleSave = async () => {
     if (!titleInput.trim() || !conv) return
     try {
@@ -1054,6 +1061,12 @@ export default function ChatPage() {
                           <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.4 }}>{item.description}</div>
                         )}
                       </div>
+                      <button
+                        className="btn ghost"
+                        style={{ padding: '1px 5px', fontSize: 11, color: 'var(--ink-muted)', flexShrink: 0 }}
+                        onClick={() => handleInventoryDelete(i)}
+                        title="삭제"
+                      >✕</button>
                     </div>
                   ))}
                 </div>
