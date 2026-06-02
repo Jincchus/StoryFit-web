@@ -10,30 +10,24 @@ body[data-art="excel"] {
   --gray-hi: #ffffff;
   --gray-shadow: #c0c0c0;
   --gray-dark: #c8c8c8;
-
   --navy: #217346;
   --navy-2: #2d9d5e;
   --teal: #f0f4f2;
-
   --bubble-other: #e9f5ee;
-  --bubble-you: linear-gradient(180deg, #2a9159 0%, #185c37 100%);
-  --bubble-line: #217346;
-
+  --bubble-you: #e9f5ee;
+  --bubble-line: #c8d4cb;
   --ink: #1a1a1a;
   --ink-soft: #6b6b6b;
   --ink-muted: #9a9a9a;
   --selected: #217346;
   --link: #185c37;
-
   --font-body: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --font-title: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --font-mono: 'Consolas', 'SFMono-Regular', 'Courier New', monospace;
   --font-pixel: 'Consolas', 'Courier New', monospace;
-
-  --radius: 3px;
-  --radius-sm: 2px;
-  --radius-lg: 4px;
-
+  --radius: 2px;
+  --radius-sm: 1px;
+  --radius-lg: 3px;
   --accent: #217346;
   --red: #e53935;
   --green: #217346;
@@ -41,10 +35,9 @@ body[data-art="excel"] {
   --paper-2: #f6f6f4;
   --pane: #f6f6f4;
   --bg-2: #ededeb;
-  --line: #c8c8c8;
+  --line: #d4d4d4;
   --hairline: #d4d4d4;
   --hairline-2: #ededed;
-
   --chrome-face: #f6f6f4;
   --chrome-shadow: #c0c0c0;
   --chrome-hi: #ffffff;
@@ -55,40 +48,82 @@ body[data-art="excel"] {
   --purple: #217346;
   --lavender: #d4e8db;
   --mint: #d4e8db;
+  --ig-gradient: linear-gradient(135deg, #217346, #2a9159);
 }
 
 body[data-art="excel"] #desktop-bg { background: #f0f4f2; }
 body[data-art="excel"] #stars { display: none; }
 
-/* Shell */
-body[data-art="excel"] .shell { border-color: #c8c8c8; }
-body[data-art="excel"] .shell-title { background: linear-gradient(90deg, #185c37 0%, #217346 100%); }
+/* ── Shell frame ── */
+body[data-art="excel"] .shell {
+  border: 1px solid #c0c0c0;
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,.18);
+}
+body[data-art="excel"] .shell-title {
+  background: linear-gradient(90deg, #185c37 0%, #217346 100%);
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 12px;
+  height: 30px;
+}
+@media (min-width: 900px) {
+  body[data-art="excel"] .shell {
+    border-radius: 2px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  }
+}
 
-/* Win chrome */
-body[data-art="excel"] .win { background: #f6f6f4; border-color: #c8c8c8; box-shadow: none; border-radius: 3px; }
-body[data-art="excel"] .win-title { background: linear-gradient(90deg, #185c37 0%, #217346 100%); height: 24px; border-radius: 2px 2px 0 0; }
-body[data-art="excel"] .win-controls button { background: #f6f6f4; border-color: #c8c8c8; box-shadow: none; border-radius: 2px; }
-body[data-art="excel"] .win-controls button:hover { background: #e9f5ee; }
+/* ── Win chrome ── */
+body[data-art="excel"] .win { background: #f6f6f4; border-color: #c8c8c8; box-shadow: none; border-radius: 0; }
+body[data-art="excel"] .win-title { background: linear-gradient(90deg, #185c37 0%, #217346 100%); height: 22px; border-radius: 0; font-size: 11px; }
+body[data-art="excel"] .win-controls button { background: #f6f6f4; border-color: #c8c8c8; box-shadow: none; border-radius: 0; }
 body[data-art="excel"] .win-body { background: #f6f6f4; }
 
-/* Dock */
-body[data-art="excel"] .dock { background: #185c37; border-top: 1px solid #0f3d22; box-shadow: none; }
-body[data-art="excel"] .dock .start { background: #217346; color: #fff; border: 1px solid #185c37; box-shadow: none; font-family: 'Segoe UI', sans-serif; }
+/* ── Chat header → Excel ribbon strip ── */
+body[data-art="excel"] .chat-header {
+  background: #f6f6f4;
+  border-bottom: 2px solid #217346;
+  padding: 4px 8px !important;
+  flex-shrink: 0;
+}
+
+/* ── Dock → Excel sheet tab bar ── */
+body[data-art="excel"] .dock {
+  background: #f5f5f3;
+  border-top: 1px solid #d0d0d0;
+  box-shadow: none;
+}
+body[data-art="excel"] .dock .start {
+  background: #217346; color: #fff;
+  border: 1px solid #185c37; border-bottom: none;
+  box-shadow: none; border-radius: 2px 2px 0 0;
+  font-family: 'Segoe UI', sans-serif; font-size: 11px;
+}
 body[data-art="excel"] .dock .start:hover { background: #2a9159; }
 body[data-art="excel"] .dock .start.active { background: #185c37; }
-body[data-art="excel"] .dock .clock { background: #185c37; color: #fff; border-color: #0f3d22; box-shadow: none; }
-body[data-art="excel"] .dock .tray { background: #185c37; color: #fff; border-color: #0f3d22; box-shadow: none; }
-body[data-art="excel"] .dock-tab { background: #f6f6f4; border-color: #c8c8c8; color: #1a1a1a; box-shadow: none; border-radius: 2px 2px 0 0; }
-body[data-art="excel"] .dock-tab.active { background: #217346; color: #fff; border-color: #185c37; }
+body[data-art="excel"] .dock .clock {
+  background: #f5f5f3; color: #6b6b6b;
+  border: none; box-shadow: none;
+  font-family: var(--font-mono); font-size: 11px;
+}
+body[data-art="excel"] .dock .tray {
+  background: #f5f5f3; color: #6b6b6b;
+  border: none; box-shadow: none;
+}
+body[data-art="excel"] .dock-tab {
+  background: #ededeb; border: 1px solid #d0d0d0; border-bottom: none;
+  color: #6b6b6b; border-radius: 2px 2px 0 0; box-shadow: none;
+  font-family: 'Segoe UI', sans-serif; font-size: 11px;
+}
+body[data-art="excel"] .dock-tab.active {
+  background: #fff; color: #185c37; border-color: #217346; border-bottom-color: #fff;
+  font-weight: 700; box-shadow: 0 -2px 0 #217346 inset;
+}
 
-/* Buttons */
+/* ── Buttons ── */
 body[data-art="excel"] .btn {
-  background: #f6f6f4;
-  border: 1px solid #c8c8c8;
-  border-radius: 3px;
-  box-shadow: none;
-  font-family: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', sans-serif;
-  color: #1a1a1a;
+  background: #f6f6f4; border: 1px solid #c8c8c8; border-radius: 2px;
+  box-shadow: none; font-family: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', sans-serif; color: #1a1a1a;
 }
 body[data-art="excel"] .btn:hover { background: #e9f5ee; border-color: #217346; }
 body[data-art="excel"] .btn:active { transform: translateY(0.5px); box-shadow: none; padding: 4px 14px; }
@@ -97,89 +132,265 @@ body[data-art="excel"] .btn.primary { background: #217346; color: #fff; border-c
 body[data-art="excel"] .btn.primary::after { display: none; }
 body[data-art="excel"] .btn.primary:hover { background: #2a9159; }
 body[data-art="excel"] .btn.ghost { background: transparent; border-color: transparent; box-shadow: none; }
-body[data-art="excel"] .btn.ghost:hover { background: #e9f5ee; border-color: #c8c8c8; padding: 2px 8px; }
+body[data-art="excel"] .btn.ghost:hover { background: #e9f5ee; border-color: #d0d0d0; padding: 2px 8px; }
 
-/* Inputs */
+/* ── Inputs / fields ── */
 body[data-art="excel"] .field {
-  border-color: #c8c8c8;
-  border-radius: 3px;
-  box-shadow: none;
+  border-color: #c8c8c8; border-radius: 2px; box-shadow: none;
   font-family: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', sans-serif;
 }
-body[data-art="excel"] .field:focus { border-color: #217346; box-shadow: 0 0 0 2px rgba(33,115,69,.15); outline: none; }
-body[data-art="excel"] textarea.field { border-radius: 3px !important; }
-body[data-art="excel"] .composer .field { border-radius: 3px !important; }
+body[data-art="excel"] .field:focus { border-color: #217346; box-shadow: 0 0 0 2px rgba(33,115,69,.12); outline: none; }
 body[data-art="excel"] select.field {
   background:
     linear-gradient(#f6f6f4, #f6f6f4) right 0 top 0 / 18px 100% no-repeat,
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'><path fill='%23217346' d='M0 0h8L4 5z'/></svg>") right 5px center / 8px no-repeat,
     #fff;
+  border-radius: 2px;
 }
 
-/* Chatlog */
+/* ─────────────────────────────────────────────────────────────────
+   CHATLOG → Spreadsheet Grid
+   ───────────────────────────────────────────────────────────────── */
 body[data-art="excel"] .chatlog {
-  background: #ffffff;
-  border-color: #d0d0d0;
-  box-shadow: none;
-  border-radius: 3px;
+  padding: 0;
+  gap: 0;
+  background:
+    linear-gradient(to right, #f3f3f1 114px, #d4d4d4 114px, #d4d4d4 115px, transparent 115px),
+    #ffffff;
+  border: none;
+  font-family: 'Segoe UI', 'Calibri', 'Apple SD Gothic Neo', sans-serif;
+  font-size: 13px;
+  counter-reset: xl-row;
 }
 
-/* Row items */
-body[data-art="excel"] .row { background: #fff; border-color: #d0d0d0; border-radius: 3px; box-shadow: none; }
-body[data-art="excel"] .row:hover { background: #e9f5ee; }
+/* Column header row (sticky at top) */
+body[data-art="excel"] .chatlog::before {
+  content: '';
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 20px;
+  background:
+    linear-gradient(to right, #e8e8e6 114px, #217346 114px, #217346 115px, #e8e8e6 115px),
+    #e8e8e6;
+  border-bottom: 1px solid #217346;
+  flex-shrink: 0;
+}
 
-/* Char cards */
-body[data-art="excel"] .char-card { background: #fff; border-color: #d0d0d0; border-radius: 3px; box-shadow: none; }
-body[data-art="excel"] .char-card:hover { background: #e9f5ee; border-color: #217346; box-shadow: none; }
-body[data-art="excel"] .char-card.selected { background: #217346 !important; color: #fff !important; outline: none !important; }
-body[data-art="excel"] .char-card .pic-wrap { border-color: #d0d0d0; border-radius: 3px; box-shadow: none; }
-body[data-art="excel"] .char-card .pic-wrap > * { border-radius: 2px; }
+/* ── Message sequence → row group ── */
+body[data-art="excel"] .msg-seq {
+  display: block;
+  padding: 0;
+  border-bottom: 1px solid #d4d4d4;
+  animation: none;
+  counter-increment: xl-row;
+}
 
-/* Chat bubbles */
-body[data-art="excel"] .bubble-char { background: #e9f5ee !important; border-color: #217346 !important; border-radius: 3px !important; }
-body[data-art="excel"] .bubble-persona { background: #fff9e6 !important; border-color: #c8a000 !important; border-radius: 3px !important; }
-body[data-art="excel"] .bubble-third { background: #f4f4f4 !important; border-color: #c0c0c0 !important; border-radius: 3px !important; }
-body[data-art="excel"] .bubble-author { background: #fff3e0 !important; border-color: #e67e00 !important; border-radius: 3px !important; }
-body[data-art="excel"] .bubble-char.thought-bubble { background: #f5fbf8 !important; border-color: #a8d4b8 !important; }
-body[data-art="excel"] .bubble-persona.thought-bubble { background: #fffbf0 !important; border-color: #e0c868 !important; }
+/* Row number via ::before */
+body[data-art="excel"] .msg-seq::before {
+  display: none; /* handled by seq-speaker area */
+}
 
-/* Novel styles */
-body[data-art="excel"] .novel-speaker-char { color: #185c37 !important; }
+/* ── seq-block → spreadsheet row (speaker col | content col) ── */
+body[data-art="excel"] .seq-block {
+  display: grid !important;
+  grid-template-columns: 115px 1fr;
+  max-width: 100%;
+  align-self: stretch;
+  min-height: 24px;
+  border-bottom: 1px solid #ebebeb;
+}
+body[data-art="excel"] .seq-block:last-child { border-bottom: none; }
+
+body[data-art="excel"] .seq-block.seq-left  { align-self: stretch; }
+body[data-art="excel"] .seq-block.seq-right { align-self: stretch; align-items: flex-start; background: #eaf5ef; }
+body[data-art="excel"] .seq-block.seq-center {
+  grid-template-columns: 1fr;
+  background: repeating-linear-gradient(45deg, rgba(33,115,69,.03) 0 8px, transparent 8px 16px);
+}
+
+/* ── Speaker column ── */
+body[data-art="excel"] .seq-speaker {
+  padding: 5px 8px;
+  border-right: 1px solid #d4d4d4;
+  background: #f3f3f1;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5f6368;
+  display: flex;
+  align-items: flex-start;
+  margin: 0;
+  min-width: 0;
+  word-break: break-all;
+}
+body[data-art="excel"] .seq-block.seq-right .seq-speaker {
+  background: #d6ecdf;
+  color: #185c37;
+}
+
+/* ── Bubble → content cell ── */
+body[data-art="excel"] .bubble,
+body[data-art="excel"] .bubble-char,
+body[data-art="excel"] .bubble-persona,
+body[data-art="excel"] .bubble-third,
+body[data-art="excel"] .bubble-author {
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 5px 10px !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  color: #1a1a1a !important;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+body[data-art="excel"] .seq-block.seq-right .bubble,
+body[data-art="excel"] .seq-block.seq-right .bubble-persona,
+body[data-art="excel"] .seq-block.seq-right .bubble-author {
+  background: transparent !important;
+  color: #1a1a1a !important;
+}
+body[data-art="excel"] .bubble.thought-bubble,
+body[data-art="excel"] .bubble-char.thought-bubble,
+body[data-art="excel"] .bubble-persona.thought-bubble {
+  color: #6b6b6b !important;
+  font-style: italic;
+}
+
+/* ── Narration row ── */
+body[data-art="excel"] .seq-narration {
+  padding: 5px 16px;
+  font-size: 12px;
+  color: #6b6b6b;
+  font-style: italic;
+  text-align: center;
+  line-height: 1.65;
+}
+body[data-art="excel"] .seq-narration::before { content: '▸ '; opacity: .5; font-style: normal; }
+
+/* Novel-specific speaker colors */
+body[data-art="excel"] .novel-speaker-char  { color: #185c37 !important; }
 body[data-art="excel"] .novel-speaker-persona { color: #996600 !important; }
-body[data-art="excel"] .novel-direction { background: #f8f8f8 !important; border-color: #d0d0d0 !important; }
+body[data-art="excel"] .novel-direction { background: #f8f8f8 !important; border-color: #d0d0d0 !important; border-radius: 0 !important; }
 body[data-art="excel"] .novel-direction-label { color: #6b6b6b !important; }
 
-/* AI pill */
-body[data-art="excel"] .ai-pill { background: #f6f6f4; border-color: #c8c8c8; box-shadow: none; border-radius: 3px; }
+/* ── Composer → Excel formula bar ── */
+body[data-art="excel"] .composer {
+  background: #f6f6f4;
+  border-top: 2px solid #217346;
+  padding: 3px 8px;
+  gap: 4px;
+  align-items: center;
+  position: relative;
+}
+body[data-art="excel"] .composer::before {
+  content: 'fx';
+  font-style: italic;
+  font-size: 13px;
+  color: #6b6b6b;
+  padding: 0 8px 0 2px;
+  border-right: 1px solid #d0d0d0;
+  font-family: 'Times New Roman', 'Georgia', serif;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+body[data-art="excel"] .composer .field {
+  border: 1px solid #d0d0d0;
+  border-radius: 1px !important;
+  background: #ffffff;
+  height: 26px;
+  padding: 3px 8px;
+  font-family: 'Segoe UI', 'Calibri', sans-serif;
+  font-size: 13px;
+}
+body[data-art="excel"] .composer textarea.field {
+  field-sizing: content;
+  min-height: 26px;
+  max-height: 100px;
+  border-radius: 1px !important;
+}
+body[data-art="excel"] .composer .field:focus { border-color: #217346; box-shadow: none; }
+body[data-art="excel"] .composer .btn.primary {
+  background: #217346; color: #fff; border-color: #185c37;
+  border-radius: 2px; padding: 2px 14px; height: 26px;
+  font-family: 'Segoe UI', sans-serif; font-size: 12px;
+}
+body[data-art="excel"] .composer .btn.ghost {
+  border-radius: 2px; width: 28px; height: 28px; font-size: 16px;
+}
+
+/* ── Selected row highlight (active message) ── */
+body[data-art="excel"] .msg-seq.active .seq-block {
+  box-shadow: inset 0 0 0 2px #107c41;
+}
+
+/* ── Row items (chat list) ── */
+body[data-art="excel"] .row { background: #fff; border: 1px solid #d0d0d0; border-radius: 0; box-shadow: none; }
+body[data-art="excel"] .row:hover { background: #e9f5ee; }
+
+/* ── Char grid → Excel tile grid ── */
+body[data-art="excel"] .char-grid { background: #fff; gap: 1px; background-color: #d0d0d0; }
+body[data-art="excel"] .char-card {
+  background: #fff; border: none; border-radius: 0; box-shadow: none;
+  transition: background .12s;
+}
+body[data-art="excel"] .char-card:hover { background: #e9f5ee; }
+body[data-art="excel"] .char-card.selected {
+  background: #217346 !important; color: #fff !important; outline: none !important;
+}
+body[data-art="excel"] .char-card.selected h4,
+body[data-art="excel"] .char-card.selected p { color: #fff; }
+body[data-art="excel"] .char-card.selected::after { background: #185c37; border-radius: 0; }
+body[data-art="excel"] .char-card .pic-wrap {
+  border: none; border-radius: 2px; background: #d4e8db;
+  padding: 2px; background-image: linear-gradient(135deg, #217346, #2a9159);
+}
+body[data-art="excel"] .char-card .pic-wrap > * { border-radius: 1px; background: #fff; }
+
+/* ── Mode badge ── */
+body[data-art="excel"] .mode-badge {
+  background: #e9f5ee; color: #185c37;
+  border: 1px solid #217346; border-radius: 2px;
+  font-family: 'Segoe UI', sans-serif; font-size: 10px;
+}
+
+/* ── AI pill ── */
+body[data-art="excel"] .ai-pill {
+  background: #f6f6f4; border: 1px solid #c8c8c8; border-radius: 2px; box-shadow: none;
+}
 body[data-art="excel"] .ai-pill .dot { background: #217346; border-color: #185c37; box-shadow: none; }
 
-/* Mode badge */
-body[data-art="excel"] .mode-badge { background: #e9f5ee; color: #185c37; border: 1px solid #217346; border-radius: 3px; font-family: 'Segoe UI', sans-serif; }
-
-/* Param slider */
+/* ── Param slider ── */
 body[data-art="excel"] .param-slider { accent-color: #217346; }
 
-/* Msg action buttons */
+/* ── Msg action buttons ── */
+body[data-art="excel"] .msg-action-btn {
+  border-radius: 2px; font-family: 'Segoe UI', sans-serif; font-size: 11px;
+}
 body[data-art="excel"] .msg-action-btn:hover { color: #185c37 !important; border-color: #217346 !important; background: #e9f5ee !important; }
 
-/* Persona / AI model selection */
+/* ── Tag/selection ── */
+body[data-art="excel"] .tag-selected { background: #217346 !important; border-color: #185c37 !important; color: #fff !important; }
 body[data-art="excel"] .persona-option.selected,
 body[data-art="excel"] .ai-model-option.selected { outline: 2px solid #217346 !important; background: #e9f5ee !important; }
 
-/* Tag selected */
-body[data-art="excel"] .tag-selected { background: #217346 !important; border-color: #185c37 !important; color: #fff !important; }
-
-/* Input focus override */
-body[data-art="excel"] .field:focus { border-color: #217346 !important; }
-
-/* Char preview bar */
+/* ── Char preview bar ── */
 body[data-art="excel"] .char-preview-bar { border: 1px solid #c8c8c8 !important; background: #f6f6f4 !important; box-shadow: none; }
 
-/* Menubar */
+/* ── Menubar ── */
 body[data-art="excel"] .menubar { background: #f6f6f4; border-bottom-color: #d0d0d0; }
 body[data-art="excel"] .menubar .mi:hover { background: #217346; }
 
-/* Thin modern scrollbars */
+/* ── Start menu ── */
+body[data-art="excel"] .start-menu {
+  background: #f6f6f4; border: 1px solid #c8c8c8; border-radius: 2px; box-shadow: 2px 4px 10px rgba(0,0,0,.2);
+}
+body[data-art="excel"] .start-menu-item { font-family: 'Segoe UI', sans-serif; color: #1a1a1a; border-radius: 1px; }
+body[data-art="excel"] .start-menu-item:hover { background: #217346; color: #fff; }
+body[data-art="excel"] .start-menu-divider { background: #d0d0d0; box-shadow: none; }
+
+/* ── Scrollbars (thin modern) ── */
 body[data-art="excel"] .win-body ::-webkit-scrollbar,
 body[data-art="excel"] .chatlog::-webkit-scrollbar,
 body[data-art="excel"] .char-grid::-webkit-scrollbar,
@@ -200,24 +411,3 @@ body[data-art="excel"] .win-body ::-webkit-scrollbar-button,
 body[data-art="excel"] .chatlog::-webkit-scrollbar-button,
 body[data-art="excel"] .char-grid::-webkit-scrollbar-button,
 body[data-art="excel"] .scroll::-webkit-scrollbar-button { display: none; }
-
-/* Seq-right bubble (user) */
-body[data-art="excel"] .seq-block.seq-right .bubble {
-  background: linear-gradient(180deg, #2a9159 0%, #185c37 100%) !important;
-  border-color: #185c37 !important;
-  color: #fff !important;
-}
-
-/* Start menu */
-body[data-art="excel"] .start-menu { background: #f6f6f4; border: 1px solid #c8c8c8; border-radius: 3px; box-shadow: 2px 2px 6px rgba(0,0,0,.2); }
-body[data-art="excel"] .start-menu-item { font-family: 'Segoe UI', sans-serif; color: #1a1a1a; border-radius: 2px; }
-body[data-art="excel"] .start-menu-item:hover { background: #217346; color: #fff; }
-body[data-art="excel"] .start-menu-divider { background: #d0d0d0; box-shadow: none; }
-
-@media (min-width: 900px) {
-  body[data-art="excel"] .shell {
-    border-color: #c8c8c8;
-    box-shadow: 0 8px 32px rgba(0,0,0,.15);
-    border-radius: 4px;
-  }
-}
