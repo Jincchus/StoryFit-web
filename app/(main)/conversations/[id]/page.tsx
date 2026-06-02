@@ -620,7 +620,7 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
-            <AiPill modelId={model} onChange={handleModelChange} />
+            {/* <AiPill modelId={model} onChange={handleModelChange} /> */}
             {isStory && conv.inventoryEnabled && (
               <button
                 className={`btn ${showInventory ? 'primary' : 'ghost'}`}
