@@ -682,15 +682,23 @@ export default function ChatPage() {
             {branches.map(b => {
               const isCurrent = b.id === params.id
               return (
-                <button
+                <div
                   key={b.id}
                   className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
-                  style={{ fontSize: 10, padding: '2px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                  style={{ fontSize: 10, padding: '2px 4px 2px 8px', flexShrink: 0, whiteSpace: 'nowrap',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    cursor: isCurrent ? 'default' : 'pointer' }}
                   title={b.branchDescription || undefined}
                   onClick={() => !isCurrent && router.push(`/conversations/${b.id}`)}
                 >
-                  v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}
-                </button>
+                  <span>v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}</span>
+                  <span
+                    role="button"
+                    aria-label={`v${b.version} 분기 삭제`}
+                    onClick={e => { e.stopPropagation(); handleDeleteBranch(b) }}
+                    style={{ opacity: 0.55, padding: '0 2px', cursor: 'pointer' }}
+                  >✕</span>
+                </div>
               )
             })}
           </div>
