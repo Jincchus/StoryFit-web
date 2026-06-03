@@ -509,13 +509,18 @@ export default function ChatPage() {
     debouncedPatch('coreMemory', value)
   }
 
+  // 승격 API가 이미 서버에 저장한 값 → 로컬 state만 갱신(디바운스 patch 안 함)
+  const applyServerCoreMemory = (value: string) => {
+    setConv(c => c ? { ...c, coreMemory: value } : c)
+  }
+
   // handleCoreMemory 이후에 메모리 훅 초기화
   const {
-    memories, memoryError,
+    memories, memoryError, promoting,
     selectedMemoryIds, expandedPromotedIds,
     handleDeleteMemory, handlePromoteMemories,
     toggleMemorySelect, toggleExpandPromoted,
-  } = useMemoryPanel(params.id, setToast, handleCoreMemory, conv?.coreMemory ?? '')
+  } = useMemoryPanel(params.id, setToast, applyServerCoreMemory)
 
   const handleStatusTimeline = (value: string) => {
     setConv(c => c ? { ...c, statusTimeline: value } : c)
@@ -1317,8 +1322,11 @@ export default function ChatPage() {
                   <button
                     className="btn primary"
                     style={{ fontSize: 10, padding: '3px 8px', width: '100%', marginBottom: 6 }}
+                    disabled={promoting}
                     onClick={handlePromoteMemories}
-                  >↑ 선택한 항목 핵심 메모리로 올리기 ({selectedMemoryIds.size})</button>
+                  >{promoting
+                    ? (selectedMemoryIds.size > 1 ? '요약해서 올리는 중...' : '올리는 중...')
+                    : `↑ 선택한 항목 핵심 메모리로 올리기 (${selectedMemoryIds.size})`}</button>
                 )}
                 {memoryError && (
                   <div className="tiny" style={{ color: '#ff6b8a', marginBottom: 4 }}>⚠ 메모리 로드 실패</div>
@@ -1328,7 +1336,7 @@ export default function ChatPage() {
                 ) : (
                   memories.map((mem, i) => {
                     const checked = selectedMemoryIds.has(mem.id)
-                    const isPromoted = !!conv?.coreMemory && conv.coreMemory.includes(mem.summary)
+                    const isPromoted = mem.promoted
                     const isExpanded = expandedPromotedIds.has(mem.id)
                     return (
                       <div
