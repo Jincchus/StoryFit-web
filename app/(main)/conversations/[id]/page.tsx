@@ -240,9 +240,28 @@ export default function ChatPage() {
     return () => document.removeEventListener('visibilitychange', onVisChange)
   }, [loadConv, params.id])
 
-  useEffect(() => {
+  const loadBranches = useCallback(() => {
     api.get(`/api/conversations/${params.id}/branches`).then(setBranches).catch(() => {})
   }, [params.id])
+
+  useEffect(() => { loadBranches() }, [loadBranches])
+
+  const handleDeleteBranch = async (b: BranchInfo) => {
+    if (!window.confirm(`v${b.version} 분기를 삭제할까요? 이 분기의 모든 메시지가 사라지며 되돌릴 수 없습니다.`)) return
+    const isCurrent = b.id === params.id
+    const fallback = branches.find(x => x.id !== b.id) // 삭제 후 남을 분기(스위처는 2개+일 때만 보이므로 항상 존재)
+    try {
+      await api.delete(`/api/conversations/${b.id}`)
+      if (isCurrent) {
+        if (fallback) router.push(`/conversations/${fallback.id}`)
+        else router.push('/chatlist')
+      } else {
+        loadBranches()
+      }
+    } catch {
+      setToast('분기 삭제에 실패했습니다')
+    }
+  }
 
   useEffect(() => {
     api.get('/api/characters').then(setAllChars).catch(() => {})
