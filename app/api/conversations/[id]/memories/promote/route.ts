@@ -22,8 +22,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
   }
 
-  const { memoryIds } = await req.json()
-  if (!Array.isArray(memoryIds) || memoryIds.length === 0) {
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
+  }
+  const memoryIds = (body as { memoryIds?: unknown })?.memoryIds
+  if (!Array.isArray(memoryIds) || memoryIds.length === 0 || memoryIds.length > 20
+      || !memoryIds.every((id) => typeof id === 'string')) {
     return NextResponse.json({ error: 'memoryIds가 필요합니다.' }, { status: 400 })
   }
 
@@ -35,14 +42,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: '메모리를 찾을 수 없습니다.' }, { status: 404 })
   }
 
-  const firstChar = conv.characters[0]?.character
-  const characterContext = firstChar
-    ? [firstChar.tags?.join(', '), firstChar.additionalInfo].filter(Boolean).join('\n')
-    : ''
-
-  const condensed = memories.length === 1
-    ? memories[0].summary
-    : await condenseForCoreMemory(memories.map(m => m.summary), conv.coreMemory, characterContext)
+  let condensed: string
+  if (memories.length === 1) {
+    condensed = memories[0].summary
+  } else {
+    const firstChar = conv.characters[0]?.character
+    const characterContext = firstChar
+      ? [firstChar.tags?.join(', '), firstChar.additionalInfo].filter(Boolean).join('\n')
+      : ''
+    condensed = await condenseForCoreMemory(memories.map(m => m.summary), conv.coreMemory, characterContext)
+  }
 
   const existing = conv.coreMemory.trim()
   const newCoreMemory = existing ? existing + '\n\n' + condensed : condensed

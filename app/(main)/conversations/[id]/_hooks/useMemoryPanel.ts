@@ -33,7 +33,8 @@ export function useMemoryPanel(
     try {
       const res = await api.post(`/api/conversations/${convId}/memories/promote`, { memoryIds: ids })
       applyCoreMemory(res.coreMemory)
-      setMemories(prev => prev.map(m => ids.includes(m.id) ? { ...m, promoted: true } : m))
+      const promotedIds: string[] = res.promotedIds ?? ids
+      setMemories(prev => prev.map(m => promotedIds.includes(m.id) ? { ...m, promoted: true } : m))
       setSelectedMemoryIds(new Set())
       setToast('핵심 메모리에 추가됐습니다')
     } catch {
