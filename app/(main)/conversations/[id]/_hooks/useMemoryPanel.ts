@@ -2,18 +2,18 @@
 import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 
-interface MemoryEntry { id: string; summary: string; createdAt: string }
+interface MemoryEntry { id: string; summary: string; createdAt: string; promoted: boolean }
 
 export function useMemoryPanel(
   convId: string,
   setToast: (msg: string) => void,
-  handleCoreMemory: (value: string) => void,
-  coreMemory: string,
+  applyCoreMemory: (value: string) => void,
 ) {
   const [memories, setMemories] = useState<MemoryEntry[]>([])
   const [selectedMemoryIds, setSelectedMemoryIds] = useState<Set<string>>(new Set())
   const [expandedPromotedIds, setExpandedPromotedIds] = useState<Set<string>>(new Set())
   const [memoryError, setMemoryError] = useState(false)
+  const [promoting, setPromoting] = useState(false)
 
   useEffect(() => {
     api.get(`/api/conversations/${convId}/memories`).then(setMemories).catch(() => setMemoryError(true))
@@ -27,13 +27,20 @@ export function useMemoryPanel(
   }
 
   const handlePromoteMemories = async () => {
-    const selected = memories.filter(m => selectedMemoryIds.has(m.id))
-    if (!selected.length) return
-    const added = selected.map(m => m.summary).join('\n\n')
-    const updated = coreMemory.trim() ? coreMemory.trim() + '\n\n' + added : added
-    handleCoreMemory(updated)
-    setSelectedMemoryIds(new Set())
-    setToast('핵심 메모리에 추가됐습니다')
+    const ids = Array.from(selectedMemoryIds)
+    if (!ids.length || promoting) return
+    setPromoting(true)
+    try {
+      const res = await api.post(`/api/conversations/${convId}/memories/promote`, { memoryIds: ids })
+      applyCoreMemory(res.coreMemory)
+      setMemories(prev => prev.map(m => ids.includes(m.id) ? { ...m, promoted: true } : m))
+      setSelectedMemoryIds(new Set())
+      setToast('핵심 메모리에 추가됐습니다')
+    } catch {
+      setToast('핵심 메모리 추가에 실패했습니다')
+    } finally {
+      setPromoting(false)
+    }
   }
 
   const toggleMemorySelect = (id: string) => {
@@ -53,7 +60,7 @@ export function useMemoryPanel(
   }
 
   return {
-    memories, memoryError,
+    memories, memoryError, promoting,
     selectedMemoryIds, expandedPromotedIds,
     handleDeleteMemory, handlePromoteMemories,
     toggleMemorySelect, toggleExpandPromoted,
