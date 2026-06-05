@@ -240,9 +240,28 @@ export default function ChatPage() {
     return () => document.removeEventListener('visibilitychange', onVisChange)
   }, [loadConv, params.id])
 
-  useEffect(() => {
+  const loadBranches = useCallback(() => {
     api.get(`/api/conversations/${params.id}/branches`).then(setBranches).catch(() => {})
   }, [params.id])
+
+  useEffect(() => { loadBranches() }, [loadBranches])
+
+  const handleDeleteBranch = async (b: BranchInfo) => {
+    if (!window.confirm(`v${b.version} 분기를 삭제할까요? 이 분기의 모든 메시지가 사라지며 되돌릴 수 없습니다.`)) return
+    const isCurrent = b.id === params.id
+    const fallback = branches.find(x => x.id !== b.id) // 삭제 후 남을 분기(스위처는 2개+일 때만 보이므로 항상 존재)
+    try {
+      await api.delete(`/api/conversations/${b.id}`)
+      if (isCurrent) {
+        if (fallback) router.push(`/conversations/${fallback.id}`)
+        else router.push('/chatlist')
+      } else {
+        loadBranches()
+      }
+    } catch {
+      setToast('분기 삭제에 실패했습니다')
+    }
+  }
 
   useEffect(() => {
     api.get('/api/characters').then(setAllChars).catch(() => {})
@@ -386,18 +405,6 @@ export default function ChatPage() {
   // useMemoryPanel은 handleCoreMemory 선언 이후에 초기화 (아래 참고)
   // ── /커스텀 훅 ────────────────────────────────────────────────────────
 
-  const handleDeleteBranch = async (branchId: string) => {
-    try {
-      await api.delete(`/api/conversations/${branchId}`)
-      setBranches(prev => prev.filter(b => b.id !== branchId))
-      if (params.id === branchId) {
-        const remaining = branches.filter(b => b.id !== branchId)
-        if (remaining.length > 0) router.push(`/conversations/${remaining[0].id}`)
-        else router.push('/chatlist')
-      }
-    } catch { setToast('분기 삭제에 실패했습니다') }
-  }
-
   const handleCreateBranch = async () => {
     if (!branchTargetMsgId || creatingBranch) return
     setCreatingBranch(true)
@@ -521,13 +528,18 @@ export default function ChatPage() {
     debouncedPatch('coreMemory', value)
   }
 
+  // 승격 API가 이미 서버에 저장한 값 → 로컬 state만 갱신(디바운스 patch 안 함)
+  const applyServerCoreMemory = (value: string) => {
+    setConv(c => c ? { ...c, coreMemory: value } : c)
+  }
+
   // handleCoreMemory 이후에 메모리 훅 초기화
   const {
-    memories, memoryError,
+    memories, memoryError, promoting,
     selectedMemoryIds, expandedPromotedIds,
     handleDeleteMemory, handlePromoteMemories,
     toggleMemorySelect, toggleExpandPromoted,
-  } = useMemoryPanel(params.id, setToast, handleCoreMemory, conv?.coreMemory ?? '')
+  } = useMemoryPanel(params.id, setToast, applyServerCoreMemory)
 
   const handleStatusTimeline = (value: string) => {
     setConv(c => c ? { ...c, statusTimeline: value } : c)
@@ -670,21 +682,22 @@ export default function ChatPage() {
             {branches.map(b => {
               const isCurrent = b.id === params.id
               return (
-                <div key={b.id} className="hstack" style={{ gap: 0, flexShrink: 0 }}>
-                  <button
-                    className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
-                    style={{ fontSize: 10, padding: '2px 8px', whiteSpace: 'nowrap', borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)' }}
-                    title={b.branchDescription || undefined}
-                    onClick={() => !isCurrent && router.push(`/conversations/${b.id}`)}
-                  >
-                    v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}
-                  </button>
-                  <button
-                    className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
-                    style={{ fontSize: 10, padding: '2px 5px', borderLeft: '1px solid rgba(0,0,0,.15)', borderRadius: '0 var(--radius-sm) var(--radius-sm) 0', opacity: 0.7 }}
-                    title="이 분기 삭제"
-                    onClick={e => { e.stopPropagation(); handleDeleteBranch(b.id) }}
-                  >✕</button>
+                <div
+                  key={b.id}
+                  className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
+                  style={{ fontSize: 10, padding: '2px 4px 2px 8px', flexShrink: 0, whiteSpace: 'nowrap',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    cursor: isCurrent ? 'default' : 'pointer' }}
+                  title={b.branchDescription || undefined}
+                  onClick={() => !isCurrent && router.push(`/conversations/${b.id}`)}
+                >
+                  <span>v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}</span>
+                  <span
+                    role="button"
+                    aria-label={`v${b.version} 분기 삭제`}
+                    onClick={e => { e.stopPropagation(); handleDeleteBranch(b) }}
+                    style={{ opacity: 0.55, padding: '0 2px', cursor: 'pointer' }}
+                  >✕</span>
                 </div>
               )
             })}
@@ -1336,8 +1349,11 @@ export default function ChatPage() {
                   <button
                     className="btn primary"
                     style={{ fontSize: 10, padding: '3px 8px', width: '100%', marginBottom: 6 }}
+                    disabled={promoting}
                     onClick={handlePromoteMemories}
-                  >↑ 선택한 항목 핵심 메모리로 올리기 ({selectedMemoryIds.size})</button>
+                  >{promoting
+                    ? (selectedMemoryIds.size > 1 ? '요약해서 올리는 중...' : '올리는 중...')
+                    : `↑ 선택한 항목 핵심 메모리로 올리기 (${selectedMemoryIds.size})`}</button>
                 )}
                 {memoryError && (
                   <div className="tiny" style={{ color: '#ff6b8a', marginBottom: 4 }}>⚠ 메모리 로드 실패</div>
@@ -1347,7 +1363,7 @@ export default function ChatPage() {
                 ) : (
                   memories.map((mem, i) => {
                     const checked = selectedMemoryIds.has(mem.id)
-                    const isPromoted = !!conv?.coreMemory && conv.coreMemory.includes(mem.summary)
+                    const isPromoted = mem.promoted
                     const isExpanded = expandedPromotedIds.has(mem.id)
                     return (
                       <div

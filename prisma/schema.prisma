@@ -186,6 +186,7 @@ model Memory {
   messageRangeEnd    String
   embedding          Unsupported("vector(768)")?
   createdAt          DateTime     @default(now())
+  promoted           Boolean      @default(false)
 
   @@index([conversationId, createdAt])
 }

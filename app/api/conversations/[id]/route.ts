@@ -36,7 +36,49 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const result = await prisma.conversation.deleteMany({ where: { id: params.id, userId } })
-  if (result.count === 0) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
+  const target = await prisma.conversation.findFirst({
+    where: { id: params.id, userId },
+    select: { id: true, rootConversationId: true, isArchived: true, isPinned: true },
+  })
+  if (!target) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
+
+  // 루트(v1)를 삭제할 때 남은 분기가 있으면, 가장 오래된 분기를 새 루트로 승격한다.
+  // 분기는 rootConversationId 문자열로만 묶인 별도 Conversation이므로, 루트만 지우면
+  // 남은 분기들이 고아가 되어 채팅리스트/서재(둘 다 루트 기준)에서 사라진다.
+  if (target.rootConversationId === null) {
+    const children = await prisma.conversation.findMany({
+      where: { userId, rootConversationId: params.id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    })
+    if (children.length > 0) {
+      const [newRoot, ...rest] = children
+      await prisma.$transaction([
+        // 가장 오래된 분기를 새 루트로 승격 (보관/고정 등 표시 위치 계승)
+        prisma.conversation.update({
+          where: { id: newRoot.id },
+          data: {
+            rootConversationId: null,
+            branchFromMessageId: null,
+            branchDescription: '',
+            isArchived: target.isArchived,
+            isPinned: target.isPinned,
+          },
+        }),
+        // 나머지 분기들을 새 루트에 재연결
+        ...(rest.length > 0
+          ? [prisma.conversation.updateMany({
+              where: { userId, id: { in: rest.map(c => c.id) } },
+              data: { rootConversationId: newRoot.id },
+            })]
+          : []),
+        // 기존 루트 삭제 (메시지는 onDelete: Cascade)
+        prisma.conversation.delete({ where: { id: params.id } }),
+      ])
+      return new NextResponse(null, { status: 204 })
+    }
+  }
+
+  await prisma.conversation.delete({ where: { id: params.id } })
   return new NextResponse(null, { status: 204 })
 }
