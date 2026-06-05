@@ -386,6 +386,18 @@ export default function ChatPage() {
   // useMemoryPanel은 handleCoreMemory 선언 이후에 초기화 (아래 참고)
   // ── /커스텀 훅 ────────────────────────────────────────────────────────
 
+  const handleDeleteBranch = async (branchId: string) => {
+    try {
+      await api.delete(`/api/conversations/${branchId}`)
+      setBranches(prev => prev.filter(b => b.id !== branchId))
+      if (params.id === branchId) {
+        const remaining = branches.filter(b => b.id !== branchId)
+        if (remaining.length > 0) router.push(`/conversations/${remaining[0].id}`)
+        else router.push('/chatlist')
+      }
+    } catch { setToast('분기 삭제에 실패했습니다') }
+  }
+
   const handleCreateBranch = async () => {
     if (!branchTargetMsgId || creatingBranch) return
     setCreatingBranch(true)
@@ -658,15 +670,22 @@ export default function ChatPage() {
             {branches.map(b => {
               const isCurrent = b.id === params.id
               return (
-                <button
-                  key={b.id}
-                  className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
-                  style={{ fontSize: 10, padding: '2px 8px', flexShrink: 0, whiteSpace: 'nowrap' }}
-                  title={b.branchDescription || undefined}
-                  onClick={() => !isCurrent && router.push(`/conversations/${b.id}`)}
-                >
-                  v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}
-                </button>
+                <div key={b.id} className="hstack" style={{ gap: 0, flexShrink: 0 }}>
+                  <button
+                    className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
+                    style={{ fontSize: 10, padding: '2px 8px', whiteSpace: 'nowrap', borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)' }}
+                    title={b.branchDescription || undefined}
+                    onClick={() => !isCurrent && router.push(`/conversations/${b.id}`)}
+                  >
+                    v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}
+                  </button>
+                  <button
+                    className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
+                    style={{ fontSize: 10, padding: '2px 5px', borderLeft: '1px solid rgba(0,0,0,.15)', borderRadius: '0 var(--radius-sm) var(--radius-sm) 0', opacity: 0.7 }}
+                    title="이 분기 삭제"
+                    onClick={e => { e.stopPropagation(); handleDeleteBranch(b.id) }}
+                  >✕</button>
+                </div>
               )
             })}
           </div>
