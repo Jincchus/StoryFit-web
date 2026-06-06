@@ -2,14 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/adminAuth'
 
-const RECOVER_SECRET = process.env.RECOVER_SECRET
-
 export async function POST(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret')
-  if (!RECOVER_SECRET || secret !== RECOVER_SECRET) {
-    const auth = await requireAdmin(req)
-    if (auth instanceof NextResponse) return auth
-  }
+  const auth = await requireAdmin(req)
+  if (auth instanceof NextResponse) return auth
 
   // 브랜치인데 부모 루트가 삭제된 고아 대화 찾기
   const branches = await prisma.conversation.findMany({
