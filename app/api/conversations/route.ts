@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       statsConfig: body.statsConfig ?? null,
       inventoryEnabled: body.inventoryEnabled ?? false,
       inventory: body.inventoryEnabled ? ([] as any) : undefined,
+      styleConfig: body.styleConfig ?? null,
       ...(characterIds.length > 0 ? {
         characters: {
           create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),

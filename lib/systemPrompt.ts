@@ -1,4 +1,4 @@
-import type { Character, LorebookEntry } from '@/types'
+import type { Character, LorebookEntry, StyleConfig } from '@/types'
 
 export const BASE_RULES = `You are a novel-style roleplay AI. Always follow the output format below.
 
@@ -48,6 +48,18 @@ interface BuildSystemPromptParams {
   closingRules?: string
   statsConfig?: { name: string; value: number; min: number; max: number }[]
   inventory?: { name: string; qty: number; description?: string }[]
+  styleConfig?: StyleConfig | null
+}
+
+function buildStyleSection(s: StyleConfig): string {
+  const lines: string[] = []
+  if (s.pov)    lines.push(`- 시점: ${s.pov === '1인칭' ? '1인칭 (캐릭터 자신의 시점으로 서술)' : '3인칭 (외부 관찰자 시점으로 서술)'}`)
+  if (s.tense)  lines.push(`- 시제: ${s.tense}`)
+  if (s.mood)   lines.push(`- 분위기: ${s.mood === '밝음' ? '밝고 따뜻한 톤 유지' : s.mood === '어두움' ? '어둡고 무거운 톤 유지' : '중립적 톤 유지'}`)
+  if (s.style)  lines.push(`- 문체: ${s.style === '문학적' ? '문학적 (비유·묘사 풍부하게)' : s.style === '일상적' ? '일상적 (자연스럽고 간결하게)' : '극적 (긴장감·감정을 강조하게)'}`)
+  if (s.length) lines.push(`- 응답 길이: ${s.length === '짧게' ? '짧게 (핵심만 간결하게)' : s.length === '길게' ? '길게 (묘사와 대화를 충분히)' : '보통'}`)
+  if (s.pace)   lines.push(`- 전개 속도: ${s.pace === '빠름' ? '빠르게 (장면 전환을 신속하게)' : s.pace === '느림' ? '느리게 (감정과 분위기를 천천히)' : '보통'}`)
+  return lines.length > 0 ? `[스타일 지시]\n${lines.join('\n')}` : ''
 }
 
 export const NOVEL_BASE_RULES = `You are a novelist. Always follow the output format below:
@@ -98,12 +110,14 @@ export function buildSystemPrompt({
   modeRules,
   personalRules,
   closingRules,
+  styleConfig,
 }: BuildSystemPromptParams): string {
   const parts: string[] = []
 
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
   if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
   parts.push(BASE_RULES)
+  if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
   if (modeRules?.trim()) parts.push(`[롤플레이 추가 규칙]\n${modeRules}`)
 
   if (personaCharacter) {
@@ -136,6 +150,7 @@ export function buildNovelSystemPrompt({
   modeRules,
   personalRules,
   closingRules,
+  styleConfig,
 }: BuildSystemPromptParams): string {
   const personaName = personaCharacter?.name ?? '주인공'
   const characterName = character.name
@@ -146,6 +161,7 @@ export function buildNovelSystemPrompt({
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
   if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
   parts.push(novelBase)
+  if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
   if (modeRules?.trim()) parts.push(`[소설 추가 규칙]\n${modeRules}`)
 
   if (personaCharacter) {
@@ -211,6 +227,7 @@ export function buildStorySystemPrompt({
   closingRules,
   statsConfig,
   inventory,
+  styleConfig,
 }: BuildSystemPromptParams): string {
   const personaName = personaCharacter?.name ?? '유저'
   const parts: string[] = []
@@ -218,6 +235,7 @@ export function buildStorySystemPrompt({
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
   if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
   parts.push(buildStoryBaseRules(character.name, personaName))
+  if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
   if (modeRules?.trim()) parts.push(`[스토리 추가 규칙]\n${modeRules}`)
 
   if (personaCharacter) {

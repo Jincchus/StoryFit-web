@@ -87,6 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       : conv.mode === 'story'
         ? (userRecord?.personalRulesStory ?? '')
         : (userRecord?.personalRules ?? ''),
+    styleConfig: conv.styleConfig ?? null,
   }
   const freshConv = conv.mode === 'story'
     ? await prisma.conversation.findUnique({ where: { id: params.id }, select: { statsConfig: true, inventory: true } })

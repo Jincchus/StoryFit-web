@@ -90,6 +90,7 @@ interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
   inventoryEnabled: boolean; inventory: { name: string; qty: number; description?: string }[] | null
+  styleConfig?: Record<string, string | null> | null
   characters: ConvChar[]
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
   messages: Msg[]
@@ -111,7 +112,7 @@ export default function ChatPage() {
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
-  const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false })
+  const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false, style: false })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
@@ -549,6 +550,12 @@ export default function ChatPage() {
   const handleScenarioDescription = (value: string) => {
     setConv(c => c ? { ...c, scenarioDescription: value } : c)
     debouncedPatch('scenarioDescription', value)
+  }
+
+  const handleStyleConfig = (key: string, val: string) => {
+    const next = { ...(conv?.styleConfig ?? {}), [key]: conv?.styleConfig?.[key] === val ? null : val }
+    setConv(c => c ? { ...c, styleConfig: next } : c)
+    api.patch(`/api/conversations/${params.id}`, { styleConfig: next }).catch(() => {})
   }
 
   const handleBranchDescription = (value: string) => {
@@ -1218,6 +1225,40 @@ export default function ChatPage() {
                   value={conv.scenarioDescription}
                   onChange={e => handleScenarioDescription(e.target.value)}
                 />
+              </div>
+
+              <div className="side-section">
+                <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, style: !o.style }))}>
+                  <span>🎨 스타일 설정</span>
+                  <span className={`acc-arrow ${panelOpen.style ? 'open' : ''}`}>▼</span>
+                </button>
+                {panelOpen.style && (
+                  <div className="vstack" style={{ gap: 6, marginTop: 6 }}>
+                    <div className="tiny muted" style={{ marginBottom: 2 }}>버튼을 다시 누르면 해제됩니다.</div>
+                    {([
+                      { key: 'pov',    label: '시점',     opts: ['1인칭', '3인칭'] },
+                      { key: 'tense',  label: '시제',     opts: ['현재형', '과거형'] },
+                      { key: 'mood',   label: '분위기',   opts: ['밝음', '중립', '어두움'] },
+                      { key: 'style',  label: '문체',     opts: ['문학적', '일상적', '극적'] },
+                      { key: 'length', label: '응답 길이', opts: ['짧게', '보통', '길게'] },
+                      { key: 'pace',   label: '전개 속도', opts: ['빠름', '보통', '느림'] },
+                    ] as const).map(({ key, label, opts }) => (
+                      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, width: 54, flexShrink: 0 }}>{label}</span>
+                        <div className="hstack" style={{ gap: 3, flexWrap: 'wrap' }}>
+                          {opts.map(opt => (
+                            <button
+                              key={opt}
+                              className={`btn ${conv?.styleConfig?.[key] === opt ? 'primary' : 'ghost'}`}
+                              style={{ fontSize: 9, padding: '2px 7px' }}
+                              onClick={() => handleStyleConfig(key, opt)}
+                            >{opt}</button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="side-section">

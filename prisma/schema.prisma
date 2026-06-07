@@ -126,6 +126,7 @@ model Conversation {
   statsConfig         Json?
   inventoryEnabled    Boolean                 @default(false)
   inventory           Json?
+  styleConfig         Json?
   rootConversationId   String?
   branchFromMessageId  String?
   branchDescription    String                  @default("")

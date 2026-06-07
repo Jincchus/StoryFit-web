@@ -1,4 +1,13 @@
 export type SafetyLevel = 'strict' | 'standard' | 'relaxed'
+
+export interface StyleConfig {
+  pov?: '1인칭' | '3인칭' | null
+  tense?: '현재형' | '과거형' | null
+  mood?: '밝음' | '중립' | '어두움' | null
+  style?: '문학적' | '일상적' | '극적' | null
+  length?: '짧게' | '보통' | '길게' | null
+  pace?: '빠름' | '보통' | '느림' | null
+}
 export type StatEntry = { name: string; value: number; min: number; max: number }
 export type InventoryItem = { name: string; qty: number; description?: string }
 export type AIProvider = 'gemini' | 'claude' | 'chatgpt'
