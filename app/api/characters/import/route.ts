@@ -42,7 +42,7 @@ function stripHtml(html: string): string {
 }
 
 function extractLorebookUrls(html: string): { url: string; name: string }[] {
-  const matches = [...html.matchAll(/href="(\/(?:ko|en)\/lorebooks\/[a-f0-9-]+)"[^>]*>([^<]*)</g)]
+  const matches = Array.from(html.matchAll(/href="(\/(?:ko|en)\/lorebooks\/[a-f0-9-]+)"[^>]*>([^<]*)</g))
   const seen = new Set<string>()
   return matches.flatMap(m => {
     const url = `https://zeta-ai.io${m[1]}`
