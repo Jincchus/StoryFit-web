@@ -15,11 +15,13 @@ export interface CharFormData {
   additionalInfo: string
   exampleDialogues: string
   openingMessage: string
+  collectionId?: string | null
 }
 
 interface CharacterFormProps {
   form: CharFormData
   onChange: <K extends keyof CharFormData>(key: K, val: CharFormData[K]) => void
+  collections?: { id: string; title: string }[]
   toast?: string
   onToastDone?: () => void
 }
@@ -41,7 +43,7 @@ function visibleTags(tags: TagEntry[], category: Category, gender: string): TagE
   })
 }
 
-export default function CharacterForm({ form, onChange, toast, onToastDone }: CharacterFormProps) {
+export default function CharacterForm({ form, onChange, collections, toast, onToastDone }: CharacterFormProps) {
   const [namePool, setNamePool] = useState<NameEntry[]>([])
   const [nameCat, setNameCat] = useState<'all' | 'korean' | 'western'>('all')
   const [charTags, setCharTags] = useState<TagEntry[]>([])
@@ -305,6 +307,24 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
             />
           )}
         </div>
+
+        {/* 컬렉션 */}
+        {collections !== undefined && (
+          <div className="form-section">
+            <div className="form-section-title">컬렉션 <span className="tiny muted">(선택)</span></div>
+            <div className="tiny muted" style={{ marginBottom: 6 }}>같은 작품·시리즈 캐릭터끼리 묶어서 관리할 수 있습니다.</div>
+            <select
+              className="field"
+              value={form.collectionId ?? ''}
+              onChange={e => onChange('collectionId', e.target.value || null)}
+            >
+              <option value="">미분류</option>
+              {collections.map(col => (
+                <option key={col.id} value={col.id}>{col.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
       </div>
     </>

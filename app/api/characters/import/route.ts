@@ -53,7 +53,7 @@ function extractLorebookUrls(html: string): { url: string; name: string }[] {
   })
 }
 
-async function importFromZeta(url: string, userId: string) {
+async function importFromZeta(url: string, userId: string, existingCollectionId?: string) {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
   })
@@ -119,9 +119,9 @@ ${text}
   const title = String(parsed.title ?? `${firstName}${rawChars.length > 1 ? ' 외' : ''}와의 대화`).trim().slice(0, 200)
   const isMulti = rawChars.length > 1
 
-  const collection = await prisma.characterCollection.create({
-    data: { title: collectionTitle, sourceUrl: url, userId },
-  })
+  const collection = existingCollectionId
+    ? await prisma.characterCollection.findFirst({ where: { id: existingCollectionId, userId } }) ?? await prisma.characterCollection.create({ data: { title: collectionTitle, sourceUrl: url, userId } })
+    : await prisma.characterCollection.create({ data: { title: collectionTitle, sourceUrl: url, userId } })
 
   const createdChars = await Promise.all(
     rawChars.map((c: any, i: number) =>
@@ -177,12 +177,12 @@ export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const { url } = await req.json()
+  const { url, collectionId } = await req.json()
   if (!url?.trim()) return NextResponse.json({ error: 'URL이 필요합니다.' }, { status: 400 })
 
   if (url.includes('zeta-ai.io')) {
     try {
-      const result = await importFromZeta(url.trim(), userId)
+      const result = await importFromZeta(url.trim(), userId, collectionId ?? undefined)
       return NextResponse.json(result, { status: 201 })
     } catch (e: any) {
       return NextResponse.json({ error: e.message ?? '제타 가져오기 실패' }, { status: 400 })

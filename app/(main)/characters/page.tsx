@@ -30,6 +30,7 @@ export default function CharactersPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [importUrl, setImportUrl] = useState('')
+  const [importCollectionId, setImportCollectionId] = useState<string>('')
   const [collectionFilter, setCollectionFilter] = useState<string>('all')
 
   useEffect(() => {
@@ -41,11 +42,13 @@ export default function CharactersPage() {
     setImporting(true)
     setError('')
     try {
-      const result = await api.post('/api/characters/import', { url: importUrl.trim() })
+      const result = await api.post('/api/characters/import', { url: importUrl.trim(), collectionId: importCollectionId || undefined })
+      const refreshed = await api.get('/api/characters')
+      setCharacters(refreshed)
       const char = result.character ?? result
-      setCharacters(prev => [...prev, char])
       dispatch({ type: 'selectChar', id: char.id })
       setImportUrl('')
+      setImportCollectionId('')
       setShowUrlInput(false)
       if (result.character) {
         if (result.scenarioDescription) sessionStorage.setItem('zeta-import-scenario', result.scenarioDescription)

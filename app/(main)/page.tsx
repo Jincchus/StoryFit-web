@@ -27,12 +27,15 @@ export default function HomePage() {
   const [showGuide, setShowGuide] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [importUrl, setImportUrl] = useState('')
+  const [importCollectionId, setImportCollectionId] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
+  const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
 
   useEffect(() => {
     setIsAdmin(getIsAdmin())
     if (!localStorage.getItem('sf_onboarded')) setShowGuide(true)
+    api.get('/api/collections').then(setCollections).catch(() => {})
   }, [])
 
   const dismissGuide = () => {
@@ -45,8 +48,9 @@ export default function HomePage() {
     setImporting(true)
     setImportError('')
     try {
-      const result = await api.post('/api/characters/import', { url: importUrl.trim() })
+      const result = await api.post('/api/characters/import', { url: importUrl.trim(), collectionId: importCollectionId || undefined })
       setImportUrl('')
+      setImportCollectionId('')
       setShowImport(false)
       router.push(`/conversations/new?from=${result.conversationId}`)
     } catch (e: any) {
@@ -113,6 +117,22 @@ export default function HomePage() {
                 autoFocus
                 disabled={importing}
               />
+              {collections.length > 0 && (
+                <div>
+                  <div className="tiny muted" style={{ marginBottom: 4 }}>컬렉션에 추가 <span style={{ opacity: 0.6 }}>(선택)</span></div>
+                  <select
+                    className="field"
+                    value={importCollectionId}
+                    onChange={e => setImportCollectionId(e.target.value)}
+                    disabled={importing}
+                  >
+                    <option value="">새 컬렉션 자동 생성</option>
+                    {collections.map(col => (
+                      <option key={col.id} value={col.id}>{col.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {importError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {importError}</div>}
               <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
                 <button className="btn ghost" style={{ fontSize: 11 }} onClick={() => { setShowImport(false); setImportError('') }}>취소</button>

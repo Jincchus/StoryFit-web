@@ -14,10 +14,14 @@ export default function CharacterEditPage() {
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
   const [form, setForm] = useState<CharFormData | null>(null)
+  const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
 
   useEffect(() => {
-    api.get(`/api/characters/${id}`)
-      .then((c: any) => setForm({
+    Promise.all([
+      api.get(`/api/characters/${id}`),
+      api.get('/api/collections'),
+    ]).then(([c, cols]) => {
+      setForm({
         name: c.name ?? '',
         gender: c.gender ?? '',
         avatarUrl: c.avatarUrl ?? '',
@@ -25,8 +29,10 @@ export default function CharacterEditPage() {
         additionalInfo: c.additionalInfo ?? '',
         exampleDialogues: c.exampleDialogues ?? '',
         openingMessage: c.openingMessage ?? '',
-      }))
-      .catch((e: any) => setFetchError(e.message))
+        collectionId: c.collection?.id ?? null,
+      })
+      setCollections(Array.isArray(cols) ? cols : [])
+    }).catch((e: any) => setFetchError(e.message))
   }, [id])
 
   if (fetchError) return (
@@ -76,7 +82,7 @@ export default function CharacterEditPage() {
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0, paddingRight: 4 }}>
-          <CharacterForm form={form} onChange={onChange} />
+          <CharacterForm form={form} onChange={onChange} collections={collections} />
         </div>
       </div>
     </Win>
