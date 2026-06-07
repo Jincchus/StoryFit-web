@@ -24,6 +24,7 @@ export default function CharacterEditPage() {
         tags: c.tags ?? [],
         additionalInfo: c.additionalInfo ?? '',
         exampleDialogues: c.exampleDialogues ?? '',
+        openingMessage: c.openingMessage ?? '',
       }))
       .catch((e: any) => setFetchError(e.message))
   }, [id])

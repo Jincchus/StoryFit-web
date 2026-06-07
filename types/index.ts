@@ -15,6 +15,7 @@ export interface Character {
   tags: string[]
   additionalInfo: string
   exampleDialogues: string
+  openingMessage?: string
   safetyLevel: SafetyLevel
   temperature: number
   frequencyPenalty: number

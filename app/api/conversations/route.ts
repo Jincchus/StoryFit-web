@@ -66,5 +66,20 @@ export async function POST(req: NextRequest) {
     },
     include: { characters: { include: { character: true } }, messages: true },
   })
+
+  const firstChar = conversation.characters[0]?.character
+  if (firstChar?.openingMessage?.trim()) {
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: firstChar.openingMessage.trim(),
+        characterId: firstChar.id,
+        isSelected: true,
+        isStreaming: false,
+      },
+    })
+  }
+
   return NextResponse.json(conversation, { status: 201 })
 }

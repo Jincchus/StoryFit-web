@@ -14,6 +14,7 @@ export interface CharFormData {
   tags: string[]
   additionalInfo: string
   exampleDialogues: string
+  openingMessage: string
 }
 
 interface CharacterFormProps {
@@ -269,6 +270,20 @@ export default function CharacterForm({ form, onChange, toast, onToastDone }: Ch
             placeholder={"태그 외 세부 설정을 자유롭게 적어주세요\n예: 왼손잡이다. 절대 반말을 쓰지 않는다. 고어체를 사용한다."}
             value={form.additionalInfo}
             onChange={e => onChange('additionalInfo', e.target.value)}
+          />
+        </div>
+
+        {/* 시작 메시지 */}
+        <div className="form-section">
+          <div className="form-section-title">시작 메시지 <span className="tiny muted">(선택)</span></div>
+          <div className="tiny muted" style={{ marginBottom: 6 }}>
+            대화가 시작될 때 캐릭터가 먼저 보내는 첫 메시지입니다. 비워두면 유저가 먼저 말을 겁니다.
+          </div>
+          <textarea
+            className="field" rows={4}
+            placeholder={`예: *카페 창가 자리에 앉아 창밖을 바라보다 당신을 발견하고 살짝 눈이 마주친다.*\n"...오셨군요. 앉으세요."`}
+            value={form.openingMessage}
+            onChange={e => onChange('openingMessage', e.target.value)}
           />
         </div>
 

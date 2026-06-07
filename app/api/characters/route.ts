@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
   const tags: string[] = Array.isArray(body.tags) ? body.tags.slice(0, 20).map((t: string) => String(t).slice(0, 50)) : []
   const additionalInfo = String(body.additionalInfo ?? '').slice(0, 10000)
   const exampleDialogues = String(body.exampleDialogues ?? '').slice(0, 20000)
+  const openingMessage = String(body.openingMessage ?? '').slice(0, 5000)
 
   const avatarUrl: string | undefined = body.avatarUrl
     ? /^https?:\/\/.{1,2000}/.test(body.avatarUrl) || /^\/api\/uploads\//.test(body.avatarUrl) ? body.avatarUrl : undefined
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
       tags,
       additionalInfo,
       exampleDialogues,
+      openingMessage,
       avatarUrl,
       safetyLevel,
       temperature,

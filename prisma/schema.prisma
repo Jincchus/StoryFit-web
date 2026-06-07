@@ -76,6 +76,7 @@ model Character {
   tags                String[]  @default([])
   additionalInfo      String    @default("")
   exampleDialogues    String    @default("")
+  openingMessage      String    @default("")
   safetyLevel         String    @default("standard")
   temperature         Float     @default(0.9)
   frequencyPenalty    Float     @default(0.3)

@@ -12,7 +12,7 @@ export default function CharacterNewPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState<CharFormData>({
     name: '', gender: '', avatarUrl: '',
-    tags: [], additionalInfo: '', exampleDialogues: '',
+    tags: [], additionalInfo: '', exampleDialogues: '', openingMessage: '',
   })
 
   const onChange = <K extends keyof CharFormData>(key: K, val: CharFormData[K]) =>
