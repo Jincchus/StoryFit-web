@@ -76,36 +76,19 @@ async function importFromZeta(url: string, userId: string, existingCollectionId?
   const lorebookUrls = extractLorebookUrls(html)
   const text = preprocessZetaText(html)
 
-  const systemPrompt = '당신은 웹페이지 텍스트에서 캐릭터 정보를 추출하는 파서입니다. JSON만 반환합니다.'
-  const userPrompt = `아래는 제타(Zeta AI) 롤플레잉 플롯 프로필 페이지의 텍스트입니다.
-등장 캐릭터 정보를 추출해 JSON으로 반환하세요.
+  const systemPrompt = '당신은 텍스트에서 롤플레잉 캐릭터 정보를 추출하는 파서입니다. 반드시 JSON만 반환하세요.'
+  const userPrompt = `아래 텍스트에서 등장하는 모든 캐릭터 정보를 추출해 JSON으로 반환하세요. 캐릭터가 여러 명이면 모두 포함하세요.
 
-중요 규칙:
-- "제타" 또는 "Zeta"는 웹사이트/앱 이름이므로 캐릭터로 취급하지 마세요
-- 캐릭터는 페이지에서 "캐릭터" 섹션 또는 이름/나이/직업 등이 명시된 인물입니다
-- 캐릭터가 여러 명이면 모두 포함하세요
-- tags는 페이지에 # 기호로 표시된 태그에서만 추출하세요 (예: #무뚝뚝 #군인)
-- title은 플롯/작품의 제목 또는 주인공 이름으로, 웹사이트명("제타")은 제외
-- scenarioNote는 줄거리/세계관 설명 전체를 포함하세요
-
-페이지 텍스트:
+텍스트:
 ${text}
 
-반환 형식 (JSON만, 설명 없이):
-{
-  "characters": [
-    {
-      "name": "캐릭터 이름 (제타/Zeta 제외)",
-      "gender": "남성 또는 여성 또는 빈 문자열",
-      "additionalInfo": "나이, 외모, 직업, 성격, 배경 등 모든 설정을 한국어로 자연스럽게 서술",
-      "openingMessage": "인트로/첫 메시지가 있으면 입력, 없으면 빈 문자열",
-      "exampleDialogues": "예시 대화가 있으면 입력, 없으면 빈 문자열"
-    }
-  ],
-  "tags": ["혐관", "전남친"],
-  "scenarioNote": "줄거리/시나리오 설명 전체",
-  "title": "작품 제목 또는 주인공 이름"
-}`
+반환 형식 (마크다운 없이 JSON만):
+{"characters":[{"name":"캐릭터 이름","gender":"남성 또는 여성 또는 빈 문자열","additionalInfo":"나이·외모·직업·성격·배경 등을 자연스럽게 서술","openingMessage":"첫 메시지/인트로가 있으면 입력, 없으면 빈 문자열","exampleDialogues":"예시 대화가 있으면 입력, 없으면 빈 문자열"}],"tags":["태그1","태그2"],"scenarioNote":"줄거리/세계관 설명","title":"작품 제목 또는 주인공 이름"}
+
+규칙:
+- characters 배열에 텍스트에 나오는 모든 캐릭터 포함 (한 명이어도 배열로)
+- tags는 # 기호로 표시된 태그에서 최대 10개, # 없이 문자열만
+- 정보가 없는 필드는 빈 문자열`
 
   let parsed: any
   for (let i = 0; i < 2; i++) {
