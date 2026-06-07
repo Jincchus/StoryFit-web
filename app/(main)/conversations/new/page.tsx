@@ -24,7 +24,7 @@ function NewConversationInner() {
   const [char, setChar] = useState<Character | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<'roleplay' | 'novel' | 'story'>('roleplay')
+  const [mode, setMode] = useState<'roleplay' | 'novel' | 'story' | 'multiStory'>('story')
   const [statsEnabled, setStatsEnabled] = useState(false)
   const [statTagPool, setStatTagPool] = useState<string[]>([])
   const [selectedStats, setSelectedStats] = useState<string[]>([])
@@ -155,9 +155,9 @@ function NewConversationInner() {
         frequencyPenalty,
         maxOutputTokens,
         thinkingBudget,
-        statsEnabled: mode === 'story' && statsEnabled && selectedStats.length > 0,
+        statsEnabled: (mode === 'story' || mode === 'multiStory') && statsEnabled && selectedStats.length > 0,
         statsConfig,
-        inventoryEnabled: mode === 'story' && inventoryEnabled,
+        inventoryEnabled: (mode === 'story' || mode === 'multiStory') && inventoryEnabled,
         styleConfig: Object.values(styleConfig).some(Boolean) ? styleConfig : null,
       })
       router.push(`/conversations/${conv.id}`)
@@ -317,23 +317,16 @@ function NewConversationInner() {
             <section className="new-conv-section">
               <div className="label">대화 모드</div>
               <div className="hstack" style={{ gap: 8 }}>
-                {(['roleplay', 'novel', 'story'] as const).map(m => (
-                  <button
-                    key={m}
-                    className={`btn ${mode === m ? 'primary' : 'ghost'}`}
-                    onClick={() => setMode(m)}
-                    style={{ fontSize: 11 }}
-                  >
-                    {m === 'roleplay' ? '⚔ 롤플레이' : m === 'novel' ? '✍ 소설' : '📖 스토리'}
-                  </button>
-                ))}
+                {/* <button className={`btn ${mode === 'roleplay' ? 'primary' : 'ghost'}`} onClick={() => setMode('roleplay')} style={{ fontSize: 11 }}>⚔ 롤플레이</button> */}
+                {/* <button className={`btn ${mode === 'novel' ? 'primary' : 'ghost'}`} onClick={() => setMode('novel')} style={{ fontSize: 11 }}>✍ 소설</button> */}
+                <button className={`btn ${mode === 'story' ? 'primary' : 'ghost'}`} onClick={() => setMode('story')} style={{ fontSize: 11 }}>📖 스토리</button>
+                <button className={`btn ${mode === 'multiStory' ? 'primary' : 'ghost'}`} onClick={() => setMode('multiStory')} style={{ fontSize: 11 }}>👥 멀티스토리</button>
               </div>
               <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
-                {mode === 'roleplay' && '나 ↔ 캐릭터 1:1 대화 형식'}
-                {mode === 'novel' && '작가 시점 — 장면을 지시하면 AI가 나와 캐릭터가 함께 등장하는 장면을 써줍니다'}
                 {mode === 'story' && '선택지 기반 인터랙티브 스토리 — AI가 장면을 쓰고 선택지를 제시합니다'}
+                {mode === 'multiStory' && '다인 캐릭터 스토리 — 여러 캐릭터가 자연스럽게 상호작용하며 선택지를 제시합니다'}
               </div>
-              {mode === 'story' && (
+              {(mode === 'story' || mode === 'multiStory') && (
                 <div className="vstack" style={{ gap: 6, marginTop: 8, padding: '8px 10px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>
                   <div className="spread" style={{ alignItems: 'center' }}>
                     <div className="tiny" style={{ fontWeight: 700 }}>관계·능력치 스탯</div>
@@ -374,7 +367,7 @@ function NewConversationInner() {
                   )}
                 </div>
               )}
-              {mode === 'story' && (
+              {(mode === 'story' || mode === 'multiStory') && (
                 <div className="vstack" style={{ gap: 6, marginTop: 6, padding: '8px 10px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>
                   <div className="spread" style={{ alignItems: 'center' }}>
                     <div className="tiny" style={{ fontWeight: 700 }}>🎒 인벤토리 (아이템 파밍)</div>

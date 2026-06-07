@@ -30,7 +30,8 @@ function previewText(content: string): string {
 const MODE_LABEL: Record<string, string> = {
   roleplay: '⚔ 롤플레이',
   novel: '✍ 소설',
-  tikiTaka: '⟳ 티키타카',
+  tikiTaka: '👥 멀티스토리',
+  multiStory: '👥 멀티스토리',
   story: '📖 스토리',
 }
 

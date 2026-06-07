@@ -65,23 +65,29 @@ async function importFromZeta(url: string, userId: string) {
 
   const systemPrompt = '당신은 웹페이지 텍스트에서 캐릭터 정보를 추출하는 파서입니다. JSON만 반환합니다.'
   const userPrompt = `아래는 제타(Zeta AI) 플롯/캐릭터 프로필 페이지의 텍스트입니다.
-첫 번째(또는 주인공) 캐릭터 정보를 추출해 JSON으로 반환하세요.
+모든 등장 캐릭터 정보를 추출해 JSON으로 반환하세요. 캐릭터가 여러 명이면 모두 포함하세요.
 
 페이지 텍스트:
 ${text}
 
 반환 형식 (JSON만, 설명 없이):
 {
-  "name": "캐릭터 이름",
-  "gender": "남성 또는 여성 또는 빈 문자열",
+  "characters": [
+    {
+      "name": "캐릭터 이름",
+      "gender": "남성 또는 여성 또는 빈 문자열",
+      "additionalInfo": "나이, 외모, 직업, 성격, 배경 등 모든 설정을 자연스럽게 정리한 텍스트",
+      "openingMessage": "첫 메시지가 있으면 입력, 없으면 빈 문자열",
+      "exampleDialogues": "예시 대화가 있으면 입력, 없으면 빈 문자열"
+    }
+  ],
   "tags": ["태그1", "태그2"],
-  "additionalInfo": "나이, 외모, 직업, 성격, 배경 등 모든 설정을 자연스럽게 정리한 텍스트",
-  "openingMessage": "첫 메시지가 있으면 입력, 없으면 빈 문자열",
-  "exampleDialogues": "예시 대화가 있으면 입력, 없으면 빈 문자열",
-  "scenarioNote": "줄거리/시나리오 설명 (있을 경우)"
+  "scenarioNote": "줄거리/시나리오 설명 (있을 경우)",
+  "title": "작품 제목 (있을 경우)"
 }
 
 규칙:
+- characters: 페이지에 등장하는 모든 캐릭터를 배열로. 한 명이어도 배열로
 - tags: 페이지의 태그/장르 태그에서 최대 10개, # 제거하고 문자열만
 - additionalInfo: 외모·나이·직업·MBTI·성격 등을 한국어로 자연스럽게 서술
 - 정보가 없는 필드는 빈 문자열로`
@@ -96,7 +102,8 @@ ${text}
     } catch { if (i === 1) throw new Error('AI 파싱에 실패했습니다') }
   }
 
-  const name = String(parsed.name ?? '').trim()
+  const firstParsedChar = Array.isArray(parsed.characters) ? parsed.characters[0] : parsed
+  const name = String(firstParsedChar?.name ?? parsed.name ?? '').trim()
   if (!name) throw new Error('캐릭터 이름을 찾을 수 없습니다')
 
   let additionalInfo = String(parsed.additionalInfo ?? '').trim()
@@ -104,52 +111,60 @@ ${text}
     additionalInfo += `\n\n[줄거리]\n${parsed.scenarioNote.trim()}`
   }
 
+  const rawChars = Array.isArray(parsed.characters) ? parsed.characters : [parsed]
   const charTags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).slice(0, 50)) : []
   const scenarioDescription = String(parsed.scenarioNote ?? '').trim().slice(0, 5000)
-  const title = String(parsed.title ?? name + '와의 대화').trim().slice(0, 200)
+  const firstName = String(rawChars[0]?.name ?? '').trim() || '캐릭터'
+  const title = String(parsed.title ?? `${firstName}${rawChars.length > 1 ? ' 외' : ''}와의 대화`).trim().slice(0, 200)
+  const isMulti = rawChars.length > 1
 
-  const character = await prisma.character.create({
-    data: {
-      name,
-      gender: String(parsed.gender ?? '').slice(0, 20),
-      tags: charTags,
-      additionalInfo: String(parsed.additionalInfo ?? '').trim().slice(0, 10000),
-      exampleDialogues: String(parsed.exampleDialogues ?? '').slice(0, 20000),
-      openingMessage: String(parsed.openingMessage ?? '').slice(0, 5000),
-      isAutoCreated: true,
-      creatorId: userId,
-    },
-  })
+  const createdChars = await Promise.all(
+    rawChars.map((c: any, i: number) =>
+      prisma.character.create({
+        data: {
+          name: String(c.name ?? `캐릭터${i + 1}`).trim().slice(0, 100),
+          gender: String(c.gender ?? '').slice(0, 20),
+          tags: charTags,
+          additionalInfo: String(c.additionalInfo ?? '').trim().slice(0, 10000),
+          exampleDialogues: String(c.exampleDialogues ?? '').slice(0, 20000),
+          openingMessage: String(c.openingMessage ?? '').slice(0, 5000),
+          isAutoCreated: true,
+          creatorId: userId,
+        },
+      })
+    )
+  )
 
   const conversation = await prisma.conversation.create({
     data: {
       userId,
       title,
-      mode: 'story',
+      mode: isMulti ? 'multiStory' : 'story',
       currentAI: 'gemini',
       scenarioDescription,
       tags: charTags,
       isAutoCreated: true,
       sourceUrl: url,
       sourceLorebookUrls: lorebookUrls.length > 0 ? lorebookUrls : undefined,
-      characters: { create: [{ characterId: character.id, turnOrder: 0 }] },
+      characters: { create: createdChars.map((c, i) => ({ characterId: c.id, turnOrder: i })) },
     },
   })
 
-  if (character.openingMessage?.trim()) {
+  const firstChar = createdChars[0]
+  if (firstChar?.openingMessage?.trim()) {
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
         role: 'assistant',
-        content: character.openingMessage.trim(),
-        characterId: character.id,
+        content: firstChar.openingMessage.trim(),
+        characterId: firstChar.id,
         isSelected: true,
         isStreaming: false,
       },
     })
   }
 
-  return { characterId: character.id, conversationId: conversation.id }
+  return { characterId: firstChar?.id, conversationId: conversation.id }
 }
 
 export async function POST(req: NextRequest) {

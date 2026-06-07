@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
+import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, buildMultiStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import type { InventoryItem, StatEntry } from '@/types'
 import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent, sliceByTokenBudget } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
@@ -89,7 +89,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         : (userRecord?.personalRules ?? ''),
     styleConfig: (conv.styleConfig ?? null) as any,
   }
-  const freshConv = conv.mode === 'story'
+  const isMultiStory = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
+  const freshConv = (conv.mode === 'story' || isMultiStory)
     ? await prisma.conversation.findUnique({ where: { id: params.id }, select: { statsConfig: true, inventory: true } })
     : null
 
@@ -101,10 +102,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           statsConfig: conv.statsEnabled && Array.isArray(freshConv?.statsConfig) ? freshConv.statsConfig as any : undefined,
           inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv.inventory as any : undefined,
         })
-      : buildSystemPrompt(promptParams)
+      : isMultiStory
+        ? buildMultiStorySystemPrompt({
+            ...promptParams,
+            characters: conv.characters.map((cc: any) => ({
+              ...cc.character,
+              kind: 'custom' as const,
+              safetyLevel: cc.character.safetyLevel as 'strict' | 'standard' | 'relaxed',
+              defaultAI: cc.character.defaultAI as 'gemini' | 'claude' | 'chatgpt',
+              avatarUrl: cc.character.avatarUrl ?? undefined,
+            })),
+            statsConfig: conv.statsEnabled && Array.isArray(freshConv?.statsConfig) ? freshConv.statsConfig as any : undefined,
+            inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv.inventory as any : undefined,
+          })
+        : buildSystemPrompt(promptParams)
 
   const latestUserId = [...historyMsgs].reverse().find(m => m.role === 'user')?.id
-  const allowChoices = conv.mode === 'story'
+  const allowChoices = conv.mode === 'story' || isMultiStory
   const history = sliceByTokenBudget(historyMsgs, 5000).reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
     const contentForModel = m.id === latestUserId ? appendTurnControlInstruction(m.content, allowChoices) : m.content
@@ -234,7 +248,7 @@ async function regenerateAsync({
           inventoryEnabled: freshConv2.inventoryEnabled && Array.isArray(freshConv2.inventory),
         })
       }
-    } else {
+    } else if (!isMultiStory) {
       triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '')
     }
   } catch (err: any) {

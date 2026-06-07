@@ -291,6 +291,97 @@ export function buildStorySystemPrompt({
   return parts.join('\n\n---\n\n')
 }
 
+export interface MultiStoryPromptParams {
+  characters: Character[]
+  personaCharacter?: PersonaCharacter
+  coreMemory?: string
+  statusTimeline?: string
+  scenarioDescription?: string
+  lorebook?: LorebookEntry[]
+  longTermMemory?: string[]
+  globalRules?: string
+  modeRules?: string
+  personalRules?: string
+  closingRules?: string
+  statsConfig?: { name: string; value: number; min: number; max: number }[]
+  inventory?: { name: string; qty: number; description?: string }[]
+  styleConfig?: StyleConfig | null
+}
+
+export function buildMultiStorySystemPrompt({
+  characters,
+  personaCharacter,
+  coreMemory,
+  statusTimeline,
+  scenarioDescription,
+  lorebook = [],
+  longTermMemory = [],
+  globalRules,
+  modeRules,
+  personalRules,
+  closingRules,
+  statsConfig,
+  inventory,
+  styleConfig,
+}: MultiStoryPromptParams): string {
+  const personaName = personaCharacter?.name ?? '유저'
+  const charNames = characters.map(c => c.name).join(', ')
+
+  const baseRules = `You are an interactive story writer with multiple characters.
+All characters interact naturally in each scene — decide who speaks, acts, or reacts based on the situation. Do not follow a fixed order.
+
+[Output Format]
+- Scene narration/action/setting: plain text without a speaker name.
+- Dialogue: always use the format Name : "content" (e.g.: ${characters[0]?.name ?? 'Character'} : "Hello.")
+- Inner thoughts: always use the format Name : 'content'
+- ANY of the following characters may speak or act in each response: ${charNames}
+- Before the choices, at least one character must take direct action or deliver dialogue.
+- At the end, always place a "---" divider, then list 4 numbered choices for ${personaName}.
+- Choices 1–3: ${personaName}'s next action or dialogue. Choice 4: an action advancing the scene.
+- FORBIDDEN: Writing ${personaName}'s words or actions in the body. The body is for ${charNames} only.
+- FORBIDDEN: Writing dialogue without a speaker name.
+
+[Character Voice — STRICT]
+Each character must maintain their unique speech style and personality at all times. Never let characters sound the same.
+
+[No Excessive Ellipsis]
+FORBIDDEN: Using "..." more than once per response. Express hesitation through action descriptions instead.`
+
+  const parts: string[] = []
+  if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
+  if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
+  parts.push(baseRules)
+  if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
+  if (modeRules?.trim()) parts.push(`[멀티스토리 추가 규칙]\n${modeRules}`)
+
+  if (personaCharacter) {
+    const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
+    parts.push(`[${personaName} 설정]${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
+  }
+  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
+  if (statsConfig && statsConfig.length > 0) {
+    parts.push(`[현재 스탯]\n${statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')}`)
+  }
+  if (inventory && inventory.length > 0) {
+    parts.push(`[현재 인벤토리]\n${inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')}`)
+  }
+
+  for (const char of characters) {
+    parts.push(`[${char.name} 설정]\n${buildCharLines(char)}`)
+    if (char.exampleDialogues?.trim()) parts.push(`[${char.name} 예시 대화]\n${char.exampleDialogues}`)
+  }
+
+  if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
+
+  const lorebookSection = buildLorebookSection(lorebook)
+  if (lorebookSection) parts.push(lorebookSection)
+  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
+  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 준수]\n${coreMemory}`)
+  if (closingRules?.trim()) parts.push(closingRules)
+
+  return parts.join('\n\n---\n\n')
+}
+
 export function matchLorebook(entries: LorebookEntry[], recentMessages: { content: string }[]): LorebookEntry[] {
   return entries.filter(entry => {
     if (!entry.isEnabled) return false

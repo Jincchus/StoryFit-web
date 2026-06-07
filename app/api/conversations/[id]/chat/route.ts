@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
+import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, buildMultiStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent, sliceByTokenBudget } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStoryEvaluation, triggerStateTracking } from '@/lib/storyEval'
@@ -86,13 +86,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
 
-  // tikiTaka는 SSE 유지 (다중 캐릭터 순차 스트림)
-  if (conv.mode === 'tikiTaka') {
-    const encoder = new TextEncoder()
-    const abortController = new AbortController()
-    req.signal.addEventListener('abort', () => abortController.abort())
-    return streamTikiTaka({ conv, params, userMsg, basePromptParams, makeCharParam, encoder, abortController })
-  }
+  const isMultiStory = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
 
   const systemPrompt = conv.mode === 'novel'
     ? buildNovelSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
@@ -103,10 +97,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
           inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
         })
-      : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
+      : isMultiStory
+        ? buildMultiStorySystemPrompt({
+            ...basePromptParams,
+            characters: conv.characters.map((cc: any) => makeCharParam(cc.character)),
+            statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
+            inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
+          })
+        : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
   const recentMsgs = sliceByTokenBudget(conv.messages, 5000)
-  const allowChoices = conv.mode === 'story'
+  const allowChoices = conv.mode === 'story' || isMultiStory
   const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
     const contentForModel = m.id === userMsg.id ? appendTurnControlInstruction(m.content, allowChoices) : m.content
@@ -227,7 +228,7 @@ async function generateAsync({
 
     triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
 
-    if (conv.mode === 'story') {
+    if (conv.mode === 'story' || isMultiStory) {
       triggerStoryEvaluation({
         convId,
         msgId,
@@ -303,115 +304,4 @@ function buildGeminiHistory(
   }
   const firstUser = result.findIndex(m => m.role === 'user')
   return firstUser >= 0 ? result.slice(firstUser) : []
-}
-
-async function streamTikiTaka({
-  conv, params, userMsg, basePromptParams, makeCharParam, encoder, abortController,
-}: {
-  conv: any
-  params: { id: string }
-  userMsg: { id: string; content: string }
-  basePromptParams: any
-  makeCharParam: (c: any) => any
-  encoder: TextEncoder
-  abortController: AbortController
-}) {
-  const preTurnHistory = buildGeminiHistory(sliceByTokenBudget(conv.messages, 5000))
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      const savedResponses: { id: string; charName: string; content: string }[] = []
-      const safeEnqueue = (data: object) => {
-        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)) } catch {}
-      }
-
-      try {
-        for (const convChar of conv.characters) {
-          if (abortController.signal.aborted) break
-          const tChar = convChar.character
-          const tSystemPrompt = buildSystemPrompt({ ...basePromptParams, character: makeCharParam(tChar) })
-
-          const prevContext = savedResponses.length > 0
-            ? '\n\n' + savedResponses.map(r => `[${r.charName}]\n${r.content}`).join('\n\n')
-            : ''
-
-          const messages = [
-            ...preTurnHistory,
-            { role: 'user' as const, parts: [{ text: appendTurnControlInstruction(userMsg.content + prevContext, conv.mode === 'story') }] },
-          ]
-
-          let charText = ''
-          safeEnqueue({ character: tChar.name, characterId: tChar.id })
-
-          const tikiResult = await streamChat(
-            {
-              provider: conv.currentAI as AIProvider,
-              systemPrompt: tSystemPrompt,
-              messages,
-              temperature: conv.temperature,
-              frequencyPenalty: conv.frequencyPenalty,
-              maxOutputTokens: conv.maxOutputTokens,
-              thinkingBudget: conv.thinkingBudget,
-              safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
-            },
-            chunk => {
-              charText += chunk
-              safeEnqueue({ character: tChar.name, characterId: tChar.id, text: chunk })
-            },
-            abortController.signal,
-          )
-
-          const parentId = savedResponses.length > 0
-            ? savedResponses[savedResponses.length - 1].id
-            : userMsg.id
-
-          const charMsg = await prisma.message.create({
-            data: {
-              conversationId: params.id,
-              role: 'assistant',
-              content: charText || '[응답 없음]',
-              aiModel: conv.currentAI,
-              isSelected: true,
-              parentId,
-              characterId: tChar.id,
-              inputTokens: tikiResult.inputTokens,
-              outputTokens: tikiResult.outputTokens,
-              createdAt: new Date(Date.now() + savedResponses.length * 100),
-            },
-          })
-
-          savedResponses.push({ id: charMsg.id, charName: tChar.name, content: charText })
-          safeEnqueue({ character: tChar.name, characterId: tChar.id, done: true, messageId: charMsg.id })
-        }
-
-        await prisma.conversation.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
-
-        const firstChar = conv.characters[0]?.character
-        if (firstChar) {
-          triggerMemorySummarization(params.id, [firstChar.tags?.join(', '), firstChar.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
-        }
-
-        safeEnqueue({ allDone: true })
-      } catch (err: any) {
-        if (!abortController.signal.aborted) {
-          const status = err?.status ?? 500
-          let errorMsg = '응답 생성 중 오류가 발생했습니다. 다시 시도해주세요.'
-          if (status === 503) errorMsg = 'AI 서버가 혼잡합니다. 잠시 후 다시 전송해주세요.'
-          else if (status === 429) errorMsg = '요청이 너무 많습니다. 잠시 후 다시 전송해주세요.'
-          const retryable = status === 429 || status === 503 || status >= 500
-          safeEnqueue({ error: errorMsg, retryable })
-        }
-      } finally {
-        try { controller.close() } catch {}
-      }
-    },
-  })
-
-  return new NextResponse(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    },
-  })
 }

@@ -579,7 +579,7 @@ export default function ChatPage() {
   if (!char) return null
 
   const isNovel = conv.mode === 'novel'
-  const isTikiTaka = conv.mode === 'tikiTaka'
+  const isTikiTaka = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
   const isStory = conv.mode === 'story'
   const lastMsg = messages[messages.length - 1]
   const isLastAssistant = lastMsg?.role === 'assistant'
@@ -653,7 +653,7 @@ export default function ChatPage() {
                     : <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-faint)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 설정">+ 페르소나</button>
                   }
                 </span>
-                <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '티키타카' : isStory ? '스토리' : '롤플레이'}</span>
+                <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '👥 멀티' : isStory ? '스토리' : '롤플레이'}</span>
               </div>
               <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 턴 {Math.floor(messages.length / 2)}
@@ -725,7 +725,7 @@ export default function ChatPage() {
                     {isNovel
                       ? <>장면을 지시해보세요.<br />예: "{char.name}와 처음 만나는 장면"</>
                       : isTikiTaka
-                        ? <>{conv.characters.map(cc => cc.character.name).join(', ')}와의 대화를 시작해보세요.<br />메시지를 보내면 캐릭터들이 순서대로 응답합니다.</>
+                        ? <>{conv.characters.map(cc => cc.character.name).join(', ')}와의 이야기를 시작해보세요.<br />메시지를 보내면 캐릭터들이 자연스럽게 반응합니다.</>
                         : isStory
                           ? <>스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
                           : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
