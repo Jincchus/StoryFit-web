@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   const characters = await prisma.character.findMany({
     where: { OR: [{ isPreset: true }, { creatorId: userId }] },
     orderBy: [{ isPreset: 'desc' }, { createdAt: 'asc' }],
+    include: { collection: { select: { id: true, title: true } } },
   })
   return NextResponse.json(characters)
 }

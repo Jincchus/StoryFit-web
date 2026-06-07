@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
@@ -30,6 +30,7 @@ export default function CharactersPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [importUrl, setImportUrl] = useState('')
+  const [collectionFilter, setCollectionFilter] = useState<string>('all')
 
   useEffect(() => {
     api.get('/api/characters').then(data => { setCharacters(data); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
@@ -59,6 +60,20 @@ export default function CharactersPage() {
   }
 
   const selectedChar = characters.find(c => c.id === draft.charId)
+
+  const collections = useMemo(() => {
+    const map = new Map<string, string>()
+    characters.forEach(c => {
+      if (c.collection) map.set(c.collection.id, c.collection.title)
+    })
+    return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
+  }, [characters])
+
+  const filteredCharacters = useMemo(() => {
+    if (collectionFilter === 'all') return characters
+    if (collectionFilter === 'none') return characters.filter(c => !c.collection && !c.isPreset)
+    return characters.filter(c => c.collection?.id === collectionFilter)
+  }, [characters, collectionFilter])
 
   const handleDelete = async (id: string) => {
     try {
@@ -103,6 +118,25 @@ export default function CharactersPage() {
 
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
 
+        {collections.length > 0 && (
+          <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
+            {[
+              { id: 'all', label: '전체' },
+              { id: 'none', label: '미분류' },
+              ...collections.map(col => ({ id: col.id, label: col.title })),
+            ].map(tab => (
+              <button
+                key={tab.id}
+                className={`btn ${collectionFilter === tab.id ? 'primary' : 'ghost'}`}
+                style={{ fontSize: 11, padding: '3px 10px' }}
+                onClick={() => setCollectionFilter(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {selectedChar && (
           <div className="char-preview-bar">
             <div className="thumb" style={{ width: 28, height: 28 }}>
@@ -131,15 +165,15 @@ export default function CharactersPage() {
           </div>
         ) : (
         <div className="char-grid scroll">
-          {characters.map(c => (
+          {filteredCharacters.map(c => (
             <div
               key={c.id}
               className={`char-card ${draft.charId === c.id ? 'selected' : ''}`}
               style={{ position: 'relative', ...(c.isAutoCreated ? { background: 'rgba(0,140,255,0.06)', borderColor: '#4fa8e8' } : {}) }}
               onClick={e => { sparkleAt(e.clientX, e.clientY); dispatch({ type: 'selectChar', id: c.id }) }}
             >
-              {c.isAutoCreated && (
-                <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, background: '#4fa8e8', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>가져옴</div>
+              {c.collection && (
+                <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, background: '#4fa8e8', color: '#fff', padding: '1px 5px', borderRadius: 3, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.collection.title}</div>
               )}
               <div className="pic-wrap">
                 {c.avatarUrl

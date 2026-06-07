@@ -29,6 +29,7 @@ model User {
   theme                   String  @default("retro")
   characters    Character[]
   conversations Conversation[]
+  characterCollections CharacterCollection[]
 }
 
 model RandomName {
@@ -68,6 +69,16 @@ model GlobalConfig {
   updatedAt DateTime @updatedAt
 }
 
+model CharacterCollection {
+  id         String      @id @default(cuid())
+  title      String
+  sourceUrl  String      @default("")
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  characters Character[]
+  createdAt  DateTime    @default(now())
+}
+
 model Character {
   id                  String    @id @default(cuid())
   name                String
@@ -88,6 +99,8 @@ model Character {
   createdAt           DateTime  @default(now())
   creatorId           String?
   creator             User?     @relation(fields: [creatorId], references: [id])
+  collectionId        String?
+  collection          CharacterCollection? @relation(fields: [collectionId], references: [id])
   conversations       ConversationCharacter[]
   personaConversations Conversation[]
   lorebooks           Lorebook[]

@@ -115,8 +115,13 @@ ${text}
   const charTags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).slice(0, 50)) : []
   const scenarioDescription = String(parsed.scenarioNote ?? '').trim().slice(0, 5000)
   const firstName = String(rawChars[0]?.name ?? '').trim() || '캐릭터'
+  const collectionTitle = String(parsed.title ?? firstName).trim().slice(0, 200)
   const title = String(parsed.title ?? `${firstName}${rawChars.length > 1 ? ' 외' : ''}와의 대화`).trim().slice(0, 200)
   const isMulti = rawChars.length > 1
+
+  const collection = await prisma.characterCollection.create({
+    data: { title: collectionTitle, sourceUrl: url, userId },
+  })
 
   const createdChars = await Promise.all(
     rawChars.map((c: any, i: number) =>
@@ -130,6 +135,7 @@ ${text}
           openingMessage: String(c.openingMessage ?? '').slice(0, 5000),
           isAutoCreated: true,
           creatorId: userId,
+          collectionId: collection.id,
         },
       })
     )
@@ -164,7 +170,7 @@ ${text}
     })
   }
 
-  return { characterId: firstChar?.id, conversationId: conversation.id }
+  return { characterId: firstChar?.id, conversationId: conversation.id, collectionId: collection.id }
 }
 
 export async function POST(req: NextRequest) {

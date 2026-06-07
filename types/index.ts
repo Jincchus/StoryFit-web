@@ -15,6 +15,11 @@ export type ConvMode = 'roleplay' | 'novel' | 'tikiTaka' | 'story'
 export type MessageRole = 'user' | 'assistant'
 export type AvatarKind = 'wizard' | 'knight' | 'rogue' | 'maid' | 'vampire' | 'ai' | 'elf' | 'ninja' | 'player' | 'custom'
 
+export interface CharacterCollection {
+  id: string
+  title: string
+}
+
 export interface Character {
   id: string
   kind?: AvatarKind
@@ -32,6 +37,7 @@ export interface Character {
   thinkingBudget?: number
   isPreset: boolean
   isAutoCreated?: boolean
+  collection?: CharacterCollection | null
 }
 
 
