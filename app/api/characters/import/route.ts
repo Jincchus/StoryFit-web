@@ -111,12 +111,17 @@ ${text}
   for (let i = 0; i < 2; i++) {
     try {
       const raw = await generateText(systemPrompt, userPrompt, 4096)
+      console.log('[zeta-import] raw AI response (first 500):', raw.slice(0, 500))
       const match = raw.match(/\{[\s\S]*\}/)
       parsed = JSON.parse(match ? match[0] : raw)
       break
-    } catch { if (i === 1) throw new Error('AI 파싱에 실패했습니다') }
+    } catch (e) {
+      console.log('[zeta-import] parse error attempt', i, e)
+      if (i === 1) throw new Error('AI 파싱에 실패했습니다')
+    }
   }
 
+  console.log('[zeta-import] parsed:', JSON.stringify(parsed).slice(0, 300))
   const firstParsedChar = Array.isArray(parsed.characters) ? parsed.characters[0] : parsed
   const name = String(firstParsedChar?.name ?? parsed.name ?? '').trim()
   if (!name) throw new Error('캐릭터 이름을 찾을 수 없습니다')
