@@ -37,9 +37,10 @@ const MODE_LABEL: Record<string, string> = {
 
 const MODE_FILTERS = [
   { key: 'all', label: '전체' },
-  { key: 'roleplay', label: '⚔ 롤플레이' },
-  { key: 'novel', label: '✍ 소설' },
+  // { key: 'roleplay', label: '⚔ 롤플레이' },
+  // { key: 'novel', label: '✍ 소설' },
   { key: 'story', label: '📖 스토리' },
+  { key: 'multi', label: '👥 멀티' },
 ] as const
 
 type ModeFilter = typeof MODE_FILTERS[number]['key']
@@ -107,7 +108,8 @@ export default function ChatListPage() {
   const allTags = Array.from(new Set(conversations.flatMap(c => c.tags ?? []))).sort()
 
   const filtered = conversations.filter(c => {
-    if (modeFilter !== 'all' && c.mode !== modeFilter) return false
+    if (modeFilter === 'multi' && c.mode !== 'tikiTaka' && c.mode !== 'multiStory') return false
+    if (modeFilter !== 'all' && modeFilter !== 'multi' && c.mode !== modeFilter) return false
     if (tagFilter && !(c.tags ?? []).includes(tagFilter)) return false
     if (!query.trim()) return true
     const q = query.toLowerCase()
