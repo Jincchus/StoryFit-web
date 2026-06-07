@@ -103,7 +103,7 @@ export default function CharactersPage() {
             <input
               className="field"
               style={{ flex: 1, fontSize: 11 }}
-              placeholder="Tavern Card URL (.png 또는 .json)"
+              placeholder="Zeta URL 또는 Tavern Card URL (.png / .json)"
               value={importUrl}
               onChange={e => setImportUrl(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleImport() }}
