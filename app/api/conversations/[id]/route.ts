@@ -24,8 +24,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const body = await req.json()
+  const { soloCharacterId, ...rest } = body
   const allowed = ['title', 'currentAI', 'personaCharacterId', 'coreMemory', 'statusTimeline', 'scenarioDescription', 'isPinned', 'isArchived', 'branchDescription', 'inventory', 'styleConfig', 'isAutoCreated', 'mode', 'tags']
-  const data: Record<string, unknown> = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)))
+  const data: Record<string, unknown> = Object.fromEntries(Object.entries(rest).filter(([k]) => allowed.includes(k)))
 
   const conv = await prisma.conversation.updateMany({ where: { id: params.id, userId }, data })
   if (conv.count === 0) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
@@ -35,6 +36,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await prisma.characterCollection.updateMany({
       where: { conversationId: params.id },
       data: { title: data.title as string },
+    })
+  }
+
+  // 스토리 모드로 전환 시 선택된 캐릭터 1명만 남기고 나머지 제거
+  if (soloCharacterId) {
+    await prisma.conversationCharacter.deleteMany({
+      where: { conversationId: params.id, characterId: { not: soloCharacterId } },
     })
   }
 

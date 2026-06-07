@@ -144,6 +144,7 @@ function NewConversationInner() {
           scenarioDescription,
           tags,
           isAutoCreated: false,
+          ...(mode !== 'multiStory' && char ? { soloCharacterId: char.id } : {}),
         })
         router.push(`/conversations/${fromId}`)
         dispatch({ type: 'resetDraft' })
@@ -202,7 +203,7 @@ function NewConversationInner() {
             {/* 1. 캐릭터 선택 */}
             <section className="new-conv-section">
               <div className="label">캐릭터 선택</div>
-              {importedChars.length > 1 ? (
+              {importedChars.length > 1 && mode === 'multiStory' ? (
                 /* 멀티스토리 import — 전체 캐릭터 목록 표시 (변경 불가) */
                 <div className="vstack" style={{ gap: 4 }}>
                   {importedChars.map((c, i) => (
