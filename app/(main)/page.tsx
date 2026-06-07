@@ -27,16 +27,13 @@ export default function HomePage() {
   const [showGuide, setShowGuide] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [importUrl, setImportUrl] = useState('')
-  const [importCollectionId, setImportCollectionId] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
   const [importSavedId, setImportSavedId] = useState('')
-  const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
 
   useEffect(() => {
     setIsAdmin(getIsAdmin())
     if (!localStorage.getItem('sf_onboarded')) setShowGuide(true)
-    api.get('/api/collections').then(setCollections).catch(() => {})
   }, [])
 
   const dismissGuide = () => {
@@ -50,9 +47,8 @@ export default function HomePage() {
     setImportError('')
     setImportSavedId('')
     try {
-      const result = await api.post('/api/characters/import', { url: importUrl.trim(), collectionId: importCollectionId || undefined })
+      const result = await api.post('/api/characters/import', { url: importUrl.trim() })
       setImportUrl('')
-      setImportCollectionId('')
       setImportSavedId(result.conversationId ?? '')
     } catch (e: any) {
       setImportError(e.message ?? '가져오기에 실패했습니다')
@@ -60,6 +56,8 @@ export default function HomePage() {
       setImporting(false)
     }
   }
+
+  const closeImport = () => { setShowImport(false); setImportError(''); setImportSavedId('') }
 
   const icons = isAdmin ? [...BASE_ICONS, ADMIN_ICON] : BASE_ICONS
 
@@ -96,11 +94,11 @@ export default function HomePage() {
 
       {showImport && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100 }} onClick={() => { setShowImport(false); setImportError(''); setImportSavedId('') }} />
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100 }} onClick={closeImport} />
           <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 101, width: 'min(380px, 90vw)' }}>
             <div className="win-title">
               <div className="win-title-l"><span>설정 가져오기</span></div>
-              <div className="win-controls"><button onClick={() => { setShowImport(false); setImportError(''); setImportSavedId('') }}>×</button></div>
+              <div className="win-controls"><button onClick={closeImport}>×</button></div>
             </div>
             <div className="win-body vstack" style={{ gap: 10 }}>
               <div className="tiny muted" style={{ lineHeight: 1.6 }}>
@@ -118,33 +116,17 @@ export default function HomePage() {
                 autoFocus
                 disabled={importing}
               />
-              {collections.length > 0 && (
-                <div>
-                  <div className="tiny muted" style={{ marginBottom: 4 }}>컬렉션에 추가 <span style={{ opacity: 0.6 }}>(선택)</span></div>
-                  <select
-                    className="field"
-                    value={importCollectionId}
-                    onChange={e => setImportCollectionId(e.target.value)}
-                    disabled={importing}
-                  >
-                    <option value="">새 컬렉션 자동 생성</option>
-                    {collections.map(col => (
-                      <option key={col.id} value={col.id}>{col.title}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
               {importError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {importError}</div>}
               {importSavedId && (
                 <div className="tiny" style={{ color: 'var(--accent)', lineHeight: 1.6 }}>
-                  채팅 목록에 임시저장되었습니다. 채팅 목록에서 클릭하면 새 대화 설정을 이어서 열 수 있습니다.
+                  채팅 목록에 저장되었습니다. 채팅 목록에서 클릭하면 새 대화 설정을 이어서 열 수 있습니다.
                 </div>
               )}
               <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
                 {importSavedId && (
                   <button className="btn ghost" style={{ fontSize: 11 }} onClick={() => router.push('/chatlist')}>채팅 목록</button>
                 )}
-                <button className="btn ghost" style={{ fontSize: 11 }} onClick={() => { setShowImport(false); setImportError(''); setImportSavedId('') }}>{importSavedId ? '닫기' : '취소'}</button>
+                <button className="btn ghost" style={{ fontSize: 11 }} onClick={closeImport}>{importSavedId ? '닫기' : '취소'}</button>
                 <button className="btn primary" style={{ fontSize: 11 }} disabled={importing || !importUrl.trim()} onClick={handleImport}>
                   {importing ? '가져오는 중...' : '가져오기'}
                 </button>

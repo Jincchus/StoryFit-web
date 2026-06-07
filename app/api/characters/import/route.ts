@@ -131,7 +131,7 @@ function extractLorebookUrls(html: string): { url: string; name: string }[] {
   })
 }
 
-async function importFromZeta(url: string, userId: string, existingCollectionId?: string) {
+async function importFromZeta(url: string, userId: string) {
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -200,10 +200,7 @@ ${text}
   const isMulti = rawChars.length > 1
   const title = (parsed.title?.trim() || `${firstName}${isMulti ? ' 외' : ''}와의 대화`).slice(0, 200)
 
-  const collection = existingCollectionId
-    ? await prisma.characterCollection.findFirst({ where: { id: existingCollectionId, userId } }) ?? await prisma.characterCollection.create({ data: { title: collectionTitle, sourceUrl: url, userId } })
-    : await prisma.characterCollection.create({ data: { title: collectionTitle, sourceUrl: url, userId } })
-
+  // 캐릭터 먼저 생성 (collectionId는 나중에 연결)
   const createdChars = await Promise.all(
     rawChars.map((c: any, i: number) =>
       prisma.character.create({
@@ -216,12 +213,12 @@ ${text}
           openingMessage: String(i === 0 && introText ? introText : c.openingMessage ?? '').slice(0, 5000),
           isAutoCreated: true,
           creatorId: userId,
-          collectionId: collection.id,
         },
       })
     )
   )
 
+  // 대화 생성
   const conversation = await prisma.conversation.create({
     data: {
       userId,
@@ -235,6 +232,17 @@ ${text}
       sourceLorebookUrls: lorebookUrls.length > 0 ? lorebookUrls : undefined,
       characters: { create: createdChars.map((c, i) => ({ characterId: c.id, turnOrder: i })) },
     },
+  })
+
+  // 컬렉션 생성 — conversationId로 대화와 연결 (제목 변경/삭제 연동의 기준)
+  const collection = await prisma.characterCollection.create({
+    data: { title, sourceUrl: url, userId, conversationId: conversation.id },
+  })
+
+  // 캐릭터에 collectionId 연결
+  await prisma.character.updateMany({
+    where: { id: { in: createdChars.map(c => c.id) } },
+    data: { collectionId: collection.id },
   })
 
   const firstChar = createdChars[0]
@@ -258,12 +266,12 @@ export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const { url, collectionId } = await req.json()
+  const { url } = await req.json()
   if (!url?.trim()) return NextResponse.json({ error: 'URL이 필요합니다.' }, { status: 400 })
 
   if (url.includes('zeta-ai.io')) {
     try {
-      const result = await importFromZeta(url.trim(), userId, collectionId ?? undefined)
+      const result = await importFromZeta(url.trim(), userId)
       return NextResponse.json(result, { status: 201 })
     } catch (e: any) {
       return NextResponse.json({ error: e.message ?? '제타 가져오기 실패' }, { status: 400 })

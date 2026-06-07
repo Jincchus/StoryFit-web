@@ -70,13 +70,15 @@ model GlobalConfig {
 }
 
 model CharacterCollection {
-  id         String      @id @default(cuid())
-  title      String
-  sourceUrl  String      @default("")
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
-  characters Character[]
-  createdAt  DateTime    @default(now())
+  id             String        @id @default(cuid())
+  title          String
+  sourceUrl      String        @default("")
+  userId         String
+  conversationId String?       @unique
+  user           User          @relation(fields: [userId], references: [id])
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  characters     Character[]
+  createdAt      DateTime      @default(now())
 }
 
 model Character {
@@ -147,12 +149,13 @@ model Conversation {
   rootConversationId   String?
   branchFromMessageId  String?
   branchDescription    String                  @default("")
-  characters      ConversationCharacter[]
-  messages        Message[]
-  memories        Memory[]
-  lorebooks       Lorebook[]
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  characters          ConversationCharacter[]
+  messages            Message[]
+  memories            Memory[]
+  lorebooks           Lorebook[]
+  characterCollection CharacterCollection?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
 
   @@index([userId, updatedAt])
 }

@@ -29,6 +29,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const conv = await prisma.conversation.updateMany({ where: { id: params.id, userId }, data })
   if (conv.count === 0) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
+
+  // 제목 변경 시 연결된 컬렉션 제목도 동기화
+  if (data.title) {
+    await prisma.characterCollection.updateMany({
+      where: { conversationId: params.id },
+      data: { title: data.title as string },
+    })
+  }
+
   return NextResponse.json({ ok: true })
 }
 
@@ -41,6 +50,20 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     select: { id: true, rootConversationId: true, isArchived: true, isPinned: true },
   })
   if (!target) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
+
+  // URL import로 연결된 컬렉션/캐릭터 삭제 (conversationId로 식별)
+  const linkedCollection = await prisma.characterCollection.findUnique({
+    where: { conversationId: params.id },
+    select: { id: true, characters: { select: { id: true }, where: { isAutoCreated: true } } },
+  })
+  if (linkedCollection) {
+    const charIds = linkedCollection.characters.map(c => c.id)
+    if (charIds.length > 0) {
+      await prisma.conversationCharacter.deleteMany({ where: { characterId: { in: charIds } } })
+      await prisma.character.deleteMany({ where: { id: { in: charIds } } })
+    }
+    await prisma.characterCollection.delete({ where: { id: linkedCollection.id } })
+  }
 
   // 루트(v1)를 삭제할 때 남은 분기가 있으면, 가장 오래된 분기를 새 루트로 승격한다.
   // 분기는 rootConversationId 문자열로만 묶인 별도 Conversation이므로, 루트만 지우면
