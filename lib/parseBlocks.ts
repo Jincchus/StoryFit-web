@@ -47,10 +47,15 @@ export function parseBlocks(text: string): Block[] {
         if (!isApostrophe) {
           const end = findAny(line, SQUOTES, i + 1)
           if (end !== -1) {
-            flushNarration()
-            blocks.push({ type: 'thought', text: line.slice(i + 1, end) })
-            i = end + 1
-            continue
+            // 닫는 따옴표 바로 뒤가 한글·영문자인 경우 인용부호로 간주 (thought 아님)
+            const charAfterClose = line[end + 1]
+            const isInlineQuotation = charAfterClose && /[가-힣a-zA-Z0-9]/.test(charAfterClose)
+            if (!isInlineQuotation) {
+              flushNarration()
+              blocks.push({ type: 'thought', text: line.slice(i + 1, end) })
+              i = end + 1
+              continue
+            }
           }
         }
       }
@@ -105,10 +110,14 @@ function parseInlineContent(content: string, speaker: string): Block[] {
       if (!isApostrophe) {
         const end = findAny(content, SQUOTES, i + 1)
         if (end !== -1) {
-          flushNarration()
-          result.push({ type: 'thought', speaker, text: content.slice(i + 1, end) })
-          i = end + 1
-          continue
+          const charAfterClose = content[end + 1]
+          const isInlineQuotation = charAfterClose && /[가-힣a-zA-Z0-9]/.test(charAfterClose)
+          if (!isInlineQuotation) {
+            flushNarration()
+            result.push({ type: 'thought', speaker, text: content.slice(i + 1, end) })
+            i = end + 1
+            continue
+          }
         }
       }
     }
