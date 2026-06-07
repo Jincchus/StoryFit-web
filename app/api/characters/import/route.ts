@@ -41,6 +41,19 @@ function stripHtml(html: string): string {
     .trim()
 }
 
+function preprocessZetaText(html: string): string {
+  let text = stripHtml(html)
+  // 추천 콘텐츠/크리에이터 정보 이후는 불필요한 데이터
+  const cutMarkers = ['크리에이터', '출시일', '이 플롯이 마음에 들었다면', '이 캐릭터가 마음에 들었다면']
+  for (const marker of cutMarkers) {
+    const idx = text.indexOf(marker)
+    if (idx > 300) { text = text.slice(0, idx); break }
+  }
+  // 사이트 로고명("제타"/"Zeta")이 맨 앞에 오면 제거
+  text = text.replace(/^(제타|Zeta)\s+/i, '')
+  return text.trim().slice(0, 8000)
+}
+
 function extractLorebookUrls(html: string): { url: string; name: string }[] {
   const matches = Array.from(html.matchAll(/href="(\/(?:ko|en)\/lorebooks\/[a-f0-9-]+)"[^>]*>([^<]*)</g))
   const seen = new Set<string>()
@@ -61,11 +74,19 @@ async function importFromZeta(url: string, userId: string, existingCollectionId?
 
   const html = await res.text()
   const lorebookUrls = extractLorebookUrls(html)
-  const text = stripHtml(html).slice(0, 8000)
+  const text = preprocessZetaText(html)
 
   const systemPrompt = '당신은 웹페이지 텍스트에서 캐릭터 정보를 추출하는 파서입니다. JSON만 반환합니다.'
-  const userPrompt = `아래는 제타(Zeta AI) 플롯/캐릭터 프로필 페이지의 텍스트입니다.
-모든 등장 캐릭터 정보를 추출해 JSON으로 반환하세요. 캐릭터가 여러 명이면 모두 포함하세요.
+  const userPrompt = `아래는 제타(Zeta AI) 롤플레잉 플롯 프로필 페이지의 텍스트입니다.
+등장 캐릭터 정보를 추출해 JSON으로 반환하세요.
+
+중요 규칙:
+- "제타" 또는 "Zeta"는 웹사이트/앱 이름이므로 캐릭터로 취급하지 마세요
+- 캐릭터는 페이지에서 "캐릭터" 섹션 또는 이름/나이/직업 등이 명시된 인물입니다
+- 캐릭터가 여러 명이면 모두 포함하세요
+- tags는 페이지에 # 기호로 표시된 태그에서만 추출하세요 (예: #무뚝뚝 #군인)
+- title은 플롯/작품의 제목 또는 주인공 이름으로, 웹사이트명("제타")은 제외
+- scenarioNote는 줄거리/세계관 설명 전체를 포함하세요
 
 페이지 텍스트:
 ${text}
@@ -74,23 +95,17 @@ ${text}
 {
   "characters": [
     {
-      "name": "캐릭터 이름",
+      "name": "캐릭터 이름 (제타/Zeta 제외)",
       "gender": "남성 또는 여성 또는 빈 문자열",
-      "additionalInfo": "나이, 외모, 직업, 성격, 배경 등 모든 설정을 자연스럽게 정리한 텍스트",
-      "openingMessage": "첫 메시지가 있으면 입력, 없으면 빈 문자열",
+      "additionalInfo": "나이, 외모, 직업, 성격, 배경 등 모든 설정을 한국어로 자연스럽게 서술",
+      "openingMessage": "인트로/첫 메시지가 있으면 입력, 없으면 빈 문자열",
       "exampleDialogues": "예시 대화가 있으면 입력, 없으면 빈 문자열"
     }
   ],
-  "tags": ["태그1", "태그2"],
-  "scenarioNote": "줄거리/시나리오 설명 (있을 경우)",
-  "title": "작품 제목 (있을 경우)"
-}
-
-규칙:
-- characters: 페이지에 등장하는 모든 캐릭터를 배열로. 한 명이어도 배열로
-- tags: 페이지의 태그/장르 태그에서 최대 10개, # 제거하고 문자열만
-- additionalInfo: 외모·나이·직업·MBTI·성격 등을 한국어로 자연스럽게 서술
-- 정보가 없는 필드는 빈 문자열로`
+  "tags": ["혐관", "전남친"],
+  "scenarioNote": "줄거리/시나리오 설명 전체",
+  "title": "작품 제목 또는 주인공 이름"
+}`
 
   let parsed: any
   for (let i = 0; i < 2; i++) {
@@ -112,12 +127,12 @@ ${text}
   }
 
   const rawChars = Array.isArray(parsed.characters) ? parsed.characters : [parsed]
-  const charTags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).slice(0, 50)) : []
-  const scenarioDescription = String(parsed.scenarioNote ?? '').trim().slice(0, 5000)
+  const charTags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).trim()).filter(Boolean).slice(0, 15) : []
+  const scenarioDescription = (parsed.scenarioNote?.trim() || '').slice(0, 5000)
   const firstName = String(rawChars[0]?.name ?? '').trim() || '캐릭터'
-  const collectionTitle = String(parsed.title ?? firstName).trim().slice(0, 200)
-  const title = String(parsed.title ?? `${firstName}${rawChars.length > 1 ? ' 외' : ''}와의 대화`).trim().slice(0, 200)
+  const collectionTitle = (parsed.title?.trim() || firstName).slice(0, 200)
   const isMulti = rawChars.length > 1
+  const title = (parsed.title?.trim() || `${firstName}${isMulti ? ' 외' : ''}와의 대화`).slice(0, 200)
 
   const collection = existingCollectionId
     ? await prisma.characterCollection.findFirst({ where: { id: existingCollectionId, userId } }) ?? await prisma.characterCollection.create({ data: { title: collectionTitle, sourceUrl: url, userId } })
