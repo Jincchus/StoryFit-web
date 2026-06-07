@@ -110,7 +110,7 @@ ${text}
   let parsed: any
   for (let i = 0; i < 2; i++) {
     try {
-      const raw = await generateText(systemPrompt, userPrompt)
+      const raw = await generateText(systemPrompt, userPrompt, 4096)
       const match = raw.match(/\{[\s\S]*\}/)
       parsed = JSON.parse(match ? match[0] : raw)
       break

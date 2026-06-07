@@ -142,8 +142,8 @@ export async function streamGeminiChat(
   return streamViaApiKey(params, onChunk, signal)
 }
 
-export async function generateText(systemPrompt: string, userPrompt: string): Promise<string> {
-  const utilConfig = { maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } }
+export async function generateText(systemPrompt: string, userPrompt: string, maxOutputTokens = 1024): Promise<string> {
+  const utilConfig = { maxOutputTokens, thinkingConfig: { thinkingBudget: 0 } }
   if (process.env.GEMINI_PROVIDER === 'vertex') {
     const { VertexAI } = await import('@google-cloud/vertexai')
     const vertexAI = new VertexAI({
