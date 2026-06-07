@@ -91,22 +91,50 @@ ${text}
     additionalInfo += `\n\n[줄거리]\n${parsed.scenarioNote.trim()}`
   }
 
+  const charTags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).slice(0, 50)) : []
+  const scenarioDescription = String(parsed.scenarioNote ?? '').trim().slice(0, 5000)
+  const title = String(parsed.title ?? name + '와의 대화').trim().slice(0, 200)
+
   const character = await prisma.character.create({
     data: {
       name,
       gender: String(parsed.gender ?? '').slice(0, 20),
-      tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).slice(0, 50)) : [],
+      tags: charTags,
       additionalInfo: String(parsed.additionalInfo ?? '').trim().slice(0, 10000),
       exampleDialogues: String(parsed.exampleDialogues ?? '').slice(0, 20000),
       openingMessage: String(parsed.openingMessage ?? '').slice(0, 5000),
+      isAutoCreated: true,
       creatorId: userId,
     },
   })
-  return {
-    character,
-    scenarioDescription: String(parsed.scenarioNote ?? '').trim().slice(0, 5000),
-    tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).slice(0, 50)) : [],
+
+  const conversation = await prisma.conversation.create({
+    data: {
+      userId,
+      title,
+      mode: 'story',
+      currentAI: 'gemini',
+      scenarioDescription,
+      tags: charTags,
+      isAutoCreated: true,
+      characters: { create: [{ characterId: character.id, turnOrder: 0 }] },
+    },
+  })
+
+  if (character.openingMessage?.trim()) {
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: character.openingMessage.trim(),
+        characterId: character.id,
+        isSelected: true,
+        isStreaming: false,
+      },
+    })
   }
+
+  return { characterId: character.id, conversationId: conversation.id }
 }
 
 export async function POST(req: NextRequest) {

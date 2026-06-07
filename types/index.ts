@@ -31,6 +31,7 @@ export interface Character {
   maxOutputTokens?: number
   thinkingBudget?: number
   isPreset: boolean
+  isAutoCreated?: boolean
 }
 
 

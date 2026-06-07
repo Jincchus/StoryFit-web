@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
@@ -10,6 +10,8 @@ import type { Character } from '@/types'
 
 export default function NewConversationPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const fromId = searchParams.get('from')
   const { draft, dispatch } = useApp()
   const [char, setChar] = useState<Character | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
@@ -53,10 +55,6 @@ export default function NewConversationPage() {
       setAllChars(chars)
       setMaxOutputTokens(userSettings.defaultMaxOutputTokens ?? 8192)
       setThinkingBudget(userSettings.defaultThinkingBudget ?? 0)
-      const zetaScenario = sessionStorage.getItem('zeta-import-scenario')
-      const zetaTags = sessionStorage.getItem('zeta-import-tags')
-      if (zetaScenario) { setScenarioDescription(zetaScenario); sessionStorage.removeItem('zeta-import-scenario') }
-      if (zetaTags) { try { setTags(JSON.parse(zetaTags)) } catch {} sessionStorage.removeItem('zeta-import-tags') }
       if (draft.charId) {
         const found = chars.find((c: Character) => c.id === draft.charId) ?? null
         if (found) {
@@ -72,6 +70,17 @@ export default function NewConversationPage() {
       }
     }).catch(() => {})
   }, [draft.charId])
+
+  useEffect(() => {
+    if (!fromId) return
+    api.get(`/api/conversations/${fromId}`).then((conv: any) => {
+      if (conv.scenarioDescription) setScenarioDescription(conv.scenarioDescription)
+      if (Array.isArray(conv.tags) && conv.tags.length) setTags(conv.tags)
+      if (conv.mode) setMode(conv.mode as any)
+      const firstCharId = conv.characters?.[0]?.character?.id
+      if (firstCharId) dispatch({ type: 'selectChar', id: firstCharId })
+    }).catch(() => {})
+  }, [fromId])
 
   const selectChar = (c: Character) => {
     setChar(c)
@@ -112,6 +121,19 @@ export default function NewConversationPage() {
       const statsConfig = (mode === 'story' && statsEnabled && selectedStats.length > 0)
         ? selectedStats.map(name => ({ name, value: 50, min: 0, max: 100 }))
         : null
+
+      if (fromId) {
+        await api.patch(`/api/conversations/${fromId}`, {
+          mode,
+          scenarioDescription,
+          tags,
+          isAutoCreated: false,
+        })
+        router.push(`/conversations/${fromId}`)
+        dispatch({ type: 'resetDraft' })
+        return
+      }
+
       const conv = await api.post('/api/conversations', {
         characterIds: [char.id],
         title: `${char.name}와의 대화`,
@@ -153,7 +175,7 @@ export default function NewConversationPage() {
               disabled={!char || loading}
               onClick={handleStart}
             >
-              {loading ? '...' : mode === 'novel' ? '✦ 소설 시작' : mode === 'story' ? '✦ 스토리 시작' : '✦ 롤플레이 시작'}
+              {loading ? '...' : fromId ? '✦ 설정 저장 후 시작' : mode === 'novel' ? '✦ 소설 시작' : mode === 'story' ? '✦ 스토리 시작' : '✦ 롤플레이 시작'}
             </button>
           </div>
         </div>

@@ -84,6 +84,7 @@ model Character {
   thinkingBudget      Int       @default(0)
   defaultAI           String    @default("gemini")
   isPreset            Boolean   @default(false)
+  isAutoCreated       Boolean   @default(false)
   createdAt           DateTime  @default(now())
   creatorId           String?
   creator             User?     @relation(fields: [creatorId], references: [id])
@@ -127,6 +128,7 @@ model Conversation {
   inventoryEnabled    Boolean                 @default(false)
   inventory           Json?
   styleConfig         Json?
+  isAutoCreated       Boolean                 @default(false)
   rootConversationId   String?
   branchFromMessageId  String?
   branchDescription    String                  @default("")

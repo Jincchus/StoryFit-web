@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (character.isPreset || character.creatorId !== userId) return NextResponse.json({ error: '수정 권한이 없습니다.' }, { status: 403 })
 
   const body = await req.json()
-  const updated = await prisma.character.update({ where: { id: params.id }, data: body })
+  const updated = await prisma.character.update({ where: { id: params.id }, data: { ...body, isAutoCreated: false } })
   return NextResponse.json(updated)
 }
 

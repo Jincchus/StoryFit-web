@@ -90,7 +90,6 @@ export default function CharactersPage() {
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
             <button className="btn ghost" onClick={() => router.back()}>← 뒤로</button>
-            <button className="btn ghost" onClick={() => setShowUrlInput(v => !v)}>↓ 카드 가져오기</button>
             <button className="btn" onClick={() => router.push('/characters/new')}>+ 만들기</button>
             <button
               className="btn primary"
@@ -103,24 +102,6 @@ export default function CharactersPage() {
         </div>
 
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
-
-        {showUrlInput && (
-          <div className="hstack" style={{ gap: 6 }}>
-            <input
-              className="field"
-              style={{ flex: 1, fontSize: 11 }}
-              placeholder="Zeta URL 또는 Tavern Card URL (.png / .json)"
-              value={importUrl}
-              onChange={e => setImportUrl(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleImport() }}
-              autoFocus
-            />
-            <button className="btn primary" style={{ fontSize: 11, flexShrink: 0 }} disabled={importing || !importUrl.trim()} onClick={handleImport}>
-              {importing ? '가져오는 중...' : '가져오기'}
-            </button>
-            <button className="btn ghost" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => { setShowUrlInput(false); setImportUrl('') }}>취소</button>
-          </div>
-        )}
 
         {selectedChar && (
           <div className="char-preview-bar">
@@ -154,9 +135,12 @@ export default function CharactersPage() {
             <div
               key={c.id}
               className={`char-card ${draft.charId === c.id ? 'selected' : ''}`}
-              style={{ position: 'relative' }}
+              style={{ position: 'relative', ...(c.isAutoCreated ? { background: 'rgba(0,140,255,0.06)', borderColor: '#4fa8e8' } : {}) }}
               onClick={e => { sparkleAt(e.clientX, e.clientY); dispatch({ type: 'selectChar', id: c.id }) }}
             >
+              {c.isAutoCreated && (
+                <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, background: '#4fa8e8', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>가져옴</div>
+              )}
               <div className="pic-wrap">
                 {c.avatarUrl
                   ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />

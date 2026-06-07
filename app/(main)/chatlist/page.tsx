@@ -13,6 +13,7 @@ interface ConvItem {
   currentAI: string
   updatedAt: string
   isPinned: boolean
+  isAutoCreated: boolean
   tags: string[]
   characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
   messages: { content: string }[]
@@ -296,7 +297,7 @@ export default function ChatListPage() {
                   background: isChecked ? 'var(--lavender)' : conv.isPinned ? 'var(--pane)' : undefined,
                   borderLeft: conv.isPinned ? '2px solid var(--hot-pink)' : undefined,
                 }}
-                onClick={() => selecting ? toggleSelect(conv.id) : router.push(`/conversations/${conv.id}`)}
+                onClick={() => selecting ? toggleSelect(conv.id) : router.push(conv.isAutoCreated ? `/conversations/new?from=${conv.id}` : `/conversations/${conv.id}`)}
               >
                 {selecting && (
                   <div style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 22 }}>
@@ -329,6 +330,7 @@ export default function ChatListPage() {
                 </div>
                 <div className="vstack" style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                   <div className="hstack" style={{ gap: 4 }}>
+                    {conv.isAutoCreated && <span style={{ fontSize: 8, fontWeight: 700, background: '#4fa8e8', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>설정 필요</span>}
                     <span className="mode-badge" style={{ fontSize: 8 }}>{MODE_LABEL[conv.mode] ?? conv.mode}</span>
                   </div>
                   <span className="when">{when}</span>
