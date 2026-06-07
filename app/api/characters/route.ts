@@ -20,13 +20,21 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      personaConversations: {
+        where: { userId, characterCollection: { isNot: null } },
+        take: 1,
+        select: { characterCollection: { select: { id: true, title: true } } },
+      },
     },
   })
 
-  // 직접 collectionId가 없으면 소속 대화의 컬렉션으로 대체
-  const result = characters.map(({ conversations, ...c }) => ({
+  // 직접 collectionId → ConversationCharacter 경유 → 페르소나로 사용된 대화 순으로 컬렉션 결정
+  const result = characters.map(({ conversations, personaConversations, ...c }) => ({
     ...c,
-    collection: c.collection ?? conversations[0]?.conversation?.characterCollection ?? null,
+    collection: c.collection
+      ?? conversations[0]?.conversation?.characterCollection
+      ?? personaConversations[0]?.characterCollection
+      ?? null,
   }))
 
   return NextResponse.json(result)
