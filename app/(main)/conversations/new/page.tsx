@@ -38,6 +38,7 @@ function NewConversationInner() {
   const [tagPool, setTagPool] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [charOpen, setCharOpen] = useState(false)
+  const [addCharOpen, setAddCharOpen] = useState(false)
   const [personaOpen, setPersonaOpen] = useState(false)
   const [safetyLevel, setSafetyLevel] = useState<'strict' | 'standard' | 'relaxed'>('standard')
   const [temperature, setTemperature] = useState(0.9)
@@ -106,6 +107,19 @@ function NewConversationInner() {
     setCharOpen(false)
   }
 
+  const removeImportedChar = (id: string) => {
+    setImportedChars(prev => {
+      const next = prev.filter(c => c.id !== id)
+      if (char?.id === id) setChar(next[0] ?? null)
+      return next
+    })
+  }
+
+  const addImportedChar = (c: Character) => {
+    setImportedChars(prev => [...prev, c])
+    setAddCharOpen(false)
+  }
+
   const selectedPersona = allChars.find(c => c.id === draft.personaId)
 
   const handleGenerateScenario = async () => {
@@ -144,6 +158,7 @@ function NewConversationInner() {
           scenarioDescription,
           tags,
           isAutoCreated: false,
+          ...(mode === 'multiStory' ? { characterIds: importedChars.map(c => c.id) } : {}),
           ...(mode !== 'multiStory' && char ? { soloCharacterId: char.id } : {}),
         })
         router.push(`/conversations/${fromId}`)
@@ -203,8 +218,8 @@ function NewConversationInner() {
             {/* 1. 캐릭터 선택 */}
             <section className="new-conv-section">
               <div className="label">캐릭터 선택</div>
-              {importedChars.length > 1 && mode === 'multiStory' ? (
-                /* 멀티스토리 import — 전체 캐릭터 목록 표시 (변경 불가) */
+              {mode === 'multiStory' && importedChars.length > 0 ? (
+                /* 멀티스토리 — 캐릭터 목록 편집 가능 */
                 <div className="vstack" style={{ gap: 4 }}>
                   {importedChars.map((c, i) => (
                     <div key={c.id} className="persona-option selected" style={{ cursor: 'default' }}>
@@ -217,9 +232,46 @@ function NewConversationInner() {
                         <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
                         <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tags?.slice(0, 3).join(' · ')}</div>
                       </div>
-                      <span style={{ fontSize: 9, color: 'var(--hot-pink)', flexShrink: 0 }}>✓ {i + 1}</span>
+                      <span style={{ fontSize: 9, color: 'var(--hot-pink)', flexShrink: 0, marginRight: 4 }}>✓ {i + 1}</span>
+                      <button
+                        className="btn ghost"
+                        style={{ fontSize: 10, padding: '2px 6px', flexShrink: 0 }}
+                        onClick={() => removeImportedChar(c.id)}
+                      >✕</button>
                     </div>
                   ))}
+                  {/* 캐릭터 추가 */}
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      className="btn ghost"
+                      style={{ fontSize: 11, width: '100%' }}
+                      onClick={() => setAddCharOpen(o => !o)}
+                    >+ 캐릭터 추가 {addCharOpen ? '▲' : '▼'}</button>
+                    {addCharOpen && (
+                      <div style={{ border: '1px solid var(--chrome-border)', background: 'var(--win-bg)', maxHeight: 200, overflowY: 'auto' }}>
+                        {allChars.filter(c => !importedChars.some(ic => ic.id === c.id)).length === 0 ? (
+                          <div className="tiny muted" style={{ padding: '8px 12px' }}>추가할 수 있는 캐릭터가 없습니다</div>
+                        ) : allChars.filter(c => !importedChars.some(ic => ic.id === c.id)).map(c => (
+                          <div
+                            key={c.id}
+                            className="persona-option"
+                            style={{ cursor: 'pointer', borderRadius: 0, borderBottom: '1px solid var(--chrome-border)' }}
+                            onClick={() => addImportedChar(c)}
+                          >
+                            <div className="thumb" style={{ width: 28, height: 28 }}>
+                              {c.avatarUrl
+                                ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                                : <PixelAvatar kind={c.kind} size={28} />}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
+                              <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tags?.slice(0, 3).join(' · ')}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 /* 단일 캐릭터 선택 */

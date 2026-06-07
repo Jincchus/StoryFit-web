@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const body = await req.json()
-  const { soloCharacterId, ...rest } = body
+  const { soloCharacterId, characterIds, ...rest } = body
   const allowed = ['title', 'currentAI', 'personaCharacterId', 'coreMemory', 'statusTimeline', 'scenarioDescription', 'isPinned', 'isArchived', 'branchDescription', 'inventory', 'styleConfig', 'isAutoCreated', 'mode', 'tags']
   const data: Record<string, unknown> = Object.fromEntries(Object.entries(rest).filter(([k]) => allowed.includes(k)))
 
@@ -39,11 +39,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     })
   }
 
-  // 스토리 모드로 전환 시 선택된 캐릭터 1명만 남기고 나머지 제거
+  // 스토리 모드: 선택된 캐릭터 1명만 남기고 나머지 제거
   if (soloCharacterId) {
     await prisma.conversationCharacter.deleteMany({
       where: { conversationId: params.id, characterId: { not: soloCharacterId } },
     })
+  }
+
+  // 멀티스토리 모드: 캐릭터 목록 전체 교체
+  if (Array.isArray(characterIds) && characterIds.length > 0) {
+    await prisma.$transaction([
+      prisma.conversationCharacter.deleteMany({ where: { conversationId: params.id } }),
+      ...characterIds.map((charId: string, i: number) =>
+        prisma.conversationCharacter.create({
+          data: { conversationId: params.id, characterId: charId, turnOrder: i },
+        })
+      ),
+    ])
   }
 
   return NextResponse.json({ ok: true })
