@@ -70,11 +70,15 @@ async function importFromZeta(url: string, userId: string, existingCollectionId?
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
   })
+  console.log('[zeta-import] fetch status:', res.status, 'content-type:', res.headers.get('content-type'))
   if (!res.ok) throw new Error(`페이지를 불러올 수 없습니다 (HTTP ${res.status})`)
 
   const html = await res.text()
+  console.log('[zeta-import] html length:', html.length, '| first 200:', html.slice(0, 200).replace(/\n/g, ' '))
+
   const lorebookUrls = extractLorebookUrls(html)
   const text = preprocessZetaText(html)
+  console.log('[zeta-import] text length:', text.length, '| first 300:', text.slice(0, 300).replace(/\n/g, ' '))
 
   const systemPrompt = '당신은 텍스트에서 롤플레잉 캐릭터 정보를 추출하는 파서입니다. 반드시 JSON만 반환하세요.'
   const userPrompt = `아래 텍스트에서 등장하는 모든 캐릭터 정보를 추출해 JSON으로 반환하세요. 캐릭터가 여러 명이면 모두 포함하세요.
@@ -94,18 +98,19 @@ ${text}
   for (let i = 0; i < 2; i++) {
     try {
       const raw = await generateText(systemPrompt, userPrompt, 4096)
-      console.log('[zeta-import] raw AI response (first 500):', raw.slice(0, 500))
+      console.log('[zeta-import] raw AI response length:', raw.length, '| first 500:', raw.slice(0, 500).replace(/\n/g, ' '))
       const match = raw.match(/\{[\s\S]*\}/)
+      console.log('[zeta-import] json match found:', !!match, match ? match[0].slice(0, 200) : 'NONE')
       parsed = JSON.parse(match ? match[0] : raw)
       break
-    } catch (e) {
-      console.log('[zeta-import] parse error attempt', i, e)
+    } catch (e: any) {
+      console.log('[zeta-import] parse error attempt', i, ':', e?.message)
       if (i === 1) throw new Error('AI 파싱에 실패했습니다')
     }
   }
 
-  console.log('[zeta-import] text sent to AI (first 300):', text.slice(0, 300))
-  console.log('[zeta-import] parsed:', JSON.stringify(parsed).slice(0, 300))
+  console.log('[zeta-import] parsed characters count:', Array.isArray(parsed.characters) ? parsed.characters.length : 'N/A')
+  console.log('[zeta-import] parsed:', JSON.stringify(parsed).slice(0, 500))
   const firstParsedChar = Array.isArray(parsed.characters) ? parsed.characters[0] : parsed
   const name = String(firstParsedChar?.name ?? parsed.name ?? '').trim()
   if (!name) throw new Error('캐릭터 이름을 찾을 수 없습니다')
