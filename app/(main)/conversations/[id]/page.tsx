@@ -152,7 +152,7 @@ export default function ChatPage() {
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (convModeRef.current !== 'story') return
+      if (convModeRef.current !== 'story' && convModeRef.current !== 'multiStory') return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'TEXTAREA' || tag === 'INPUT') return
@@ -581,6 +581,7 @@ export default function ChatPage() {
   const isNovel = conv.mode === 'novel'
   const isTikiTaka = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
   const isStory = conv.mode === 'story'
+  const isStoryOrMulti = conv.mode === 'story' || conv.mode === 'multiStory'
   const lastMsg = messages[messages.length - 1]
   const isLastAssistant = lastMsg?.role === 'assistant'
 
@@ -663,7 +664,7 @@ export default function ChatPage() {
           </div>
           <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
             {/* <AiPill modelId={model} onChange={handleModelChange} /> */}
-            {isStory && conv.inventoryEnabled && (
+            {isStoryOrMulti && conv.inventoryEnabled && (
               <button
                 className={`btn ${showInventory ? 'primary' : 'ghost'}`}
                 style={{ padding: '3px 7px', fontSize: 10 }}
@@ -671,7 +672,7 @@ export default function ChatPage() {
                 onClick={() => { setShowInventory(p => !p); setShowStats(false) }}
               >🎒</button>
             )}
-            {isStory && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
+            {isStoryOrMulti && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
               <button
                 className={`btn ${showStats ? 'primary' : 'ghost'}`}
                 style={{ padding: '3px 7px', fontSize: 10 }}
@@ -720,15 +721,17 @@ export default function ChatPage() {
             <div className="chatlog" ref={logRef}>
               {messages.length === 0 && !streaming && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
-                  <div style={{ fontSize: 24 }}>{isNovel ? '✍' : isStory ? '📖' : '✦'}</div>
+                  <div style={{ fontSize: 24 }}>{isNovel ? '✍' : isStoryOrMulti ? '📖' : '✦'}</div>
                   <div className="tiny muted" style={{ textAlign: 'center', lineHeight: 1.6 }}>
                     {isNovel
                       ? <>장면을 지시해보세요.<br />예: "{char.name}와 처음 만나는 장면"</>
-                      : isTikiTaka
-                        ? <>{conv.characters.map(cc => cc.character.name).join(', ')}와의 이야기를 시작해보세요.<br />메시지를 보내면 캐릭터들이 자연스럽게 반응합니다.</>
-                        : isStory
-                          ? <>스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
-                          : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
+                      : conv.mode === 'multiStory'
+                        ? <>멀티스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
+                        : isTikiTaka
+                          ? <>{conv.characters.map(cc => cc.character.name).join(', ')}와의 이야기를 시작해보세요.<br />메시지를 보내면 캐릭터들이 자연스럽게 반응합니다.</>
+                          : isStory
+                            ? <>스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
+                            : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
                     }
                   </div>
                 </div>
@@ -749,7 +752,7 @@ export default function ChatPage() {
                 const ai = AI_MODELS.find(x => x.id === m.aiModel) ?? AI_MODELS[0]
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
-                const storyParsed = isStory && !isYou ? parseStoryChoices(m.content) : null
+                const storyParsed = isStoryOrMulti && !isYou ? parseStoryChoices(m.content) : null
                 const blocks = isYou ? [] : (isNovel || isStory || isTikiTaka ? parseNovelBlocks(storyParsed ? storyParsed.body : m.content) : parseBlocks(m.content))
                 const branchesFromHere = branches.filter(b => b.branchFromMessageId === m.id && b.id !== params.id)
 
@@ -857,7 +860,7 @@ export default function ChatPage() {
                     )}
 
                     {/* ── 스토리 선택지 ── */}
-                    {isStory && !isYou && isLast && !typing && storyParsed && storyParsed.choices.length > 0 && (
+                    {isStoryOrMulti && !isYou && isLast && !typing && storyParsed && storyParsed.choices.length > 0 && (
                       <div className="vstack" style={{ gap: 5, marginTop: 8, paddingLeft: 4 }}>
                         {storyParsed.choices.map((choice, i) => (
                           <div key={i} className="hstack" style={{ gap: 4, alignItems: 'stretch' }}>
@@ -887,7 +890,7 @@ export default function ChatPage() {
                       </div>
                     )}
                     {/* 이어쓰기 — 스토리 외 모드, 마지막 AI 응답이 짧을 때 */}
-                    {!isStory && !isYou && isLast && !typing && m.content.length < 350 && (
+                    {!isStoryOrMulti && !isYou && isLast && !typing && m.content.length < 350 && (
                       <div style={{ paddingLeft: 4, marginTop: 4 }}>
                         <button
                           className="btn ghost"
@@ -1016,7 +1019,11 @@ export default function ChatPage() {
                 className="field"
                 rows={1}
                 style={{ resize: 'none', overflow: 'auto', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
-                placeholder={typing ? 'AI가 응답 중...' : isNovel ? '장면을 지시해보세요…' : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…' : isStory ? '직접 입력하거나 선택지를 클릭하세요…' : `${char.name}에게 말 걸기…`}
+                placeholder={typing ? 'AI가 응답 중...'
+                  : isNovel ? '장면을 지시해보세요…'
+                  : isStoryOrMulti ? '직접 입력하거나 선택지를 클릭하세요…'
+                  : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…'
+                  : `${char.name}에게 말 걸기…`}
                 disabled={typing}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
