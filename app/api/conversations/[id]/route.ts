@@ -51,19 +51,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   })
   if (!target) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
-  // URL import로 연결된 컬렉션/캐릭터 삭제 (conversationId로 식별)
-  const linkedCollection = await prisma.characterCollection.findUnique({
-    where: { conversationId: params.id },
-    select: { id: true, characters: { select: { id: true }, where: { isAutoCreated: true } } },
-  })
-  if (linkedCollection) {
-    const charIds = linkedCollection.characters.map(c => c.id)
-    if (charIds.length > 0) {
-      await prisma.conversationCharacter.deleteMany({ where: { characterId: { in: charIds } } })
-      await prisma.character.deleteMany({ where: { id: { in: charIds } } })
-    }
-    await prisma.characterCollection.delete({ where: { id: linkedCollection.id } })
-  }
+  // URL import로 연결된 컬렉션 제거 (캐릭터는 보존, collectionId만 null로)
+  // Character FK에 ON DELETE SET NULL이 설정되어 있어 컬렉션 삭제 시 자동 처리됨
+  await prisma.characterCollection.deleteMany({ where: { conversationId: params.id } })
 
   // 루트(v1)를 삭제할 때 남은 분기가 있으면, 가장 오래된 분기를 새 루트로 승격한다.
   // 분기는 rootConversationId 문자열로만 묶인 별도 Conversation이므로, 루트만 지우면

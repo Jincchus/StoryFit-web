@@ -11,7 +11,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const preset = PRESET_CHARS.find(c => c.id === params.id)
   if (preset) return NextResponse.json(preset)
 
-  const character = await prisma.character.findUnique({ where: { id: params.id } })
+  const character = await prisma.character.findUnique({
+    where: { id: params.id },
+    include: { collection: { select: { id: true, title: true } } },
+  })
   if (!character) return NextResponse.json({ error: '캐릭터를 찾을 수 없습니다.' }, { status: 404 })
   return NextResponse.json(character)
 }
