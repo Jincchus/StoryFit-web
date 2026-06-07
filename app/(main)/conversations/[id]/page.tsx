@@ -884,13 +884,6 @@ export default function ChatPage() {
                       </div>
                     )}
 
-                    {/* ── 재생성 버튼 항상 표시 (마지막 AI 메시지) ── */}
-                    {isLast && isLastAssistant && !isYou && !isEditing && !typing && (
-                      <div style={{ paddingLeft: 4, marginTop: 2 }}>
-                        <button className="msg-action-btn" aria-label="재생성" onClick={handleRegenerate} style={{ opacity: 0.75 }}>↺ 재생성</button>
-                      </div>
-                    )}
-
                     {/* ── 호버/탭 액션 ── */}
                     {!isEditing && (
                       <div className={`msg-actions ${isYou ? 'you' : ''}`}>
