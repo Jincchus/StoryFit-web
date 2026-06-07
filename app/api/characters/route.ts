@@ -9,9 +9,27 @@ export async function GET(req: NextRequest) {
   const characters = await prisma.character.findMany({
     where: { OR: [{ isPreset: true }, { creatorId: userId }] },
     orderBy: [{ isPreset: 'desc' }, { createdAt: 'asc' }],
-    include: { collection: { select: { id: true, title: true } } },
+    include: {
+      collection: { select: { id: true, title: true } },
+      conversations: {
+        where: { conversation: { userId, characterCollection: { isNot: null } } },
+        take: 1,
+        select: {
+          conversation: {
+            select: { characterCollection: { select: { id: true, title: true } } },
+          },
+        },
+      },
+    },
   })
-  return NextResponse.json(characters)
+
+  // 직접 collectionId가 없으면 소속 대화의 컬렉션으로 대체
+  const result = characters.map(({ conversations, ...c }) => ({
+    ...c,
+    collection: c.collection ?? conversations[0]?.conversation?.characterCollection ?? null,
+  }))
+
+  return NextResponse.json(result)
 }
 
 export async function POST(req: NextRequest) {
