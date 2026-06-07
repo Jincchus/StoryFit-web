@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
@@ -9,6 +9,14 @@ import ParamTooltip from '@/components/ui/ParamTooltip'
 import type { Character } from '@/types'
 
 export default function NewConversationPage() {
+  return (
+    <Suspense>
+      <NewConversationInner />
+    </Suspense>
+  )
+}
+
+function NewConversationInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const fromId = searchParams.get('from')
