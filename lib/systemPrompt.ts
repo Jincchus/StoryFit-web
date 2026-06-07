@@ -104,7 +104,7 @@ export const NOVEL_BASE_RULES = `You are a novelist. Always follow the output fo
 
 - FORBIDDEN: Writing dialogue without a speaker name (e.g.: "Hello." alone). Every line of dialogue must follow the Name : "content" format without exception.`
 
-// {{user}}, {user}, [유저], \buser\b, guest, 주인공, 당신 등 유저 플레이스홀더를 페르소나 이름으로 치환
+// {{user}}, {user}, [유저], user, guest, persona, 페르소나, 주인공, 당신 등 유저 플레이스홀더를 페르소나 이름으로 치환
 export function replacePlaceholders(text: string, personaName: string, charName?: string): string {
   let result = text
   if (charName) {
@@ -118,6 +118,8 @@ export function replacePlaceholders(text: string, personaName: string, charName?
     .replace(/\[유저\]/g, personaName)
     .replace(/\[USER\]/gi, personaName)
     .replace(/\bguest\b/gi, personaName)
+    .replace(/\bpersona\b/gi, personaName)
+    .replace(/\b페르소나\b/g, personaName)
     .replace(/\b주인공\b/g, personaName)
     .replace(/\buser\b/gi, personaName)
     .replace(/\b당신\b/g, personaName)
