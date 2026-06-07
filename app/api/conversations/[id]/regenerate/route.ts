@@ -5,7 +5,7 @@ import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matc
 import type { InventoryItem, StatEntry } from '@/types'
 import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent, sliceByTokenBudget } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
-import { triggerStoryEvaluation, rollbackStatsDelta, rollbackInventoryDelta } from '@/lib/storyEval'
+import { triggerStoryEvaluation, triggerStateTracking, rollbackStatsDelta, rollbackInventoryDelta } from '@/lib/storyEval'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { appendTurnControlInstruction, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
@@ -234,6 +234,8 @@ async function regenerateAsync({
           inventoryEnabled: freshConv2.inventoryEnabled && Array.isArray(freshConv2.inventory),
         })
       }
+    } else {
+      triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '')
     }
   } catch (err: any) {
     clearTimeout(timeoutId)

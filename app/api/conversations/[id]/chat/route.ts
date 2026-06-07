@@ -4,7 +4,7 @@ import { authenticate } from '@/lib/apiAuth'
 import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
 import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent, sliceByTokenBudget } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
-import { triggerStoryEvaluation } from '@/lib/storyEval'
+import { triggerStoryEvaluation, triggerStateTracking } from '@/lib/storyEval'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
@@ -238,6 +238,8 @@ async function generateAsync({
         statsEnabled: conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0,
         inventoryEnabled: conv.inventoryEnabled && Array.isArray(conv.inventory),
       })
+    } else {
+      triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '')
     }
   } catch (err: any) {
     clearTimeout(timeoutId)
