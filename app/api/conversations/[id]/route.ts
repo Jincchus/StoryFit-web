@@ -39,15 +39,27 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     })
   }
 
-  // 스토리 모드: 선택된 캐릭터 1명만 남기고 나머지 제거
+  // 스토리 모드: 선택된 캐릭터 1명만 남기고 나머지 제거 (소유권 확인)
   if (soloCharacterId) {
+    const owned = await prisma.character.findFirst({
+      where: { id: soloCharacterId, OR: [{ creatorId: userId }, { isPreset: true }] },
+      select: { id: true },
+    })
+    if (!owned) return NextResponse.json({ error: '유효하지 않은 캐릭터입니다.' }, { status: 400 })
     await prisma.conversationCharacter.deleteMany({
       where: { conversationId: params.id, characterId: { not: soloCharacterId } },
     })
   }
 
-  // 멀티스토리 모드: 캐릭터 목록 전체 교체
+  // 멀티스토리 모드: 캐릭터 목록 전체 교체 (소유권 확인)
   if (Array.isArray(characterIds) && characterIds.length > 0) {
+    const owned = await prisma.character.findMany({
+      where: { id: { in: characterIds }, OR: [{ creatorId: userId }, { isPreset: true }] },
+      select: { id: true },
+    })
+    if (owned.length !== characterIds.length) {
+      return NextResponse.json({ error: '유효하지 않은 캐릭터가 포함되어 있습니다.' }, { status: 400 })
+    }
     await prisma.$transaction([
       prisma.conversationCharacter.deleteMany({ where: { conversationId: params.id } }),
       ...characterIds.map((charId: string, i: number) =>

@@ -374,7 +374,10 @@ function NewConversationInner() {
                     </div>
                     {!draft.personaId && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
                   </div>
-                  {allChars.filter(c => !importedChars.some(ic => ic.id === c.id) && c.id !== char?.id).map(c => (
+                  {allChars.filter(c => mode === 'multiStory'
+                    ? !importedChars.some(ic => ic.id === c.id)
+                    : c.id !== char?.id
+                  ).map(c => (
                     <div
                       key={c.id}
                       className={`persona-option ${draft.personaId === c.id ? 'selected' : ''}`}
