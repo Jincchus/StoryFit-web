@@ -750,7 +750,7 @@ export default function ChatPage() {
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
                 const storyParsed = isStory && !isYou ? parseStoryChoices(m.content) : null
-                const blocks = isYou ? [] : (isNovel || isStory ? parseNovelBlocks(storyParsed ? storyParsed.body : m.content) : parseBlocks(m.content))
+                const blocks = isYou ? [] : (isNovel || isStory || isTikiTaka ? parseNovelBlocks(storyParsed ? storyParsed.body : m.content) : parseBlocks(m.content))
                 const branchesFromHere = branches.filter(b => b.branchFromMessageId === m.id && b.id !== params.id)
 
                 return (
@@ -822,8 +822,10 @@ export default function ChatPage() {
                           }
                           const rawSpeaker = b.speaker || msgChar.name
                           const speaker = rawSpeaker.replace(/^\[|\]$/g, '').trim()
-                          const isMainChar = isSamePerson(speaker, msgChar.name)
                           const isPersona = !!conv.personaCharacter && isSamePerson(speaker, conv.personaCharacter.name)
+                          const isConvChar = isTikiTaka
+                            ? conv.characters.some(cc => isSamePerson(speaker, cc.character.name))
+                            : isSamePerson(speaker, msgChar.name)
                           const thought = b.type === 'thought' ? ' thought-bubble' : ''
                           if (isPersona) {
                             return (
@@ -833,7 +835,7 @@ export default function ChatPage() {
                               </div>
                             )
                           }
-                          const bubbleColor = isMainChar ? 'bubble-char' : 'bubble-third'
+                          const bubbleColor = isConvChar ? 'bubble-char' : 'bubble-third'
                           return (
                             <div key={i} className="seq-block seq-left">
                               <div className="seq-speaker">
@@ -960,7 +962,7 @@ export default function ChatPage() {
                     </div>
                     {streaming
                       ? <>
-                          {isNovel
+                          {isNovel || isTikiTaka
                             ? <NovelScene text={streaming} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
                             : <MessageBlocks text={streaming} />
                           }
