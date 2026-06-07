@@ -231,6 +231,7 @@ async function regenerateAsync({
 
     triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
 
+    const isMultiStory = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
     if (conv.mode === 'story') {
       const freshConv2 = await prisma.conversation.findUnique({
         where: { id: convId },
