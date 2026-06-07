@@ -93,6 +93,21 @@ function preprocessZetaText(html: string): string {
   return text.slice(0, 12000)
 }
 
+function cleanWhifText(text: string): string {
+  let cleaned = text
+
+  const cutMarkers = ['크리에이터', '출시일', '마음에 들었다면', 'Creator', 'Release date']
+  for (const marker of cutMarkers) {
+    const idx = cleaned.indexOf(marker)
+    if (idx > 300) { cleaned = cleaned.slice(0, idx); break }
+  }
+
+  return cleaned
+    .replace(/^(윕|WHIF)\s+/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 function extractZetaIntroText(text: string, characterNames: string[]): string {
   const introIdx = text.lastIndexOf('인트로')
   if (introIdx < 0) return ''
@@ -262,6 +277,126 @@ ${text}
   return { characterId: firstChar?.id, conversationId: conversation.id, collectionId: collection.id }
 }
 
+async function importFromWhif(url: string, userId: string) {
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5',
+    },
+  })
+  console.log('[whif-import] fetch status:', res.status, 'content-type:', res.headers.get('content-type'))
+  if (!res.ok) throw new Error(`페이지를 불러올 수 없습니다 (HTTP ${res.status})`)
+
+  const html = await res.text()
+  console.log('[whif-import] html length:', html.length)
+
+  const visibleText = cleanWhifText(stripHtml(html))
+  const flightText = cleanWhifText(extractNextFlightText(html))
+  const text = (visibleText.length >= 300 ? visibleText : flightText).slice(0, 12000)
+
+  if (text.length < 100) throw new Error('Whif 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
+
+  const systemPrompt = '당신은 텍스트에서 롤플레잉 캐릭터 정보를 추출하는 파서입니다. 반드시 JSON만 반환하세요.'
+  const userPrompt = `아래 텍스트에서 등장하는 모든 캐릭터 정보를 추출해 JSON으로 반환하세요. 캐릭터가 여러 명이면 모두 포함하세요.
+
+텍스트:
+${text}
+
+반환 형식 (마크다운 없이 JSON만):
+{"characters":[{"name":"캐릭터 이름","gender":"남성 또는 여성 또는 빈 문자열","additionalInfo":"나이·외모·직업·성격·배경 등을 자연스럽게 서술","openingMessage":"첫 메시지/인트로가 있으면 입력, 없으면 빈 문자열","exampleDialogues":"예시 대화가 있으면 입력, 없으면 빈 문자열"}],"tags":["태그1","태그2"],"scenarioNote":"줄거리/세계관 설명","title":"작품 제목 또는 주인공 이름"}
+
+규칙:
+- characters 배열에 텍스트에 나오는 모든 캐릭터 포함 (한 명이어도 배열로)
+- tags는 # 기호로 표시된 태그에서 최대 10개, # 없이 문자열만
+- 정보가 없는 필드는 빈 문자열`
+
+  let parsed: any
+  for (let i = 0; i < 2; i++) {
+    try {
+      const raw = await generateText(systemPrompt, userPrompt, 4096)
+      const match = raw.match(/\{[\s\S]*\}/)
+      parsed = JSON.parse(match ? match[0] : raw)
+      break
+    } catch (e: any) {
+      console.log('[whif-import] parse error attempt', i, ':', e?.message)
+      if (i === 1) throw new Error('AI 파싱에 실패했습니다')
+    }
+  }
+
+  const firstParsedChar = Array.isArray(parsed.characters) ? parsed.characters[0] : parsed
+  const name = String(firstParsedChar?.name ?? parsed.name ?? '').trim()
+  if (!name) throw new Error('캐릭터 이름을 찾을 수 없습니다')
+
+  const rawChars = Array.isArray(parsed.characters) ? parsed.characters : [parsed]
+  const characterNames = rawChars.map((c: any) => String(c?.name ?? '').trim()).filter(Boolean)
+  const introText = extractZetaIntroText(text, characterNames)
+  const charTags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).trim()).filter(Boolean).slice(0, 15) : []
+  const scenarioDescription = (parsed.scenarioNote?.trim() || '').slice(0, 5000)
+  const firstName = String(rawChars[0]?.name ?? '').trim() || '캐릭터'
+  const isMulti = rawChars.length > 1
+  const title = (parsed.title?.trim() || `${firstName}${isMulti ? ' 외' : ''}와의 대화`).slice(0, 200)
+
+  // 캐릭터 먼저 생성
+  const createdChars = await Promise.all(
+    rawChars.map((c: any, i: number) =>
+      prisma.character.create({
+        data: {
+          name: String(c.name ?? `캐릭터${i + 1}`).trim().slice(0, 100),
+          gender: String(c.gender ?? '').slice(0, 20),
+          tags: charTags,
+          additionalInfo: String(c.additionalInfo ?? '').trim().slice(0, 10000),
+          exampleDialogues: String(c.exampleDialogues ?? '').slice(0, 20000),
+          openingMessage: String(i === 0 && introText ? introText : c.openingMessage ?? '').slice(0, 5000),
+          isAutoCreated: true,
+          creatorId: userId,
+        },
+      })
+    )
+  )
+
+  // 대화 생성
+  const conversation = await prisma.conversation.create({
+    data: {
+      userId,
+      title,
+      mode: isMulti ? 'multiStory' : 'story',
+      currentAI: 'gemini',
+      scenarioDescription,
+      tags: charTags,
+      isAutoCreated: true,
+      sourceUrl: url,
+      characters: { create: createdChars.map((c, i) => ({ characterId: c.id, turnOrder: i })) },
+    },
+  })
+
+  // 컬렉션 생성
+  const collection = await prisma.characterCollection.create({
+    data: { title, sourceUrl: url, userId, conversationId: conversation.id },
+  })
+
+  // 캐릭터에 collectionId 연결
+  await prisma.character.updateMany({
+    where: { id: { in: createdChars.map(c => c.id) } },
+    data: { collectionId: collection.id },
+  })
+
+  const firstChar = createdChars[0]
+  if (firstChar?.openingMessage?.trim()) {
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: firstChar.openingMessage.trim(),
+        characterId: firstChar.id,
+        isSelected: true,
+        isStreaming: false,
+      },
+    })
+  }
+
+  return { characterId: firstChar?.id, conversationId: conversation.id, collectionId: collection.id }
+}
+
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
@@ -275,6 +410,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result, { status: 201 })
     } catch (e: any) {
       return NextResponse.json({ error: e.message ?? '제타 가져오기 실패' }, { status: 400 })
+    }
+  }
+
+  if (url.includes('whif.io') || url.includes('whif.club')) {
+    try {
+      const result = await importFromWhif(url.trim(), userId)
+      return NextResponse.json(result, { status: 201 })
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message ?? 'Whif 가져오기 실패' }, { status: 400 })
     }
   }
 
