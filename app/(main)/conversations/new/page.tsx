@@ -158,6 +158,7 @@ function NewConversationInner() {
           scenarioDescription,
           tags,
           isAutoCreated: false,
+          personaCharacterId: draft.personaId ?? null,
           ...(mode === 'multiStory' ? { characterIds: importedChars.map(c => c.id) } : {}),
           ...(mode !== 'multiStory' && char ? { soloCharacterId: char.id } : {}),
         })
