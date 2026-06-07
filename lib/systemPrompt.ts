@@ -104,11 +104,35 @@ export const NOVEL_BASE_RULES = `You are a novelist. Always follow the output fo
 
 - FORBIDDEN: Writing dialogue without a speaker name (e.g.: "Hello." alone). Every line of dialogue must follow the Name : "content" format without exception.`
 
-function buildCharLines(character: Character): string {
+// {{user}}, {user}, [유저], \buser\b, guest, 주인공, 당신 등 유저 플레이스홀더를 페르소나 이름으로 치환
+export function replacePlaceholders(text: string, personaName: string, charName?: string): string {
+  let result = text
+  if (charName) {
+    result = result
+      .replace(/\{\{char\}\}/gi, charName)
+      .replace(/\{char\}/gi, charName)
+  }
+  return result
+    .replace(/\{\{user\}\}/gi, personaName)
+    .replace(/\{user\}/gi, personaName)
+    .replace(/\[유저\]/g, personaName)
+    .replace(/\[USER\]/gi, personaName)
+    .replace(/\bguest\b/gi, personaName)
+    .replace(/\b주인공\b/g, personaName)
+    .replace(/\buser\b/gi, personaName)
+    .replace(/\b당신\b/g, personaName)
+}
+
+function buildCharLines(character: Character, personaName?: string): string {
   const lines: string[] = [`이름: ${character.name}`]
   if (character.gender) lines.push(`성별: ${character.gender}`)
   if (character.tags?.length) lines.push(`태그: ${character.tags.join(', ')}`)
-  if (character.additionalInfo?.trim()) lines.push(character.additionalInfo.trim())
+  if (character.additionalInfo?.trim()) {
+    const info = personaName
+      ? replacePlaceholders(character.additionalInfo.trim(), personaName, character.name)
+      : character.additionalInfo.trim()
+    lines.push(info)
+  }
   return lines.join('\n')
 }
 
@@ -152,9 +176,15 @@ export function buildSystemPrompt({
     parts.push(`[유저 페르소나]\n이름: ${personaCharacter.name}${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
   if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
-  parts.push(`[캐릭터 설정]\n${buildCharLines(character)}`)
-  if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
-  if (character.exampleDialogues?.trim()) parts.push(`[예시 대화]\n${character.exampleDialogues}`)
+  parts.push(`[캐릭터 설정]\n${buildCharLines(character, personaCharacter?.name)}`)
+  if (scenarioDescription?.trim()) {
+    const sd = personaCharacter ? replacePlaceholders(scenarioDescription, personaCharacter.name, character.name) : scenarioDescription
+    parts.push(`[시나리오 배경]\n${sd}`)
+  }
+  if (character.exampleDialogues?.trim()) {
+    const ex = personaCharacter ? replacePlaceholders(character.exampleDialogues, personaCharacter.name, character.name) : character.exampleDialogues
+    parts.push(`[예시 대화]\n${ex}`)
+  }
 
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)
@@ -196,9 +226,15 @@ export function buildNovelSystemPrompt({
     parts.push(`[${personaName} 설정]${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
   if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
-  parts.push(`[${characterName} 설정]\n${buildCharLines(character)}`)
-  if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
-  if (character.exampleDialogues?.trim()) parts.push(`[예시 대화 (참고용)]\n${character.exampleDialogues}`)
+  parts.push(`[${characterName} 설정]\n${buildCharLines(character, personaName)}`)
+  if (scenarioDescription?.trim()) {
+    const sd = replacePlaceholders(scenarioDescription, personaName, characterName)
+    parts.push(`[시나리오 배경]\n${sd}`)
+  }
+  if (character.exampleDialogues?.trim()) {
+    const ex = replacePlaceholders(character.exampleDialogues, personaName, characterName)
+    parts.push(`[예시 대화 (참고용)]\n${ex}`)
+  }
 
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)
@@ -278,9 +314,15 @@ export function buildStorySystemPrompt({
     const invLines = inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')
     parts.push(`[현재 인벤토리]\n${invLines}`)
   }
-  parts.push(`[캐릭터 설정]\n${buildCharLines(character)}`)
-  if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
-  if (character.exampleDialogues?.trim()) parts.push(`[예시 대화]\n${character.exampleDialogues}`)
+  parts.push(`[캐릭터 설정]\n${buildCharLines(character, personaName)}`)
+  if (scenarioDescription?.trim()) {
+    const sd = replacePlaceholders(scenarioDescription, personaName, character.name)
+    parts.push(`[시나리오 배경]\n${sd}`)
+  }
+  if (character.exampleDialogues?.trim()) {
+    const ex = replacePlaceholders(character.exampleDialogues, personaName, character.name)
+    parts.push(`[예시 대화]\n${ex}`)
+  }
 
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)
@@ -367,11 +409,17 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
   }
 
   for (const char of characters) {
-    parts.push(`[${char.name} 설정]\n${buildCharLines(char)}`)
-    if (char.exampleDialogues?.trim()) parts.push(`[${char.name} 예시 대화]\n${char.exampleDialogues}`)
+    parts.push(`[${char.name} 설정]\n${buildCharLines(char, personaName)}`)
+    if (char.exampleDialogues?.trim()) {
+      const ex = replacePlaceholders(char.exampleDialogues, personaName, char.name)
+      parts.push(`[${char.name} 예시 대화]\n${ex}`)
+    }
   }
 
-  if (scenarioDescription?.trim()) parts.push(`[시나리오 배경]\n${scenarioDescription}`)
+  if (scenarioDescription?.trim()) {
+    const sd = replacePlaceholders(scenarioDescription, personaName)
+    parts.push(`[시나리오 배경]\n${sd}`)
+  }
 
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)
