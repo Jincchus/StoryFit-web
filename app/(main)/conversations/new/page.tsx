@@ -23,6 +23,7 @@ function NewConversationInner() {
   const { draft, dispatch } = useApp()
   const [char, setChar] = useState<Character | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
+  const [importedChars, setImportedChars] = useState<Character[]>([])
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'roleplay' | 'novel' | 'story' | 'multiStory'>('story')
   const [statsEnabled, setStatsEnabled] = useState(false)
@@ -85,8 +86,15 @@ function NewConversationInner() {
       if (conv.scenarioDescription) setScenarioDescription(conv.scenarioDescription)
       if (Array.isArray(conv.tags) && conv.tags.length) setTags(conv.tags)
       if (conv.mode) setMode(conv.mode as any)
-      const firstCharId = conv.characters?.[0]?.character?.id
-      if (firstCharId) dispatch({ type: 'selectChar', id: firstCharId })
+      const chars: Character[] = (conv.characters ?? [])
+        .sort((a: any, b: any) => a.turnOrder - b.turnOrder)
+        .map((cc: any) => cc.character)
+        .filter(Boolean)
+      if (chars.length > 0) {
+        setImportedChars(chars)
+        setChar(chars[0])
+        dispatch({ type: 'selectChar', id: chars[0].id })
+      }
     }).catch(() => {})
   }, [fromId])
 
@@ -194,50 +202,73 @@ function NewConversationInner() {
             {/* 1. 캐릭터 선택 */}
             <section className="new-conv-section">
               <div className="label">캐릭터 선택</div>
-              <div
-                className={`persona-option ${char ? 'selected' : ''}`}
-                style={{ cursor: 'pointer' }}
-                onClick={() => setCharOpen(o => !o)}
-              >
-                {char ? (
-                  <>
-                    <div className="thumb" style={{ width: 32, height: 32 }}>
-                      {char.avatarUrl
-                        ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                        : <PixelAvatar kind={char.kind} size={32} />}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 11 }}>{char.name}</div>
-                      <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.tags?.slice(0, 3).join(' · ')}</div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="tiny muted" style={{ flex: 1 }}>— 캐릭터를 선택하세요 —</div>
-                )}
-                <span style={{ fontSize: 9, color: 'var(--ink-soft)', flexShrink: 0 }}>{charOpen ? '▲' : '▼'}</span>
-              </div>
-              {charOpen && (
-                <div style={{ border: '1px solid var(--chrome-border)', background: 'var(--win-bg)', marginTop: 2, maxHeight: 200, overflowY: 'auto' }}>
-                  {allChars.filter(c => c.id !== draft.personaId).map(c => (
-                    <div
-                      key={c.id}
-                      className={`persona-option ${char?.id === c.id ? 'selected' : ''}`}
-                      style={{ cursor: 'pointer', borderRadius: 0, borderBottom: '1px solid var(--chrome-border)' }}
-                      onClick={() => selectChar(c)}
-                    >
-                      <div className="thumb" style={{ width: 28, height: 28 }}>
+              {importedChars.length > 1 ? (
+                /* 멀티스토리 import — 전체 캐릭터 목록 표시 (변경 불가) */
+                <div className="vstack" style={{ gap: 4 }}>
+                  {importedChars.map((c, i) => (
+                    <div key={c.id} className="persona-option selected" style={{ cursor: 'default' }}>
+                      <div className="thumb" style={{ width: 32, height: 32 }}>
                         {c.avatarUrl
                           ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                          : <PixelAvatar kind={c.kind} size={28} />}
+                          : <PixelAvatar kind={c.kind} size={32} />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
                         <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tags?.slice(0, 3).join(' · ')}</div>
                       </div>
-                      {char?.id === c.id && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
+                      <span style={{ fontSize: 9, color: 'var(--hot-pink)', flexShrink: 0 }}>✓ {i + 1}</span>
                     </div>
                   ))}
                 </div>
+              ) : (
+                /* 단일 캐릭터 선택 */
+                <>
+                  <div
+                    className={`persona-option ${char ? 'selected' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setCharOpen(o => !o)}
+                  >
+                    {char ? (
+                      <>
+                        <div className="thumb" style={{ width: 32, height: 32 }}>
+                          {char.avatarUrl
+                            ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                            : <PixelAvatar kind={char.kind} size={32} />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 11 }}>{char.name}</div>
+                          <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.tags?.slice(0, 3).join(' · ')}</div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="tiny muted" style={{ flex: 1 }}>— 캐릭터를 선택하세요 —</div>
+                    )}
+                    <span style={{ fontSize: 9, color: 'var(--ink-soft)', flexShrink: 0 }}>{charOpen ? '▲' : '▼'}</span>
+                  </div>
+                  {charOpen && (
+                    <div style={{ border: '1px solid var(--chrome-border)', background: 'var(--win-bg)', marginTop: 2, maxHeight: 200, overflowY: 'auto' }}>
+                      {allChars.filter(c => c.id !== draft.personaId).map(c => (
+                        <div
+                          key={c.id}
+                          className={`persona-option ${char?.id === c.id ? 'selected' : ''}`}
+                          style={{ cursor: 'pointer', borderRadius: 0, borderBottom: '1px solid var(--chrome-border)' }}
+                          onClick={() => selectChar(c)}
+                        >
+                          <div className="thumb" style={{ width: 28, height: 28 }}>
+                            {c.avatarUrl
+                              ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                              : <PixelAvatar kind={c.kind} size={28} />}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
+                            <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tags?.slice(0, 3).join(' · ')}</div>
+                          </div>
+                          {char?.id === c.id && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </section>
 
@@ -290,7 +321,7 @@ function NewConversationInner() {
                     </div>
                     {!draft.personaId && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
                   </div>
-                  {allChars.filter(c => c.id !== char?.id).map(c => (
+                  {allChars.filter(c => !importedChars.some(ic => ic.id === c.id) && c.id !== char?.id).map(c => (
                     <div
                       key={c.id}
                       className={`persona-option ${draft.personaId === c.id ? 'selected' : ''}`}
