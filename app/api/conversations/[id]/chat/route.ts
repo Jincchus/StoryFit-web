@@ -73,7 +73,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       : conv.mode === 'story'
         ? (userRecord?.personalRulesStory ?? '')
         : (userRecord?.personalRules ?? ''),
-    styleConfig: conv.styleConfig ?? null,
+    styleConfig: (conv.styleConfig ?? null) as any,
   }
 
   function makeCharParam(c: typeof character) {
