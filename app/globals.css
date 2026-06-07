@@ -203,7 +203,9 @@ select.field{
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23262626' d='M6 8L0 0h12z'/></svg>") right 12px center / 10px no-repeat,
     var(--bg-2);
   padding-right: 32px;
-  height: 38px;
+  min-height: 38px;
+  height: auto;
+  line-height: 1.4;
 }
 
 /* ─── Tabs (IG profile-tab) ─────────────────────────────────────────────── */
