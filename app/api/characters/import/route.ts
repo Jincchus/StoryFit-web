@@ -96,13 +96,17 @@ ${text}
       name,
       gender: String(parsed.gender ?? '').slice(0, 20),
       tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).slice(0, 50)) : [],
-      additionalInfo: additionalInfo.slice(0, 10000),
+      additionalInfo: String(parsed.additionalInfo ?? '').trim().slice(0, 10000),
       exampleDialogues: String(parsed.exampleDialogues ?? '').slice(0, 20000),
       openingMessage: String(parsed.openingMessage ?? '').slice(0, 5000),
       creatorId: userId,
     },
   })
-  return character
+  return {
+    character,
+    scenarioDescription: String(parsed.scenarioNote ?? '').trim().slice(0, 5000),
+    tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).slice(0, 50)) : [],
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -114,8 +118,8 @@ export async function POST(req: NextRequest) {
 
   if (url.includes('zeta-ai.io')) {
     try {
-      const character = await importFromZeta(url.trim(), userId)
-      return NextResponse.json(character, { status: 201 })
+      const result = await importFromZeta(url.trim(), userId)
+      return NextResponse.json(result, { status: 201 })
     } catch (e: any) {
       return NextResponse.json({ error: e.message ?? '제타 가져오기 실패' }, { status: 400 })
     }

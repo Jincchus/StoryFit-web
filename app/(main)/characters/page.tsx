@@ -40,11 +40,17 @@ export default function CharactersPage() {
     setImporting(true)
     setError('')
     try {
-      const char = await api.post('/api/characters/import', { url: importUrl.trim() })
+      const result = await api.post('/api/characters/import', { url: importUrl.trim() })
+      const char = result.character ?? result
       setCharacters(prev => [...prev, char])
       dispatch({ type: 'selectChar', id: char.id })
       setImportUrl('')
       setShowUrlInput(false)
+      if (result.character) {
+        if (result.scenarioDescription) sessionStorage.setItem('zeta-import-scenario', result.scenarioDescription)
+        if (result.tags?.length) sessionStorage.setItem('zeta-import-tags', JSON.stringify(result.tags))
+        router.push('/conversations/new')
+      }
     } catch (e: any) {
       setError(e.message)
     } finally {

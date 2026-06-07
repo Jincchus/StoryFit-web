@@ -53,6 +53,10 @@ export default function NewConversationPage() {
       setAllChars(chars)
       setMaxOutputTokens(userSettings.defaultMaxOutputTokens ?? 8192)
       setThinkingBudget(userSettings.defaultThinkingBudget ?? 0)
+      const zetaScenario = sessionStorage.getItem('zeta-import-scenario')
+      const zetaTags = sessionStorage.getItem('zeta-import-tags')
+      if (zetaScenario) { setScenarioDescription(zetaScenario); sessionStorage.removeItem('zeta-import-scenario') }
+      if (zetaTags) { try { setTags(JSON.parse(zetaTags)) } catch {} sessionStorage.removeItem('zeta-import-tags') }
       if (draft.charId) {
         const found = chars.find((c: Character) => c.id === draft.charId) ?? null
         if (found) {
