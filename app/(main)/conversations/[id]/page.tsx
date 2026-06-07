@@ -91,6 +91,7 @@ interface Conv {
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
   inventoryEnabled: boolean; inventory: { name: string; qty: number; description?: string }[] | null
   styleConfig?: Record<string, string | null> | null
+  sourceLorebookUrls?: { url: string; name: string }[] | null
   characters: ConvChar[]
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
   messages: Msg[]
@@ -402,6 +403,9 @@ export default function ChatPage() {
     lbForm, setLbForm,
     lorebookError,
     handleAddLorebook, handlePatchLorebook, handleDeleteLorebook,
+    showLorebookImport, setShowLorebookImport,
+    lorebookImportText, setLorebookImportText,
+    lorebookImporting, handleImportLorebook,
   } = useLorebook(params.id, setToast)
   // useMemoryPanel은 handleCoreMemory 선언 이후에 초기화 (아래 참고)
   // ── /커스텀 훅 ────────────────────────────────────────────────────────
@@ -1308,11 +1312,42 @@ export default function ChatPage() {
                 {panelOpen.lorebook && <>
                   <div className="spread" style={{ marginBottom: 4, marginTop: 4 }}>
                     <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'lorebook' ? null : 'lorebook')}>?</button>
-                    {lorebooks.length < 20
-                      ? <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setLorebookAdd(a => !a); setLorebookEditId(null) }}>+ 추가</button>
-                      : <span className="tiny muted" style={{ fontSize: 9 }}>최대 20개</span>
-                    }
+                    <div className="hstack" style={{ gap: 3 }}>
+                      <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setShowLorebookImport(v => !v); setLorebookAdd(false) }}>📥 가져오기</button>
+                      {lorebooks.length < 20
+                        ? <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => { setLorebookAdd(a => !a); setLorebookEditId(null); setShowLorebookImport(false) }}>+ 추가</button>
+                        : <span className="tiny muted" style={{ fontSize: 9 }}>최대 20개</span>
+                      }
+                    </div>
                   </div>
+                  {conv.sourceLorebookUrls && conv.sourceLorebookUrls.length > 0 && (
+                    <div className="vstack" style={{ gap: 3, marginBottom: 6, padding: '5px 7px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>
+                      <div className="tiny muted" style={{ fontSize: 9 }}>원본 로어북</div>
+                      {conv.sourceLorebookUrls.map((lb, i) => (
+                        <a key={i} href={lb.url} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          ↗ {lb.name}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {showLorebookImport && (
+                    <div className="vstack" style={{ gap: 5, marginBottom: 8, padding: 6, background: 'var(--pane)', borderRadius: 'var(--radius)', border: '1px solid var(--chrome-border)' }}>
+                      <div className="tiny muted" style={{ fontSize: 9, lineHeight: 1.5 }}>Zeta 로어북 페이지 전체 텍스트를 붙여넣으세요. AI가 자동으로 항목을 분리해 저장합니다.</div>
+                      <textarea
+                        className="field" rows={6} style={{ fontSize: 10, resize: 'none' }}
+                        placeholder="Zeta 로어북 페이지에서 Ctrl+A → Ctrl+C 후 여기에 붙여넣기"
+                        value={lorebookImportText}
+                        onChange={e => setLorebookImportText(e.target.value)}
+                      />
+                      <div className="hstack" style={{ gap: 4 }}>
+                        <button className="btn primary" style={{ fontSize: 9, padding: '2px 7px' }} disabled={lorebookImporting || !lorebookImportText.trim()} onClick={handleImportLorebook}>
+                          {lorebookImporting ? '파싱 중...' : '✦ 저장'}
+                        </button>
+                        <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => { setShowLorebookImport(false); setLorebookImportText('') }}>취소</button>
+                      </div>
+                    </div>
+                  )}
                 {infoTip === 'lorebook' && (
                   <div className="info-tip">특정 키워드가 대화에 등장하면 관련 세계관 정보를 AI에게 자동 주입합니다. 최근 N턴(탐색깊이)만 스캔하며, 우선순위 높은 항목부터 최대 1,000 토큰까지 포함됩니다.{'\n\n'}예: 키워드 "마왕성" → "마왕성은 100년 전 악마왕이 건설한 요새로, 총 7개 층이다."</div>
                 )}

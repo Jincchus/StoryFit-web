@@ -129,6 +129,8 @@ model Conversation {
   inventory           Json?
   styleConfig         Json?
   isAutoCreated       Boolean                 @default(false)
+  sourceUrl           String                  @default("")
+  sourceLorebookUrls  Json?
   rootConversationId   String?
   branchFromMessageId  String?
   branchDescription    String                  @default("")

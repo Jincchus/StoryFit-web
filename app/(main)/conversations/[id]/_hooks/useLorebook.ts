@@ -10,6 +10,9 @@ export function useLorebook(convId: string, setToast: (msg: string) => void) {
   const [lorebookEditId, setLorebookEditId] = useState<string | null>(null)
   const [lbForm, setLbForm] = useState({ keywords: '', content: '', priority: 0, scanDepth: 5 })
   const [lorebookError, setLorebookError] = useState(false)
+  const [lorebookImporting, setLorebookImporting] = useState(false)
+  const [showLorebookImport, setShowLorebookImport] = useState(false)
+  const [lorebookImportText, setLorebookImportText] = useState('')
 
   useEffect(() => {
     api.get(`/api/lorebooks?conversationId=${convId}`).then(setLorebooks).catch(() => setLorebookError(true))
@@ -44,11 +47,33 @@ export function useLorebook(convId: string, setToast: (msg: string) => void) {
     } catch { setToast('로어북 삭제에 실패했습니다') }
   }
 
+  const handleImportLorebook = async () => {
+    if (!lorebookImportText.trim() || lorebookImporting) return
+    setLorebookImporting(true)
+    try {
+      const created: LbEntry[] = await api.post('/api/lorebooks/import', {
+        text: lorebookImportText,
+        conversationId: convId,
+      })
+      setLorebooks(prev => [...prev, ...created])
+      setLorebookImportText('')
+      setShowLorebookImport(false)
+      setToast(`로어북 ${created.length}개 가져오기 완료`)
+    } catch (e: any) {
+      setToast(e.message ?? '로어북 가져오기에 실패했습니다')
+    } finally {
+      setLorebookImporting(false)
+    }
+  }
+
   return {
     lorebooks, lorebookAdd, setLorebookAdd,
     lorebookEditId, setLorebookEditId,
     lbForm, setLbForm,
     lorebookError,
     handleAddLorebook, handlePatchLorebook, handleDeleteLorebook,
+    showLorebookImport, setShowLorebookImport,
+    lorebookImportText, setLorebookImportText,
+    lorebookImporting, handleImportLorebook,
   }
 }

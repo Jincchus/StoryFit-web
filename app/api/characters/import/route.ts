@@ -41,6 +41,18 @@ function stripHtml(html: string): string {
     .trim()
 }
 
+function extractLorebookUrls(html: string): { url: string; name: string }[] {
+  const matches = [...html.matchAll(/href="(\/(?:ko|en)\/lorebooks\/[a-f0-9-]+)"[^>]*>([^<]*)</g)]
+  const seen = new Set<string>()
+  return matches.flatMap(m => {
+    const url = `https://zeta-ai.io${m[1]}`
+    const name = m[2]?.trim() || url
+    if (seen.has(url)) return []
+    seen.add(url)
+    return [{ url, name }]
+  })
+}
+
 async function importFromZeta(url: string, userId: string) {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
@@ -48,6 +60,7 @@ async function importFromZeta(url: string, userId: string) {
   if (!res.ok) throw new Error(`페이지를 불러올 수 없습니다 (HTTP ${res.status})`)
 
   const html = await res.text()
+  const lorebookUrls = extractLorebookUrls(html)
   const text = stripHtml(html).slice(0, 8000)
 
   const systemPrompt = '당신은 웹페이지 텍스트에서 캐릭터 정보를 추출하는 파서입니다. JSON만 반환합니다.'
@@ -117,6 +130,8 @@ ${text}
       scenarioDescription,
       tags: charTags,
       isAutoCreated: true,
+      sourceUrl: url,
+      sourceLorebookUrls: lorebookUrls.length > 0 ? lorebookUrls : undefined,
       characters: { create: [{ characterId: character.id, turnOrder: 0 }] },
     },
   })
