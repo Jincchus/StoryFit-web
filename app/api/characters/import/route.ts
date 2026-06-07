@@ -93,6 +93,32 @@ function preprocessZetaText(html: string): string {
   return text.slice(0, 12000)
 }
 
+function extractZetaIntroText(text: string, characterNames: string[]): string {
+  const introIdx = text.lastIndexOf('인트로')
+  if (introIdx < 0) return ''
+
+  let intro = text.slice(introIdx + '인트로'.length).trim()
+  for (const marker of ['크리에이터', '출시일', '마음에 들었다면', 'Creator', 'Release date']) {
+    const idx = intro.indexOf(marker)
+    if (idx > 0) { intro = intro.slice(0, idx).trim(); break }
+  }
+
+  for (const name of characterNames) {
+    if (!name) continue
+    const re = new RegExp(`^${escapeRegExp(name)}\\s+`)
+    if (re.test(intro) && intro.replace(re, '').trim().length > 20) {
+      intro = intro.replace(re, '').trim()
+      break
+    }
+  }
+
+  return intro.slice(0, 5000)
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function extractLorebookUrls(html: string): { url: string; name: string }[] {
   const matches = Array.from(html.matchAll(/href="(\/(?:ko|en)\/lorebooks\/[a-f0-9-]+)"[^>]*>([^<]*)</g))
   const seen = new Set<string>()
@@ -164,6 +190,9 @@ ${text}
   }
 
   const rawChars = Array.isArray(parsed.characters) ? parsed.characters : [parsed]
+  const characterNames = rawChars.map((c: any) => String(c?.name ?? '').trim()).filter(Boolean)
+  const introText = extractZetaIntroText(text, characterNames)
+  console.log('[zeta-import] intro length:', introText.length, '| first 300:', introText.slice(0, 300).replace(/\n/g, ' '))
   const charTags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).trim()).filter(Boolean).slice(0, 15) : []
   const scenarioDescription = (parsed.scenarioNote?.trim() || '').slice(0, 5000)
   const firstName = String(rawChars[0]?.name ?? '').trim() || '캐릭터'
@@ -184,7 +213,7 @@ ${text}
           tags: charTags,
           additionalInfo: String(c.additionalInfo ?? '').trim().slice(0, 10000),
           exampleDialogues: String(c.exampleDialogues ?? '').slice(0, 20000),
-          openingMessage: String(c.openingMessage ?? '').slice(0, 5000),
+          openingMessage: String(i === 0 && introText ? introText : c.openingMessage ?? '').slice(0, 5000),
           isAutoCreated: true,
           creatorId: userId,
           collectionId: collection.id,

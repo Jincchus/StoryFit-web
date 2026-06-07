@@ -30,6 +30,7 @@ export default function HomePage() {
   const [importCollectionId, setImportCollectionId] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
+  const [importSavedId, setImportSavedId] = useState('')
   const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
 
   useEffect(() => {
@@ -47,12 +48,12 @@ export default function HomePage() {
     if (!importUrl.trim() || importing) return
     setImporting(true)
     setImportError('')
+    setImportSavedId('')
     try {
       const result = await api.post('/api/characters/import', { url: importUrl.trim(), collectionId: importCollectionId || undefined })
       setImportUrl('')
       setImportCollectionId('')
-      setShowImport(false)
-      router.push(`/conversations/new?from=${result.conversationId}`)
+      setImportSavedId(result.conversationId ?? '')
     } catch (e: any) {
       setImportError(e.message ?? '가져오기에 실패했습니다')
     } finally {
@@ -95,11 +96,11 @@ export default function HomePage() {
 
       {showImport && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100 }} onClick={() => { setShowImport(false); setImportError('') }} />
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100 }} onClick={() => { setShowImport(false); setImportError(''); setImportSavedId('') }} />
           <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 101, width: 'min(380px, 90vw)' }}>
             <div className="win-title">
               <div className="win-title-l"><span>설정 가져오기</span></div>
-              <div className="win-controls"><button onClick={() => { setShowImport(false); setImportError('') }}>×</button></div>
+              <div className="win-controls"><button onClick={() => { setShowImport(false); setImportError(''); setImportSavedId('') }}>×</button></div>
             </div>
             <div className="win-body vstack" style={{ gap: 10 }}>
               <div className="tiny muted" style={{ lineHeight: 1.6 }}>
@@ -134,8 +135,16 @@ export default function HomePage() {
                 </div>
               )}
               {importError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {importError}</div>}
+              {importSavedId && (
+                <div className="tiny" style={{ color: 'var(--accent)', lineHeight: 1.6 }}>
+                  채팅 목록에 임시저장되었습니다. 채팅 목록에서 클릭하면 새 대화 설정을 이어서 열 수 있습니다.
+                </div>
+              )}
               <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
-                <button className="btn ghost" style={{ fontSize: 11 }} onClick={() => { setShowImport(false); setImportError('') }}>취소</button>
+                {importSavedId && (
+                  <button className="btn ghost" style={{ fontSize: 11 }} onClick={() => router.push('/chatlist')}>채팅 목록</button>
+                )}
+                <button className="btn ghost" style={{ fontSize: 11 }} onClick={() => { setShowImport(false); setImportError(''); setImportSavedId('') }}>{importSavedId ? '닫기' : '취소'}</button>
                 <button className="btn primary" style={{ fontSize: 11 }} disabled={importing || !importUrl.trim()} onClick={handleImport}>
                   {importing ? '가져오는 중...' : '가져오기'}
                 </button>
