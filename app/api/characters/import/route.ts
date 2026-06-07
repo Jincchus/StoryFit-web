@@ -27,31 +27,70 @@ function parseTavernJson(json: any): CardShape {
   }
 }
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
+function stripHtml(html: string): string {
+  return decodeHtmlEntities(html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim())
+}
+
+function extractNextFlightText(html: string): string {
+  const chunks: string[] = []
+  const re = /self\.__next_f\.push\(\[1,("(?:(?:\\.|[^"\\])*)")\]\)/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(html)) !== null) {
+    try {
+      chunks.push(JSON.parse(match[1]))
+    } catch {
+      // Ignore malformed chunks; the visible HTML fallback may still work.
+    }
+  }
+
+  return stripHtml(chunks.join('\n'))
+}
+
+function cleanZetaText(text: string): string {
+  let cleaned = text
+
+  const profileIdx = cleaned.indexOf('추천 대화 프로필')
+  if (profileIdx > 1200) {
+    const prefix = cleaned.slice(0, profileIdx).split(/\s+/).slice(-80).join(' ')
+    cleaned = `${prefix} ${cleaned.slice(profileIdx)}`
+  }
+
+  // 추천 콘텐츠/크리에이터 정보 이후는 불필요한 데이터
+  const cutMarkers = ['크리에이터', '출시일', '마음에 들었다면', 'Creator', 'Release date']
+  for (const marker of cutMarkers) {
+    const idx = cleaned.indexOf(marker)
+    if (idx > 300) { cleaned = cleaned.slice(0, idx); break }
+  }
+
+  // 사이트 로고명("제타"/"Zeta")이 맨 앞에 오면 제거
+  return cleaned
+    .replace(/^(제타|Zeta)\s+/i, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
 }
 
 function preprocessZetaText(html: string): string {
-  let text = stripHtml(html)
-  // 추천 콘텐츠/크리에이터 정보 이후는 불필요한 데이터
-  const cutMarkers = ['크리에이터', '출시일', '이 플롯이 마음에 들었다면', '이 캐릭터가 마음에 들었다면']
-  for (const marker of cutMarkers) {
-    const idx = text.indexOf(marker)
-    if (idx > 300) { text = text.slice(0, idx); break }
-  }
-  // 사이트 로고명("제타"/"Zeta")이 맨 앞에 오면 제거
-  text = text.replace(/^(제타|Zeta)\s+/i, '')
-  return text.trim().slice(0, 8000)
+  const visibleText = cleanZetaText(stripHtml(html))
+  const flightText = cleanZetaText(extractNextFlightText(html))
+  const text = visibleText.length >= 300 ? visibleText : flightText
+  return text.slice(0, 12000)
 }
 
 function extractLorebookUrls(html: string): { url: string; name: string }[] {
@@ -68,7 +107,10 @@ function extractLorebookUrls(html: string): { url: string; name: string }[] {
 
 async function importFromZeta(url: string, userId: string, existingCollectionId?: string) {
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5',
+    },
   })
   console.log('[zeta-import] fetch status:', res.status, 'content-type:', res.headers.get('content-type'))
   if (!res.ok) throw new Error(`페이지를 불러올 수 없습니다 (HTTP ${res.status})`)
@@ -79,6 +121,7 @@ async function importFromZeta(url: string, userId: string, existingCollectionId?
   const lorebookUrls = extractLorebookUrls(html)
   const text = preprocessZetaText(html)
   console.log('[zeta-import] text length:', text.length, '| first 300:', text.slice(0, 300).replace(/\n/g, ' '))
+  if (text.length < 100) throw new Error('Zeta 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
 
   const systemPrompt = '당신은 텍스트에서 롤플레잉 캐릭터 정보를 추출하는 파서입니다. 반드시 JSON만 반환하세요.'
   const userPrompt = `아래 텍스트에서 등장하는 모든 캐릭터 정보를 추출해 JSON으로 반환하세요. 캐릭터가 여러 명이면 모두 포함하세요.
