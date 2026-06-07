@@ -52,13 +52,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!target) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
   // URL import로 연결된 컬렉션 제거 (캐릭터는 보존, collectionId만 null로)
-  // conversationId로 찾고, 구버전 데이터는 sourceUrl 폴백으로 처리
+  // conversationId 직접 매핑 우선, 없으면 sourceUrl path 기반 폴백 (share_id 변형 대비)
+  const baseSourceUrl = target.sourceUrl ? target.sourceUrl.split('?')[0] : ''
   await prisma.characterCollection.deleteMany({
     where: {
       userId,
       OR: [
         { conversationId: params.id },
-        ...(target.sourceUrl ? [{ sourceUrl: target.sourceUrl, conversationId: null }] : []),
+        ...(baseSourceUrl ? [{ sourceUrl: { startsWith: baseSourceUrl }, conversationId: null }] : []),
       ],
     },
   })
