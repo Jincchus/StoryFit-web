@@ -104,6 +104,7 @@ ${text}
     }
   }
 
+  console.log('[zeta-import] text sent to AI (first 300):', text.slice(0, 300))
   console.log('[zeta-import] parsed:', JSON.stringify(parsed).slice(0, 300))
   const firstParsedChar = Array.isArray(parsed.characters) ? parsed.characters[0] : parsed
   const name = String(firstParsedChar?.name ?? parsed.name ?? '').trim()
