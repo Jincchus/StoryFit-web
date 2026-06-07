@@ -125,7 +125,19 @@ export default function HomePage() {
         </>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '10px 0 10px 4px', alignItems: 'flex-start' }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flexWrap: 'wrap',
+        gap: 14,
+        padding: '10px 4px 10px 4px',
+        alignItems: 'flex-start',
+        alignContent: 'flex-start',
+        maxHeight: 'calc(100dvh - 80px)',
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        scrollbarWidth: 'none',
+      }}>
         {icons.map(({ label, icon, href }) => (
           <div key={label} className="di" onClick={() => router.push(href)} style={{ cursor: 'pointer' }}>
             <div className="di-pic">
