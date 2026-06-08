@@ -99,6 +99,14 @@ interface Conv {
 interface LbEntry { id: string; keyword: string[]; content: string; priority: number; scanDepth: number }
 interface BranchInfo { id: string; version: number; branchDescription: string; branchFromMessageId: string | null; rootConversationId: string | null }
 
+const COMMANDS = [
+  { name: '!상태창', desc: '📊 전체 상태창 (스탯 + 소지품 + 상황)' },
+  { name: '!스탯', desc: '❤️ 스탯 및 캐릭터 호감도 조회' },
+  { name: '!인벤토리', desc: '🎒 소지하고 있는 아이템 목록 조회' },
+  { name: '!상황', desc: '🎬 현재 씬의 상황(타임라인) 조회' },
+  { name: '!도움말', desc: '⚙️ 시스템 명령어 도움말' },
+]
+
 export default function ChatPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -143,6 +151,33 @@ export default function ChatPage() {
   const streamUnsubRef = useRef<(() => void) | null>(null)
   const [typingDuration, setTypingDuration] = useState(0)
   const typingStartRef = useRef(0)
+
+  const [showCommandMenu, setShowCommandMenu] = useState(false)
+  const [commandQuery, setCommandQuery] = useState('')
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0)
+
+  const filteredCommands = COMMANDS.filter(cmd => 
+    cmd.name.toLowerCase().startsWith(commandQuery.toLowerCase())
+  )
+
+  const selectCommand = (cmdText: string) => {
+    if (composerRef.current) {
+      composerRef.current.value = cmdText
+      composerRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+      composerRef.current.focus()
+    }
+    setShowCommandMenu(false)
+  }
+
+  const handleComposerInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const val = e.currentTarget.value
+    if (val.startsWith('!') && !val.includes(' ')) {
+      setShowCommandMenu(true)
+      setCommandQuery(val)
+    } else {
+      setShowCommandMenu(false)
+    }
+  }
 
   useEffect(() => { typingRef.current = typing }, [typing])
 
@@ -1058,27 +1093,99 @@ export default function ChatPage() {
                 <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setSendError('')}>닫기</button>
               </div>
             )}
-            <div className="vstack" style={{ gap: 0 }}>
-            <div className="composer" style={{ alignItems: 'flex-end' }}>
-              <textarea
-                ref={composerRef}
-                className="field"
-                rows={1}
-                style={{ resize: 'none', overflow: 'auto', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
-                placeholder={typing ? 'AI가 응답 중...'
-                  : isNovel ? '장면을 지시해보세요…'
-                  : isStoryOrMulti ? '직접 입력하거나 선택지를 클릭하세요…'
-                  : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…'
-                  : `${char.name}에게 말 걸기…`}
-                disabled={typing}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
-                  if (e.key === 'ArrowUp' && !composerRef.current?.value && lastSentRef.current) {
-                    e.preventDefault()
-                    if (composerRef.current) composerRef.current.value = lastSentRef.current
-                  }
-                }}
-              />
+            <div className="vstack" style={{ gap: 0, position: 'relative' }}>
+              {showCommandMenu && (
+                <div 
+                  style={{ position: 'fixed', inset: 0, zIndex: 19 }} 
+                  onClick={() => setShowCommandMenu(false)} 
+                />
+              )}
+              {showCommandMenu && filteredCommands.length > 0 && (
+                <div style={{
+                  position: 'absolute', bottom: '100%', left: 0, right: 0, zIndex: 20,
+                  marginBottom: 6,
+                  background: 'rgba(15, 10, 20, 0.93)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1.5px solid rgba(255, 46, 147, 0.4)',
+                  borderRadius: 'var(--radius)',
+                  boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 46, 147, 0.15)',
+                  overflow: 'hidden',
+                  padding: '4px 0'
+                }}>
+                  <div style={{ padding: '6px 12px', fontSize: 10, fontWeight: 700, color: '#ff2e93', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    💡 시스템 명령어 자동완성 (이동: ↑↓, 선택: Enter)
+                  </div>
+                  <div className="vstack" style={{ gap: 0, maxHeight: 200, overflowY: 'auto' }}>
+                    {filteredCommands.map((cmd, idx) => {
+                      const isActive = idx === selectedCommandIndex
+                      return (
+                        <div
+                          key={cmd.name}
+                          onClick={() => selectCommand(cmd.name)}
+                          onMouseEnter={() => setSelectedCommandIndex(idx)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 14px',
+                            cursor: 'pointer',
+                            background: isActive ? 'rgba(255, 46, 147, 0.2)' : 'transparent',
+                            transition: 'background 0.2s',
+                          }}
+                        >
+                          <span style={{ fontWeight: 700, fontSize: 13, color: isActive ? '#fff' : '#00ffcc' }}>
+                            {cmd.name}
+                          </span>
+                          <span style={{ fontSize: 11, color: isActive ? '#eee' : 'var(--muted)' }}>
+                            {cmd.desc}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="composer" style={{ alignItems: 'flex-end' }}>
+                <textarea
+                  ref={composerRef}
+                  className="field"
+                  rows={1}
+                  style={{ resize: 'none', overflow: 'auto', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
+                  placeholder={typing ? 'AI가 응답 중...'
+                    : isNovel ? '장면을 지시해보세요…'
+                    : isStoryOrMulti ? '직접 입력하거나 선택지를 클릭하세요…'
+                    : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…'
+                    : `${char.name}에게 말 걸기…`}
+                  disabled={typing}
+                  onInput={handleComposerInput}
+                  onKeyDown={e => {
+                    if (showCommandMenu && filteredCommands.length > 0) {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault()
+                        setSelectedCommandIndex(prev => (prev + 1) % filteredCommands.length)
+                        return
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault()
+                        setSelectedCommandIndex(prev => (prev - 1 + filteredCommands.length) % filteredCommands.length)
+                        return
+                      } else if (e.key === 'Enter') {
+                        e.preventDefault()
+                        selectCommand(filteredCommands[selectedCommandIndex].name)
+                        return
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault()
+                        setShowCommandMenu(false)
+                        return
+                      }
+                    }
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+                    if (e.key === 'ArrowUp' && !composerRef.current?.value && lastSentRef.current) {
+                      e.preventDefault()
+                      if (composerRef.current) composerRef.current.value = lastSentRef.current
+                    }
+                  }}
+                />
               {/* ── STT 마이크 버튼 ── */}
               <button
                 className={`btn ${isListening ? 'primary' : 'ghost'}`}
