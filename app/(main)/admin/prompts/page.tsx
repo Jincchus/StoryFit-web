@@ -144,7 +144,7 @@ export default function AdminPromptsPage() {
                 title="공통 및 개인 지침" 
                 vars="globalRules + personalRules" 
                 desc="플랫폼 전역 공통 규칙 및 유저가 회원정보에서 개인설정한 프롬프트 지침입니다."
-                source="globalRules: DB GlobalConfig ('rules_roleplay') | personalRules: DB User.personalRules"
+                source="globalRules: DB GlobalConfig ('rules_roleplay') | personalRules: 폐지된 모드 — 더 이상 적용되지 않음"
               />
               <PromptStep 
                 step="1" 
@@ -237,7 +237,7 @@ export default function AdminPromptsPage() {
                 title="공통 및 개인 지침" 
                 vars="globalRules + personalRules" 
                 desc="플랫폼 전역 소설 공통 규칙 및 유저 설정 지침입니다."
-                source="globalRules: DB GlobalConfig ('rules_novel') | personalRules: DB User.personalRules"
+                source="globalRules: DB GlobalConfig ('rules_novel') | personalRules: 폐지된 모드 — 더 이상 적용되지 않음"
               />
               <PromptStep 
                 step="1" 
@@ -301,7 +301,7 @@ export default function AdminPromptsPage() {
                 title="공통 및 개인 지침" 
                 vars="globalRules + personalRules" 
                 desc="플랫폼 전역 스토리 공통 규칙 및 유저 설정 지침입니다."
-                source="globalRules: DB GlobalConfig ('rules_story') | personalRules: DB User.personalRules"
+                source="globalRules: DB GlobalConfig ('rules_story') | personalRules: DB PromptPreset (mode='story', enabled 항목을 순서대로 합산)"
               />
               <PromptStep 
                 step="1" 

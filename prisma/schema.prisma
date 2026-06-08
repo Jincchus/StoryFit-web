@@ -16,9 +16,6 @@ model User {
   isActive      Boolean        @default(true)
   isApproved    Boolean        @default(true)
   displayName             String  @default("")
-  personalRules           String  @default("")
-  personalRulesNovel      String  @default("")
-  personalRulesStory      String  @default("")
   rejectionReason         String  @default("")
   defaultTemperature      Float   @default(0.9)
   defaultFrequencyPenalty Float   @default(0.3)
@@ -30,6 +27,22 @@ model User {
   characters    Character[]
   conversations Conversation[]
   characterCollections CharacterCollection[]
+  promptPresets PromptPreset[]
+}
+
+model PromptPreset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode      String
+  name      String
+  content   String
+  enabled   Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, mode])
 }
 
 model RandomName {

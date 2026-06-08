@@ -8,6 +8,7 @@ import { triggerStoryEvaluation, triggerStateTracking } from '@/lib/storyEval'
 import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
+import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { logAiError } from '@/lib/errorLog'
 import { appendTurnControlInstruction, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
 import type { AIProvider } from '@/types'
@@ -48,9 +49,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
 
-  const [{ globalRules, modeRules, closingRules }, userRecord] = await Promise.all([
+  const [{ globalRules, modeRules, closingRules }, personalRules] = await Promise.all([
     loadGlobalRules(conv.mode),
-    prisma.user.findUnique({ where: { id: userId }, select: { personalRules: true, personalRulesNovel: true, personalRulesStory: true } }),
+    getPersonalRulesForConv(userId, conv.mode),
   ])
 
   const matchedLorebook = matchLorebook(
@@ -68,11 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     globalRules,
     modeRules,
     closingRules,
-    personalRules: conv.mode === 'novel'
-      ? (userRecord?.personalRulesNovel ?? '')
-      : conv.mode === 'story'
-        ? (userRecord?.personalRulesStory ?? '')
-        : (userRecord?.personalRules ?? ''),
+    personalRules,
     styleConfig: (conv.styleConfig ?? null) as any,
   }
 

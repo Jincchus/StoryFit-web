@@ -8,6 +8,7 @@ import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStoryEvaluation, triggerStateTracking, rollbackStatsDelta, rollbackInventoryDelta } from '@/lib/storyEval'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
+import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { appendTurnControlInstruction, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
 import type { Message } from '@/types'
 
@@ -54,9 +55,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const historyMsgs = selectedMsgs.filter(m => m.id !== lastAssistant.id)
   const longTermMemory = await retrieveRelevantMemories(params.id, lastUserMsg?.content ?? '', 6).catch(() => [])
-  const [{ globalRules, modeRules }, userRecord] = await Promise.all([
+  const [{ globalRules, modeRules }, personalRules] = await Promise.all([
     loadGlobalRules(conv.mode),
-    prisma.user.findUnique({ where: { id: userId }, select: { personalRules: true, personalRulesNovel: true, personalRulesStory: true } }),
+    getPersonalRulesForConv(userId, conv.mode),
   ])
 
   const matchedLorebook = matchLorebook(
@@ -82,11 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     longTermMemory,
     globalRules,
     modeRules,
-    personalRules: conv.mode === 'novel'
-      ? (userRecord?.personalRulesNovel ?? '')
-      : conv.mode === 'story'
-        ? (userRecord?.personalRulesStory ?? '')
-        : (userRecord?.personalRules ?? ''),
+    personalRules,
     styleConfig: (conv.styleConfig ?? null) as any,
   }
   const isMultiStory = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
