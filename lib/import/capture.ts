@@ -502,14 +502,43 @@ export async function captureMelting(url: string): Promise<Captured> {
 
   try {
     const { sections, apiData } = await renderMeltingSections(url)
+
+    // API 데이터 가로채기에 성공한 경우 직접 AssembledResult 구성 (AI 분류기 패스)
+    if (apiData) {
+      const hashtags = (apiData.publicDescription || '').match(/#[^\s#]+/g) || []
+      const tags = hashtags.map((t: string) => t.replace('#', '').trim()).filter(Boolean).slice(0, 15)
+
+      const assembledResult = {
+        characters: [
+          {
+            name: apiData.name || title || '캐릭터',
+            gender: '',
+            additionalInfo: apiData.publicDescription || '',
+            openingMessage: apiData.opening || '',
+            exampleDialogues: '',
+          }
+        ],
+        scenarioDescription: apiData.publicTagline || '',
+        tags,
+        title: apiData.name || title || '캐릭터',
+      }
+
+      return {
+        sections: [],
+        title: assembledResult.title,
+        imageUrl: apiData.profileImagePath
+          ? `https://image-gen.melting.chat/public_images/${apiData.profileImagePath}?s=lg`
+          : imageUrl,
+        assembledResult,
+      }
+    }
+
     const total = sections.reduce((n, s) => n + s.text.length, 0)
     if (total >= 100) {
       return {
         sections,
-        title: apiData?.name || title,
-        imageUrl: apiData?.profileImagePath
-          ? `https://image-gen.melting.chat/public_images/${apiData.profileImagePath}?s=lg`
-          : imageUrl
+        title,
+        imageUrl
       }
     }
   } catch (e: any) {
