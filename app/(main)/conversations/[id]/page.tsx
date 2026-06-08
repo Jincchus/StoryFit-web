@@ -816,6 +816,52 @@ export default function ChatPage() {
                       /* ── AI 메시지: 블록 순서대로 ── */
                       <>
                         {blocks.map((b, i) => {
+                          if (b.type === 'system') {
+                            return (
+                              <div key={i} className="seq-block seq-center" style={{ margin: '8px 0', width: '100%' }}>
+                                <div className="system-window-box">
+                                  <span className="system-tag">[SYSTEM]</span> {b.text}
+                                </div>
+                              </div>
+                            )
+                          }
+                          if (b.type === 'constellation') {
+                            return (
+                              <div key={i} className="seq-block seq-center" style={{ margin: '10px 0', width: '100%' }}>
+                                <div className="constellation-alert-box">
+                                  <span className="constellation-tag">✨ 성좌 알림 ✨</span>
+                                  <div className="constellation-text">{b.text}</div>
+                                </div>
+                              </div>
+                            )
+                          }
+                          if (b.type === 'chat') {
+                            const colonIdx = b.text.indexOf(':')
+                            let sender = '시청자'
+                            let messageBody = b.text
+                            if (colonIdx !== -1) {
+                              sender = b.text.slice(0, colonIdx).trim()
+                              messageBody = b.text.slice(colonIdx + 1).trim()
+                            }
+                            
+                            const hash = sender.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+                            const colors = ['#ff6b8a', '#ff9f43', '#10ac84', '#70a1ff', '#00d2d3', '#ff9ff3', '#00dec4', '#e84118', '#2ed573']
+                            const nameColor = colors[hash % colors.length]
+                            
+                            const isDonation = sender.includes('후원') || sender.includes('도네') || sender.includes('Coin') || sender.includes('코인')
+                            const chatLineClass = isDonation ? 'livestream-chat-line donation' : 'livestream-chat-line'
+
+                            return (
+                              <div key={i} className="seq-block seq-center" style={{ width: '100%' }}>
+                                <div className={chatLineClass}>
+                                  {isDonation && <span className="donation-badge">🍬 SPONSOR</span>}
+                                  <span className="chat-nickname" style={{ color: nameColor }}>{sender}</span>
+                                  <span className="chat-separator">: </span>
+                                  <span className="chat-text">{messageBody}</span>
+                                </div>
+                              </div>
+                            )
+                          }
                           if (b.type === 'narration') {
                             return (
                               <div key={i} className="seq-block seq-center">

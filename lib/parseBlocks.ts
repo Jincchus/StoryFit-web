@@ -1,4 +1,4 @@
-export type BlockType = 'narration' | 'dialogue' | 'thought'
+export type BlockType = 'narration' | 'dialogue' | 'thought' | 'system' | 'constellation' | 'chat'
 export interface Block { type: BlockType; text: string; speaker?: string }
 
 const DQUOTES = ['"', '“', '”']
@@ -19,6 +19,26 @@ export function parseBlocks(text: string): Block[] {
   for (const rawLine of text.split('\n')) {
     const line = rawLine.trim()
     if (!line) continue
+
+    // ── 특수 블록 우선 처리 ──
+    if (line.startsWith('[시스템:') && line.endsWith(']')) {
+      blocks.push({ type: 'system', text: line.slice(5, -1).trim() })
+      continue
+    }
+    if (line.startsWith('[알림:') && line.endsWith(']')) {
+      blocks.push({ type: 'system', text: line.slice(4, -1).trim() })
+      continue
+    }
+    if (line.startsWith('[성좌') && line.endsWith(']')) {
+      blocks.push({ type: 'constellation', text: line.slice(1, -1).trim() })
+      continue
+    }
+    if (line.startsWith('[채팅]') || line.startsWith('[인방채팅]')) {
+      const isChatting = line.startsWith('[채팅]')
+      const prefixLen = isChatting ? 4 : 6
+      blocks.push({ type: 'chat', text: line.slice(prefixLen).trim() })
+      continue
+    }
 
     let i = 0
     let narration = ''
@@ -150,6 +170,29 @@ export function parseNovelBlocks(text: string): Block[] {
   for (const line of lines) {
     const trimmed = line.trim()
     if (!trimmed) { narrationLines.push(''); continue }
+
+    // ── 특수 블록 우선 처리 ──
+    if (trimmed.startsWith('[시스템:') && trimmed.endsWith(']')) {
+      flushNarration()
+      blocks.push({ type: 'system', text: trimmed.slice(5, -1).trim() })
+      continue
+    }
+    if (trimmed.startsWith('[알림:') && trimmed.endsWith(']')) {
+      flushNarration()
+      blocks.push({ type: 'system', text: trimmed.slice(4, -1).trim() })
+      continue
+    }
+    if (trimmed.startsWith('[성좌') && trimmed.endsWith(']')) {
+      flushNarration()
+      blocks.push({ type: 'constellation', text: trimmed.slice(1, -1).trim() })
+      continue
+    }
+    if (trimmed.startsWith('[채팅]') || trimmed.startsWith('[인방채팅]')) {
+      flushNarration()
+      const prefixLen = trimmed.startsWith('[채팅]') ? 4 : 6
+      blocks.push({ type: 'chat', text: trimmed.slice(prefixLen).trim() })
+      continue
+    }
 
     const match = trimmed.match(SPEAKER_RE)
     if (match) {
