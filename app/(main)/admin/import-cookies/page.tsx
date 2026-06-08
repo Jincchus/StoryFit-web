@@ -74,7 +74,7 @@ export default function AdminImportCookiesPage() {
   }
 
   return (
-    <Win title="관리자 — 가져오기 세션 쿠키" icon={PixelIcons.settings}>
+    <Win title="관리자 — 가져오기 인증" icon={PixelIcons.settings}>
       <div className="vstack" style={{ gap: 0, flex: 1, minHeight: 0 }}>
         <div style={{ padding: 4, paddingBottom: 0 }}>
           <AdminNav current="/admin/import-cookies" />
@@ -85,16 +85,16 @@ export default function AdminImportCookiesPage() {
             <div style={{ padding: '10px 12px', background: 'rgba(139,92,246,.06)', border: '1px solid rgba(139,92,246,.2)' }}>
               <div className="tiny" style={{ color: 'var(--purple)', fontWeight: 700, marginBottom: 4 }}>이게 뭔가요?</div>
               <div className="tiny muted" style={{ lineHeight: 1.7 }}>
-                WHIF·멜팅(melting.chat)에서 로그인이 필요한 캐릭터를 가져올 때, 사용자가 직접 로그인한 브라우저의
-                세션 쿠키를 그대로 주입해 재사용합니다. 여기서 값을 저장하면 <b>재배포 없이 즉시</b> 다음 가져오기 요청부터 반영됩니다.
+                WHIF·멜팅(melting.chat)에서 로그인이 필요한 캐릭터를 가져올 때 사용하는 인증 정보입니다.
+                여기서 값을 저장하면 <b>재배포 없이 즉시</b> 다음 가져오기 요청부터 반영됩니다.
                 값을 비워두면 비로그인 상태의 미리보기 텍스트만 사용합니다 (정상 동작).
               </div>
             </div>
 
             <CookieField
-              label="WHIF 세션 쿠키 (whif.io)"
-              hint={'브라우저에서 whif.io에 로그인한 뒤 개발자도구 → Network 탭 → 요청의 Cookie 헤더 값 전체를 복사해 붙여넣으세요.\n예: "name1=value1; name2=value2" — 보통 30일 정도 유지됩니다.'}
-              placeholder="wcs_bt=...; ch-session-XXXXXX=eyJ...; ..."
+              label="WHIF 인증 토큰 (whif.io)"
+              hint={'브라우저에서 whif.io에 로그인한 뒤 아래 방법으로 토큰을 복사해 붙여넣으세요.\n\n방법 A (권장): 개발자도구 → Application(저장소) → Local Storage → https://www.whif.io → sb-beizfkcdgqkvhqcqvtwk-auth-token 항목 클릭 → Value란에서 JSON 확인 → access_token 값만 복사\n\n방법 B: 개발자도구 → Network 탭 → 아무 API 요청 클릭 → Headers → Authorization 헤더 값 복사\n\n⚠️ JWT는 약 7일마다 만료됩니다 — 가져오기가 다시 안 되면 이 화면에서 토큰을 교체하세요.'}
+              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ..."
               value={whifCookie}
               onChange={setWhifCookie}
               updatedAt={whifUpdatedAt}
