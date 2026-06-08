@@ -426,7 +426,9 @@ export async function captureWhif(url: string): Promise<Captured> {
   if (apiData && apiData.character && apiData.universe) {
     const universe = apiData.universe
     const mainChar = apiData.character
-    const otherChars = apiData.universeCharacters || []
+    // ListByUniverseId는 메인 캐릭터 자신도 포함해 내려주므로, 그대로 합치면
+    // 동일 캐릭터가 두 번 생성된다 — id가 같은 항목은 제외한다.
+    const otherChars = (apiData.universeCharacters || []).filter((c: any) => !mainChar?.id || c?.id !== mainChar.id)
 
     const allChars = [mainChar, ...otherChars]
 

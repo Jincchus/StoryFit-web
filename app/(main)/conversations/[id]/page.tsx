@@ -156,9 +156,13 @@ export default function ChatPage() {
   const [commandQuery, setCommandQuery] = useState('')
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0)
 
-  const filteredCommands = COMMANDS.filter(cmd => 
+  const filteredCommands = COMMANDS.filter(cmd =>
     cmd.name.toLowerCase().startsWith(commandQuery.toLowerCase())
   )
+
+  // 입력어가 바뀌어 필터링된 목록 길이가 줄어들면 이전 인덱스가 범위를 벗어나
+  // filteredCommands[selectedCommandIndex]가 undefined가 되어 Enter 선택 시 TypeError가 난다.
+  useEffect(() => { setSelectedCommandIndex(0) }, [commandQuery])
 
   const selectCommand = (cmdText: string) => {
     if (composerRef.current) {
