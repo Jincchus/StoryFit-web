@@ -194,16 +194,23 @@ async function renderWhifPageText(url: string): Promise<{
           try {
             const payload = JSON.parse(atob(tok.split('.')[1]))
             const expiresAt = payload.exp || Math.floor(Date.now() / 1000) + 3600
+            // Supabase JS v2: Session 객체를 currentSession 래퍼 없이 직접 저장한다.
             const sessionObj = {
-              currentSession: {
-                access_token: tok,
-                token_type: 'bearer',
-                expires_in: expiresAt - Math.floor(Date.now() / 1000),
-                refresh_token: '',
-                user: { id: payload.sub, email: payload.email },
-                expires_at: expiresAt
+              access_token: tok,
+              token_type: 'bearer',
+              expires_in: expiresAt - Math.floor(Date.now() / 1000),
+              expires_at: expiresAt,
+              refresh_token: '',
+              user: {
+                id: payload.sub,
+                aud: 'authenticated',
+                role: payload.role || 'authenticated',
+                email: payload.email || '',
+                phone: payload.phone || '',
+                app_metadata: payload.app_metadata || {},
+                user_metadata: payload.user_metadata || {},
+                created_at: '',
               },
-              expiresAt: expiresAt
             }
             localStorage.setItem('sb-beizfkcdgqkvhqcqvtwk-auth-token', JSON.stringify(sessionObj))
           } catch (e) {
