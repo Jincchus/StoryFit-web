@@ -142,7 +142,14 @@ function parseSessionCookies(cookieHeader: string, domain: string): {
 // WHIF는 클라이언트 렌더링 SPA라 서버가 응답하는 원본 HTML에는 캐릭터 정보가 없음
 // (Zeta처럼 Next.js 스트리밍 데이터로 내려오지 않음). 헤드리스 브라우저로 JS를 실행시켜
 // 렌더링된 DOM에서 텍스트를 읽어야 한다.
-async function renderWhifPageText(url: string): Promise<string> {
+async function renderWhifPageText(url: string): Promise<{
+  rawText: string
+  apiData?: {
+    character?: any
+    universe?: any
+    universeCharacters?: any[]
+  }
+}> {
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
     headless: true,
@@ -153,9 +160,31 @@ async function renderWhifPageText(url: string): Promise<string> {
     const page = await browser.newPage()
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
 
-    // 언세이프(성인) 캐릭터는 비로그인 사용자에게 설명 자체를 내려주지 않음.
-    // 로그인 자동화는 보안상 위험하므로, 사용자가 직접 브라우저에서 로그인한 뒤
-    // 복사해 둔 세션 쿠키(관리자 페이지 → 가져오기 세션 쿠키)를 그대로 주입해 재사용한다.
+    const apiData: { character?: any; universe?: any; universeCharacters?: any[] } = {}
+
+    await page.setRequestInterception(true)
+    page.on('request', (request) => {
+      request.continue()
+    })
+    page.on('response', async (response) => {
+      const respUrl = response.url()
+      try {
+        if (respUrl.includes('/whif.bff.v1.CharacterService/GetCharacter')) {
+          const text = await response.text()
+          const json = JSON.parse(text)
+          if (json.character) apiData.character = json.character
+        } else if (respUrl.includes('/whif.bff.v1.UniverseService/GetUniverse')) {
+          const text = await response.text()
+          const json = JSON.parse(text)
+          if (json.universe) apiData.universe = json.universe
+        } else if (respUrl.includes('/whif.bff.v1.CharacterService/ListByUniverseId')) {
+          const text = await response.text()
+          const json = JSON.parse(text)
+          if (json.characters) apiData.universeCharacters = json.characters
+        }
+      } catch {}
+    })
+
     const sessionCookie = await getStoredSessionCookie('whif_session_cookie')
     if (sessionCookie) {
       if (sessionCookie.includes('eyJ') || sessionCookie.startsWith('Bearer ')) {
@@ -188,17 +217,26 @@ async function renderWhifPageText(url: string): Promise<string> {
 
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
 
-    // 리다이렉트로 인해 검증된 호스트(whif.io/whif.club)를 벗어났다면 중단 (SSRF 방지 심층 방어)
     if (!matchesHost(page.url(), 'whif.io', 'whif.club')) {
       throw new Error('예상하지 못한 주소로 리다이렉트되었습니다.')
     }
 
+    // 필수 API 응답이 도달할 때까지 최대 10초간 대기
+    const startTime = Date.now()
+    while (Date.now() - startTime < 10000) {
+      if (apiData.character && apiData.universe) {
+        break
+      }
+      await new Promise((r) => setTimeout(r, 500))
+    }
+
     await page.waitForFunction(
       () => document.body.innerText.replace(/\s+/g, ' ').trim().length > 150,
-      { timeout: 20000 }
+      { timeout: 10000 }
     ).catch(() => {})
 
-    return await page.evaluate(() => document.body.innerText)
+    const rawText = await page.evaluate(() => document.body.innerText)
+    return { rawText, apiData }
   } finally {
     await browser.close()
   }
@@ -346,10 +384,57 @@ async function renderMeltingSections(url: string): Promise<{ tab: string | null;
 }
 
 export async function captureWhif(url: string): Promise<Captured> {
-  const rawText = await renderWhifPageText(url)
+  const { rawText, apiData } = await renderWhifPageText(url)
   if (rawText.includes(WHIF_LOGIN_GATE_TEXT)) {
     throw new Error('로그인이 필요한 콘텐츠(언세이프 캐릭터)라 가져올 수 없습니다')
   }
+
+  // API 가로채기에 성공한 경우 직접 AssembledResult 구성 (AI 분류기 패스)
+  if (apiData && apiData.character && apiData.universe) {
+    const universe = apiData.universe
+    const mainChar = apiData.character
+    const otherChars = apiData.universeCharacters || []
+
+    const allChars = [mainChar, ...otherChars]
+
+    const characters = allChars.map((c) => {
+      const firstMessages = c.publicData?.firstMessages || []
+      const recommendedOpenings = c.publicData?.recommendedOpenings || []
+      const openingMessage = firstMessages[0]?.text || ''
+      let additionalInfo = [c.description, ...recommendedOpenings].filter(Boolean).join('\n\n')
+
+      if (firstMessages.length > 1) {
+        const otherIntros = firstMessages.slice(1)
+          .map((m: any) => `도입부: ${m.title}\n${m.text}`)
+          .join('\n\n')
+        additionalInfo += `\n\n[다른 시작 상황]\n${otherIntros}`
+      }
+
+      return {
+        name: c.name || '캐릭터',
+        gender: '',
+        additionalInfo,
+        openingMessage,
+        exampleDialogues: '',
+      }
+    })
+
+    const assembledResult = {
+      characters,
+      scenarioDescription: universe.description || '',
+      tags: universe.tags || [],
+      title: universe.name || mainChar.name || '캐릭터',
+    }
+
+    return {
+      sections: [],
+      title: assembledResult.title,
+      imageUrl: mainChar.avatarUrl || universe.imageUrl || '',
+      assembledResult,
+    }
+  }
+
+  // API 추출 실패 시 기존의 텍스트 스크래핑 방식으로 후퇴
   const text = cleanWhifText(rawText).slice(0, INPUT_CAP)
   if (text.length < 100) throw new Error('Whif 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
   return { sections: [{ tab: null, text }], title: '', imageUrl: '' }

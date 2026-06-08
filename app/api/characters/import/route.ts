@@ -32,17 +32,21 @@ function parseTavernJson(json: any): CardShape {
 }
 
 async function runImport(captured: Captured, url: string, userId: string) {
-  const blocks = splitIntoBlocks(captured.sections)
-  if (blocks.length === 0) throw new Error('가져올 텍스트가 없습니다')
-
   let result
-  try {
-    const classification = await classifyBlocks(blocks)
-    if (!classification.title) classification.title = captured.title
-    result = assemble(blocks, classification)
-  } catch (e: any) {
-    console.log('[import] 분류 실패 — 무손실 폴백:', e?.message)
-    result = buildFallback(blocks, { name: captured.title || '캐릭터' })
+  if (captured.assembledResult) {
+    result = captured.assembledResult
+  } else {
+    const blocks = splitIntoBlocks(captured.sections)
+    if (blocks.length === 0) throw new Error('가져올 텍스트가 없습니다')
+
+    try {
+      const classification = await classifyBlocks(blocks)
+      if (!classification.title) classification.title = captured.title
+      result = assemble(blocks, classification)
+    } catch (e: any) {
+      console.log('[import] 분류 실패 — 무손실 폴백:', e?.message)
+      result = buildFallback(blocks, { name: captured.title || '캐릭터' })
+    }
   }
 
   const isMulti = result.characters.length > 1

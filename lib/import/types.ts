@@ -9,6 +9,7 @@ export interface Captured {
   title: string
   imageUrl: string
   loreUrls?: { url: string; name: string }[]
+  assembledResult?: AssembledResult
 }
 
 // 번호 매긴 블록. text는 원본 부분문자열 그대로.
