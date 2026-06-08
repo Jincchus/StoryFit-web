@@ -36,57 +36,77 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const character = conv.characters[0]?.character
   if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
-  // ── 커맨드 처리 (예: !상태창) ──────────────────────────────────────────
-  if (content.trim() === '!상태창') {
+  // ── 커맨드 처리 (확장형 커맨드 엔진) ──────────────────────────────────────
+  const trimmedInput = content.trim()
+  if (trimmedInput.startsWith('!')) {
     const prevMsg = conv.messages[conv.messages.length - 1] ?? null
     
-    // 유저가 보낸 '!상태창' 메시지 저장
+    // 유저 메시지 저장
     const userMsg = await prisma.message.create({
       data: {
         conversationId: params.id,
         role: 'user',
-        content: content.trim(),
+        content: trimmedInput,
         isSelected: true,
         parentId: prevMsg?.id ?? null,
       },
     })
 
-    // 상태창 텍스트 조립
-    let statusContent = '### 📊 현재 상태창\n\n'
-    
-    if (conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0) {
-      statusContent += '| 스탯명 | 수치 | 상태 |\n| :--- | :---: | :--- |\n'
-      for (const stat of conv.statsConfig as any) {
-        const pct = Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)
-        let gauge = '░░░░░░░░░░'
-        const filledCount = Math.round(pct / 10)
-        gauge = '▓'.repeat(filledCount) + '░'.repeat(10 - filledCount)
-        statusContent += `| **${stat.name}** | ${stat.value} / ${stat.max} | \`${gauge}\` (${pct}%) |\n`
+    let replyText = ''
+    const cmd = trimmedInput.slice(1).toLowerCase().split(/\s+/)[0] // '!호감도' -> '호감도'
+
+    if (cmd === '상태창' || cmd === '정보' || cmd === 'status') {
+      // 1. 종합 상태창
+      replyText = '### 📊 현재 상태창\n\n'
+      replyText += getStatsMarkdown(conv.statsConfig, conv.statsEnabled)
+      replyText += '\n### 🎒 소지품 (인벤토리)\n\n'
+      replyText += getInventoryMarkdown(conv.inventory, conv.inventoryEnabled)
+      if (conv.statusTimeline) {
+        replyText += `\n### 🎬 현재 상황\n${conv.statusTimeline}\n`
       }
-    } else {
-      statusContent += '*활성화된 관계/능력치 스탯이 없습니다.*\n'
+    } 
+    else if (cmd === '스탯' || cmd === '능력치' || cmd === 'stats' || cmd === '호감도' || cmd === '관계') {
+      // 2. 스탯만 출력
+      replyText = '### 📊 능력치 및 관계 스탯\n\n'
+      replyText += getStatsMarkdown(conv.statsConfig, conv.statsEnabled)
+    } 
+    else if (cmd === '인벤토리' || cmd === '소지품' || cmd === '인벤' || cmd === 'inventory') {
+      // 3. 인벤토리만 출력
+      replyText = '### 🎒 소지품 (인벤토리)\n\n'
+      replyText += getInventoryMarkdown(conv.inventory, conv.inventoryEnabled)
+    } 
+    else if (cmd === '상황' || cmd === '씬' || cmd === 'scene' || cmd === '타임라인') {
+      // 4. 현재 상황(타임라인)만 출력
+      replyText = '### 🎬 현재 씬 상황\n\n'
+      if (conv.statusTimeline) {
+        replyText += conv.statusTimeline
+      } else {
+        replyText += '*현재 요약된 상황 정보가 없습니다. 대화를 진행하면 자동으로 요약됩니다.*\n'
+      }
+    } 
+    else if (cmd === '도움말' || cmd === '명령어' || cmd === 'help') {
+      // 5. 도움말 출력
+      replyText = `### ⚙️ StoryFit 시스템 명령어 도움말
+
+대화창에 아래 명령어를 입력하면 AI 비용 없이 즉시 게임 정보를 조회할 수 있습니다.
+
+* **\`!상태창\`** (또는 \`!정보\`) : 스탯, 인벤토리, 현재 상황을 모두 보여줍니다.
+* **\`!스탯\`** (또는 \`!호감도\`, \`!관계\`) : 캐릭터와의 관계 및 스탯만 확인합니다.
+* **\`!인벤토리\`** (또는 \`!소지품\`) : 가방 속 아이템 목록을 보여줍니다.
+* **\`!상황\`** (또는 \`!타임라인\`) : 현재 씬의 시간대, 장소, 의상 등의 상황 요약을 봅니다.
+* **\`!도움말\`** : 이 명령어 매뉴얼을 불러옵니다.`
+    } 
+    else {
+      // 알 수 없는 명령어
+      replyText = `⚠️ **알 수 없는 명령어입니다.**\n사용 가능한 명령어를 보려면 **\`!도움말\`**을 입력해 주세요.`
     }
 
-    statusContent += '\n### 🎒 소지품 (인벤토리)\n\n'
-    if (conv.inventoryEnabled && Array.isArray(conv.inventory) && conv.inventory.length > 0) {
-      statusContent += '| 아이템명 | 수량 | 설명 |\n| :--- | :---: | :--- |\n'
-      for (const item of conv.inventory as any) {
-        statusContent += `| **${item.name}** | ${item.qty}개 | ${item.description || '-'} |\n`
-      }
-    } else {
-      statusContent += '*소지품이 없거나 인벤토리가 비활성화되어 있습니다.*\n'
-    }
-    
-    if (conv.statusTimeline) {
-      statusContent += `\n### 🎬 현재 상황\n${conv.statusTimeline}\n`
-    }
-
-    // 시스템이 만든 상태창 답변을 assistant 역할로 즉시 저장
+    // assistant 메시지로 즉시 저장
     const assistantMsg = await prisma.message.create({
       data: {
         conversationId: params.id,
         role: 'assistant',
-        content: statusContent,
+        content: replyText,
         aiModel: 'system',
         isSelected: true,
         isStreaming: false,
@@ -364,4 +384,29 @@ function buildGeminiHistory(
   }
   const firstUser = result.findIndex(m => m.role === 'user')
   return firstUser >= 0 ? result.slice(firstUser) : []
+}
+
+function getStatsMarkdown(statsConfig: any, enabled: boolean): string {
+  if (enabled && Array.isArray(statsConfig) && statsConfig.length > 0) {
+    let md = '| 스탯명 | 수치 | 상태 |\n| :--- | :---: | :--- |\n'
+    for (const stat of statsConfig) {
+      const pct = Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)
+      const filledCount = Math.round(pct / 10)
+      const gauge = '▓'.repeat(filledCount) + '░'.repeat(10 - filledCount)
+      md += `| **${stat.name}** | ${stat.value} / ${stat.max} | \`${gauge}\` (${pct}%) |\n`
+    }
+    return md
+  }
+  return '*활성화된 관계/능력치 스탯이 없습니다.*\n'
+}
+
+function getInventoryMarkdown(inventory: any, enabled: boolean): string {
+  if (enabled && Array.isArray(inventory) && inventory.length > 0) {
+    let md = '| 아이템명 | 수량 | 설명 |\n| :--- | :---: | :--- |\n'
+    for (const item of inventory) {
+      md += `| **${item.name}** | ${item.qty}개 | ${item.description || '-'} |\n`
+    }
+    return md
+  }
+  return '*소지품이 없거나 인벤토리가 비활성화되어 있습니다.*\n'
 }
