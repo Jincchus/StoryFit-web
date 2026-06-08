@@ -160,7 +160,7 @@ git commit -m "chore: add vitest + import pipeline shared types"
 
 동작 규약:
 - 각 섹션 `text`를 빈 줄(`\n\s*\n`) 기준으로 문단 분할, 각 문단 trim, 빈 문단 제거.
-- 길이 40자 미만 짧은 문단은 **같은 섹션의 직전 블록**에 `\n\n`로 병합. 같은 섹션 직전 블록이 없으면 독립 블록.
+- 길이 20자 미만 짧은 문단은 **같은 섹션의 직전 블록**에 `\n\n`로 병합. 같은 섹션 직전 블록이 없으면 독립 블록. (이 임계값은 분류 granularity 튜닝용일 뿐 verbatim 보존과 무관 — assemble가 순서대로 재결합하므로 내용은 동일.)
 - 블록 id는 전 섹션에 걸쳐 전역 0,1,2…. tabHint는 섹션의 tab을 그대로.
 
 - [ ] **Step 1: 실패 테스트 작성**
@@ -220,7 +220,7 @@ Create `lib/import/blocks.ts`:
 ```ts
 import type { Block, CapturedSection } from './types'
 
-const MIN_BLOCK_LEN = 40
+const MIN_BLOCK_LEN = 20
 
 export function splitIntoBlocks(sections: CapturedSection[]): Block[] {
   const blocks: Block[] = []

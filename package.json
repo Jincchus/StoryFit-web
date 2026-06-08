@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "test": "vitest run"
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.9.0",
@@ -32,6 +33,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.29",
     "prisma": "^5.22.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }
