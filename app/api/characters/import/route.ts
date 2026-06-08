@@ -147,6 +147,12 @@ async function renderWhifPageText(url: string): Promise<string> {
     }
 
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+
+    // 리다이렉트로 인해 검증된 호스트(whif.io/whif.club)를 벗어났다면 중단 (SSRF 방지 심층 방어)
+    if (!matchesHost(page.url(), 'whif.io', 'whif.club')) {
+      throw new Error('예상하지 못한 주소로 리다이렉트되었습니다.')
+    }
+
     await page.waitForFunction(
       () => document.body.innerText.replace(/\s+/g, ' ').trim().length > 150,
       { timeout: 20000 }
