@@ -277,6 +277,141 @@ ${text}
   return { characterId: firstChar?.id, conversationId: conversation.id, collectionId: collection.id }
 }
 
+function extractMetaContent(html: string, property: string): string {
+  const patterns = [
+    new RegExp(`<meta[^>]*property=["']${property}["'][^>]*content=["']([^"']*)["']`, 'i'),
+    new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']${property}["']`, 'i'),
+  ]
+  for (const re of patterns) {
+    const match = html.match(re)
+    if (match) return decodeHtmlEntities(match[1])
+  }
+  return ''
+}
+
+function cleanMeltingTitle(title: string): string {
+  return title.replace(/\s*-\s*멜팅\s*$/i, '').trim()
+}
+
+async function importFromMelting(url: string, userId: string) {
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5',
+    },
+  })
+  console.log('[melting-import] fetch status:', res.status, 'content-type:', res.headers.get('content-type'))
+  if (!res.ok) throw new Error(`페이지를 불러올 수 없습니다 (HTTP ${res.status})`)
+
+  const html = await res.text()
+  console.log('[melting-import] html length:', html.length)
+
+  const ogTitle = cleanMeltingTitle(extractMetaContent(html, 'og:title'))
+  const ogImage = extractMetaContent(html, 'og:image')
+  const text = extractMetaContent(html, 'og:description').slice(0, 12000)
+  console.log('[melting-import] og:title:', ogTitle, '| description length:', text.length, '| image:', ogImage)
+  if (text.length < 100) throw new Error('멜팅 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
+
+  const systemPrompt = '당신은 텍스트에서 롤플레잉 캐릭터 정보를 추출하는 파서입니다. 반드시 JSON만 반환하세요.'
+  const userPrompt = `아래는 "${ogTitle || '주인공'}" 캐릭터의 소개 텍스트입니다. 등장하는 모든 캐릭터 정보를 추출해 JSON으로 반환하세요. 캐릭터가 여러 명이면 모두 포함하되, 첫 번째는 반드시 주인공인 "${ogTitle || '주인공'}"이어야 합니다.
+
+텍스트:
+${text}
+
+반환 형식 (마크다운 없이 JSON만):
+{"characters":[{"name":"캐릭터 이름","gender":"남성 또는 여성 또는 빈 문자열","additionalInfo":"나이·외모·직업·성격·배경 등을 자연스럽게 서술","openingMessage":"첫 메시지/인트로가 있으면 입력, 없으면 빈 문자열","exampleDialogues":"예시 대화가 있으면 입력, 없으면 빈 문자열"}],"tags":["태그1","태그2"],"scenarioNote":"줄거리/세계관 설명","title":"작품 제목 또는 주인공 이름"}
+
+규칙:
+- characters 배열에 텍스트에 나오는 모든 캐릭터 포함 (한 명이어도 배열로)
+- tags는 # 기호로 표시된 태그에서 최대 10개, # 없이 문자열만
+- 정보가 없는 필드는 빈 문자열`
+
+  let parsed: any
+  for (let i = 0; i < 2; i++) {
+    try {
+      const raw = await generateText(systemPrompt, userPrompt, 4096)
+      const match = raw.match(/\{[\s\S]*\}/)
+      parsed = JSON.parse(match ? match[0] : raw)
+      break
+    } catch (e: any) {
+      console.log('[melting-import] parse error attempt', i, ':', e?.message)
+      if (i === 1) throw new Error('AI 파싱에 실패했습니다')
+    }
+  }
+
+  const firstParsedChar = Array.isArray(parsed.characters) ? parsed.characters[0] : parsed
+  const name = String(firstParsedChar?.name ?? parsed.name ?? ogTitle ?? '').trim()
+  if (!name) throw new Error('캐릭터 이름을 찾을 수 없습니다')
+
+  const rawChars = Array.isArray(parsed.characters) ? parsed.characters : [parsed]
+  const charTags = Array.isArray(parsed.tags) ? parsed.tags.slice(0, 15).map((t: any) => String(t).trim()).filter(Boolean).slice(0, 15) : []
+  const scenarioDescription = (parsed.scenarioNote?.trim() || '').slice(0, 5000)
+  const firstName = String(rawChars[0]?.name ?? '').trim() || ogTitle || '캐릭터'
+  const isMulti = rawChars.length > 1
+  const title = (parsed.title?.trim() || `${firstName}${isMulti ? ' 외' : ''}와의 대화`).slice(0, 200)
+
+  // 캐릭터 먼저 생성 (대표 이미지는 멜팅 og:image를 그대로 사용)
+  const createdChars = await Promise.all(
+    rawChars.map((c: any, i: number) =>
+      prisma.character.create({
+        data: {
+          name: String(c.name ?? `캐릭터${i + 1}`).trim().slice(0, 100),
+          gender: String(c.gender ?? '').slice(0, 20),
+          tags: charTags,
+          additionalInfo: String(c.additionalInfo ?? '').trim().slice(0, 10000),
+          exampleDialogues: String(c.exampleDialogues ?? '').slice(0, 20000),
+          openingMessage: String(c.openingMessage ?? '').slice(0, 5000),
+          isAutoCreated: true,
+          creatorId: userId,
+          ...(i === 0 && ogImage ? { avatarUrl: ogImage } : {}),
+        },
+      })
+    )
+  )
+
+  // 대화 생성
+  const conversation = await prisma.conversation.create({
+    data: {
+      userId,
+      title,
+      mode: isMulti ? 'multiStory' : 'story',
+      currentAI: 'gemini',
+      scenarioDescription,
+      tags: charTags,
+      isAutoCreated: true,
+      sourceUrl: url,
+      characters: { create: createdChars.map((c, i) => ({ characterId: c.id, turnOrder: i })) },
+    },
+  })
+
+  // 컬렉션 생성 — conversationId로 대화와 연결 (제목 변경/삭제 연동의 기준)
+  const collection = await prisma.characterCollection.create({
+    data: { title, sourceUrl: url, userId, conversationId: conversation.id },
+  })
+
+  // 캐릭터에 collectionId 연결
+  await prisma.character.updateMany({
+    where: { id: { in: createdChars.map(c => c.id) } },
+    data: { collectionId: collection.id },
+  })
+
+  const firstChar = createdChars[0]
+  if (firstChar?.openingMessage?.trim()) {
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: firstChar.openingMessage.trim(),
+        characterId: firstChar.id,
+        isSelected: true,
+        isStreaming: false,
+      },
+    })
+  }
+
+  return { characterId: firstChar?.id, conversationId: conversation.id, collectionId: collection.id }
+}
+
 async function importFromWhif(url: string, userId: string) {
   const res = await fetch(url, {
     headers: {
@@ -397,6 +532,16 @@ ${text}
   return { characterId: firstChar?.id, conversationId: conversation.id, collectionId: collection.id }
 }
 
+function matchesHost(url: string, ...domains: string[]): boolean {
+  let hostname: string
+  try {
+    hostname = new URL(url).hostname.toLowerCase()
+  } catch {
+    return false
+  }
+  return domains.some(d => hostname === d || hostname.endsWith(`.${d}`))
+}
+
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
@@ -404,7 +549,7 @@ export async function POST(req: NextRequest) {
   const { url } = await req.json()
   if (!url?.trim()) return NextResponse.json({ error: 'URL이 필요합니다.' }, { status: 400 })
 
-  if (url.includes('zeta-ai.io')) {
+  if (matchesHost(url, 'zeta-ai.io')) {
     try {
       const result = await importFromZeta(url.trim(), userId)
       return NextResponse.json(result, { status: 201 })
@@ -413,7 +558,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (url.includes('whif.io') || url.includes('whif.club')) {
+  if (matchesHost(url, 'melting.chat')) {
+    try {
+      const result = await importFromMelting(url.trim(), userId)
+      return NextResponse.json(result, { status: 201 })
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message ?? '멜팅 가져오기 실패' }, { status: 400 })
+    }
+  }
+
+  if (matchesHost(url, 'whif.io', 'whif.club')) {
     try {
       const result = await importFromWhif(url.trim(), userId)
       return NextResponse.json(result, { status: 201 })
