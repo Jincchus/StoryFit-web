@@ -146,6 +146,14 @@ function extractLorebookUrls(html: string): { url: string; name: string }[] {
   })
 }
 
+function extractZetaPlotImage(html: string, url: string): string {
+  const plotIdMatch = url.match(/\/plots\/([0-9a-f-]{36})/i)
+  if (!plotIdMatch) return ''
+  const re = new RegExp(`https://image\\.zeta-ai\\.io/plot-(?:intro|cover)-image/${escapeRegExp(plotIdMatch[1])}/[0-9a-f-]+\\.(?:jpe?g|png|webp)`, 'i')
+  const match = html.match(re)
+  return match ? match[0] : ''
+}
+
 async function importFromZeta(url: string, userId: string) {
   const res = await fetch(url, {
     headers: {
@@ -160,6 +168,8 @@ async function importFromZeta(url: string, userId: string) {
   console.log('[zeta-import] html length:', html.length, '| first 200:', html.slice(0, 200).replace(/\n/g, ' '))
 
   const lorebookUrls = extractLorebookUrls(html)
+  const imageUrl = extractZetaPlotImage(html, url)
+  console.log('[zeta-import] image url:', imageUrl)
   const text = preprocessZetaText(html)
   console.log('[zeta-import] text length:', text.length, '| first 300:', text.slice(0, 300).replace(/\n/g, ' '))
   if (text.length < 100) throw new Error('Zeta 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
@@ -228,6 +238,7 @@ ${text}
           openingMessage: String(i === 0 && introText ? introText : c.openingMessage ?? '').slice(0, 5000),
           isAutoCreated: true,
           creatorId: userId,
+          ...(i === 0 && imageUrl ? { avatarUrl: imageUrl } : {}),
         },
       })
     )
