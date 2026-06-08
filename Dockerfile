@@ -38,6 +38,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 
 COPY --chown=nextjs:nodejs start.sh ./start.sh
 RUN mkdir -p /app/uploads/avatars && chown -R nextjs:nodejs /app/uploads
+RUN mkdir -p /app/browser-profiles/melting && chown -R nextjs:nodejs /app/browser-profiles
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

@@ -101,8 +101,8 @@ export default function AdminImportCookiesPage() {
             />
 
             <CookieField
-              label="멜팅 세션 쿠키 (melting.chat)"
-              hint={'브라우저에서 melting.chat에 로그인한 뒤 개발자도구 → Application/저장소 → Cookies → __Host-melting_session 값을 복사해 붙여넣으세요.\n⚠️ 약 30분마다 만료됩니다 — 캐릭터를 가져오기 직전에 새로 복사해 저장하는 것을 권장합니다.'}
+              label="멜팅 세션 쿠키 (melting.chat) — 끊겼을 때 복구용"
+              hint={'서버가 로그인 상태를 영속 브라우저 프로필에 저장해 가져오기마다 재사용을 시도하므로, 활동이 잦으면 따로 갱신하지 않아도 동작할 수 있습니다.\n아래 값은 그 영속 세션이 끊긴 게 감지됐을 때 자동 복구용 "시드"로만 쓰입니다 — 가져오기가 잘 되고 있다면 비워둬도 됩니다.\n가져오기에서 로그인 정보가 빠진다면: 브라우저에서 melting.chat에 로그인한 뒤 개발자도구 → Application/저장소 → Cookies → __Host-melting_session 값을 복사해 붙여넣고 저장하세요.\n⚠️ 참고: 활동과 무관하게 발급 시점 기준으로 30분 뒤 만료되는 구조라면, 영속 세션도 결국 끊기고 이 시드 값을 다시 입력해야 할 수 있습니다 — 직접 운용해보면서 확인해야 하는 부분입니다.'}
               placeholder="__Host-melting_session=eyJ...; __Host-melting_session_exp=..."
               value={meltingCookie}
               onChange={setMeltingCookie}
