@@ -158,7 +158,32 @@ async function renderWhifPageText(url: string): Promise<string> {
     // 복사해 둔 세션 쿠키(관리자 페이지 → 가져오기 세션 쿠키)를 그대로 주입해 재사용한다.
     const sessionCookie = await getStoredSessionCookie('whif_session_cookie')
     if (sessionCookie) {
-      await page.setCookie(...parseSessionCookies(sessionCookie, '.whif.io'))
+      if (sessionCookie.includes('eyJ') || sessionCookie.startsWith('Bearer ')) {
+        const token = sessionCookie.replace(/^Bearer\s+/i, '').trim()
+        await page.goto('https://www.whif.io', { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {})
+        await page.evaluate((tok) => {
+          try {
+            const payload = JSON.parse(atob(tok.split('.')[1]))
+            const expiresAt = payload.exp || Math.floor(Date.now() / 1000) + 3600
+            const sessionObj = {
+              currentSession: {
+                access_token: tok,
+                token_type: 'bearer',
+                expires_in: expiresAt - Math.floor(Date.now() / 1000),
+                refresh_token: '',
+                user: { id: payload.sub, email: payload.email },
+                expires_at: expiresAt
+              },
+              expiresAt: expiresAt
+            }
+            localStorage.setItem('sb-beizfkcdgqkvhqcqvtwk-auth-token', JSON.stringify(sessionObj))
+          } catch (e) {
+            console.error('Failed to set localStorage auth token:', e)
+          }
+        }, token)
+      } else {
+        await page.setCookie(...parseSessionCookies(sessionCookie, '.whif.io'))
+      }
     }
 
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
