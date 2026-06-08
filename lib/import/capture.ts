@@ -436,6 +436,16 @@ export async function captureWhif(url: string): Promise<Captured> {
       const openingMessage = firstMessages[0]?.text || ''
       let additionalInfo = [c.description, ...recommendedOpenings].filter(Boolean).join('\n\n')
 
+      const roleInfo = [
+        c.summary && `요약: ${c.summary}`,
+        c.role && `역할: ${c.role}`,
+        c.relationshipDescription && `관계: ${c.relationshipDescription}`
+      ].filter(Boolean).join('\n')
+
+      if (roleInfo) {
+        additionalInfo = `${roleInfo}\n\n${additionalInfo}`
+      }
+
       if (firstMessages.length > 1) {
         const otherIntros = firstMessages.slice(1)
           .map((m: any) => `도입부: ${m.title}\n${m.text}`)
