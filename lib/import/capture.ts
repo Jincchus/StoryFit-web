@@ -108,7 +108,9 @@ function cleanWhifText(text: string): string {
 // WHIF/멜팅 세션 쿠키는 GlobalConfig(DB)에 저장해 관리자 페이지에서 즉시 갱신할 수 있게 한다.
 // 환경변수 방식은 컨테이너 재배포가 있어야 반영되는데, 멜팅 세션은 약 30분마다 만료되어
 // 사실상 갱신이 불가능했다 — DB 조회로 바꿔 재배포 없이 바로 반영되도록 한다.
-async function getStoredSessionCookie(key: 'whif_session_cookie' | 'melting_session_cookie'): Promise<string> {
+async function getGlobalConfigValue(
+  key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname'
+): Promise<string> {
   const config = await prisma.globalConfig.findUnique({ where: { key } })
   return config?.value?.trim() ?? ''
 }
@@ -185,7 +187,7 @@ async function renderWhifPageText(url: string): Promise<{
       } catch {}
     })
 
-    const sessionCookie = await getStoredSessionCookie('whif_session_cookie')
+    const sessionCookie = await getGlobalConfigValue('whif_session_cookie')
     if (sessionCookie) {
       if (sessionCookie.includes('eyJ') || sessionCookie.startsWith('Bearer ')) {
         const token = sessionCookie.replace(/^Bearer\s+/i, '').trim()
@@ -311,6 +313,22 @@ function cleanMeltingTitle(title: string): string {
   return title.replace(/\s*-\s*멜팅\s*$/i, '').trim()
 }
 
+// 멜팅은 로그인 세션의 페르소나 닉네임으로 "{유저}" 같은 플레이스홀더를 실시간
+// 치환해서 보여준다 (예: "허니" 계정으로 로그인하면 캐릭터 소개 속 플레이스홀더
+// 자리에 "허니"가 그대로 박혀 캡처된다). 가져온 캐릭터를 다른 사용자도 그대로
+// 쓸 수 있도록, 캡처 단계에서 닉네임을 StoryFit이 인식하는 범용 플레이스홀더
+// ([유저] — replacePlaceholders 참고)로 되돌린다.
+// 한글은 명사에 조사가 공백 없이 바로 붙으므로(예: "허니야", "허니의") 단어 경계
+// 검사를 넣으면 정작 치환해야 할 자리를 못 찾는다 — 그래서 단순 부분일치 치환을
+// 쓴다. 닉네임이 "허니"처럼 흔한 단어와 겹치면 무관한 문맥("허니버터" 등)도 같이
+// 바뀔 수 있는데, 그 경우는 가져오기 후 직접 수정하는 편이 차라리 안전하다
+// (반대로 false negative가 나면 닉네임 노출이 그대로 남아 더 큰 문제가 된다).
+function depersonalizeNickname(text: string, nickname: string): string {
+  const trimmed = nickname.trim()
+  if (!trimmed) return text
+  return text.split(trimmed).join('[유저]')
+}
+
 // 로그인 세션으로 캐릭터 페이지를 렌더링해 "상세 설명"/"첫 장면" 탭을 섹션으로 분리해 반환한다.
 // 세션이 없거나 만료된 경우 로그인 게이트 문구가 포함되어 '세션 게이트' 예외를 던진다 — 호출 측에서 OG 메타로 폴백한다.
 async function renderMeltingSections(url: string): Promise<{
@@ -354,7 +372,7 @@ async function renderMeltingSections(url: string): Promise<{
       MELTING_LOGIN_GATE_TEXT
     )
     if (gatedAtStart) {
-      const seedCookie = await getStoredSessionCookie('melting_session_cookie')
+      const seedCookie = await getGlobalConfigValue('melting_session_cookie')
       if (seedCookie) {
         console.log('[melting-import] 영속 세션이 끊긴 것으로 보임 — 저장된 시드 쿠키로 재로그인 시도')
         await page.setCookie(...parseSessionCookies(seedCookie, '.melting.chat'))
@@ -401,23 +419,37 @@ async function renderMeltingSections(url: string): Promise<{
       return document.body.innerText
     })
 
+    const clickTab = (label: string) => page.evaluate((lbl: string) => {
+      const target = Array.from(document.querySelectorAll('button, [role="tab"], a, div, span'))
+        .find(el => el.children.length === 0 && el.textContent?.trim() === lbl)
+      if (target) { (target as HTMLElement).click(); return true }
+      return false
+    }, label)
+    const grabClean = async () => (await grabPanelText()).replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
+
+    // 패널의 "초기 활성 탭 = 상세 설명"이라고 가정하면 안 된다 — 캐릭터에 따라 페이지
+    // 로드 시 기본 활성 탭이 "첫 장면"인 경우가 있다(청도현 케이스 실측: 두 섹션이
+    // 전부 "첫 장면" 내용으로 중복 캡처되고 실제 "상세 설명"은 영영 못 가져옴, 첫
+    // 캡처를 무조건 '상세 설명'으로 라벨링했기 때문). 두 탭 모두 명시적으로 클릭한
+    // 뒤 캡처해야 라벨과 실제 내용이 어긋나지 않는다.
     const sections: { tab: string | null; text: string }[] = []
-    const detail = await grabPanelText()
-    sections.push({ tab: '상세 설명', text: detail.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim() })
-    for (const label of ['첫 장면', '첫장면']) {
-      const clicked = await page.evaluate((lbl: string) => {
-        const target = Array.from(document.querySelectorAll('button, [role="tab"], a, div, span'))
-          .find(el => el.children.length === 0 && el.textContent?.trim() === lbl)
-        if (target) { (target as HTMLElement).click(); return true }
-        return false
-      }, label)
-      if (clicked) {
+    for (const label of ['상세 설명']) {
+      if (await clickTab(label)) {
         await new Promise(r => setTimeout(r, 1200))
-        const scene = (await grabPanelText()).replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
-        sections.push({ tab: '첫 장면', text: scene })
+        sections.push({ tab: '상세 설명', text: await grabClean() })
         break
       }
     }
+    for (const label of ['첫 장면', '첫장면']) {
+      if (await clickTab(label)) {
+        await new Promise(r => setTimeout(r, 1200))
+        sections.push({ tab: '첫 장면', text: await grabClean() })
+        break
+      }
+    }
+    // 둘 중 어느 탭 버튼도 못 찾았다면(탭 구조가 없는 페이지) 현재 보이는 패널을 그대로 사용
+    if (sections.length === 0) sections.push({ tab: '상세 설명', text: await grabClean() })
+
     if (sections.some(s => s.text.includes(MELTING_LOGIN_GATE_TEXT))) throw new Error('세션 게이트')
     return { sections }
   })
@@ -547,6 +579,7 @@ export async function captureMelting(url: string): Promise<Captured> {
   const title = cleanMeltingTitle(extractMetaContent(html, 'og:title'))
   const imageUrl = extractMetaContent(html, 'og:image')
   const ogDesc = extractMetaContent(html, 'og:description').slice(0, INPUT_CAP)
+  const nickname = await getGlobalConfigValue('melting_session_nickname')
 
   try {
     const { sections, apiData } = await renderMeltingSections(url)
@@ -604,9 +637,8 @@ export async function captureMelting(url: string): Promise<Captured> {
     const total = sections.reduce((n, s) => n + s.text.length, 0)
     if (total >= 100) {
       return {
-        sections,
-        title,
-        imageUrl
+        sections: sections.map(s => ({ ...s, text: depersonalizeNickname(s.text, nickname) })),
+        title, imageUrl,
       }
     }
   } catch (e: any) {
@@ -614,5 +646,5 @@ export async function captureMelting(url: string): Promise<Captured> {
   }
 
   if (ogDesc.length < 100) throw new Error('멜팅 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
-  return { sections: [{ tab: null, text: ogDesc }], title, imageUrl }
+  return { sections: [{ tab: null, text: depersonalizeNickname(ogDesc, nickname) }], title, imageUrl }
 }

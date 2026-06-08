@@ -20,7 +20,7 @@ ${listing}
 {"title":"작품/주인공 제목","tags":["태그1"],"characters":[{"index":0,"name":"이름","gender":"남성|여성|"}],"blocks":[{"id":0,"owner":0,"field":"additionalInfo"}]}
 
 규칙:
-- characters: 원문이 독립 항목으로 따로 서술한 인물만. 대등한 주인공이 여럿이면 모두 포함, 단순 조연/언급은 넣지 말 것.
+- characters: 원문이 독립 항목으로 따로 서술한 "사람" 캐릭터만. 대등한 주인공이 여럿이면 모두 포함하되, 반려동물·마스코트·동물처럼 사람이 아닌 존재는 프로필이 따로 있어도 캐릭터 목록에 넣지 말고 해당 인물의 additionalInfo(또는 scenario)로 분류할 것. 단순 조연/언급도 넣지 말 것.
 - owner: 그 블록이 명확히 특정 캐릭터를 설명하면 그 index, 세계관/줄거리/공용이면 null.
 - field: additionalInfo(설정·성격·외모), openingMessage(첫 장면/인트로 대사), exampleDialogues(예시 대화), scenario(세계관/줄거리), ignore(사이트 UI·잡음).
 - 모든 블록 id를 빠짐없이 한 번씩 분류하세요.`

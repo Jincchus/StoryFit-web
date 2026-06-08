@@ -13,6 +13,14 @@ import type { Captured } from '@/lib/import/types'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'avatars')
 
+// 받침(종성) 유무에 따라 "과/와" 조사를 고른다 — "강태헌과의 대화" vs "강태이와의 대화".
+// 한글 음절이 아닌 문자로 끝나면(영문/기호 등) 기본값 "와"를 쓴다.
+function josa과와(word: string): '과' | '와' {
+  const code = word.trim().slice(-1).charCodeAt(0) - 0xac00
+  if (code < 0 || code > 11171) return '와'
+  return code % 28 === 0 ? '와' : '과'
+}
+
 interface CardShape {
   name: string; description: string; personality: string; scenario: string
   first_mes: string; mes_example: string; system_prompt?: string
@@ -50,8 +58,18 @@ async function runImport(captured: Captured, url: string, userId: string) {
   }
 
   const isMulti = result.characters.length > 1
+  // 사이트가 제목(og:title 등)을 신뢰성 있게 제공하면 AI 분류 결과보다 우선한다 —
+  // AI가 본문 속 플레이스홀더 토큰({캐릭터} 등)을 그대로 이름으로 뽑거나 엉뚱한
+  // 제목을 짓는 문제를 원천 차단한다 (사용자 확인 완료: og:title은 가공 없이 그대로
+  // 캐릭터명·대화방 제목으로 써야 할 값). 단, 출연진이 여럿인 앙상블/쇼 페이지는
+  // og:title이 "사람 이름"이 아니라 "프로그램 제목"인 경우가 있어 — 이 경우 AI가
+  // 식별한 개별 캐릭터 이름을 덮어쓰면 안 되므로 단일 캐릭터일 때만 적용한다.
+  if (captured.title && !isMulti && result.characters[0]) result.characters[0].name = captured.title
   const firstName = result.characters[0]?.name || captured.title || '캐릭터'
-  const title = (result.title || `${firstName}${isMulti ? ' 외' : ''}와의 대화`).trim()
+  const titleSubject = `${firstName}${isMulti ? ' 외' : ''}`
+  const title = captured.title
+    ? `${titleSubject}${josa과와(titleSubject)}의 대화`
+    : (result.title || `${titleSubject}${josa과와(titleSubject)}의 대화`).trim()
 
   const createdChars = await Promise.all(
     result.characters.map((c, i) =>

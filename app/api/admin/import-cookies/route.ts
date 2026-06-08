@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/adminAuth'
 import { logAdminAction } from '@/lib/adminLog'
 
-const KEYS = ['whif_session_cookie', 'melting_session_cookie'] as const
+const KEYS = ['whif_session_cookie', 'melting_session_cookie', 'melting_session_nickname'] as const
 
 export async function GET(req: NextRequest) {
   const _auth = await requireAdmin(req)

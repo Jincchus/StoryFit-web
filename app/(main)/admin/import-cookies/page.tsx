@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -40,11 +40,39 @@ function CookieField({
   )
 }
 
+function NicknameField({
+  label, hint, placeholder, value, onChange, updatedAt,
+}: {
+  label: string
+  hint: string
+  placeholder: string
+  value: string
+  onChange: (v: string) => void
+  updatedAt: string | null
+}) {
+  return (
+    <div className="vstack" style={{ gap: 4 }}>
+      <label className="label">{label}</label>
+      <div className="tiny muted" style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{hint}</div>
+      <input
+        className="field"
+        style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      />
+      <span className="tiny muted">{formatUpdatedAt(updatedAt)}</span>
+    </div>
+  )
+}
+
 export default function AdminImportCookiesPage() {
   const [whifCookie, setWhifCookie] = useState('')
   const [whifUpdatedAt, setWhifUpdatedAt] = useState<string | null>(null)
   const [meltingCookie, setMeltingCookie] = useState('')
   const [meltingUpdatedAt, setMeltingUpdatedAt] = useState<string | null>(null)
+  const [meltingNickname, setMeltingNickname] = useState('')
+  const [meltingNicknameUpdatedAt, setMeltingNicknameUpdatedAt] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -54,6 +82,8 @@ export default function AdminImportCookiesPage() {
       setWhifUpdatedAt(data.whif_session_cookie?.updatedAt ?? null)
       setMeltingCookie(data.melting_session_cookie?.value ?? '')
       setMeltingUpdatedAt(data.melting_session_cookie?.updatedAt ?? null)
+      setMeltingNickname(data.melting_session_nickname?.value ?? '')
+      setMeltingNicknameUpdatedAt(data.melting_session_nickname?.updatedAt ?? null)
     }).catch(() => {})
   }
 
@@ -66,6 +96,7 @@ export default function AdminImportCookiesPage() {
       await api.patch('/api/admin/import-cookies', {
         whif_session_cookie: whifCookie,
         melting_session_cookie: meltingCookie,
+        melting_session_nickname: meltingNickname,
       })
       setSaved(true)
       load()
@@ -107,6 +138,15 @@ export default function AdminImportCookiesPage() {
               value={meltingCookie}
               onChange={setMeltingCookie}
               updatedAt={meltingUpdatedAt}
+            />
+
+            <NicknameField
+              label="멜팅 로그인 계정의 페르소나 닉네임"
+              hint={'멜팅은 캐릭터 소개 속 "{유저}" 같은 플레이스홀더를 로그인 계정의 페르소나 닉네임으로 실시간 치환해서 보여줍니다.\n그 결과 캡처된 텍스트에 닉네임이 그대로 박혀, 다른 사용자가 가져왔을 때도 그 닉네임이 노출되는 문제가 생깁니다.\n여기에 위 멜팅 계정의 페르소나 닉네임을 입력해두면, 가져오기 시 해당 문자열을 범용 플레이스홀더([유저])로 되돌려 저장합니다.'}
+              placeholder="예: 허니"
+              value={meltingNickname}
+              onChange={setMeltingNickname}
+              updatedAt={meltingNicknameUpdatedAt}
             />
 
             <div className="hstack" style={{ gap: 6 }}>

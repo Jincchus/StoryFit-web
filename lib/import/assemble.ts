@@ -22,6 +22,27 @@ function joinByIds(ids: number[], byId: Map<number, Block>): string {
     .trim()
 }
 
+const MAX_EXAMPLE_QUOTES = 20
+
+// 본문에 등장하는 따옴표 대사를 그대로 추려낸다 (재서술 없는 verbatim 추출).
+// AI가 예시 대화 블록을 못 찾았을 때 캐릭터 말투를 보강하는 용도 — 추출한 문장은
+// 항상 원문의 부분문자열이므로 verbatim 보장이 깨지지 않는다.
+function extractQuotes(...texts: string[]): string[] {
+  const re = /"([^"\n]{4,300})"|“([^”\n]{4,300})”/g
+  const seen = new Set<string>()
+  const quotes: string[] = []
+  for (const text of texts) {
+    if (!text) continue
+    re.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text)) !== null) {
+      const q = (m[1] ?? m[2] ?? '').trim()
+      if (q && !seen.has(q)) { seen.add(q); quotes.push(q) }
+    }
+  }
+  return quotes
+}
+
 export function assemble(blocks: Block[], classification: Classification): AssembledResult {
   const byId = new Map(blocks.map(b => [b.id, b]))
   const chars = classification.characters.length > 0
@@ -38,8 +59,18 @@ export function assemble(blocks: Block[], classification: Classification): Assem
   }
 
   for (const label of classification.blocks) {
-    if (!byId.has(label.id)) continue
+    const block = byId.get(label.id)
+    if (!block) continue
     handled.add(label.id)
+
+    // "첫 장면"/"인트로" 탭 블록은 시작 메시지로 그대로 쓴다 — AI가 다른 필드로
+    // 잘못 분류하거나 ignore 처리해도 무시하고 강제 배정한다 (사용자 확인 완료:
+    // 멜팅의 "첫 장면"은 가공 없이 그대로 시작 메시지로 사용해야 할 값).
+    if (block.tabHint && OPENING_TABS.includes(block.tabHint)) {
+      accs[ownerIndex(label.owner)].openingMessage.push(label.id)
+      continue
+    }
+
     if (label.field === 'ignore') continue
     if (label.field === 'scenario') { scenarioIds.push(label.id); continue }
     if (CHAR_FIELDS.includes(label.field)) {
@@ -55,13 +86,27 @@ export function assemble(blocks: Block[], classification: Classification): Assem
     else scenarioIds.push(block.id)
   }
 
-  const characters: AssembledCharacter[] = chars.map((c, i) => ({
-    name: (c.name || '캐릭터').trim(),
-    gender: (c.gender || '').trim(),
-    additionalInfo: joinByIds(accs[i].additionalInfo, byId),
-    openingMessage: joinByIds(accs[i].openingMessage, byId),
-    exampleDialogues: joinByIds(accs[i].exampleDialogues, byId),
-  }))
+  const characters: AssembledCharacter[] = chars.map((c, i) => {
+    const additionalInfo = joinByIds(accs[i].additionalInfo, byId)
+    const openingMessage = joinByIds(accs[i].openingMessage, byId)
+    let exampleDialogues = joinByIds(accs[i].exampleDialogues, byId)
+
+    // AI가 예시 대화 블록을 분류하지 못했으면, 시작 메시지·설정 본문에 등장하는
+    // 따옴표 대사를 그대로 추려 캐릭터 말투로 보강한다 (사용자 확인 완료: 본문 속
+    // 말투를 확인해 캐릭터 말투에 추가해야 할 값 — 단, 재서술 없이 verbatim로).
+    if (!exampleDialogues) {
+      const quotes = extractQuotes(openingMessage, additionalInfo).slice(0, MAX_EXAMPLE_QUOTES)
+      if (quotes.length) exampleDialogues = quotes.map(q => `"${q}"`).join('\n')
+    }
+
+    return {
+      name: (c.name || '캐릭터').trim(),
+      gender: (c.gender || '').trim(),
+      additionalInfo,
+      openingMessage,
+      exampleDialogues,
+    }
+  })
 
   const tags = (classification.tags ?? [])
     .map(t => String(t).trim())

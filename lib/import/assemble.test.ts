@@ -103,7 +103,7 @@ describe('assemble — 다중 캐릭터/백스톱/누락', () => {
     expect(r.characters[0].additionalInfo).toContain('아린은 마법사')
   })
 
-  it('ignore 라벨 블록은 결과에 포함되지 않는다', () => {
+  it('ignore 라벨 블록은 결과에 포함되지 않는다 (단, "첫 장면" 탭은 시작 메시지로 강제 배정)', () => {
     const r = assemble(multi, {
       title: '', tags: [],
       characters: [{ index: 0, name: '아린', gender: '' }],
@@ -116,7 +116,82 @@ describe('assemble — 다중 캐릭터/백스톱/누락', () => {
     })
     expect(r.characters[0].additionalInfo).toBe('아린은 마법사다. 호기심 많고 장난기가 넘친다 정말로요.')
     expect(r.scenarioDescription).toBe('')
-    expect(r.characters[0].openingMessage).toBe('')
+    expect(r.characters[0].openingMessage).toBe('"준비됐어? 모험을 시작하자!" 아린이 외쳤다 신나게요.')
+  })
+})
+
+describe('assemble — "첫 장면" 탭 강제 배정 (멜팅 회귀 수정)', () => {
+  const sceneBlocks: Block[] = [
+    { id: 0, text: '리아는 21세 검술 수련생이다.', tabHint: '상세 설명' },
+    { id: 1, text: '"드디어 왔구나. 기다리고 있었어." 리아가 웃으며 말했다.', tabHint: '첫 장면' },
+  ]
+
+  it('AI가 다른 필드로 분류해도 "첫 장면" 탭은 시작 메시지로 강제 배정된다', () => {
+    const r = assemble(sceneBlocks, {
+      title: '', tags: [],
+      characters: [{ index: 0, name: '리아', gender: '' }],
+      blocks: [
+        { id: 0, owner: 0, field: 'additionalInfo' },
+        { id: 1, owner: 0, field: 'additionalInfo' },
+      ],
+    })
+    expect(r.characters[0].openingMessage).toBe('"드디어 왔구나. 기다리고 있었어." 리아가 웃으며 말했다.')
+    expect(r.characters[0].additionalInfo).toBe('리아는 21세 검술 수련생이다.')
+  })
+
+  it('AI가 ignore로 분류해도 "첫 장면" 탭은 시작 메시지로 강제 배정된다', () => {
+    const r = assemble(sceneBlocks, {
+      title: '', tags: [],
+      characters: [{ index: 0, name: '리아', gender: '' }],
+      blocks: [
+        { id: 0, owner: 0, field: 'additionalInfo' },
+        { id: 1, owner: 0, field: 'ignore' },
+      ],
+    })
+    expect(r.characters[0].openingMessage).toBe('"드디어 왔구나. 기다리고 있었어." 리아가 웃으며 말했다.')
+  })
+})
+
+describe('assemble — 따옴표 대사 verbatim 추출 (캐릭터 말투 보강)', () => {
+  it('AI가 예시 대화를 분류하지 못하면 본문 인용구를 그대로 추려 채운다', () => {
+    const r = assemble(blocks, {
+      title: '', tags: [],
+      characters: [{ index: 0, name: '시안', gender: '' }],
+      blocks: [
+        { id: 0, owner: 0, field: 'additionalInfo' },
+        { id: 1, owner: 0, field: 'openingMessage' },
+      ],
+    })
+    expect(r.characters[0].exampleDialogues).toBe('"늦었군. 기다리고 있었다."')
+  })
+
+  it('AI가 예시 대화를 분류했으면 추출 보강을 하지 않는다 (AI 라벨 우선)', () => {
+    const withExample: Block[] = [
+      ...blocks,
+      { id: 3, text: '"이게 진짜 예시 대화입니다." 라고 시안이 말했다.', tabHint: null },
+    ]
+    const r = assemble(withExample, {
+      title: '', tags: [],
+      characters: [{ index: 0, name: '시안', gender: '' }],
+      blocks: [
+        { id: 0, owner: 0, field: 'additionalInfo' },
+        { id: 1, owner: 0, field: 'openingMessage' },
+        { id: 3, owner: 0, field: 'exampleDialogues' },
+      ],
+    })
+    expect(r.characters[0].exampleDialogues).toBe('"이게 진짜 예시 대화입니다." 라고 시안이 말했다.')
+  })
+
+  it('인용구가 없으면 빈 문자열로 둔다', () => {
+    const noQuote: Block[] = [
+      { id: 0, text: '설정 텍스트에는 인용구가 전혀 없습니다 그렇습니다.', tabHint: '상세 설명' },
+    ]
+    const r = assemble(noQuote, {
+      title: '', tags: [],
+      characters: [{ index: 0, name: '무명', gender: '' }],
+      blocks: [{ id: 0, owner: 0, field: 'additionalInfo' }],
+    })
+    expect(r.characters[0].exampleDialogues).toBe('')
   })
 })
 
