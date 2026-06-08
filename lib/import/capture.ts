@@ -425,11 +425,10 @@ async function renderMeltingSections(url: string): Promise<{
 
 export async function captureWhif(url: string): Promise<Captured> {
   const { rawText, apiData } = await renderWhifPageText(url)
-  if (rawText.includes(WHIF_LOGIN_GATE_TEXT)) {
-    throw new Error('로그인이 필요한 콘텐츠(언세이프 캐릭터)라 가져올 수 없습니다')
-  }
 
   // API 가로채기에 성공한 경우 직접 AssembledResult 구성 (AI 분류기 패스)
+  // 언세이프 캐릭터는 로그인 시에도 DOM에 "세이프 모드를 해제" 안내 문구가 남아있으므로
+  // apiData가 있으면 게이트 체크보다 먼저 처리한다.
   if (apiData && apiData.character && apiData.universe) {
     const universe = apiData.universe
     const mainChar = apiData.character
@@ -514,6 +513,9 @@ export async function captureWhif(url: string): Promise<Captured> {
   }
 
   // API 추출 실패 시 기존의 텍스트 스크래핑 방식으로 후퇴
+  if (rawText.includes(WHIF_LOGIN_GATE_TEXT)) {
+    throw new Error('로그인이 필요한 콘텐츠(언세이프 캐릭터)라 가져올 수 없습니다')
+  }
   const text = cleanWhifText(rawText).slice(0, INPUT_CAP)
   if (text.length < 100) throw new Error('Whif 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
   return { sections: [{ tab: null, text }], title: '', imageUrl: '' }
