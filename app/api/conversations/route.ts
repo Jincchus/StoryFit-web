@@ -69,13 +69,17 @@ export async function POST(req: NextRequest) {
   })
 
   const firstChar = conversation.characters[0]?.character
-  if (firstChar?.openingMessage?.trim()) {
+  const chosenOpening = body.openingMessage !== undefined
+    ? String(body.openingMessage || '').trim()
+    : firstChar?.openingMessage?.trim()
+
+  if (chosenOpening) {
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
         role: 'assistant',
-        content: firstChar.openingMessage.trim(),
-        characterId: firstChar.id,
+        content: chosenOpening,
+        characterId: firstChar?.id ?? null,
         isSelected: true,
         isStreaming: false,
       },

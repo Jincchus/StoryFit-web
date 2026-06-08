@@ -63,6 +63,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
           additionalInfo: c.additionalInfo,
           exampleDialogues: c.exampleDialogues,
           openingMessage: c.openingMessage,
+          safetyLevel: result.safetyLevel || 'standard',
           isAutoCreated: true,
           creatorId: userId,
           ...(i === 0 && captured.imageUrl ? { avatarUrl: captured.imageUrl } : {}),
@@ -76,10 +77,29 @@ async function runImport(captured: Captured, url: string, userId: string) {
       userId, title, mode: isMulti ? 'multiStory' : 'story', currentAI: 'gemini',
       scenarioDescription: result.scenarioDescription,
       tags: result.tags, isAutoCreated: true, sourceUrl: url,
+      safetyLevel: result.safetyLevel || 'standard',
       sourceLorebookUrls: captured.loreUrls && captured.loreUrls.length ? captured.loreUrls : undefined,
       characters: { create: createdChars.map((c, i) => ({ characterId: c.id, turnOrder: i })) },
     },
   })
+
+  // WHIF 백과사전(로어북) 항목이 있는 경우 자동 동기화 저장
+  if (captured.lorebooks && captured.lorebooks.length > 0) {
+    await Promise.all(
+      captured.lorebooks.map((entry) =>
+        prisma.lorebook.create({
+          data: {
+            scope: 'conversation',
+            scopeId: conversation.id,
+            keyword: entry.keyword,
+            content: entry.content,
+            priority: entry.priority ?? 0,
+            conversationId: conversation.id,
+          },
+        })
+      )
+    )
+  }
 
   const collection = await prisma.characterCollection.create({
     data: { title, sourceUrl: url, userId, conversationId: conversation.id },

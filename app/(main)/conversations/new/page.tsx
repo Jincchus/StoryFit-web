@@ -16,6 +16,36 @@ export default function NewConversationPage() {
   )
 }
 
+interface AlternativeGreeting {
+  title: string
+  text: string
+}
+
+function parseAlternativeGreetings(openingMessage: string, additionalInfo: string): AlternativeGreeting[] {
+  const list: AlternativeGreeting[] = []
+  if (openingMessage?.trim()) {
+    list.push({ title: '기본 시작 상황', text: openingMessage.trim() })
+  }
+  
+  const match = additionalInfo?.match(/\[다른 시작 상황\]\n([\s\S]*)/)
+  if (match && match[1]) {
+    const block = match[1]
+    const intros = block.split(/\n\n(?=도입부: )/)
+    for (const intro of intros) {
+      const introLines = intro.split('\n')
+      const titleLine = introLines[0] || ''
+      if (titleLine.startsWith('도입부: ')) {
+        const title = titleLine.replace('도입부: ', '').trim()
+        const text = introLines.slice(1).join('\n').trim()
+        if (title && text) {
+          list.push({ title, text })
+        }
+      }
+    }
+  }
+  return list
+}
+
 function NewConversationInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -144,8 +174,27 @@ function NewConversationInner() {
     }
   }
 
-  const handleStart = async () => {
+  const [altGreetings, setAltGreetings] = useState<{ title: string; text: string }[]>([])
+  const [showGreetingModal, setShowGreetingModal] = useState(false)
+
+  useEffect(() => {
+    if (char) {
+      const list = parseAlternativeGreetings(char.openingMessage || '', char.additionalInfo || '')
+      setAltGreetings(list)
+    } else {
+      setAltGreetings([])
+    }
+  }, [char])
+
+  const handleStart = async (chosenGreetingText?: string) => {
     if (!char || loading) return
+
+    // 다중 도입부 상황 선택 모달 처리
+    if (altGreetings.length > 1 && chosenGreetingText === undefined) {
+      setShowGreetingModal(true)
+      return
+    }
+
     setLoading(true)
     try {
       const statsConfig = (mode === 'story' && statsEnabled && selectedStats.length > 0)
@@ -184,6 +233,7 @@ function NewConversationInner() {
         statsConfig,
         inventoryEnabled: (mode === 'story' || mode === 'multiStory') && inventoryEnabled,
         styleConfig: Object.values(styleConfig).some(Boolean) ? styleConfig : null,
+        openingMessage: chosenGreetingText ?? char.openingMessage,
       })
       router.push(`/conversations/${conv.id}`)
       dispatch({ type: 'resetDraft' })
@@ -206,7 +256,7 @@ function NewConversationInner() {
             <button
               className="btn primary"
               disabled={!char || loading}
-              onClick={handleStart}
+              onClick={() => handleStart()}
             >
               {loading ? '...' : fromId ? '✦ 설정 저장 후 시작' : mode === 'novel' ? '✦ 소설 시작' : mode === 'story' ? '✦ 스토리 시작' : '✦ 롤플레이 시작'}
             </button>
@@ -678,6 +728,64 @@ function NewConversationInner() {
           </div>
         </div>
       </div>
+      {showGreetingModal && altGreetings.length > 0 && (
+        <>
+          <div 
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }} 
+            onClick={() => setShowGreetingModal(false)} 
+          />
+          <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 101, width: 'min(500px, 95vw)', maxHeight: '85dvh', display: 'flex', flexDirection: 'column' }}>
+            <div className="win-title">
+              <div className="win-title-l"><span>📖 시작 상황(도입부) 선택</span></div>
+              <div className="win-controls">
+                <button onClick={() => setShowGreetingModal(false)}>×</button>
+              </div>
+            </div>
+            <div className="win-body vstack" style={{ gap: 12, flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+              <div className="tiny muted" style={{ marginBottom: 4, lineHeight: 1.5 }}>
+                스토리의 시작점이 될 장면이나 챕터를 골라주세요.
+              </div>
+              <div className="vstack" style={{ gap: 8 }}>
+                {altGreetings.map((g, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      setShowGreetingModal(false)
+                      handleStart(g.text)
+                    }}
+                    style={{
+                      border: '1.5px solid var(--chrome-border)',
+                      borderRadius: 'var(--radius)',
+                      padding: '12px 14px',
+                      cursor: 'pointer',
+                      background: 'var(--chrome-face)',
+                      transition: 'border-color 0.2s, background-color 0.2s',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = 'var(--hot-pink)'
+                      e.currentTarget.style.backgroundColor = 'var(--pane)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--chrome-border)'
+                      e.currentTarget.style.backgroundColor = 'var(--chrome-face)'
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--hot-pink)', marginBottom: 6 }}>
+                      {g.title}
+                    </div>
+                    <div className="tiny" style={{ color: 'var(--muted)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                      {g.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end', marginTop: 10 }}>
+                <button className="btn ghost" style={{ fontSize: 11 }} onClick={() => setShowGreetingModal(false)}>취소</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </Win>
   )
 }

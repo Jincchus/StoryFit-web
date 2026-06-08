@@ -445,18 +445,44 @@ export async function captureWhif(url: string): Promise<Captured> {
 
       return {
         name: c.name || '캐릭터',
-        gender: '',
+        gender: c.gender || '',
         additionalInfo,
         openingMessage,
         exampleDialogues: '',
       }
     })
 
+    // WHIF Lorebook (Encyclopedia) 추출
+    const lorebooks: { keyword: string[]; content: string; priority?: number }[] = []
+    const whifEntries = universe.encyclopediaEntries || universe.encyclopedia || universe.knowledges || []
+    if (Array.isArray(whifEntries)) {
+      for (const entry of whifEntries) {
+        const entryTitle = entry.title || entry.keyword || ''
+        const entryContent = entry.content || entry.body || ''
+        if (entryTitle && entryContent) {
+          const keywords = Array.isArray(entry.keywords)
+            ? entry.keywords
+            : typeof entry.keywords === 'string'
+              ? entry.keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
+              : [entryTitle]
+          lorebooks.push({
+            keyword: keywords.length > 0 ? keywords : [entryTitle],
+            content: entryContent,
+            priority: entry.priority || 0,
+          })
+        }
+      }
+    }
+
+    const isNsfw = mainChar.isNsfw || mainChar.publicData?.isNsfw || universe.isNsfw || false
+    const safetyLevel = isNsfw ? 'relaxed' : 'standard'
+
     const assembledResult = {
       characters,
       scenarioDescription: universe.description || '',
       tags: universe.tags || [],
       title: universe.name || mainChar.name || '캐릭터',
+      safetyLevel,
     }
 
     return {
@@ -464,6 +490,7 @@ export async function captureWhif(url: string): Promise<Captured> {
       title: assembledResult.title,
       imageUrl: mainChar.avatarUrl || universe.imageUrl || '',
       assembledResult,
+      lorebooks: lorebooks.length > 0 ? lorebooks : undefined,
     }
   }
 
@@ -506,14 +533,33 @@ export async function captureMelting(url: string): Promise<Captured> {
     // API 데이터 가로채기에 성공한 경우 직접 AssembledResult 구성 (AI 분류기 패스)
     if (apiData) {
       const hashtags = (apiData.publicDescription || '').match(/#[^\s#]+/g) || []
-      const tags = hashtags.map((t: string) => t.replace('#', '').trim()).filter(Boolean).slice(0, 15)
+      const nativeTags = Array.isArray(apiData.tags)
+        ? apiData.tags
+        : Array.isArray(apiData.hashtagList)
+          ? apiData.hashtagList
+          : []
+      const tags = [...hashtags.map((t: string) => t.replace('#', '').trim()), ...nativeTags]
+        .filter(Boolean)
+        .slice(0, 15)
+
+      // 멜팅 캐릭터 목소리(TTS) 정보가 있다면 상세설명에 보존
+      let additionalInfo = apiData.publicDescription || ''
+      if (apiData.voiceId || apiData.voiceName) {
+        additionalInfo += `\n\n[음성 설정]\n- 목소리 이름: ${apiData.voiceName || '기본'}\n- 목소리 ID: ${apiData.voiceId || ''}`
+        if (apiData.voiceProvider) {
+          additionalInfo += `\n- 제공사: ${apiData.voiceProvider}`
+        }
+      }
+
+      const isNsfw = apiData.nsfw || apiData.isNsfw || false
+      const safetyLevel = isNsfw ? 'relaxed' : 'standard'
 
       const assembledResult = {
         characters: [
           {
             name: apiData.name || title || '캐릭터',
             gender: '',
-            additionalInfo: apiData.publicDescription || '',
+            additionalInfo,
             openingMessage: apiData.opening || '',
             exampleDialogues: '',
           }
@@ -521,6 +567,7 @@ export async function captureMelting(url: string): Promise<Captured> {
         scenarioDescription: apiData.publicTagline || '',
         tags,
         title: apiData.name || title || '캐릭터',
+        safetyLevel,
       }
 
       return {
