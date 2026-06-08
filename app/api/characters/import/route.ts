@@ -113,14 +113,14 @@ function cleanWhifText(text: string): string {
 // 실제 캐릭터 소개는 전송되지 않는다. 이 문구로 게이트 상태를 판별한다.
 const WHIF_LOGIN_GATE_TEXT = '세이프 모드를 해제'
 
-function parseWhifSessionCookies(cookieHeader: string) {
+function parseSessionCookies(cookieHeader: string, domain: string) {
   return cookieHeader.split(';').flatMap(pair => {
     const idx = pair.indexOf('=')
     if (idx < 0) return []
     const name = pair.slice(0, idx).trim()
     const value = pair.slice(idx + 1).trim()
     if (!name) return []
-    return [{ name, value, domain: '.whif.io', path: '/' }]
+    return [{ name, value, domain, path: '/' }]
   })
 }
 
@@ -143,7 +143,7 @@ async function renderWhifPageText(url: string): Promise<string> {
     // 복사해 둔 세션 쿠키(WHIF_SESSION_COOKIE)를 그대로 주입해 재사용한다.
     const sessionCookie = process.env.WHIF_SESSION_COOKIE?.trim()
     if (sessionCookie) {
-      await page.setCookie(...parseWhifSessionCookies(sessionCookie))
+      await page.setCookie(...parseSessionCookies(sessionCookie, '.whif.io'))
     }
 
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
@@ -360,6 +360,64 @@ function cleanMeltingTitle(title: string): string {
   return title.replace(/\s*-\s*멜팅\s*$/i, '').trim()
 }
 
+// 멜팅은 비로그인 상태로 앱(SPA)에 접근하면 캐릭터 페이지 자체가 로그인 게이트로 막힌다
+// (og:description 974자 등 공유링크 미리보기용 정적 HTML만 비로그인으로 공개됨).
+// 태그·"첫 장면" 같은 정보까지 가져오려면 로그인 세션 쿠키 주입이 필요하다.
+const MELTING_LOGIN_GATE_TEXT = '캐릭터를 보려면 로그인이 필요합니다'
+
+// 로그인 세션으로 캐릭터 페이지를 렌더링해 "첫 장면" 탭까지 함께 모은 텍스트를 반환한다.
+// 세션이 없거나 만료된 경우 로그인 게이트 문구가 그대로 포함된 텍스트가 돌아온다 — 호출 측에서 판별해 OG 메타로 폴백한다.
+async function renderMeltingPageText(url: string): Promise<string> {
+  const browser = await puppeteer.launch({
+    executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
+    headless: true,
+    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+  })
+
+  try {
+    const page = await browser.newPage()
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
+
+    const sessionCookie = process.env.MELTING_SESSION_COOKIE?.trim()
+    if (sessionCookie) {
+      await page.setCookie(...parseSessionCookies(sessionCookie, '.melting.chat'))
+    }
+
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+
+    // 리다이렉트로 인해 검증된 호스트(melting.chat)를 벗어났다면 중단 (SSRF 방지 심층 방어)
+    if (!matchesHost(page.url(), 'melting.chat')) {
+      throw new Error('예상하지 못한 주소로 리다이렉트되었습니다.')
+    }
+
+    await page.waitForFunction(
+      () => document.body.innerText.replace(/\s+/g, ' ').trim().length > 150,
+      { timeout: 20000 }
+    ).catch(() => {})
+
+    const texts = [await page.evaluate(() => document.body.innerText)]
+
+    // "첫 장면" 탭이 있으면 클릭해 오프닝 메시지까지 함께 수집
+    for (const label of ['첫 장면', '첫장면']) {
+      const clicked = await page.evaluate((lbl: string) => {
+        const target = Array.from(document.querySelectorAll('button, [role="tab"], a, div, span'))
+          .find(el => el.textContent?.trim() === lbl)
+        if (target) { (target as HTMLElement).click(); return true }
+        return false
+      }, label)
+      if (clicked) {
+        await new Promise(r => setTimeout(r, 1500))
+        texts.push(await page.evaluate(() => document.body.innerText))
+        break
+      }
+    }
+
+    return texts.join('\n---\n')
+  } finally {
+    await browser.close()
+  }
+}
+
 async function importFromMelting(url: string, userId: string) {
   const res = await fetch(url, {
     headers: {
@@ -375,8 +433,27 @@ async function importFromMelting(url: string, userId: string) {
 
   const ogTitle = cleanMeltingTitle(extractMetaContent(html, 'og:title'))
   const ogImage = extractMetaContent(html, 'og:image')
-  const text = extractMetaContent(html, 'og:description').slice(0, 12000)
+  let text = extractMetaContent(html, 'og:description').slice(0, 12000)
   console.log('[melting-import] og:title:', ogTitle, '| description length:', text.length, '| image:', ogImage)
+
+  // 세션 쿠키가 있으면 로그인 상태로 실제 캐릭터 페이지를 렌더링해
+  // 태그·"첫 장면" 등 OG 메타에는 없는 정보까지 함께 수집해 더 풍부한 텍스트로 대체한다.
+  const sessionCookie = process.env.MELTING_SESSION_COOKIE?.trim()
+  if (sessionCookie) {
+    try {
+      const rendered = await renderMeltingPageText(url)
+      const cleaned = rendered.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
+      console.log('[melting-import] rendered text length:', cleaned.length)
+      if (!rendered.includes(MELTING_LOGIN_GATE_TEXT) && cleaned.length >= 100) {
+        text = cleaned.slice(0, 12000)
+      } else {
+        console.log('[melting-import] 세션 쿠키가 만료/무효 — OG 메타 텍스트로 대체')
+      }
+    } catch (e: any) {
+      console.log('[melting-import] 헤드리스 렌더링 실패, OG 메타 텍스트로 대체:', e?.message)
+    }
+  }
+
   if (text.length < 100) throw new Error('멜팅 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
 
   const systemPrompt = '당신은 텍스트에서 롤플레잉 캐릭터 정보를 추출하는 파서입니다. 반드시 JSON만 반환하세요.'
