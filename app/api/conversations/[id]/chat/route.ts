@@ -36,6 +36,68 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const character = conv.characters[0]?.character
   if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
+  // ── 커맨드 처리 (예: !상태창) ──────────────────────────────────────────
+  if (content.trim() === '!상태창') {
+    const prevMsg = conv.messages[conv.messages.length - 1] ?? null
+    
+    // 유저가 보낸 '!상태창' 메시지 저장
+    const userMsg = await prisma.message.create({
+      data: {
+        conversationId: params.id,
+        role: 'user',
+        content: content.trim(),
+        isSelected: true,
+        parentId: prevMsg?.id ?? null,
+      },
+    })
+
+    // 상태창 텍스트 조립
+    let statusContent = '### 📊 현재 상태창\n\n'
+    
+    if (conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0) {
+      statusContent += '| 스탯명 | 수치 | 상태 |\n| :--- | :---: | :--- |\n'
+      for (const stat of conv.statsConfig as any) {
+        const pct = Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)
+        let gauge = '░░░░░░░░░░'
+        const filledCount = Math.round(pct / 10)
+        gauge = '▓'.repeat(filledCount) + '░'.repeat(10 - filledCount)
+        statusContent += `| **${stat.name}** | ${stat.value} / ${stat.max} | \`${gauge}\` (${pct}%) |\n`
+      }
+    } else {
+      statusContent += '*활성화된 관계/능력치 스탯이 없습니다.*\n'
+    }
+
+    statusContent += '\n### 🎒 소지품 (인벤토리)\n\n'
+    if (conv.inventoryEnabled && Array.isArray(conv.inventory) && conv.inventory.length > 0) {
+      statusContent += '| 아이템명 | 수량 | 설명 |\n| :--- | :---: | :--- |\n'
+      for (const item of conv.inventory as any) {
+        statusContent += `| **${item.name}** | ${item.qty}개 | ${item.description || '-'} |\n`
+      }
+    } else {
+      statusContent += '*소지품이 없거나 인벤토리가 비활성화되어 있습니다.*\n'
+    }
+    
+    if (conv.statusTimeline) {
+      statusContent += `\n### 🎬 현재 상황\n${conv.statusTimeline}\n`
+    }
+
+    // 시스템이 만든 상태창 답변을 assistant 역할로 즉시 저장
+    const assistantMsg = await prisma.message.create({
+      data: {
+        conversationId: params.id,
+        role: 'assistant',
+        content: statusContent,
+        aiModel: 'system',
+        isSelected: true,
+        isStreaming: false,
+        parentId: userMsg.id,
+      },
+    })
+
+    return NextResponse.json({ messageId: assistantMsg.id }, { status: 200 })
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(() => [])
 
   const prevMsg = conv.messages[conv.messages.length - 1] ?? null
