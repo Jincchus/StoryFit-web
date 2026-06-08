@@ -113,15 +113,30 @@ function cleanWhifText(text: string): string {
 // 실제 캐릭터 소개는 전송되지 않는다. 이 문구로 게이트 상태를 판별한다.
 const WHIF_LOGIN_GATE_TEXT = '세이프 모드를 해제'
 
-function parseSessionCookies(cookieHeader: string, domain: string) {
-  return cookieHeader.split(';').flatMap(pair => {
+function parseSessionCookies(cookieHeader: string, domain: string): {
+  name: string
+  value: string
+  domain?: string
+  url?: string
+  path: string
+  secure?: boolean
+}[] {
+  // __Host- 접두사 쿠키는 명세상 domain 속성을 가질 수 없음(Secure + Path=/ + 호스트 단독 필수).
+  // domain을 생략하고 대신 url을 지정해야 setCookie가 내부적으로 호출하는 deleteCookie도
+  // "url 또는 domain 필요" 요건을 만족해 "Invalid cookie fields" 오류 없이 주입된다.
+  const baseUrl = `https://${domain.replace(/^\./, '')}`
+  const cookies: { name: string; value: string; domain?: string; url?: string; path: string; secure?: boolean }[] = []
+  for (const pair of cookieHeader.split(';')) {
     const idx = pair.indexOf('=')
-    if (idx < 0) return []
+    if (idx < 0) continue
     const name = pair.slice(0, idx).trim()
     const value = pair.slice(idx + 1).trim()
-    if (!name) return []
-    return [{ name, value, domain, path: '/' }]
-  })
+    if (!name) continue
+    if (name.startsWith('__Host-')) cookies.push({ name, value, url: baseUrl, path: '/', secure: true })
+    else if (name.startsWith('__Secure-')) cookies.push({ name, value, domain, path: '/', secure: true })
+    else cookies.push({ name, value, domain, path: '/' })
+  }
+  return cookies
 }
 
 // WHIF는 클라이언트 렌더링 SPA라 서버가 응답하는 원본 HTML에는 캐릭터 정보가 없음
@@ -376,6 +391,7 @@ async function renderMeltingPageText(url: string): Promise<string> {
 
   try {
     const page = await browser.newPage()
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5' })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
 
     const sessionCookie = process.env.MELTING_SESSION_COOKIE?.trim()
@@ -390,29 +406,50 @@ async function renderMeltingPageText(url: string): Promise<string> {
       throw new Error('예상하지 못한 주소로 리다이렉트되었습니다.')
     }
 
+    // 캐릭터 패널은 제작자 프로필 위에 모달로 늦게 렌더링되므로, 단순 텍스트 길이 조건은
+    // 모달이 뜨기 전(제작자 프로필만 있는 상태)에 만족돼버려 아래 grabPanelText가 패널을
+    // 못 찾고 노이즈 가득한 body 전체로 폴백하는 원인이 된다 — 탭 요소 등장을 직접 기다린다.
     await page.waitForFunction(
-      () => document.body.innerText.replace(/\s+/g, ' ').trim().length > 150,
+      () => Array.from(document.querySelectorAll('*')).some(
+        el => el.children.length === 0 && /^(첫\s*장면|상세\s*설명)$/.test(el.textContent?.trim() || '')
+      ),
       { timeout: 20000 }
     ).catch(() => {})
 
-    const texts = [await page.evaluate(() => document.body.innerText)]
+    // 캐릭터 페이지는 제작자 프로필(다른 캐릭터 목록 등) 위에 모달로 캐릭터 패널이 뜨는 구조라
+    // body 전체를 긁으면 노이즈가 섞인다. "첫 장면"/"상세 설명" 탭에서 부모로 거슬러 올라가며
+    // innerText 길이가 더는 늘지 않는(=형제 요소가 섞이기 직전) 가장 작은 컨테이너를 패널로 본다.
+    const grabPanelText = () => page.evaluate(() => {
+      const all = Array.from(document.querySelectorAll('*'))
+      const tabEl: any = all.find(el => el.children.length === 0 && /^(첫\s*장면|상세\s*설명)$/.test(el.textContent?.trim() || ''))
+      if (!tabEl) return document.body.innerText
+      let cur: any = tabEl.parentElement
+      while (cur && cur.parentElement) {
+        const curLen = cur.innerText?.length || 0
+        const parentLen = cur.parentElement.innerText?.length || 0
+        if (curLen > 200 && parentLen > curLen * 1.5) return cur.innerText
+        cur = cur.parentElement
+      }
+      return document.body.innerText
+    })
 
-    // "첫 장면" 탭이 있으면 클릭해 오프닝 메시지까지 함께 수집
-    for (const label of ['첫 장면', '첫장면']) {
+    const texts = [await grabPanelText()]
+
+    // "첫 장면"/"상세 설명" 탭을 각각 클릭해 두 탭의 내용을 모두 수집 (기본 활성 탭이 캐릭터마다 다를 수 있음)
+    for (const label of ['첫 장면', '첫장면', '상세 설명']) {
       const clicked = await page.evaluate((lbl: string) => {
         const target = Array.from(document.querySelectorAll('button, [role="tab"], a, div, span'))
-          .find(el => el.textContent?.trim() === lbl)
+          .find(el => el.children.length === 0 && el.textContent?.trim() === lbl)
         if (target) { (target as HTMLElement).click(); return true }
         return false
       }, label)
       if (clicked) {
-        await new Promise(r => setTimeout(r, 1500))
-        texts.push(await page.evaluate(() => document.body.innerText))
-        break
+        await new Promise(r => setTimeout(r, 1200))
+        texts.push(await grabPanelText())
       }
     }
 
-    return texts.join('\n---\n')
+    return Array.from(new Set(texts)).join('\n---\n')
   } finally {
     await browser.close()
   }
