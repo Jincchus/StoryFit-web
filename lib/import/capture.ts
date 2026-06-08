@@ -306,8 +306,30 @@ function cleanMeltingTitle(title: string): string {
 
 // 로그인 세션으로 캐릭터 페이지를 렌더링해 "상세 설명"/"첫 장면" 탭을 섹션으로 분리해 반환한다.
 // 세션이 없거나 만료된 경우 로그인 게이트 문구가 포함되어 '세션 게이트' 예외를 던진다 — 호출 측에서 OG 메타로 폴백한다.
-async function renderMeltingSections(url: string): Promise<{ tab: string | null; text: string }[]> {
+async function renderMeltingSections(url: string): Promise<{
+  sections: { tab: string | null; text: string }[]
+  apiData?: any
+}> {
   return withMeltingPage(async (page) => {
+    const apiData: { bot?: any } = {}
+
+    await page.setRequestInterception(true)
+    page.on('request', (request) => {
+      request.continue()
+    })
+    page.on('response', async (response) => {
+      const respUrl = response.url()
+      if (respUrl.includes('/api/characters/')) {
+        try {
+          const text = await response.text()
+          const json = JSON.parse(text)
+          if (json.json?.bot) {
+            apiData.bot = json.json.bot
+          }
+        } catch {}
+      }
+    })
+
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
 
     // 리다이렉트로 인해 검증된 호스트(melting.chat)를 벗어났다면 중단 (SSRF 방지 심층 방어)
@@ -331,6 +353,17 @@ async function renderMeltingSections(url: string): Promise<{ tab: string | null;
         await page.setCookie(...parseSessionCookies(seedCookie, '.melting.chat'))
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
         await new Promise(r => setTimeout(r, 1500))
+      }
+    }
+
+    // API 데이터 가로채기에 성공했다면 탭 대기/클릭 스크래핑 로직을 생략하고 즉시 반환
+    if (apiData.bot) {
+      return {
+        sections: [
+          { tab: '상세 설명', text: apiData.bot.publicDescription || '' },
+          { tab: '첫 장면', text: apiData.bot.opening || '' }
+        ],
+        apiData: apiData.bot
       }
     }
 
@@ -379,7 +412,7 @@ async function renderMeltingSections(url: string): Promise<{ tab: string | null;
       }
     }
     if (sections.some(s => s.text.includes(MELTING_LOGIN_GATE_TEXT))) throw new Error('세션 게이트')
-    return sections
+    return { sections }
   })
 }
 
@@ -468,9 +501,17 @@ export async function captureMelting(url: string): Promise<Captured> {
   const ogDesc = extractMetaContent(html, 'og:description').slice(0, INPUT_CAP)
 
   try {
-    const sections = await renderMeltingSections(url)
+    const { sections, apiData } = await renderMeltingSections(url)
     const total = sections.reduce((n, s) => n + s.text.length, 0)
-    if (total >= 100) return { sections, title, imageUrl }
+    if (total >= 100) {
+      return {
+        sections,
+        title: apiData?.name || title,
+        imageUrl: apiData?.profileImagePath
+          ? `https://image-gen.melting.chat/public_images/${apiData.profileImagePath}?s=lg`
+          : imageUrl
+      }
+    }
   } catch (e: any) {
     console.log('[melting-import] 헤드리스 실패, OG 메타로 폴백:', e?.message)
   }
