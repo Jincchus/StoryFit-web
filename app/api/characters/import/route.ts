@@ -113,6 +113,14 @@ function cleanWhifText(text: string): string {
 // 실제 캐릭터 소개는 전송되지 않는다. 이 문구로 게이트 상태를 판별한다.
 const WHIF_LOGIN_GATE_TEXT = '세이프 모드를 해제'
 
+// WHIF/멜팅 세션 쿠키는 GlobalConfig(DB)에 저장해 관리자 페이지에서 즉시 갱신할 수 있게 한다.
+// 환경변수 방식은 컨테이너 재배포가 있어야 반영되는데, 멜팅 세션은 약 30분마다 만료되어
+// 사실상 갱신이 불가능했다 — DB 조회로 바꿔 재배포 없이 바로 반영되도록 한다.
+async function getStoredSessionCookie(key: 'whif_session_cookie' | 'melting_session_cookie'): Promise<string> {
+  const config = await prisma.globalConfig.findUnique({ where: { key } })
+  return config?.value?.trim() ?? ''
+}
+
 function parseSessionCookies(cookieHeader: string, domain: string): {
   name: string
   value: string
@@ -155,8 +163,8 @@ async function renderWhifPageText(url: string): Promise<string> {
 
     // 언세이프(성인) 캐릭터는 비로그인 사용자에게 설명 자체를 내려주지 않음.
     // 로그인 자동화는 보안상 위험하므로, 사용자가 직접 브라우저에서 로그인한 뒤
-    // 복사해 둔 세션 쿠키(WHIF_SESSION_COOKIE)를 그대로 주입해 재사용한다.
-    const sessionCookie = process.env.WHIF_SESSION_COOKIE?.trim()
+    // 복사해 둔 세션 쿠키(관리자 페이지 → 가져오기 세션 쿠키)를 그대로 주입해 재사용한다.
+    const sessionCookie = await getStoredSessionCookie('whif_session_cookie')
     if (sessionCookie) {
       await page.setCookie(...parseSessionCookies(sessionCookie, '.whif.io'))
     }
@@ -394,7 +402,7 @@ async function renderMeltingPageText(url: string): Promise<string> {
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5' })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
 
-    const sessionCookie = process.env.MELTING_SESSION_COOKIE?.trim()
+    const sessionCookie = await getStoredSessionCookie('melting_session_cookie')
     if (sessionCookie) {
       await page.setCookie(...parseSessionCookies(sessionCookie, '.melting.chat'))
     }
@@ -475,7 +483,7 @@ async function importFromMelting(url: string, userId: string) {
 
   // 세션 쿠키가 있으면 로그인 상태로 실제 캐릭터 페이지를 렌더링해
   // 태그·"첫 장면" 등 OG 메타에는 없는 정보까지 함께 수집해 더 풍부한 텍스트로 대체한다.
-  const sessionCookie = process.env.MELTING_SESSION_COOKIE?.trim()
+  const sessionCookie = await getStoredSessionCookie('melting_session_cookie')
   if (sessionCookie) {
     try {
       const rendered = await renderMeltingPageText(url)

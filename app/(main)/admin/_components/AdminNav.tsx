@@ -6,6 +6,7 @@ const NAV = [
   { href: '/admin/names', label: '랜덤 이름' },
   { href: '/admin/tags', label: '태그 관리' },
   { href: '/admin/config', label: '전역 설정' },
+  { href: '/admin/import-cookies', label: '가져오기 쿠키' },
   { href: '/admin/users', label: '유저 관리' },
   { href: '/admin/images', label: '이미지 관리' },
   { href: '/admin/costs', label: 'AI 비용' },
