@@ -76,4 +76,29 @@ export function assemble(blocks: Block[], classification: Classification): Assem
   }
 }
 
+export function buildFallback(blocks: Block[], opts: { name: string }): AssembledResult {
+  const byId = new Map(blocks.map(b => [b.id, b]))
+  const openingIds: number[] = []
+  const detailIds: number[] = []
+
+  for (const block of blocks) {
+    if (block.tabHint && OPENING_TABS.includes(block.tabHint)) openingIds.push(block.id)
+    else detailIds.push(block.id)
+  }
+
+  const name = (opts.name || '캐릭터').trim()
+  return {
+    characters: [{
+      name,
+      gender: '',
+      additionalInfo: joinByIds(detailIds, byId),
+      openingMessage: joinByIds(openingIds, byId),
+      exampleDialogues: '',
+    }],
+    scenarioDescription: '',
+    tags: [],
+    title: name,
+  }
+}
+
 export { OPENING_TABS, DETAIL_TABS, joinByIds }

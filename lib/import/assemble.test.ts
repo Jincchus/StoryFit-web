@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { assemble } from './assemble'
+import { assemble, buildFallback } from './assemble'
 import type { Block, Classification } from './types'
 
 const blocks: Block[] = [
@@ -116,6 +116,32 @@ describe('assemble — 다중 캐릭터/백스톱/누락', () => {
     })
     expect(r.characters[0].additionalInfo).toBe('아린은 마법사다. 호기심 많고 장난기가 넘친다 정말로요.')
     expect(r.scenarioDescription).toBe('')
+    expect(r.characters[0].openingMessage).toBe('')
+  })
+})
+
+describe('buildFallback', () => {
+  const blocks: Block[] = [
+    { id: 0, text: '레이는 길잡이 소년이다. 밝고 거침없는 성격이라고 합니다.', tabHint: '상세 설명' },
+    { id: 1, text: '"어서 와! 여기가 우리 마을이야." 레이가 손을 흔들었다 활짝.', tabHint: '첫 장면' },
+  ]
+
+  it('첫 장면은 openingMessage로, 나머지는 additionalInfo로 무손실 보존한다', () => {
+    const r = buildFallback(blocks, { name: '레이' })
+    expect(r.characters).toHaveLength(1)
+    expect(r.characters[0].name).toBe('레이')
+    expect(r.characters[0].openingMessage).toContain('우리 마을이야')
+    expect(r.characters[0].additionalInfo).toContain('길잡이 소년')
+  })
+
+  it('탭 힌트가 없으면 전부 additionalInfo로 들어간다 (누락 0)', () => {
+    const plain: Block[] = [
+      { id: 0, text: '설정 A 충분히 길게 작성된 텍스트 본문입니다 여기까지요.', tabHint: null },
+      { id: 1, text: '설정 B 충분히 길게 작성된 텍스트 본문입니다 여기까지요.', tabHint: null },
+    ]
+    const r = buildFallback(plain, { name: '무명' })
+    expect(r.characters[0].additionalInfo).toContain('설정 A')
+    expect(r.characters[0].additionalInfo).toContain('설정 B')
     expect(r.characters[0].openingMessage).toBe('')
   })
 })
