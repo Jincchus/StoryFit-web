@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import puppeteer from 'puppeteer-core'
 import { writeFile, mkdir } from 'fs/promises'
 import { randomUUID } from 'crypto'
 import path from 'path'
@@ -106,6 +107,55 @@ function cleanWhifText(text: string): string {
     .replace(/^(윕|WHIF)\s+/i, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
+}
+
+// 언세이프(성인) 캐릭터는 비로그인 상태에서 "세이프 모드를 해제하고..." 안내 문구만 내려오고
+// 실제 캐릭터 소개는 전송되지 않는다. 이 문구로 게이트 상태를 판별한다.
+const WHIF_LOGIN_GATE_TEXT = '세이프 모드를 해제'
+
+function parseWhifSessionCookies(cookieHeader: string) {
+  return cookieHeader.split(';').flatMap(pair => {
+    const idx = pair.indexOf('=')
+    if (idx < 0) return []
+    const name = pair.slice(0, idx).trim()
+    const value = pair.slice(idx + 1).trim()
+    if (!name) return []
+    return [{ name, value, domain: '.whif.io', path: '/' }]
+  })
+}
+
+// WHIF는 클라이언트 렌더링 SPA라 서버가 응답하는 원본 HTML에는 캐릭터 정보가 없음
+// (Zeta처럼 Next.js 스트리밍 데이터로 내려오지 않음). 헤드리스 브라우저로 JS를 실행시켜
+// 렌더링된 DOM에서 텍스트를 읽어야 한다.
+async function renderWhifPageText(url: string): Promise<string> {
+  const browser = await puppeteer.launch({
+    executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
+    headless: true,
+    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+  })
+
+  try {
+    const page = await browser.newPage()
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
+
+    // 언세이프(성인) 캐릭터는 비로그인 사용자에게 설명 자체를 내려주지 않음.
+    // 로그인 자동화는 보안상 위험하므로, 사용자가 직접 브라우저에서 로그인한 뒤
+    // 복사해 둔 세션 쿠키(WHIF_SESSION_COOKIE)를 그대로 주입해 재사용한다.
+    const sessionCookie = process.env.WHIF_SESSION_COOKIE?.trim()
+    if (sessionCookie) {
+      await page.setCookie(...parseWhifSessionCookies(sessionCookie))
+    }
+
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    await page.waitForFunction(
+      () => document.body.innerText.replace(/\s+/g, ' ').trim().length > 150,
+      { timeout: 20000 }
+    ).catch(() => {})
+
+    return await page.evaluate(() => document.body.innerText)
+  } finally {
+    await browser.close()
+  }
 }
 
 function extractZetaIntroText(text: string, characterNames: string[]): string {
@@ -424,22 +474,14 @@ ${text}
 }
 
 async function importFromWhif(url: string, userId: string) {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5',
-    },
-  })
-  console.log('[whif-import] fetch status:', res.status, 'content-type:', res.headers.get('content-type'))
-  if (!res.ok) throw new Error(`페이지를 불러올 수 없습니다 (HTTP ${res.status})`)
+  const rawText = await renderWhifPageText(url)
+  console.log('[whif-import] rendered text length:', rawText.length, '| first 300:', rawText.slice(0, 300).replace(/\n/g, ' '))
 
-  const html = await res.text()
-  console.log('[whif-import] html length:', html.length)
+  if (rawText.includes(WHIF_LOGIN_GATE_TEXT)) {
+    throw new Error('로그인이 필요한 콘텐츠(언세이프 캐릭터)라 가져올 수 없습니다')
+  }
 
-  const visibleText = cleanWhifText(stripHtml(html))
-  const flightText = cleanWhifText(extractNextFlightText(html))
-  const text = (visibleText.length >= 300 ? visibleText : flightText).slice(0, 12000)
-
+  const text = cleanWhifText(rawText).slice(0, 12000)
   if (text.length < 100) throw new Error('Whif 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
 
   const systemPrompt = '당신은 텍스트에서 롤플레잉 캐릭터 정보를 추출하는 파서입니다. 반드시 JSON만 반환하세요.'
