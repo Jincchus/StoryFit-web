@@ -179,6 +179,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       : isMultiStory
         ? buildMultiStorySystemPrompt({
             ...basePromptParams,
+            mode: conv.mode,
             characters: conv.characters.map((cc: any) => makeCharParam(cc.character)),
             statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
             inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
@@ -186,7 +187,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
   const recentMsgs = sliceByTokenBudget(conv.messages, 5000)
-  const allowChoices = conv.mode === 'story' || isMultiStory
+  const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
   const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
     const contentForModel = m.id === userMsg.id ? appendTurnControlInstruction(m.content, allowChoices) : m.content

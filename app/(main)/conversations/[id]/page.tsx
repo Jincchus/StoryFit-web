@@ -16,6 +16,7 @@ import AiPill from '@/components/ui/AiPill'
 import { useSpeech } from './_hooks/useSpeech'
 import { useLorebook } from './_hooks/useLorebook'
 import { useMemoryPanel } from './_hooks/useMemoryPanel'
+import { applyTheme, getSavedTheme, THEMES } from '@/lib/theme'
 
 function editDistance(a: string, b: string): number {
   const m = a.length, n = b.length
@@ -85,7 +86,7 @@ function ChatNarration({ text }: { text: string }) {
 }
 
 interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null; inputTokens?: number; outputTokens?: number }
-interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string } }
+interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string; openingMessage?: string } }
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
@@ -112,6 +113,12 @@ export default function ChatPage() {
   const router = useRouter()
   const [conv, setConv] = useState<Conv | null>(null)
   const [loadingConv, setLoadingConv] = useState(true)
+  const [ttsRate, setTtsRate] = useState(1.0)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setTtsRate(parseFloat(localStorage.getItem('sf_tts_rate') ?? '1.0'))
+    }
+  }, [])
   const [messages, setMessages] = useState<Msg[]>([])
   const [streaming, setStreaming] = useState('')
   const [typing, setTyping] = useState(false)
@@ -432,9 +439,169 @@ export default function ChatPage() {
     loadConv().catch(() => {})
   }
 
+  // ── 커스텀 배경 및 테마 설정 ──────────────────────────────────────────
+  const [customBg, setCustomBg] = useState('')
+  const [currentTheme, setCurrentTheme] = useState('retro')
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentTheme(getSavedTheme())
+      if (params.id) {
+        setCustomBg(localStorage.getItem('sf_bg_' + params.id) || '')
+      }
+    }
+  }, [params.id])
+
+  // ── 보이스 통화 모드 (Live Call) 설정 ──────────────────────────────────
+  const [showVoiceCall, setShowVoiceCall] = useState(false)
+  const [voiceCallStatus, setVoiceCallStatus] = useState<'connecting' | 'speaking' | 'listening' | 'thinking'>('connecting')
+  const [userCallText, setUserCallText] = useState('')
+  const [charCallText, setCharCallText] = useState('')
+  const callRecognitionRef = useRef<any>(null)
+  const callUtteranceRef = useRef<any>(null)
+
+  const activeCharForCall = conv?.characters[0]?.character
+
+  const startListeningCall = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
+    if (!SR) {
+      setToast('이 브라우저는 음성 인식을 지원하지 않습니다.')
+      return
+    }
+
+    if (callRecognitionRef.current) {
+      try { callRecognitionRef.current.stop() } catch {}
+    }
+
+    const recognition = new SR()
+    recognition.lang = 'ko-KR'
+    recognition.continuous = false
+    recognition.interimResults = false
+
+    recognition.onstart = () => {
+      setVoiceCallStatus('listening')
+    }
+    recognition.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript
+      if (transcript.trim()) {
+        setUserCallText(transcript)
+        setVoiceCallStatus('thinking')
+        send(transcript)
+      } else {
+        startListeningCall()
+      }
+    }
+    recognition.onerror = (e: any) => {
+      console.error('Call Recognition error:', e)
+      setTimeout(() => {
+        if (showVoiceCall) startListeningCall()
+      }, 1000)
+    }
+    recognition.onend = () => {
+      // auto restart
+    }
+
+    callRecognitionRef.current = recognition
+    recognition.start()
+  }, [showVoiceCall, send])
+
+  const speakVoiceCall = useCallback((text: string) => {
+    if (typeof window === 'undefined') return
+    window.speechSynthesis.cancel()
+    if (callRecognitionRef.current) {
+      try { callRecognitionRef.current.stop() } catch {}
+    }
+
+    const plain = text.replace(/\*([^*]+)\*/g, '$1').replace(/["'"]/g, '')
+    const utter = new SpeechSynthesisUtterance(plain)
+    utter.lang = 'ko-KR'
+    utter.rate = ttsRate
+
+    utter.onstart = () => {
+      setVoiceCallStatus('speaking')
+      setCharCallText(text)
+    }
+    utter.onend = () => {
+      startListeningCall()
+    }
+    utter.onerror = (e) => {
+      console.error('TTS Call error:', e)
+      startListeningCall()
+    }
+
+    callUtteranceRef.current = utter
+
+    const doSpeak = () => {
+      const voices = window.speechSynthesis.getVoices()
+      const koVoice = voices.find(v => v.lang.startsWith('ko'))
+      if (koVoice) utter.voice = koVoice
+      window.speechSynthesis.speak(utter)
+    }
+
+    if (window.speechSynthesis.getVoices().length > 0) {
+      doSpeak()
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null
+        doSpeak()
+      }
+    }
+  }, [ttsRate, startListeningCall])
+
+  const endVoiceCall = useCallback(() => {
+    setShowVoiceCall(false)
+    window.speechSynthesis.cancel()
+    if (callRecognitionRef.current) {
+      try { callRecognitionRef.current.stop() } catch {}
+      callRecognitionRef.current = null
+    }
+  }, [])
+
+  const extractDialogue = (content: string): string => {
+    const matches: string[] = []
+    const regex = /"([^"]+)"/g
+    let match
+    while ((match = regex.exec(content)) !== null) {
+      matches.push(match[1])
+    }
+    if (matches.length > 0) {
+      return matches.join(' ')
+    }
+    return content.replace(/\*[^*]+\*/g, '').replace(/\s+/g, ' ').trim()
+  }
+
+  useEffect(() => {
+    if (showVoiceCall) {
+      const lastAiMsg = [...messagesRef.current].reverse().find(m => m.role === 'assistant')
+      const initialText = lastAiMsg ? lastAiMsg.content : (activeCharForCall?.openingMessage || '안녕하세요.')
+      speakVoiceCall(extractDialogue(initialText))
+    } else {
+      window.speechSynthesis.cancel()
+      if (callRecognitionRef.current) {
+        try { callRecognitionRef.current.stop() } catch {}
+      }
+    }
+    return () => {
+      window.speechSynthesis.cancel()
+      if (callRecognitionRef.current) {
+        try { callRecognitionRef.current.stop() } catch {}
+      }
+    }
+  }, [showVoiceCall, activeCharForCall])
+
+  useEffect(() => {
+    if (!showVoiceCall) return
+    if (!typing && voiceCallStatus === 'thinking') {
+      const lastAiMsg = [...messagesRef.current].reverse().find(m => m.role === 'assistant')
+      if (lastAiMsg) {
+        speakVoiceCall(extractDialogue(lastAiMsg.content))
+      } else {
+        setVoiceCallStatus('listening')
+      }
+    }
+  }, [typing, showVoiceCall, speakVoiceCall, voiceCallStatus])
+
   // ── 커스텀 훅 인스턴스화 ──────────────────────────────────────────────
-  const [ttsRate, setTtsRate] = useState(1.0)
-  useEffect(() => { setTtsRate(parseFloat(localStorage.getItem('sf_tts_rate') ?? '1.0')) }, [])
   const { isListening, speakingId, startListening, stopListening, speak, stopSpeaking } = useSpeech(composerRef, ttsRate)
   const {
     lorebooks, lorebookAdd, setLorebookAdd,
@@ -720,6 +887,13 @@ export default function ChatPage() {
               >STAT</button>
             )}
             <button
+              className="btn ghost"
+              style={{ padding: '3px 7px', fontSize: 10 }}
+              aria-label="음성 통화"
+              title="실시간 음성 통화"
+              onClick={() => setShowVoiceCall(true)}
+            >📞</button>
+            <button
               className={`btn ${showPanel ? 'primary' : 'ghost'}`}
               style={{ padding: '3px 7px', fontSize: 10 }}
               aria-label="대화 설정"
@@ -757,7 +931,27 @@ export default function ChatPage() {
 
         <div className="chat-layout">
           <div className="chat-main">
-            <div className="chatlog" ref={logRef}>
+            <div
+              className="chatlog"
+              ref={logRef}
+              style={{
+                backgroundImage: customBg ? `url(${customBg})` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                position: 'relative',
+                zIndex: 1
+              }}
+            >
+              {customBg && (
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.55)',
+                  backdropFilter: 'blur(3px)',
+                  WebkitBackdropFilter: 'blur(3px)',
+                  zIndex: -1
+                }} />
+              )}
               {messages.length === 0 && !streaming && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
                   <div style={{ fontSize: 24 }}>{isNovel ? '✍' : isStoryOrMulti ? '📖' : '✦'}</div>
@@ -1325,6 +1519,53 @@ export default function ChatPage() {
                 )}
               </div>
 
+              {/* 화면 테마 및 배경 설정 */}
+              <div className="side-section">
+                <div className="label">화면 테마 설정</div>
+                <select
+                  className="field"
+                  style={{ fontSize: 11 }}
+                  value={currentTheme}
+                  onChange={async e => {
+                    const val = e.target.value
+                    setCurrentTheme(val)
+                    applyTheme(val)
+                    await api.patch('/api/user/settings', { theme: val }).catch(() => {})
+                  }}
+                >
+                  {THEMES.map(t => (
+                    <option key={t.id} value={t.id}>{t.label} ({t.desc})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="side-section">
+                <div className="label">대화방 배경 이미지 (URL)</div>
+                <div className="hstack" style={{ gap: 4 }}>
+                  <input
+                    className="field"
+                    style={{ fontSize: 11, flex: 1 }}
+                    placeholder="https://example.com/image.jpg"
+                    value={customBg}
+                    onChange={e => {
+                      const val = e.target.value
+                      setCustomBg(val)
+                      localStorage.setItem('sf_bg_' + params.id, val)
+                    }}
+                  />
+                  {customBg && (
+                    <button
+                      className="btn ghost"
+                      style={{ fontSize: 11, padding: '2px 6px' }}
+                      onClick={() => {
+                        setCustomBg('')
+                        localStorage.removeItem('sf_bg_' + params.id)
+                      }}
+                    >✕</button>
+                  )}
+                </div>
+              </div>
+
               <div className="side-section">
                 <div className="label">대화 참여자</div>
                 <div className="vstack" style={{ gap: 4 }}>
@@ -1647,6 +1888,150 @@ export default function ChatPage() {
         </div>
       </div>
     </Win>
+    {showVoiceCall && (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(10, 8, 16, 0.94)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div className="win" style={{
+          width: 'min(360px, 92vw)',
+          background: 'rgba(25, 20, 35, 0.85)',
+          border: '1.5px solid #ff2e93',
+          boxShadow: '0 0 30px rgba(255, 46, 147, 0.35), inset 0 0 15px rgba(255, 46, 147, 0.1)',
+          borderRadius: '16px',
+          overflow: 'hidden',
+        }}>
+          <style>{`
+            @keyframes neon-pulse {
+              0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 46, 147, 0.6), 0 0 0 0 rgba(0, 255, 204, 0.3);
+              }
+              70% {
+                transform: scale(1.04);
+                box-shadow: 0 0 0 15px rgba(255, 46, 147, 0), 0 0 0 20px rgba(0, 255, 204, 0);
+              }
+              100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 46, 147, 0), 0 0 0 0 rgba(0, 255, 204, 0);
+              }
+            }
+            .pulse-avatar {
+              animation: neon-pulse 2s infinite ease-in-out;
+              border: 3px solid #ff2e93;
+            }
+          `}</style>
+
+          <div className="win-title" style={{
+            background: '#ff2e93',
+            color: '#fff',
+            borderBottom: 'none',
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '10px 14px',
+            fontWeight: 700,
+          }}>
+            📞 Live Voice Call
+          </div>
+
+          <div className="win-body vstack" style={{
+            alignItems: 'center',
+            gap: 20,
+            padding: '24px 20px',
+            background: 'transparent',
+          }}>
+            <div style={{ position: 'relative', margin: '10px 0' }}>
+              <div className="pulse-avatar" style={{
+                width: 100, height: 100,
+                borderRadius: '50%',
+                overflow: 'hidden',
+                background: 'var(--lavender)',
+                display: 'grid',
+                placeItems: 'center',
+              }}>
+                {char.avatarUrl ? (
+                  <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                ) : (
+                  <PixelAvatar kind={char.kind as any} size={80} />
+                )}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
+                {char.name}
+              </div>
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: 1,
+                color: voiceCallStatus === 'speaking' ? '#ff2e93'
+                  : voiceCallStatus === 'listening' ? '#00ffcc'
+                  : voiceCallStatus === 'thinking' ? '#ffd700'
+                  : '#aaa',
+                textTransform: 'uppercase',
+              }}>
+                {voiceCallStatus === 'connecting' && '연결 중...'}
+                {voiceCallStatus === 'speaking' && '🔊 통화 중...'}
+                {voiceCallStatus === 'listening' && '🎤 당신의 말을 듣는 중...'}
+                {voiceCallStatus === 'thinking' && '⚡ 생각 중...'}
+              </div>
+            </div>
+
+            <div className="vstack" style={{
+              width: '100%',
+              background: 'rgba(0, 0, 0, 0.4)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              minHeight: 120,
+              maxHeight: 180,
+              overflowY: 'auto',
+              gap: 10,
+            }}>
+              <div style={{ fontSize: 12, lineHeight: 1.4 }}>
+                <span style={{ fontWeight: 700, color: '#ff2e93', marginRight: 6 }}>{char.name}:</span>
+                <span style={{ color: '#eee', fontStyle: 'italic' }}>
+                  {charCallText ? `"${charCallText}"` : '...'}
+                </span>
+              </div>
+
+              <div style={{ fontSize: 12, lineHeight: 1.4 }}>
+                <span style={{ fontWeight: 700, color: '#00ffcc', marginRight: 6 }}>당신:</span>
+                <span style={{ color: '#eee' }}>
+                  {userCallText ? `"${userCallText}"` : '말씀하세요...'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={endVoiceCall}
+              style={{
+                width: 50, height: 50,
+                borderRadius: '50%',
+                background: '#ed4956',
+                border: 'none',
+                color: '#fff',
+                fontSize: 20,
+                cursor: 'pointer',
+                display: 'grid',
+                placeItems: 'center',
+                boxShadow: '0 4px 15px rgba(237, 73, 86, 0.4)',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+              aria-label="통화 종료"
+            >
+              📞
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }

@@ -55,7 +55,7 @@ function NewConversationInner() {
   const [allChars, setAllChars] = useState<Character[]>([])
   const [importedChars, setImportedChars] = useState<Character[]>([])
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<'roleplay' | 'novel' | 'story' | 'multiStory'>('story')
+  const [mode, setMode] = useState<'roleplay' | 'novel' | 'story' | 'multiStory' | 'tikiTaka'>('story')
   const [statsEnabled, setStatsEnabled] = useState(false)
   const [statTagPool, setStatTagPool] = useState<string[]>([])
   const [selectedStats, setSelectedStats] = useState<string[]>([])
@@ -99,6 +99,7 @@ function NewConversationInner() {
         const found = chars.find((c: Character) => c.id === draft.charId) ?? null
         if (found) {
           setChar(found)
+          setImportedChars([found])
           setSafetyLevel(found.safetyLevel ?? 'standard')
           setTemperature(found.temperature ?? 0.9)
           setFrequencyPenalty(found.frequencyPenalty ?? 0.3)
@@ -131,6 +132,7 @@ function NewConversationInner() {
 
   const selectChar = (c: Character) => {
     setChar(c)
+    setImportedChars([c])
     setSafetyLevel(c.safetyLevel ?? 'standard')
     setTemperature(c.temperature ?? 0.9)
     setFrequencyPenalty(c.frequencyPenalty ?? 0.3)
@@ -201,6 +203,8 @@ function NewConversationInner() {
         ? selectedStats.map(name => ({ name, value: 50, min: 0, max: 100 }))
         : null
 
+      const isMulti = mode === 'multiStory' || mode === 'tikiTaka'
+
       if (fromId) {
         await api.patch(`/api/conversations/${fromId}`, {
           mode,
@@ -208,8 +212,8 @@ function NewConversationInner() {
           tags,
           isAutoCreated: false,
           personaCharacterId: draft.personaId ?? null,
-          ...(mode === 'multiStory' ? { characterIds: importedChars.map(c => c.id) } : {}),
-          ...(mode !== 'multiStory' && char ? { soloCharacterId: char.id } : {}),
+          ...(isMulti ? { characterIds: importedChars.map(c => c.id) } : {}),
+          ...(!isMulti && char ? { soloCharacterId: char.id } : {}),
         })
         router.push(`/conversations/${fromId}`)
         dispatch({ type: 'resetDraft' })
@@ -217,8 +221,10 @@ function NewConversationInner() {
       }
 
       const conv = await api.post('/api/conversations', {
-        characterIds: [char.id],
-        title: `${char.name}와의 대화`,
+        characterIds: isMulti ? importedChars.map(c => c.id) : [char.id],
+        title: isMulti
+          ? `${importedChars.map(c => c.name).join(', ')}의 대화`
+          : `${char.name}와의 대화`,
         currentAI: draft.modelId,
         personaCharacterId: draft.personaId ?? null,
         mode,
@@ -269,7 +275,7 @@ function NewConversationInner() {
             {/* 1. 캐릭터 선택 */}
             <section className="new-conv-section">
               <div className="label">캐릭터 선택</div>
-              {mode === 'multiStory' && importedChars.length > 0 ? (
+              {(mode === 'multiStory' || mode === 'tikiTaka') && importedChars.length > 0 ? (
                 /* 멀티스토리 — 캐릭터 목록 편집 가능 */
                 <div className="vstack" style={{ gap: 4 }}>
                   {importedChars.map((c, i) => (
@@ -425,7 +431,7 @@ function NewConversationInner() {
                     </div>
                     {!draft.personaId && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}
                   </div>
-                  {allChars.filter(c => mode === 'multiStory'
+                  {allChars.filter(c => (mode === 'multiStory' || mode === 'tikiTaka')
                     ? !importedChars.some(ic => ic.id === c.id)
                     : c.id !== char?.id
                   ).map(c => (
@@ -459,10 +465,12 @@ function NewConversationInner() {
                 {/* <button className={`btn ${mode === 'novel' ? 'primary' : 'ghost'}`} onClick={() => setMode('novel')} style={{ fontSize: 11 }}>✍ 소설</button> */}
                 <button className={`btn ${mode === 'story' ? 'primary' : 'ghost'}`} onClick={() => setMode('story')} style={{ fontSize: 11 }}>📖 스토리</button>
                 <button className={`btn ${mode === 'multiStory' ? 'primary' : 'ghost'}`} onClick={() => setMode('multiStory')} style={{ fontSize: 11 }}>👥 멀티스토리</button>
+                <button className={`btn ${mode === 'tikiTaka' ? 'primary' : 'ghost'}`} onClick={() => setMode('tikiTaka')} style={{ fontSize: 11 }}>👥 자유 대화(그룹)</button>
               </div>
               <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>
                 {mode === 'story' && '선택지 기반 인터랙티브 스토리 — AI가 장면을 쓰고 선택지를 제시합니다'}
                 {mode === 'multiStory' && '다인 캐릭터 스토리 — 여러 캐릭터가 자연스럽게 상호작용하며 선택지를 제시합니다'}
+                {mode === 'tikiTaka' && '자유 대화 (그룹) — 선택지 없이 여러 캐릭터가 소설식으로 번갈아 자유롭게 대화합니다'}
               </div>
               {(mode === 'story' || mode === 'multiStory') && (
                 <div className="vstack" style={{ gap: 6, marginTop: 8, padding: '8px 10px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>

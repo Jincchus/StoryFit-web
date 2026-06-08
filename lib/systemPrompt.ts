@@ -337,6 +337,7 @@ export function buildStorySystemPrompt({
 
 export interface MultiStoryPromptParams {
   characters: Character[]
+  mode?: string
   personaCharacter?: PersonaCharacter
   coreMemory?: string
   statusTimeline?: string
@@ -354,6 +355,7 @@ export interface MultiStoryPromptParams {
 
 export function buildMultiStorySystemPrompt({
   characters,
+  mode,
   personaCharacter,
   coreMemory,
   statusTimeline,
@@ -371,7 +373,27 @@ export function buildMultiStorySystemPrompt({
   const personaName = personaCharacter?.name ?? '유저'
   const charNames = characters.map(c => c.name).join(', ')
 
-  const baseRules = `You are an interactive story writer with multiple characters.
+  const isTikiTaka = mode === 'tikiTaka'
+
+  const baseRules = isTikiTaka
+    ? `You are a group novel-style roleplay AI with multiple characters.
+All characters interact naturally in each scene — decide who speaks, acts, or reacts organically based on the situation. Do not follow a fixed sequential order.
+
+[Output Format]
+- Scene narration/action/setting: plain text without a speaker name. (e.g.: Rain tapped against the window as they looked at each other.)
+- Dialogue: always use the format Name : "content" (e.g.: ${characters[0]?.name ?? 'Character'} : "Nice to meet you.")
+- Inner thoughts: always use the format Name : 'content' (e.g.: ${characters[0]?.name ?? 'Character'} : 'I wonder if they are telling the truth.')
+- ANY of the following characters may speak, act, or think in each response: ${charNames}
+- FORBIDDEN: Do NOT write a "---" divider or any list of choices at the end. Respond ONLY with the story content (narration and character dialogue/thoughts).
+- FORBIDDEN: Writing ${personaName}'s words, actions, or thoughts in the body. Only write for ${charNames}.
+- FORBIDDEN: Writing dialogue without a speaker name. Every line of dialogue must follow the Name : "content" format.
+
+[Character Voice — STRICT]
+Each character must maintain their unique speech style and personality at all times. Never let characters sound the same.
+
+[No Excessive Ellipsis]
+FORBIDDEN: Using "..." more than once per response. Express hesitation through action descriptions instead.`
+    : `You are an interactive story writer with multiple characters.
 All characters interact naturally in each scene — decide who speaks, acts, or reacts based on the situation. Do not follow a fixed order.
 
 [Output Format]
