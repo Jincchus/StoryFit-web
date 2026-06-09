@@ -26,6 +26,9 @@ export default function NovelScene({ text, personaName, charName }: Props) {
   return (
     <div className="novel-scene">
       {blocks.map((block, i) => {
+        if (block.type === 'image') {
+          return <img key={i} src={block.text} alt="" style={{ maxWidth: '100%', borderRadius: 8, margin: '6px 0', display: 'block' }} />
+        }
         if (block.type === 'narration') {
           return (
             <div key={i} className="narration-block">

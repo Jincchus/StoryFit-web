@@ -996,8 +996,13 @@ export default function ChatPage() {
                 const ai = AI_MODELS.find(x => x.id === m.aiModel) ?? AI_MODELS[0]
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
-                const storyParsed = isStoryOrMulti && !isYou ? parseStoryChoices(m.content) : null
-                const blocks = isYou ? [] : (isNovel || isStory || isTikiTaka ? parseNovelBlocks(storyParsed ? storyParsed.body : m.content) : parseBlocks(m.content))
+                const processedContent = !isYou
+                  ? m.content
+                      .replace(/\{\{user\}\}/gi, conv.personaCharacter?.name ?? '나')
+                      .replace(/\{\{char\}\}/gi, msgChar.name)
+                  : m.content
+                const storyParsed = isStoryOrMulti && !isYou ? parseStoryChoices(processedContent) : null
+                const blocks = isYou ? [] : (isNovel || isStory || isTikiTaka ? parseNovelBlocks(storyParsed ? storyParsed.body : processedContent) : parseBlocks(processedContent))
                 const branchesFromHere = branches.filter(b => b.branchFromMessageId === m.id && b.id !== params.id)
 
                 return (
@@ -1060,6 +1065,13 @@ export default function ChatPage() {
                       /* ── AI 메시지: 블록 순서대로 ── */
                       <>
                         {blocks.map((b, i) => {
+                          if (b.type === 'image') {
+                            return (
+                              <div key={i} className="seq-block seq-center" style={{ width: '100%', padding: '4px 0' }}>
+                                <img src={b.text} alt="" style={{ maxWidth: '100%', borderRadius: 10, display: 'block' }} />
+                              </div>
+                            )
+                          }
                           if (b.type === 'system') {
                             return (
                               <div key={i} className="seq-block seq-center" style={{ margin: '8px 0', width: '100%' }}>
@@ -1255,10 +1267,14 @@ export default function ChatPage() {
                     </div>
                     {streaming
                       ? <>
-                          {isNovel || isTikiTaka
-                            ? <NovelScene text={streaming} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
-                            : <MessageBlocks text={streaming} />
-                          }
+                          {(() => {
+                            const ps = streaming
+                              .replace(/\{\{user\}\}/gi, conv.personaCharacter?.name ?? '나')
+                              .replace(/\{\{char\}\}/gi, streamingChar.name)
+                            return isNovel || isTikiTaka
+                              ? <NovelScene text={ps} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
+                              : <MessageBlocks text={ps} />
+                          })()}
                           {typingDuration >= 8 && (
                             <div className="tiny" style={{ opacity: 0.6, marginTop: 4, fontStyle: 'italic' }}>✦ 다듬는 중…</div>
                           )}

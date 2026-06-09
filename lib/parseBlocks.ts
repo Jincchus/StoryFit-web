@@ -1,4 +1,4 @@
-export type BlockType = 'narration' | 'dialogue' | 'thought' | 'system' | 'constellation' | 'chat'
+export type BlockType = 'narration' | 'dialogue' | 'thought' | 'system' | 'constellation' | 'chat' | 'image'
 export interface Block { type: BlockType; text: string; speaker?: string }
 
 const DQUOTES = ['"', '“', '”']
@@ -37,6 +37,10 @@ export function parseBlocks(text: string): Block[] {
       const isChatting = line.startsWith('[채팅]')
       const prefixLen = isChatting ? 4 : 6
       blocks.push({ type: 'chat', text: line.slice(prefixLen).trim() })
+      continue
+    }
+    if (line.startsWith('{{img::') && line.endsWith('}}')) {
+      blocks.push({ type: 'image', text: line.slice(7, -2) })
       continue
     }
 
@@ -191,6 +195,11 @@ export function parseNovelBlocks(text: string): Block[] {
       flushNarration()
       const prefixLen = trimmed.startsWith('[채팅]') ? 4 : 6
       blocks.push({ type: 'chat', text: trimmed.slice(prefixLen).trim() })
+      continue
+    }
+    if (trimmed.startsWith('{{img::') && trimmed.endsWith('}}')) {
+      flushNarration()
+      blocks.push({ type: 'image', text: trimmed.slice(7, -2) })
       continue
     }
 
