@@ -181,23 +181,29 @@ AI 응답: ${aiMsg.slice(0, 1000)}
 
 반환 형식 (JSON만, 설명 없이):
 {
-  "statusTimeline": "현재 씬 상태를 불릿(•) 형식으로 3~5줄 요약. 반드시 포함: 시간대, 의상(누가 무엇을 입고 있는지), 장소, 현재 상황."
+  "statusTimeline": "현재 씬 상태를 불릿(•) 형식으로 3~5줄 요약. 반드시 포함: 시간대, 의상(누가 무엇을 입고 있는지), 장소, 현재 상황.",
+  "newChapter": false
 }
 
 규칙:
 - 이 대화에서 변화가 없으면 이전 상태를 그대로 유지
 - 의상이 바뀌었으면 반드시 새 의상으로 업데이트
 - 시간이 흘렀으면 반드시 새 시간대로 업데이트
-- 장소가 바뀌었으면 반드시 새 장소로 업데이트`
+- 장소가 바뀌었으면 반드시 새 장소로 업데이트
+- newChapter: 장소·시간대가 근본적으로 전환(큰 시간 점프 또는 완전히 새로운 장소/상황으로 이동)됐을 때만 true, 아니면 false`
 
     try {
       const raw = await generateText(systemPrompt, userPrompt)
       const parsed: any = JSON.parse(extractJson(raw))
+      const data: any = {}
       if (typeof parsed.statusTimeline === 'string' && parsed.statusTimeline.trim()) {
-        await prisma.conversation.update({
-          where: { id: convId },
-          data: { statusTimeline: parsed.statusTimeline.trim() },
-        })
+        data.statusTimeline = parsed.statusTimeline.trim()
+      }
+      if (parsed.newChapter === true) {
+        data.chapter = { increment: 1 }
+      }
+      if (Object.keys(data).length > 0) {
+        await prisma.conversation.update({ where: { id: convId }, data })
       }
     } catch {
       // silent fail — 상태 추적 실패는 대화에 영향 없음
