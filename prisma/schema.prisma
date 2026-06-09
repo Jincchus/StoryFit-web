@@ -91,6 +91,9 @@ model CharacterCollection {
   user           User          @relation(fields: [userId], references: [id])
   conversation   Conversation? @relation(fields: [conversationId], references: [id])
   characters     Character[]
+  coverImageUrl  String        @default("")
+  description    String        @default("")
+  tags           String[]      @default([])
   createdAt      DateTime      @default(now())
 }
 
