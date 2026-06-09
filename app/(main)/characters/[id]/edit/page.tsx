@@ -1,15 +1,18 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
 import CharacterForm, { type CharFormData } from '@/components/ui/CharacterForm'
 
-export default function CharacterEditPage() {
+function CharacterEditContent() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = params.id as string
+  // WHIF 센터에서 진입했는지 여부 — 세계관(컬렉션) 목록 필터와 저장 후 복귀 경로를 결정한다.
+  const isWhif = searchParams.get('isWhif') === 'true'
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
@@ -19,7 +22,7 @@ export default function CharacterEditPage() {
   useEffect(() => {
     Promise.all([
       api.get(`/api/characters/${id}`),
-      api.get('/api/collections'),
+      api.get(`/api/collections${isWhif ? '?isWhif=true' : ''}`),
     ]).then(([c, cols]) => {
       setForm({
         name: c.name ?? '',
@@ -33,7 +36,7 @@ export default function CharacterEditPage() {
       })
       setCollections(Array.isArray(cols) ? cols : [])
     }).catch((e: any) => setFetchError(e.message))
-  }, [id])
+  }, [id, isWhif])
 
   if (fetchError) return (
     <Win title="캐릭터 수정" icon={PixelIcons.user}>
@@ -55,7 +58,7 @@ export default function CharacterEditPage() {
     setError('')
     try {
       await api.patch(`/api/characters/${id}`, form)
-      router.push('/characters')
+      router.push(isWhif ? '/whif' : '/characters')
     } catch (e: any) {
       setError(e.message)
       setLoading(false)
@@ -82,9 +85,23 @@ export default function CharacterEditPage() {
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0, paddingRight: 4 }}>
-          <CharacterForm form={form} onChange={onChange} collections={collections} />
+          <CharacterForm form={form} onChange={onChange} collections={collections} collectionLabel={isWhif ? '세계관' : '컬렉션'} />
         </div>
       </div>
     </Win>
+  )
+}
+
+export default function CharacterEditPage() {
+  return (
+    <Suspense fallback={
+      <Win title="캐릭터 수정 (Edit Character)" icon={PixelIcons.user}>
+        <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0, justifyContent: 'center', alignItems: 'center' }}>
+          <div className="tiny muted">로딩 중...</div>
+        </div>
+      </Win>
+    }>
+      <CharacterEditContent />
+    </Suspense>
   )
 }

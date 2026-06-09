@@ -69,7 +69,7 @@ function CharacterNewContent() {
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0, paddingRight: 4 }}>
-          <CharacterForm form={form} onChange={onChange} collections={collections} />
+          <CharacterForm form={form} onChange={onChange} collections={collections} collectionLabel={isWhifParam ? '세계관' : '컬렉션'} />
         </div>
       </div>
     </Win>

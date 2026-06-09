@@ -104,8 +104,9 @@ export default function WhifCenterPage() {
       setImportUrl('')
       await fetchData()
       if (result.collectionId) {
-        setSelectedUniId(result.collectionId)
         setActiveTab('universes')
+        // 세계관 선택 + 로어북까지 함께 로드 (단순 setSelectedUniId만 하면 로어북이 비어 보임)
+        handleSelectUniverse(result.collectionId)
       }
     } catch (e: any) {
       setError(e.message ?? '가져오기 실패')
@@ -620,7 +621,7 @@ export default function WhifCenterPage() {
                       </div>
                       <div className="hstack" style={{ gap: 4, flexShrink: 0 }}>
                         <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px', background: '#8b5cf6', borderColor: '#7c3aed' }} onClick={() => handleStartChatWithCharacter(selectedChar)}>💬 1:1 대화</button>
-                        <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${selectedChar.id}/edit`)}>✏ 수정</button>
+                        <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${selectedChar.id}/edit?isWhif=true`)}>✏ 수정</button>
                         <button className="btn danger" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => setConfirmDeleteCharId(selectedChar.id)}>✕ 삭제</button>
                       </div>
                     </div>
@@ -726,7 +727,7 @@ export default function WhifCenterPage() {
                               type="button"
                               className="btn ghost"
                               style={{ padding: '0 4px', fontSize: 9, minHeight: 'auto', border: 'none', color: '#a78bfa' }}
-                              onClick={() => router.push(`/characters/${char.id}/edit`)}
+                              onClick={() => router.push(`/characters/${char.id}/edit?isWhif=true`)}
                               title="수정"
                             >✏</button>
                             <button
