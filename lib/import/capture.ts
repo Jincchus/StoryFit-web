@@ -536,18 +536,21 @@ export async function captureWhif(url: string): Promise<Captured> {
         additionalInfo = `${roleInfo}\n\n${additionalInfo}`
       }
 
-      if (firstMessages.length > 1) {
-        const otherIntros = firstMessages.slice(1)
-          .map((m: any) => `도입부: ${m.title}\n${m.text}`)
-          .join('\n\n')
-        additionalInfo += `\n\n[다른 시작 상황]\n${otherIntros}`
-      }
+      // 다중 도입부를 구조화된 배열로 저장 (텍스트 덤프 대신)
+      const openingMessages = firstMessages
+        .filter((m: any) => m.text)
+        .map((m: any, idx: number) => ({
+          id: String(m.id || `opening_${idx}`),
+          title: String(m.title || (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
+          content: String(m.text || ''),
+        }))
 
       return {
         name: c.name || '캐릭터',
         gender: c.gender || '',
         additionalInfo,
         openingMessage,
+        openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
         exampleDialogues: '',
         avatarUrl: c.avatarUrl || '',
       }

@@ -51,6 +51,7 @@ export interface AssembledCharacter {
   gender: string
   additionalInfo: string
   openingMessage: string
+  openingMessages?: { id: string; title: string; content: string }[]
   exampleDialogues: string
   avatarUrl?: string
 }

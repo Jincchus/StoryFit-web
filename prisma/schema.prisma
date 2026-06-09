@@ -103,6 +103,7 @@ model Character {
   additionalInfo      String    @default("")
   exampleDialogues    String    @default("")
   openingMessage      String    @default("")
+  openingMessages     Json?
   safetyLevel         String    @default("standard")
   temperature         Float     @default(0.9)
   frequencyPenalty    Float     @default(0.3)

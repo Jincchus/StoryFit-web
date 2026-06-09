@@ -83,6 +83,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
           additionalInfo: c.additionalInfo,
           exampleDialogues: c.exampleDialogues,
           openingMessage: c.openingMessage,
+          openingMessages: c.openingMessages ? (c.openingMessages as any) : undefined,
           safetyLevel: result.safetyLevel || 'standard',
           isAutoCreated: true,
           creatorId: userId,
