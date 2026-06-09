@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
+import NovelText from '@/components/ui/NovelText'
 
 interface Opening { id: string; title: string; content: string }
 interface Character {
@@ -121,10 +122,10 @@ export default function CharacterDetailPage() {
                   ))}
                 </div>
               )}
-              <div style={{ background: 'var(--w-surface)', border: '1px solid var(--w-line)', borderRadius: 10, padding: 14 }}>
-                <p style={{ margin: 0, color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                  {openings[openingIdx]?.content}
-                </p>
+              <div style={{ background: 'var(--w-surface)', border: '1px solid var(--w-line)', borderRadius: 10, padding: 14, color: 'var(--w-ink-soft)', lineHeight: 1.6, fontSize: 14 }}>
+                <NovelText text={(openings[openingIdx]?.content ?? '')
+                  .replace(/\{\{user\}\}/gi, '나')
+                  .replace(/\{\{char\}\}/gi, char.name)} />
               </div>
             </div>
           )}
