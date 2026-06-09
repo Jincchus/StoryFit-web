@@ -7,42 +7,34 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const isWhif = searchParams.get('isWhif') === 'true'
+  const source = searchParams.get('isWhif') === 'true' ? 'whif'
+    : searchParams.get('isZeta') === 'true' ? 'zeta'
+    : 'regular'
 
-  const whereClause = isWhif
-    ? {
-        creatorId: userId,
-        collection: {
-          sourceUrl: {
-            contains: 'whif.',
-          },
-        },
-      }
-    : {
-        OR: [
-          { isPreset: true },
-          {
-            creatorId: userId,
-            OR: [
-              { collectionId: null },
-              {
-                collection: {
-                  OR: [
-                    { sourceUrl: '' },
-                    {
-                      NOT: {
-                        sourceUrl: {
-                          contains: 'whif.',
-                        },
-                      },
-                    },
-                  ],
+  const whereClause =
+    source === 'whif'
+      ? { creatorId: userId, collection: { sourceUrl: { contains: 'whif.' } } }
+    : source === 'zeta'
+      ? { creatorId: userId, collection: { sourceUrl: { contains: 'zeta-ai.io' } } }
+      : {
+          OR: [
+            { isPreset: true },
+            {
+              creatorId: userId,
+              OR: [
+                { collectionId: null },
+                {
+                  collection: {
+                    AND: [
+                      { NOT: { sourceUrl: { contains: 'whif.' } } },
+                      { NOT: { sourceUrl: { contains: 'zeta-ai.io' } } },
+                    ],
+                  },
                 },
-              },
-            ],
-          },
-        ],
-      }
+              ],
+            },
+          ],
+        }
 
   const characters = await prisma.character.findMany({
     where: whereClause,

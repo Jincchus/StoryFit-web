@@ -7,18 +7,20 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const isWhif = searchParams.get('isWhif') === 'true'
+  const source = searchParams.get('isWhif') === 'true' ? 'whif'
+    : searchParams.get('isZeta') === 'true' ? 'zeta'
+    : 'regular'
 
-  const whereClause: any = {
-    userId,
-  }
+  const whereClause: any = { userId }
 
-  if (isWhif) {
+  if (source === 'whif') {
     whereClause.sourceUrl = { contains: 'whif.' }
+  } else if (source === 'zeta') {
+    whereClause.sourceUrl = { contains: 'zeta-ai.io' }
   } else {
-    whereClause.OR = [
-      { sourceUrl: '' },
-      { NOT: { sourceUrl: { contains: 'whif.' } } }
+    whereClause.AND = [
+      { NOT: { sourceUrl: { contains: 'whif.' } } },
+      { NOT: { sourceUrl: { contains: 'zeta-ai.io' } } },
     ]
   }
 
