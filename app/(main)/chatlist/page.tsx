@@ -19,6 +19,8 @@ interface ConvItem {
   characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
   messages: { content: string }[]
   personaCharacter?: { name: string } | null
+  suggestRepliesEnabled?: boolean
+  chapter?: number
 }
 
 function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'STORYFIT' {
@@ -350,6 +352,9 @@ export default function ChatListPage() {
                       <span style={{ fontSize: 8, fontWeight: 700, background: SOURCE_BADGE_COLOR[getSource(conv.sourceUrl)] ?? '#666', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>{getSource(conv.sourceUrl)}</span>
                     )}
                     <span className="mode-badge" style={{ fontSize: 8 }}>{MODE_LABEL[conv.mode] ?? conv.mode}</span>
+                    {conv.suggestRepliesEnabled && (
+                      <span className="melting-chapter-badge" style={{ fontSize: 8, marginLeft: 4 }}>{conv.chapter ?? 1}장</span>
+                    )}
                   </div>
                   <span className="when">{when}</span>
                   {!selecting && (

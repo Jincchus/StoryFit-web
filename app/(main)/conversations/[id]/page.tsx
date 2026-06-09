@@ -894,6 +894,9 @@ export default function ChatPage() {
                   }
                 </span>
                 <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '👥 멀티' : isStory ? '스토리' : '롤플레이'}</span>
+                {conv?.suggestRepliesEnabled && (conv.chapter ?? 1) > 0 && (
+                  <span className="melting-chapter-badge" style={{ marginLeft: 6 }}>{conv.chapter ?? 1}장</span>
+                )}
               </div>
               <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 턴 {Math.floor(messages.length / 2)}
