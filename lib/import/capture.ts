@@ -665,45 +665,64 @@ export async function captureWhif(url: string): Promise<Captured> {
 }
 
 export async function renderZetaRaw(url: string) {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept-Language': 'ko-KR,ko;q=0.9',
-    },
-  })
-  const html = await res.text()
+  // URL에서 플롯 ID 추출
+  const plotId = url.match(/\/plots\/([0-9a-f-]{36})/i)?.[1]
 
-  // Next.js RSC flight 청크 추출
-  const flightChunks: any[] = []
-  const re = /self\.__next_f\.push\(\[1,("(?:(?:\\.|[^"\\])*)")\]\)/g
-  let match: RegExpExecArray | null
-  while ((match = re.exec(html)) !== null) {
-    try {
-      const raw = JSON.parse(match[1]) as string
-      // JSON 객체가 포함된 청크만 추출
-      const jsonMatches = raw.match(/\{[^{}]{20,}\}/g) ?? []
-      for (const jm of jsonMatches) {
-        try { flightChunks.push(JSON.parse(jm)) } catch {}
-      }
-    } catch {}
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept-Language': 'ko-KR,ko;q=0.9',
+    'Accept': 'application/json',
   }
 
-  // 플롯 관련 청크 우선 추출 (plot, character, profile 키워드 포함)
-  const plotChunks = flightChunks.filter(c =>
-    JSON.stringify(c).match(/plot|character|profile|intro|description|name|tag/i)
-  )
+  // GlobalConfig에 저장된 Zeta 세션 쿠키 시도
+  const zetaCookie = await prisma.globalConfig.findUnique({ where: { key: 'zeta_session_cookie' } })
+  const cookieHeader = zetaCookie?.value?.trim() ?? ''
 
-  // og 메타도 추출
+  const results: Record<string, any> = {}
+
+  if (plotId) {
+    // REST API 엔드포인트들 시도
+    const endpoints = [
+      `https://api.zeta-ai.io/v1/plots/${plotId}`,
+      `https://api.zeta-ai.io/v1/plots/${plotId}/profile`,
+      `https://api.zeta-ai.io/v1/plots/${plotId}/detail`,
+    ]
+    for (const ep of endpoints) {
+      try {
+        const reqHeaders: Record<string, string> = { ...headers }
+        if (cookieHeader) reqHeaders['Cookie'] = cookieHeader
+        const r = await fetch(ep, { headers: reqHeaders })
+        const text = await r.text()
+        try { results[ep] = { status: r.status, body: JSON.parse(text) } }
+        catch { results[ep] = { status: r.status, body: text.slice(0, 500) } }
+      } catch (e: any) {
+        results[ep] = { error: e.message }
+      }
+    }
+  }
+
+  // 원본 페이지 OG 메타 (쿠키 포함)
+  const pageHeaders: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept-Language': 'ko-KR,ko;q=0.9',
+  }
+  if (cookieHeader) pageHeaders['Cookie'] = cookieHeader
+  const pageRes = await fetch(url, { headers: pageHeaders })
+  const html = await pageRes.text()
+  const pageStatus = pageRes.status
+
   const ogTitle = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"/) ?.[1] ?? ''
   const ogDesc = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"/) ?.[1] ?? ''
   const ogImage = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"/) ?.[1] ?? ''
+  const is403 = html.includes('403:') || html.includes('401:') || pageStatus >= 400
 
   return {
+    plotId,
+    pageStatus,
+    is403,
+    hasCookie: !!cookieHeader,
     og: { title: ogTitle, description: ogDesc, image: ogImage },
-    flightChunkCount: flightChunks.length,
-    plotChunkCount: plotChunks.length,
-    plotChunks: plotChunks.slice(0, 20),
-    allChunks: flightChunks.slice(0, 10),
+    apiResults: results,
   }
 }
 
