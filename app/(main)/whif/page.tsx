@@ -78,6 +78,12 @@ export default function WhifCenterPage() {
   const [lorePriority, setLorePriority] = useState(0)
   const [editingLoreId, setEditingLoreId] = useState<string | null>(null)
 
+  // Bulk char select
+  const [selectingChars, setSelectingChars] = useState(false)
+  const [selectedChars, setSelectedChars] = useState<Set<string>>(new Set())
+  const [deletingChars, setDeletingChars] = useState(false)
+  const [confirmBulkChar, setConfirmBulkChar] = useState(false)
+
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
@@ -129,7 +135,38 @@ export default function WhifCenterPage() {
     finally { setLoreLoading(false) }
   }
 
-  const goHome = () => { setView('home'); setSelectedUniId(null); setLorebooks([]) }
+  const goHome = () => { setView('home'); setSelectedUniId(null); setLorebooks([]); exitSelectChars() }
+
+  const toggleSelectChar = (id: string) => {
+    setSelectedChars(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const exitSelectChars = () => { setSelectingChars(false); setSelectedChars(new Set()) }
+
+  const handleDeleteSelectedChars = async () => {
+    if (selectedChars.size === 0 || deletingChars) return
+    setDeletingChars(true)
+    setConfirmBulkChar(false)
+    try {
+      await Promise.all(Array.from(selectedChars).map(id => api.delete(`/api/characters/${id}`)))
+      const [unisData, charsData, chatsData] = await Promise.all([
+        api.get('/api/collections?isWhif=true'),
+        api.get('/api/characters?isWhif=true'),
+        api.get('/api/conversations?isWhif=true'),
+      ])
+      setUniverses(unisData); setCharacters(charsData); setChats(chatsData)
+      if (selectedUniId && !unisData.some((u: any) => u.id === selectedUniId)) goHome()
+      exitSelectChars()
+    } catch (e: any) {
+      setError('삭제 중 오류가 발생했습니다: ' + e.message)
+    } finally {
+      setDeletingChars(false)
+    }
+  }
 
   // ── Universe CRUD ────────────────────────────────────────────
   const handleCreateUniverse = async () => {
@@ -458,22 +495,64 @@ export default function WhifCenterPage() {
           <div className="vstack" style={{ gap: 10 }}>
             <div className="spread" style={{ alignItems: 'center' }}>
               <div style={{ fontSize: 13, fontWeight: 700 }}>🎭 소속 캐릭터 <span className="tiny muted">({selectedUniChars.length}명)</span></div>
-              <button className="btn ghost" style={{ fontSize: 11, padding: '3px 10px' }} onClick={() => router.push(`/characters/new?isWhif=true&collectionId=${selectedUniverse.id}`)}>+ 직접 등록</button>
+              {selectingChars ? (
+                <div className="hstack" style={{ gap: 4 }}>
+                  <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => {
+                    if (selectedChars.size === selectedUniChars.length) setSelectedChars(new Set())
+                    else setSelectedChars(new Set(selectedUniChars.map(c => c.id)))
+                  }}>
+                    {selectedChars.size === selectedUniChars.length ? '전체 해제' : '전체 선택'}
+                  </button>
+                  <button
+                    className="btn danger" style={{ fontSize: 10 }}
+                    disabled={selectedChars.size === 0 || deletingChars}
+                    onClick={() => setConfirmBulkChar(true)}
+                  >{deletingChars ? '삭제 중...' : `✕ 삭제 (${selectedChars.size})`}</button>
+                  <button className="btn ghost" style={{ fontSize: 10 }} onClick={exitSelectChars}>취소</button>
+                </div>
+              ) : (
+                <div className="hstack" style={{ gap: 4 }}>
+                  {selectedUniChars.length > 0 && (
+                    <button className="btn ghost" style={{ fontSize: 11, padding: '3px 10px' }} onClick={() => setSelectingChars(true)}>☑ 선택</button>
+                  )}
+                  <button className="btn ghost" style={{ fontSize: 11, padding: '3px 10px' }} onClick={() => router.push(`/characters/new?isWhif=true&collectionId=${selectedUniverse.id}`)}>+ 직접 등록</button>
+                </div>
+              )}
             </div>
 
             {selectedUniChars.length === 0 ? (
               <div className="tiny muted" style={{ padding: '16px 0' }}>소속 캐릭터가 없습니다.</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
-                {selectedUniChars.map(char => (
+                {selectedUniChars.map(char => {
+                  const isChecked = selectedChars.has(char.id)
+                  return (
                   <div
                     key={char.id}
                     style={{
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid var(--chrome-border)',
+                      background: isChecked ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${isChecked ? '#8b5cf6' : 'var(--chrome-border)'}`,
                       borderRadius: 10, overflow: 'hidden',
                       display: 'flex', flexDirection: 'column',
+                      position: 'relative',
+                      cursor: selectingChars ? 'pointer' : 'default',
+                      transition: 'border-color 0.15s, background 0.15s',
                     }}
+                    onClick={selectingChars ? () => toggleSelectChar(char.id) : undefined}
                   >
+                    {selectingChars && (
+                      <div style={{
+                        position: 'absolute', top: 8, left: 8, zIndex: 5,
+                        width: 20, height: 20,
+                        border: `2px solid ${isChecked ? '#8b5cf6' : 'rgba(255,255,255,0.8)'}`,
+                        background: isChecked ? '#8b5cf6' : 'rgba(0,0,0,0.5)',
+                        borderRadius: 4,
+                        display: 'grid', placeItems: 'center',
+                      }}>
+                        {isChecked && <span style={{ color: '#fff', fontSize: 12, lineHeight: 1 }}>✓</span>}
+                      </div>
+                    )}
+
                     {/* Avatar */}
                     <div style={{ width: '100%', aspectRatio: '4/3', background: 'rgba(139,92,246,0.1)', overflow: 'hidden', position: 'relative' }}>
                       {char.avatarUrl
@@ -509,6 +588,7 @@ export default function WhifCenterPage() {
                     </div>
 
                     {/* Actions */}
+                    {!selectingChars && (
                     <div style={{ padding: '6px 10px 10px', marginTop: 'auto' }}>
                       <button
                         className="btn primary"
@@ -520,8 +600,10 @@ export default function WhifCenterPage() {
                         <button className="btn danger" style={{ flex: 1, fontSize: 10, padding: '3px 0' }} onClick={() => setConfirmDeleteCharId(char.id)}>✕ 삭제</button>
                       </div>
                     </div>
+                    )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -597,6 +679,13 @@ export default function WhifCenterPage() {
       )}
 
       {/* Confirm dialogs */}
+      {confirmBulkChar && (
+        <ConfirmDialog
+          message={`선택한 캐릭터 ${selectedChars.size}개를 삭제할까요? 복구할 수 없습니다.`}
+          onConfirm={handleDeleteSelectedChars}
+          onCancel={() => setConfirmBulkChar(false)}
+        />
+      )}
       {confirmDeleteUniId && (
         <ConfirmDialog
           message="이 세계관을 삭제할까요? 세계관과 소속 캐릭터, 설정 카드가 전부 삭제되며 복구할 수 없습니다."
