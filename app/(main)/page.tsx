@@ -2,65 +2,52 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getIsAdmin } from '@/lib/authClient'
-import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import { api } from '@/lib/api'
 
 const BASE_ICONS = [
-  { label: '채팅 목록', icon: PixelIcons.chat, href: '/chatlist' },
-  { label: '새 대화', icon: <PixelAvatar kind="ai" size={38} />, href: '/conversations/new' },
-  { label: 'AI 채팅', icon: PixelIcons.bot, href: '/assistant' },
-  { label: '캐릭터', icon: <PixelAvatar kind="custom" size={38} />, href: '/characters' },
-  {
-    label: 'WHIF 센터',
-    icon: (
-      <svg viewBox="0 0 16 16" shapeRendering="crispEdges" width="38" height="38">
-        <rect x="2" y="9" width="12" height="1" fill="#c084fc" />
-        <rect x="1" y="8" width="14" height="1" fill="#a78bfa" />
-        <rect x="5" y="3" width="6" height="6" fill="#8b5cf6" />
-        <rect x="6" y="4" width="4" height="4" fill="#c084fc" />
-        <rect x="7" y="5" width="2" height="2" fill="#fff" />
-      </svg>
-    ),
-    href: '/whif'
-  },
-  { label: '서재', icon: PixelIcons.book, href: '/library' },
-  { label: '설정', icon: PixelIcons.sliders, href: '/settings' },
+  { label: '채팅 목록', emoji: '💬', href: '/chatlist' },
+  { label: '새 대화', emoji: '✨', href: '/conversations/new' },
+  { label: 'AI 채팅', emoji: '🤖', href: '/assistant' },
+  { label: '캐릭터', emoji: '🎭', href: '/characters' },
+  { label: 'WHIF 센터', emoji: '🪐', href: '/whif' },
+  { label: '서재', emoji: '📚', href: '/library' },
+  { label: '설정', emoji: '⚙️', href: '/settings' },
 ]
 
-const ADMIN_ICON = { label: '관리자\n패널', icon: PixelIcons.settings, href: '/admin' }
+const ADMIN_ICON = { label: '관리자\n패널', emoji: '🔧', href: '/admin' }
 
 const GUIDE_SECTIONS = [
   {
     title: '🚀 시작하기',
     items: [
-      { label: '① 캐릭터 선택', desc: '/characters 에서 프리셋을 고르거나 직접 만드세요.', href: '/characters' },
-      { label: '② 대화 설정', desc: '모드·페르소나·시나리오를 고른 뒤 대화를 시작하세요.', href: '/conversations/new' },
-      { label: '③ 채팅 목록', desc: '진행 중인 대화는 채팅 목록에서 이어갈 수 있습니다.', href: '/chatlist' },
+      { emoji: '🎭', label: '① 캐릭터 선택', desc: '/characters 에서 프리셋을 고르거나 직접 만드세요.', href: '/characters' },
+      { emoji: '✨', label: '② 대화 설정', desc: '모드·페르소나·시나리오를 고른 뒤 대화를 시작하세요.', href: '/conversations/new' },
+      { emoji: '💬', label: '③ 채팅 목록', desc: '진행 중인 대화는 채팅 목록에서 이어갈 수 있습니다.', href: '/chatlist' },
     ],
   },
   {
     title: '📥 외부 가져오기',
     items: [
-      { label: 'ZETA (zeta-ai.io)', desc: '플롯 프로필 URL을 붙여넣으면 캐릭터·설정을 자동으로 가져옵니다.' },
-      { label: 'Melting (melting.chat)', desc: '캐릭터 페이지 URL로 대화 상대를 바로 불러올 수 있습니다.' },
-      { label: 'WHIF (whif.io)', desc: 'WHIF 센터에서 세계관 단위로 캐릭터를 관리하고 가져올 수 있습니다.', href: '/whif' },
+      { emoji: '⚡', label: 'ZETA (zeta-ai.io)', desc: '플롯 프로필 URL을 붙여넣으면 캐릭터·설정을 자동으로 가져옵니다.' },
+      { emoji: '🔥', label: 'Melting (melting.chat)', desc: '캐릭터 페이지 URL로 대화 상대를 바로 불러올 수 있습니다.' },
+      { emoji: '🪐', label: 'WHIF (whif.io)', desc: 'WHIF 센터에서 세계관 단위로 캐릭터를 관리하고 가져올 수 있습니다.', href: '/whif' },
     ],
   },
   {
     title: '🎮 대화 모드',
     items: [
-      { label: '📖 스토리', desc: 'AI가 장면을 서술하고 선택지를 제시하는 인터랙티브 소설.' },
-      { label: '👥 멀티스토리', desc: '여러 캐릭터가 함께 이야기 속에서 상호작용합니다.' },
-      { label: '💬 자유 대화 (그룹)', desc: '선택지 없이 여러 캐릭터가 소설식으로 번갈아 대화합니다.' },
+      { emoji: '📖', label: '스토리', desc: 'AI가 장면을 서술하고 선택지를 제시하는 인터랙티브 소설.' },
+      { emoji: '👥', label: '멀티스토리', desc: '여러 캐릭터가 함께 이야기 속에서 상호작용합니다.' },
+      { emoji: '💬', label: '자유 대화 (그룹)', desc: '선택지 없이 여러 캐릭터가 소설식으로 번갈아 대화합니다.' },
     ],
   },
   {
-    title: '⚙ 주요 기능',
+    title: '⚙️ 주요 기능',
     items: [
-      { label: '내 역할 (페르소나)', desc: '대화 설정창에서 내가 연기할 캐릭터를 지정할 수 있습니다.' },
-      { label: '로어북', desc: '키워드가 대화에 등장하면 관련 설정을 AI가 자동으로 참조합니다.' },
-      { label: '메모리 & 장기기억', desc: '긴 대화를 자동 요약해 AI가 대화 맥락을 장기간 유지합니다.' },
-      { label: '분기 (Branch)', desc: '대화 중 어느 지점에서든 스토리를 나눠 다른 결말을 탐색하세요.' },
+      { emoji: '🎭', label: '내 역할 (페르소나)', desc: '대화 설정창에서 내가 연기할 캐릭터를 지정할 수 있습니다.' },
+      { emoji: '📖', label: '로어북', desc: '키워드가 대화에 등장하면 관련 설정을 AI가 자동으로 참조합니다.' },
+      { emoji: '🧠', label: '메모리 & 장기기억', desc: '긴 대화를 자동 요약해 AI가 대화 맥락을 장기간 유지합니다.' },
+      { emoji: '🌿', label: '분기 (Branch)', desc: '대화 중 어느 지점에서든 스토리를 나눠 다른 결말을 탐색하세요.' },
     ],
   },
 ]
@@ -129,14 +116,17 @@ export default function HomePage() {
                         border: '1px solid var(--chrome-border)',
                         background: 'var(--chrome-face)',
                         cursor: item.href ? 'pointer' : 'default',
-                        display: 'flex', flexDirection: 'column', gap: 2,
+                        display: 'flex', alignItems: 'flex-start', gap: 10,
                       }}
                     >
-                      <div style={{ fontSize: 11, fontWeight: 700 }}>
-                        {item.label}
-                        {item.href && <span style={{ color: 'var(--hot-pink)', marginLeft: 4, fontSize: 9 }}>→</span>}
+                      <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{item.emoji}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700 }}>
+                          {item.label}
+                          {item.href && <span style={{ color: 'var(--hot-pink)', marginLeft: 4, fontSize: 9 }}>→</span>}
+                        </div>
+                        <div className="tiny muted" style={{ lineHeight: 1.5, marginTop: 2 }}>{item.desc}</div>
                       </div>
-                      <div className="tiny muted" style={{ lineHeight: 1.5 }}>{item.desc}</div>
                     </div>
                   ))}
                 </div>
@@ -204,19 +194,17 @@ export default function HomePage() {
         overflowY: 'hidden',
         scrollbarWidth: 'none',
       }}>
-        {icons.map(({ label, icon, href }) => (
+        {icons.map(({ label, emoji, href }) => (
           <div key={label} className="di" onClick={() => router.push(href)} style={{ cursor: 'pointer' }}>
             <div className="di-pic">
-              {typeof icon === 'string'
-                ? <div style={{ width: 38, height: 38, display: 'grid', placeItems: 'center' }}>{icon}</div>
-                : icon}
+              <div style={{ width: 38, height: 38, display: 'grid', placeItems: 'center', fontSize: 28 }}>{emoji}</div>
             </div>
             <span style={{ whiteSpace: 'pre-line', textAlign: 'center' }}>{label}</span>
           </div>
         ))}
         <div className="di" onClick={() => setShowImport(true)} style={{ cursor: 'pointer' }}>
           <div className="di-pic">
-            <div style={{ width: 38, height: 38, display: 'grid', placeItems: 'center', fontSize: 26 }}>↓</div>
+            <div style={{ width: 38, height: 38, display: 'grid', placeItems: 'center', fontSize: 28 }}>📥</div>
           </div>
           <span style={{ textAlign: 'center' }}>설정{'\n'}가져오기</span>
         </div>
