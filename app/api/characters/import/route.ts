@@ -72,8 +72,10 @@ async function runImport(captured: Captured, url: string, userId: string) {
     : (result.title || `${titleSubject}${josa과와(titleSubject)}의 대화`).trim()
 
   const createdChars = await Promise.all(
-    result.characters.map((c, i) =>
-      prisma.character.create({
+    result.characters.map((c, i) => {
+      // 각 캐릭터 고유 이미지 우선, 없으면 첫 캐릭터에만 캡처된 대표 이미지 적용
+      const avatarUrl = c.avatarUrl || (i === 0 ? captured.imageUrl : '') || undefined
+      return prisma.character.create({
         data: {
           name: c.name.slice(0, 100),
           gender: c.gender.slice(0, 20),
@@ -84,10 +86,10 @@ async function runImport(captured: Captured, url: string, userId: string) {
           safetyLevel: result.safetyLevel || 'standard',
           isAutoCreated: true,
           creatorId: userId,
-          ...(i === 0 && captured.imageUrl ? { avatarUrl: captured.imageUrl } : {}),
+          ...(avatarUrl ? { avatarUrl } : {}),
         },
       })
-    )
+    })
   )
 
   const isWhif = matchesHost(url, 'whif.io', 'whif.club')

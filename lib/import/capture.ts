@@ -549,6 +549,7 @@ export async function captureWhif(url: string): Promise<Captured> {
         additionalInfo,
         openingMessage,
         exampleDialogues: '',
+        avatarUrl: c.avatarUrl || '',
       }
     })
 

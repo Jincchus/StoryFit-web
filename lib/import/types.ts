@@ -52,6 +52,7 @@ export interface AssembledCharacter {
   additionalInfo: string
   openingMessage: string
   exampleDialogues: string
+  avatarUrl?: string
 }
 
 export interface AssembledResult {
