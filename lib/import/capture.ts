@@ -664,6 +664,41 @@ export async function captureWhif(url: string): Promise<Captured> {
   return { sections: [{ tab: null, text }], title: '', imageUrl: '' }
 }
 
+export async function renderZetaRaw(url: string) {
+  const browser = await puppeteer.launch({
+    executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
+    headless: true,
+    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+  })
+  try {
+    const page = await browser.newPage()
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
+
+    const captured: { url: string; body: any }[] = []
+
+    await page.setRequestInterception(true)
+    page.on('request', r => r.continue())
+    page.on('response', async response => {
+      const respUrl = response.url()
+      const ct = response.headers()['content-type'] ?? ''
+      if (!ct.includes('application/json')) return
+      if (respUrl.includes('/_next/') || respUrl.includes('/favicon') || respUrl.includes('analytics')) return
+      try {
+        const text = await response.text()
+        const body = JSON.parse(text)
+        captured.push({ url: respUrl, body })
+      } catch {}
+    })
+
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
+    await new Promise(r => setTimeout(r, 2000))
+
+    return { captured, totalCount: captured.length }
+  } finally {
+    await browser.close()
+  }
+}
+
 export async function captureZeta(url: string): Promise<Captured> {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5' },
