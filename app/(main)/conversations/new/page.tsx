@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
@@ -738,13 +739,13 @@ function NewConversationInner() {
         </div>
       </div>
     </Win>
-    {showGreetingModal && altGreetings.length > 0 && (
+    {showGreetingModal && altGreetings.length > 0 && createPortal(
       <>
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000 }}
           onClick={() => setShowGreetingModal(false)}
         />
-        <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 101, width: 'min(500px, 95vw)', maxHeight: '85dvh', display: 'flex', flexDirection: 'column' }}>
+        <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 9001, width: 'min(500px, 95vw)', maxHeight: '85dvh', display: 'flex', flexDirection: 'column' }}>
           <div className="win-title">
             <div className="win-title-l"><span>📖 시작 상황(도입부) 선택</span></div>
             <div className="win-controls">
@@ -794,7 +795,8 @@ function NewConversationInner() {
             </div>
           </div>
         </div>
-      </>
+      </>,
+      document.body
     )}
     </>
   )

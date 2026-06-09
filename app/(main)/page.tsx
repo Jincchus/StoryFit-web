@@ -29,9 +29,40 @@ const BASE_ICONS = [
 
 const ADMIN_ICON = { label: '관리자\n패널', icon: PixelIcons.settings, href: '/admin' }
 
-const STEPS = [
-  { num: 1, label: '캐릭터 고르기', desc: '프리셋 선택 or 직접 만들기', href: '/characters', icon: <PixelAvatar kind="custom" size={20} /> },
-  { num: 2, label: '대화 시작', desc: '캐릭터를 골라 시작!', href: '/conversations/new', icon: PixelIcons.chat },
+const GUIDE_SECTIONS = [
+  {
+    title: '🚀 시작하기',
+    items: [
+      { label: '① 캐릭터 선택', desc: '/characters 에서 프리셋을 고르거나 직접 만드세요.', href: '/characters' },
+      { label: '② 대화 설정', desc: '모드·페르소나·시나리오를 고른 뒤 대화를 시작하세요.', href: '/conversations/new' },
+      { label: '③ 채팅 목록', desc: '진행 중인 대화는 채팅 목록에서 이어갈 수 있습니다.', href: '/chatlist' },
+    ],
+  },
+  {
+    title: '📥 외부 가져오기',
+    items: [
+      { label: 'ZETA (zeta-ai.io)', desc: '플롯 프로필 URL을 붙여넣으면 캐릭터·설정을 자동으로 가져옵니다.' },
+      { label: 'Melting (melting.chat)', desc: '캐릭터 페이지 URL로 대화 상대를 바로 불러올 수 있습니다.' },
+      { label: 'WHIF (whif.io)', desc: 'WHIF 센터에서 세계관 단위로 캐릭터를 관리하고 가져올 수 있습니다.', href: '/whif' },
+    ],
+  },
+  {
+    title: '🎮 대화 모드',
+    items: [
+      { label: '📖 스토리', desc: 'AI가 장면을 서술하고 선택지를 제시하는 인터랙티브 소설.' },
+      { label: '👥 멀티스토리', desc: '여러 캐릭터가 함께 이야기 속에서 상호작용합니다.' },
+      { label: '💬 자유 대화 (그룹)', desc: '선택지 없이 여러 캐릭터가 소설식으로 번갈아 대화합니다.' },
+    ],
+  },
+  {
+    title: '⚙ 주요 기능',
+    items: [
+      { label: '내 역할 (페르소나)', desc: '대화 설정창에서 내가 연기할 캐릭터를 지정할 수 있습니다.' },
+      { label: '로어북', desc: '키워드가 대화에 등장하면 관련 설정을 AI가 자동으로 참조합니다.' },
+      { label: '메모리 & 장기기억', desc: '긴 대화를 자동 요약해 AI가 대화 맥락을 장기간 유지합니다.' },
+      { label: '분기 (Branch)', desc: '대화 중 어느 지점에서든 스토리를 나눠 다른 결말을 탐색하세요.' },
+    ],
+  },
 ]
 
 export default function HomePage() {
@@ -78,28 +109,39 @@ export default function HomePage() {
     <>
       {showGuide && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100 }} onClick={dismissGuide} />
-          <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 101, width: 'min(380px, 90vw)' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100 }} onClick={dismissGuide} />
+          <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 101, width: 'min(420px, 92vw)', maxHeight: '85dvh', display: 'flex', flexDirection: 'column' }}>
             <div className="win-title">
-              <div className="win-title-l"><span>StoryFit 시작하기</span></div>
+              <div className="win-title-l"><span>StoryFit 가이드</span></div>
               <div className="win-controls"><button onClick={dismissGuide}>×</button></div>
             </div>
-            <div className="win-body vstack" style={{ gap: 10 }}>
-              <div className="tiny muted">처음이신가요? 아래 순서대로 진행하면 바로 시작할 수 있어요.</div>
-              <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
-                {STEPS.map((step, i) => (
-                  <div key={step.num} onClick={() => { dismissGuide(); router.push(step.href) }}
-                    style={{ flex: '1 1 100px', minWidth: 90, border: '1.5px solid var(--chrome-border)', borderRadius: 'var(--radius)', padding: '8px 10px', cursor: 'pointer', background: 'var(--chrome-face)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div className="hstack" style={{ gap: 5 }}>
-                      <span style={{ fontWeight: 700, color: 'var(--hot-pink)', fontSize: 11 }}>0{step.num}</span>
-                      {i < STEPS.length - 1 && <span className="tiny muted" style={{ marginLeft: 'auto', fontSize: 9 }}>→ 다음</span>}
+            <div className="win-body vstack" style={{ gap: 14, overflowY: 'auto', flex: 1 }}>
+              {GUIDE_SECTIONS.map(section => (
+                <div key={section.title} className="vstack" style={{ gap: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--hot-pink)', borderBottom: '1px solid var(--chrome-border)', paddingBottom: 4 }}>{section.title}</div>
+                  {section.items.map(item => (
+                    <div
+                      key={item.label}
+                      onClick={() => { if (item.href) { dismissGuide(); router.push(item.href) } }}
+                      style={{
+                        padding: '7px 10px',
+                        borderRadius: 'var(--radius)',
+                        border: '1px solid var(--chrome-border)',
+                        background: 'var(--chrome-face)',
+                        cursor: item.href ? 'pointer' : 'default',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                      }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 700 }}>
+                        {item.label}
+                        {item.href && <span style={{ color: 'var(--hot-pink)', marginLeft: 4, fontSize: 9 }}>→</span>}
+                      </div>
+                      <div className="tiny muted" style={{ lineHeight: 1.5 }}>{item.desc}</div>
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 700 }}>{step.label}</div>
-                    <div className="tiny muted">{step.desc}</div>
-                  </div>
-                ))}
-              </div>
-              <button className="btn ghost" style={{ fontSize: 10, alignSelf: 'flex-end' }} onClick={dismissGuide}>이미 알고 있어요 ×</button>
+                  ))}
+                </div>
+              ))}
+              <button className="btn ghost" style={{ fontSize: 10, alignSelf: 'flex-end' }} onClick={dismissGuide}>닫기 ×</button>
             </div>
           </div>
         </>
@@ -181,9 +223,8 @@ export default function HomePage() {
       </div>
 
       {!showGuide && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }} onClick={() => setShowGuide(true)}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--hot-pink)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 20, fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.2)' }}>?</div>
-          <div style={{ fontSize: 9, color: 'var(--ink-soft)', fontWeight: 600 }}>가이드</div>
+        <div style={{ position: 'fixed', top: 14, right: 14, zIndex: 50, cursor: 'pointer' }} onClick={() => setShowGuide(true)}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--hot-pink)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 15, fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.3)', border: '2px solid rgba(255,255,255,0.2)' }}>?</div>
         </div>
       )}
     </>
