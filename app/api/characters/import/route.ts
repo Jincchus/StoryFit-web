@@ -88,6 +88,8 @@ async function runImport(captured: Captured, url: string, userId: string) {
     : (result.title || `${titleSubject}${josa과와(titleSubject)}의 대화`).trim()
 
   const isWhif = matchesHost(url, 'whif.io', 'whif.club')
+  const isZeta = matchesHost(url, 'zeta-ai.io')
+  const isImmersive = isWhif || isZeta
 
   const createdChars = await Promise.all(
     result.characters.map((c, i) => {
@@ -97,7 +99,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
         data: {
           name: c.name.slice(0, 100),
           gender: c.gender.slice(0, 20),
-          tags: isWhif ? (c.tags ?? []) : result.tags,
+          tags: isImmersive ? (c.tags ?? []) : result.tags,
           relatedImages: isWhif ? (c.relatedImages ?? []) : [],
           additionalInfo: c.additionalInfo,
           exampleDialogues: c.exampleDialogues,
@@ -116,7 +118,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
     data: {
       userId,
       title,
-      mode: isWhif
+      mode: isImmersive
         ? (isMulti ? 'tikiTaka' : 'roleplay')
         : (isMulti ? 'multiStory' : 'story'),
       currentAI: 'gemini',
@@ -141,6 +143,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
       coverImageUrl: result.coverImageUrl ?? '',
       description: result.scenarioDescription ?? '',
       tags: result.tags ?? [],
+      ...(captured.zetaMeta ? { zetaMeta: captured.zetaMeta } : {}),
     },
   })
 
@@ -151,7 +154,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
 
   // WHIF 백과사전(로어북) 항목이 있는 경우 자동 동기화 저장
   if (captured.lorebooks && captured.lorebooks.length > 0) {
-    if (isWhif) {
+    if (isImmersive) {
       await Promise.all(
         captured.lorebooks.flatMap((entry) => [
           prisma.lorebook.create({
