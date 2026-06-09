@@ -514,7 +514,7 @@ export async function captureWhif(url: string): Promise<Captured> {
   // 언세이프 캐릭터는 로그인 시에도 DOM에 "세이프 모드를 해제" 안내 문구가 남아있으므로
   // apiData가 있으면 게이트 체크보다 먼저 처리한다.
   // universe가 없는 단독 캐릭터도 character 데이터만으로 처리한다.
-  if (apiData && (apiData.character || apiData.universeCharacters?.length > 0)) {
+  if (apiData && (apiData.character || (apiData.universeCharacters?.length ?? 0) > 0)) {
     const normalizeChar = (c: any) => c?.character || c
     let mainChar: any
     let allChars: any[]
