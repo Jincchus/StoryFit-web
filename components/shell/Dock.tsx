@@ -95,29 +95,6 @@ export default function Dock() {
       </div>
       <div style={{ display: 'flex', gap: 4, overflow: 'hidden', flex: 1 }}>
         <button className={`dock-tab ${isHome ? 'active' : ''}`} onClick={() => router.push('/')}>홈</button>
-        <button
-          className={`dock-tab ${isChatList || isChat ? 'active' : ''}`}
-          aria-label="채팅 목록으로 이동"
-          onClick={() => router.push('/chatlist')}
-        >💬 채팅</button>
-        <button
-          className={`dock-tab ${isCharSelect || isCharCreate ? 'active' : ''}`}
-          aria-label="캐릭터 목록으로 이동"
-          onClick={() => router.push('/characters')}
-        >🎭 캐릭터</button>
-        <button
-          className={`dock-tab ${isWhif ? 'active' : ''}`}
-          aria-label="WHIF 센터로 이동"
-          onClick={() => router.push('/whif')}
-        >🪐 WHIF</button>
-        <button
-          className={`dock-tab ${isNewConv ? 'active' : ''}`}
-          aria-label="새 대화 시작"
-          onClick={() => router.push('/conversations/new')}
-        >✦ 새 대화</button>
-        {isAssistant && <button className="dock-tab active">▸ AI 채팅</button>}
-        {isSettings && <button className="dock-tab active">▸ 설정</button>}
-        {isLibrary && <button className="dock-tab active">▸ 서재</button>}
       </div>
       <div className="tray">
         <span title="네트워크" style={{ color: '#22a06b' }}>●</span>

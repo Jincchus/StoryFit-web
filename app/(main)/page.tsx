@@ -10,6 +10,19 @@ const BASE_ICONS = [
   { label: '새 대화', icon: <PixelAvatar kind="ai" size={38} />, href: '/conversations/new' },
   { label: 'AI 채팅', icon: PixelIcons.bot, href: '/assistant' },
   { label: '캐릭터', icon: <PixelAvatar kind="custom" size={38} />, href: '/characters' },
+  {
+    label: 'WHIF 센터',
+    icon: (
+      <svg viewBox="0 0 16 16" shapeRendering="crispEdges" width="38" height="38">
+        <rect x="2" y="9" width="12" height="1" fill="#c084fc" />
+        <rect x="1" y="8" width="14" height="1" fill="#a78bfa" />
+        <rect x="5" y="3" width="6" height="6" fill="#8b5cf6" />
+        <rect x="6" y="4" width="4" height="4" fill="#c084fc" />
+        <rect x="7" y="5" width="2" height="2" fill="#fff" />
+      </svg>
+    ),
+    href: '/whif'
+  },
   { label: '서재', icon: PixelIcons.book, href: '/library' },
   { label: '설정', icon: PixelIcons.sliders, href: '/settings' },
 ]
