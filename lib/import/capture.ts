@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer-core'
 import { prisma } from '@/lib/prisma'
 import { withMeltingPage } from '@/lib/meltingBrowser'
 import type { Captured } from './types'
+import { buildZetaCaptured } from './zeta'
 
 const INPUT_CAP = 40000  // 분류 출력이 작아져 입력 캡을 크게 상향 (잘림 방지)
 
@@ -34,60 +35,6 @@ function decodeHtmlEntities(text: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-}
-
-function stripHtml(html: string): string {
-  return decodeHtmlEntities(html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim())
-}
-
-function extractNextFlightText(html: string): string {
-  const chunks: string[] = []
-  const re = /self\.__next_f\.push\(\[1,("(?:(?:\\.|[^"\\])*)")\]\)/g
-  let match: RegExpExecArray | null
-  while ((match = re.exec(html)) !== null) {
-    try {
-      chunks.push(JSON.parse(match[1]))
-    } catch {
-      // Ignore malformed chunks; the visible HTML fallback may still work.
-    }
-  }
-
-  return stripHtml(chunks.join('\n'))
-}
-
-function cleanZetaText(text: string): string {
-  let cleaned = text
-
-  const profileIdx = cleaned.indexOf('추천 대화 프로필')
-  if (profileIdx > 1200) {
-    const prefix = cleaned.slice(0, profileIdx).split(/\s+/).slice(-80).join(' ')
-    cleaned = `${prefix} ${cleaned.slice(profileIdx)}`
-  }
-
-  // 추천 콘텐츠/크리에이터 정보 이후는 불필요한 데이터
-  const cutMarkers = ['크리에이터', '출시일', '마음에 들었다면', 'Creator', 'Release date']
-  for (const marker of cutMarkers) {
-    const idx = cleaned.indexOf(marker)
-    if (idx > 300) { cleaned = cleaned.slice(0, idx); break }
-  }
-
-  // 사이트 로고명("제타"/"Zeta")이 맨 앞에 오면 제거
-  return cleaned
-    .replace(/^(제타|Zeta)\s+/i, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
-
-function preprocessZetaText(html: string): string {
-  const visibleText = cleanZetaText(stripHtml(html))
-  const flightText = cleanZetaText(extractNextFlightText(html))
-  const text = visibleText.length >= 300 ? visibleText : flightText
-  return text.slice(0, 12000)
 }
 
 function cleanWhifText(text: string): string {
@@ -301,52 +248,6 @@ async function renderWhifPageText(url: string): Promise<{
   } finally {
     await browser.close()
   }
-}
-
-function extractZetaIntroText(text: string, characterNames: string[]): string {
-  const introIdx = text.lastIndexOf('인트로')
-  if (introIdx < 0) return ''
-
-  let intro = text.slice(introIdx + '인트로'.length).trim()
-  for (const marker of ['크리에이터', '출시일', '마음에 들었다면', 'Creator', 'Release date']) {
-    const idx = intro.indexOf(marker)
-    if (idx > 0) { intro = intro.slice(0, idx).trim(); break }
-  }
-
-  for (const name of characterNames) {
-    if (!name) continue
-    const re = new RegExp(`^${escapeRegExp(name)}\\s+`)
-    if (re.test(intro) && intro.replace(re, '').trim().length > 20) {
-      intro = intro.replace(re, '').trim()
-      break
-    }
-  }
-
-  return intro.slice(0, 5000)
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function extractLorebookUrls(html: string): { url: string; name: string }[] {
-  const matches = Array.from(html.matchAll(/href="(\/(?:ko|en)\/lorebooks\/[a-f0-9-]+)"[^>]*>([^<]*)</g))
-  const seen = new Set<string>()
-  return matches.flatMap(m => {
-    const url = `https://zeta-ai.io${m[1]}`
-    const name = m[2]?.trim() || url
-    if (seen.has(url)) return []
-    seen.add(url)
-    return [{ url, name }]
-  })
-}
-
-function extractZetaPlotImage(html: string, url: string): string {
-  const plotIdMatch = url.match(/\/plots\/([0-9a-f-]{36})/i)
-  if (!plotIdMatch) return ''
-  const re = new RegExp(`https://image\\.zeta-ai\\.io/plot-(?:intro|cover)-image/${escapeRegExp(plotIdMatch[1])}/[0-9a-f-]+\\.(?:jpe?g|png|webp)`, 'i')
-  const match = html.match(re)
-  return match ? match[0] : ''
 }
 
 function extractMetaContent(html: string, property: string): string {
@@ -727,20 +628,23 @@ export async function renderZetaRaw(url: string) {
 }
 
 export async function captureZeta(url: string): Promise<Captured> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5' },
+  const plotId = url.match(/\/plots\/([0-9a-f-]{36})/i)?.[1]
+  if (!plotId) throw new Error('Zeta 플롯 URL이 아닙니다 (/plots/{id} 형식 필요)')
+
+  const res = await fetch(`https://api.zeta-ai.io/v1/plots/${plotId}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept': 'application/json',
+      'Accept-Language': 'ko-KR,ko;q=0.9',
+    },
   })
-  if (!res.ok) throw new Error(`페이지를 불러올 수 없습니다 (HTTP ${res.status})`)
-  const html = await res.text()
-  const loreUrls = extractLorebookUrls(html)
-  const imageUrl = extractZetaPlotImage(html, url)
-  const body = preprocessZetaText(html).slice(0, INPUT_CAP)
-  if (body.length < 100) throw new Error('Zeta 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
-  const intro = extractZetaIntroText(body, [])
-  const sections = intro
-    ? [{ tab: '인트로', text: intro }, { tab: null, text: body }]
-    : [{ tab: null, text: body }]
-  return { sections, title: '', imageUrl, loreUrls: loreUrls.length ? loreUrls : undefined }
+  if (!res.ok) throw new Error(`Zeta API 오류 (HTTP ${res.status})`)
+
+  const plot = await res.json()
+  if (!plot?.id) throw new Error('Zeta 플롯 데이터를 찾을 수 없습니다')
+
+  const canonical = `https://zeta-ai.io/ko/plots/${plot.id}/profile`
+  return buildZetaCaptured(plot, canonical)
 }
 
 export async function captureMelting(url: string): Promise<Captured> {
