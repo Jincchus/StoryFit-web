@@ -633,6 +633,7 @@ export async function captureMelting(url: string): Promise<Captured> {
           ? `https://image-gen.melting.chat/public_images/${apiData.profileImagePath}?s=lg`
           : imageUrl,
         assembledResult,
+        meltingMeta: apiData,
       }
     }
 
