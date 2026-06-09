@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
       coverImageUrl: true,
       description: true,
       tags: true,
+      zetaMeta: true,
       characters: { select: { id: true, name: true, avatarUrl: true } },
     },
   })
