@@ -249,6 +249,7 @@ function NewConversationInner() {
   }
 
   return (
+    <>
     <Win title="새 대화 설정 (New Conversation)" icon={PixelIcons.chat}>
       <div className="vstack" style={{ gap: 12, flex: 1, minHeight: 0 }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
@@ -795,5 +796,6 @@ function NewConversationInner() {
         </div>
       </>
     )}
+    </>
   )
 }
