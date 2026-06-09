@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticate } from '@/lib/apiAuth'
-import { captureWhif } from '@/lib/import/capture'
+import { renderWhifRaw } from '@/lib/import/capture'
 
 export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
@@ -9,6 +9,6 @@ export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url')
   if (!url) return NextResponse.json({ error: 'url 파라미터 필요' }, { status: 400 })
 
-  const result = await captureWhif(url)
-  return NextResponse.json(result)
+  const raw = await renderWhifRaw(url)
+  return NextResponse.json(raw)
 }

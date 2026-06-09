@@ -507,6 +507,19 @@ async function renderMeltingSections(url: string): Promise<{
   })
 }
 
+export async function renderWhifRaw(url: string) {
+  const { apiData } = await renderWhifPageText(url)
+  const normalizeChar = (c: any) => c?.character || c
+  const firstChar = apiData?.character ? normalizeChar(apiData.character) : (apiData?.universeCharacters?.[0] ? normalizeChar(apiData.universeCharacters[0]) : null)
+  return {
+    firstCharKeys: firstChar ? Object.keys(firstChar) : [],
+    firstCharPublicDataKeys: firstChar?.publicData ? Object.keys(firstChar.publicData) : [],
+    firstChar,
+    universeKeys: apiData?.universe ? Object.keys(apiData.universe?.universe ?? apiData.universe) : [],
+    universeCharacterCount: apiData?.universeCharacters?.length ?? 0,
+  }
+}
+
 export async function captureWhif(url: string): Promise<Captured> {
   const { rawText, apiData } = await renderWhifPageText(url)
 
