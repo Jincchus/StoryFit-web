@@ -95,6 +95,7 @@ model CharacterCollection {
   description    String        @default("")
   tags           String[]      @default([])
   zetaMeta       Json?
+  meltingMeta    Json?
   createdAt      DateTime      @default(now())
 }
 
@@ -162,6 +163,8 @@ model Conversation {
   inventoryEnabled    Boolean                 @default(false)
   inventory           Json?
   styleConfig         Json?
+  chapter                Int                  @default(1)
+  suggestRepliesEnabled  Boolean              @default(false)
   isAutoCreated       Boolean                 @default(false)
   sourceUrl           String                  @default("")
   sourceLorebookUrls  Json?
