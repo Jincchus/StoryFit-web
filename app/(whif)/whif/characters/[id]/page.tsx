@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import PersonaSelectModal from '@/components/ui/PersonaSelectModal'
+import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 
 interface Opening { id: string; title: string; content: string }
 interface Character {
@@ -39,12 +39,16 @@ export default function CharacterDetailPage() {
   const nsfw = char.safetyLevel === 'relaxed'
   const personaCandidates = allChars.filter(c => c.collection?.id === char.collection?.id && c.id !== char.id)
 
-  const handlePersonaSelect = async (personaCharId: string | null, newName?: string) => {
+  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
     setCreating(true); setError('')
     try {
       let personaId = personaCharId
-      if (!personaId && newName?.trim()) {
-        const p = await api.post('/api/characters', { name: newName.trim() })
+      if (!personaId && newPersona) {
+        const p = await api.post('/api/characters', {
+          name: newPersona.name,
+          gender: newPersona.gender,
+          additionalInfo: newPersona.additionalInfo,
+        })
         personaId = p.id
       }
       const chosen = openings[openingIdx]?.content
@@ -64,11 +68,11 @@ export default function CharacterDetailPage() {
   return (
     <>
       {personaOpen && (
-        <PersonaSelectModal
+        <WhifPersonaModal
           candidates={personaCandidates as any}
           loading={creating}
           onCancel={() => { setPersonaOpen(false); setCreating(false) }}
-          onSelect={(charId, newName) => handlePersonaSelect(charId, newName)}
+          onSelect={(charId, newPersona) => handlePersonaSelect(charId, newPersona)}
         />
       )}
 
