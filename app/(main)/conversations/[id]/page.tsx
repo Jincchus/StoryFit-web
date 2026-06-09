@@ -517,7 +517,7 @@ export default function ChatPage() {
   }, [showVoiceCall, send])
 
   const speakVoiceCall = useCallback((text: string) => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
     window.speechSynthesis.cancel()
     if (callRecognitionRef.current) {
       try { callRecognitionRef.current.stop() } catch {}
@@ -561,7 +561,7 @@ export default function ChatPage() {
 
   const endVoiceCall = useCallback(() => {
     setShowVoiceCall(false)
-    window.speechSynthesis.cancel()
+    window.speechSynthesis?.cancel()
     if (callRecognitionRef.current) {
       try { callRecognitionRef.current.stop() } catch {}
       callRecognitionRef.current = null
@@ -587,13 +587,13 @@ export default function ChatPage() {
       const initialText = lastAiMsg ? lastAiMsg.content : (activeCharForCall?.openingMessage || '안녕하세요.')
       speakVoiceCall(extractDialogue(initialText))
     } else {
-      window.speechSynthesis.cancel()
+      window.speechSynthesis?.cancel()
       if (callRecognitionRef.current) {
         try { callRecognitionRef.current.stop() } catch {}
       }
     }
     return () => {
-      window.speechSynthesis.cancel()
+      window.speechSynthesis?.cancel()
       if (callRecognitionRef.current) {
         try { callRecognitionRef.current.stop() } catch {}
       }
