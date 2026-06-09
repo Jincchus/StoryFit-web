@@ -106,6 +106,7 @@ export default function CharactersPage() {
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
             <button className="btn ghost" onClick={() => router.back()}>← 뒤로</button>
+            <button className="btn" style={{ background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed' }} onClick={() => router.push('/whif')}>🪐 WHIF 센터</button>
             <button className="btn" onClick={() => router.push('/characters/new')}>+ 만들기</button>
             <button
               className="btn primary"

@@ -6,15 +6,28 @@ export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const mode = req.nextUrl.searchParams.get('mode')
+  const { searchParams } = new URL(req.url)
+  const isWhif = searchParams.get('isWhif') === 'true'
+  const mode = searchParams.get('mode')
+
+  const whereClause: any = {
+    userId,
+    rootConversationId: null,
+    isArchived: false,
+    mode: mode ? mode : { not: 'assistant' },
+  }
+
+  if (isWhif) {
+    whereClause.sourceUrl = { contains: 'whif.' }
+  } else {
+    whereClause.OR = [
+      { sourceUrl: '' },
+      { NOT: { sourceUrl: { contains: 'whif.' } } }
+    ]
+  }
 
   const conversations = await prisma.conversation.findMany({
-    where: {
-      userId,
-      rootConversationId: null,
-      isArchived: false,
-      mode: mode ? mode : { not: 'assistant' },
-    },
+    where: whereClause,
     include: {
       characters: { include: { character: { select: { id: true, name: true, avatarUrl: true } } } },
       messages: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -40,6 +53,24 @@ export async function POST(req: NextRequest) {
     : body.characterId ? [String(body.characterId)] : []
   if (!isAssistant && characterIds.length === 0) return NextResponse.json({ error: 'characterId가 필요합니다.' }, { status: 400 })
 
+  // Find collections of selected characters to determine sourceUrl and lorebooks
+  const selectedChars = await prisma.character.findMany({
+    where: { id: { in: characterIds } },
+    select: { collectionId: true },
+  })
+  const collectionIds = Array.from(new Set(selectedChars.map(c => c.collectionId).filter(Boolean))) as string[]
+
+  let convSourceUrl = body.sourceUrl ?? ''
+  if (!convSourceUrl && collectionIds.length > 0) {
+    const col = await prisma.characterCollection.findFirst({
+      where: { id: { in: collectionIds } },
+      select: { sourceUrl: true }
+    })
+    if (col?.sourceUrl) {
+      convSourceUrl = col.sourceUrl
+    }
+  }
+
   const conversation = await prisma.conversation.create({
     data: {
       userId,
@@ -59,6 +90,7 @@ export async function POST(req: NextRequest) {
       inventoryEnabled: body.inventoryEnabled ?? false,
       inventory: body.inventoryEnabled ? ([] as any) : undefined,
       styleConfig: body.styleConfig ?? null,
+      sourceUrl: convSourceUrl,
       ...(characterIds.length > 0 ? {
         characters: {
           create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),
@@ -67,6 +99,31 @@ export async function POST(req: NextRequest) {
     },
     include: { characters: { include: { character: true } }, messages: true },
   })
+
+  // Clone collection-level lorebooks to this conversation
+  if (collectionIds.length > 0) {
+    const collectionLorebooks = await prisma.lorebook.findMany({
+      where: { scope: 'collection', scopeId: { in: collectionIds } },
+    })
+
+    if (collectionLorebooks.length > 0) {
+      await Promise.all(
+        collectionLorebooks.map(lb =>
+          prisma.lorebook.create({
+            data: {
+              scope: 'conversation',
+              scopeId: conversation.id,
+              keyword: lb.keyword,
+              content: lb.content,
+              priority: lb.priority,
+              scanDepth: lb.scanDepth,
+              conversationId: conversation.id,
+            },
+          })
+        )
+      )
+    }
+  }
 
   const firstChar = conversation.characters[0]?.character
   const chosenOpening = body.openingMessage !== undefined

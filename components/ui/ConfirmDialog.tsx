@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 
 interface Props {
-  message: string
+  message: React.ReactNode
   confirmLabel?: string
   onConfirm: () => void
   onCancel: () => void

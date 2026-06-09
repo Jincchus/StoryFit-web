@@ -43,6 +43,7 @@ export default function Dock() {
   const isSettings = pathname === '/settings'
   const isAssistant = pathname.startsWith('/assistant')
   const isLibrary = pathname.startsWith('/library')
+  const isWhif = pathname.startsWith('/whif')
 
   return (
     <div className="dock">
@@ -60,6 +61,9 @@ export default function Dock() {
             </button>
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/characters') }}>
               🎭 캐릭터
+            </button>
+            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/whif') }}>
+              🪐 WHIF 센터
             </button>
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/library') }}>
               📚 서재
@@ -101,6 +105,11 @@ export default function Dock() {
           aria-label="캐릭터 목록으로 이동"
           onClick={() => router.push('/characters')}
         >🎭 캐릭터</button>
+        <button
+          className={`dock-tab ${isWhif ? 'active' : ''}`}
+          aria-label="WHIF 센터로 이동"
+          onClick={() => router.push('/whif')}
+        >🪐 WHIF</button>
         <button
           className={`dock-tab ${isNewConv ? 'active' : ''}`}
           aria-label="새 대화 시작"

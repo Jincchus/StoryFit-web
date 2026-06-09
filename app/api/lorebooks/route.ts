@@ -10,13 +10,20 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const conversationId = searchParams.get('conversationId')
   const characterId = searchParams.get('characterId')
+  const collectionId = searchParams.get('collectionId')
+
+  if (!conversationId && !characterId && !collectionId) {
+    return NextResponse.json([])
+  }
+
+  const conditions: any[] = []
+  if (conversationId) conditions.push({ conversationId })
+  if (characterId) conditions.push({ characterId })
+  if (collectionId) conditions.push({ scope: 'collection', scopeId: collectionId })
 
   const lorebooks = await prisma.lorebook.findMany({
     where: {
-      OR: [
-        conversationId ? { conversationId } : {},
-        characterId ? { characterId } : {},
-      ],
+      OR: conditions,
     },
     orderBy: { priority: 'desc' },
   })

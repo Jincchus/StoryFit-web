@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
@@ -8,12 +8,26 @@ import CharacterForm, { type CharFormData } from '@/components/ui/CharacterForm'
 
 export default function CharacterNewPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const collectionIdParam = searchParams.get('collectionId') ?? ''
+  const isWhifParam = searchParams.get('isWhif') === 'true'
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
   const [form, setForm] = useState<CharFormData>({
     name: '', gender: '', avatarUrl: '',
     tags: [], additionalInfo: '', exampleDialogues: '', openingMessage: '',
+    collectionId: collectionIdParam || null,
   })
+
+  useEffect(() => {
+    api.get(`/api/collections${isWhifParam ? '?isWhif=true' : ''}`)
+      .then(cols => {
+        setCollections(Array.isArray(cols) ? cols : [])
+      })
+      .catch(() => {})
+  }, [isWhifParam])
 
   const onChange = <K extends keyof CharFormData>(key: K, val: CharFormData[K]) =>
     setForm(f => ({ ...f, [key]: val }))
@@ -24,7 +38,11 @@ export default function CharacterNewPage() {
     setError('')
     try {
       await api.post('/api/characters', form)
-      router.push('/characters')
+      if (isWhifParam) {
+        router.push('/whif')
+      } else {
+        router.push('/characters')
+      }
     } catch (e: any) {
       setError(e.message)
       setLoading(false)
@@ -51,7 +69,7 @@ export default function CharacterNewPage() {
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0, paddingRight: 4 }}>
-          <CharacterForm form={form} onChange={onChange} />
+          <CharacterForm form={form} onChange={onChange} collections={collections} />
         </div>
       </div>
     </Win>

@@ -13,6 +13,7 @@ const SCREEN_LABELS: Record<string, string> = {
   '/conversations/new': '새 대화',
   '/settings': '설정',
   '/library': '서재',
+  '/whif': 'WHIF 센터',
 }
 
 function Shell({ children }: { children: React.ReactNode }) {

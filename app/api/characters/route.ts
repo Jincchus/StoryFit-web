@@ -6,11 +6,49 @@ export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
+  const { searchParams } = new URL(req.url)
+  const isWhif = searchParams.get('isWhif') === 'true'
+
+  const whereClause = isWhif
+    ? {
+        creatorId: userId,
+        collection: {
+          sourceUrl: {
+            contains: 'whif.',
+          },
+        },
+      }
+    : {
+        OR: [
+          { isPreset: true },
+          {
+            creatorId: userId,
+            OR: [
+              { collectionId: null },
+              {
+                collection: {
+                  OR: [
+                    { sourceUrl: '' },
+                    {
+                      NOT: {
+                        sourceUrl: {
+                          contains: 'whif.',
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      }
+
   const characters = await prisma.character.findMany({
-    where: { OR: [{ isPreset: true }, { creatorId: userId }] },
+    where: whereClause,
     orderBy: [{ isPreset: 'desc' }, { createdAt: 'asc' }],
     include: {
-      collection: { select: { id: true, title: true } },
+      collection: { select: { id: true, title: true, sourceUrl: true } },
       conversations: {
         where: { conversation: { userId, characterCollection: { isNot: null } } },
         take: 1,
@@ -62,6 +100,7 @@ export async function POST(req: NextRequest) {
   const temperature = Math.min(2, Math.max(0, Number(body.temperature) || 0.9))
   const frequencyPenalty = Math.min(2, Math.max(0, Number(body.frequencyPenalty) || 0.3))
   const defaultAI = ['gemini', 'claude', 'chatgpt'].includes(body.defaultAI) ? body.defaultAI : 'gemini'
+  const collectionId = body.collectionId ? String(body.collectionId) : null
 
   const character = await prisma.character.create({
     data: {
@@ -77,6 +116,7 @@ export async function POST(req: NextRequest) {
       frequencyPenalty,
       defaultAI,
       creatorId: userId,
+      collectionId,
     },
   })
   return NextResponse.json(character, { status: 201 })
