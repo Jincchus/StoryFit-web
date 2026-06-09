@@ -241,7 +241,8 @@ async function renderWhifPageText(url: string): Promise<{
 
     // 캐릭터 데이터를 가로챘다면 브라우저 컨텍스트를 활용해 세계관 상세 및 전체 캐릭터 목록을 적극적으로 Fetch 해옵니다.
     if (apiData.character) {
-      const uniId = apiData.character.universeId || apiData.character.universe?.id
+      const mainCharObj = apiData.character.character || apiData.character
+      const uniId = mainCharObj.universeId || mainCharObj.universe?.id
       if (uniId) {
         console.log('[whif-import] Active fetch triggered for universe id:', uniId)
         
@@ -283,8 +284,8 @@ async function renderWhifPageText(url: string): Promise<{
       }
 
       // 만약 액티브 Fetch가 실패했거나 응답이 없더라도 기존 내장 데이터를 폴백으로 복구해둡니다.
-      if (!apiData.universe && apiData.character.universe) {
-        apiData.universe = apiData.character.universe
+      if (!apiData.universe && mainCharObj.universe) {
+        apiData.universe = mainCharObj.universe
       }
     }
 
@@ -512,13 +513,12 @@ export async function captureWhif(url: string): Promise<Captured> {
   // apiData가 있으면 게이트 체크보다 먼저 처리한다.
   // universe가 없는 단독 캐릭터도 character 데이터만으로 처리한다.
   if (apiData && apiData.character) {
-    const universe = apiData.universe ?? {}
-    const mainChar = apiData.character
-    // ListByUniverseId는 메인 캐릭터 자신도 포함해 내려주므로, 그대로 합치면
-    // 동일 캐릭터가 두 번 생성된다 — id가 같은 항목은 제외한다.
-    const otherChars = (apiData.universeCharacters || []).filter((c: any) => !mainChar?.id || c?.id !== mainChar.id)
-
-    const allChars = [mainChar, ...otherChars]
+    const normalizeChar = (c: any) => c?.character || c
+    const mainChar = normalizeChar(apiData.character)
+    const otherRaw = apiData.universeCharacters || []
+    const otherChars = otherRaw.map(normalizeChar).filter((c: any) => c && c.id !== mainChar.id)
+    const allChars = [mainChar, ...otherChars].filter(Boolean)
+    const universe = apiData.universe?.universe || apiData.universe || {}
 
     const characters = allChars.map((c) => {
       const firstMessages = c.publicData?.firstMessages || []

@@ -90,50 +90,92 @@ async function runImport(captured: Captured, url: string, userId: string) {
     )
   )
 
+  const isWhif = matchesHost(url, 'whif.io', 'whif.club')
+
   const conversation = await prisma.conversation.create({
     data: {
-      userId, title, mode: isMulti ? 'multiStory' : 'story', currentAI: 'gemini',
+      userId,
+      title,
+      mode: isWhif
+        ? (isMulti ? 'tikiTaka' : 'roleplay')
+        : (isMulti ? 'multiStory' : 'story'),
+      currentAI: 'gemini',
       scenarioDescription: result.scenarioDescription,
-      tags: result.tags, isAutoCreated: true, sourceUrl: url,
+      tags: result.tags,
+      isAutoCreated: true,
+      sourceUrl: url,
       safetyLevel: result.safetyLevel || 'standard',
       sourceLorebookUrls: captured.loreUrls && captured.loreUrls.length ? captured.loreUrls : undefined,
       characters: { create: createdChars.map((c, i) => ({ characterId: c.id, turnOrder: i })) },
     },
   })
 
-  // WHIF 백과사전(로어북) 항목이 있는 경우 자동 동기화 저장
-  if (captured.lorebooks && captured.lorebooks.length > 0) {
-    await Promise.all(
-      captured.lorebooks.map((entry) =>
-        prisma.lorebook.create({
-          data: {
-            scope: 'conversation',
-            scopeId: conversation.id,
-            keyword: entry.keyword,
-            content: entry.content,
-            priority: entry.priority ?? 0,
-            conversationId: conversation.id,
-          },
-        })
-      )
-    )
-  }
-
+  // 세계관(컬렉션) 이름은 대화방 접미사("과의 대화")를 빼고 깔끔하게 원본 제목(세계관 명칭) 또는 대표 캐릭터 이름으로 저장합니다.
+  const collectionTitle = (captured.title || result.title || firstName).trim()
   const collection = await prisma.characterCollection.create({
-    data: { title, sourceUrl: url, userId, conversationId: conversation.id },
+    data: { title: collectionTitle, sourceUrl: url, userId, conversationId: conversation.id },
   })
+
   await prisma.character.updateMany({
     where: { id: { in: createdChars.map(c => c.id) } },
     data: { collectionId: collection.id },
   })
 
+  // WHIF 백과사전(로어북) 항목이 있는 경우 자동 동기화 저장
+  if (captured.lorebooks && captured.lorebooks.length > 0) {
+    if (isWhif) {
+      await Promise.all(
+        captured.lorebooks.flatMap((entry) => [
+          prisma.lorebook.create({
+            data: {
+              scope: 'collection',
+              scopeId: collection.id,
+              keyword: entry.keyword,
+              content: entry.content,
+              priority: entry.priority ?? 0,
+              conversationId: null,
+            },
+          }),
+          prisma.lorebook.create({
+            data: {
+              scope: 'conversation',
+              scopeId: conversation.id,
+              keyword: entry.keyword,
+              content: entry.content,
+              priority: entry.priority ?? 0,
+              conversationId: conversation.id,
+            },
+          })
+        ])
+      )
+    } else {
+      await Promise.all(
+        captured.lorebooks.map((entry) =>
+          prisma.lorebook.create({
+            data: {
+              scope: 'conversation',
+              scopeId: conversation.id,
+              keyword: entry.keyword,
+              content: entry.content,
+              priority: entry.priority ?? 0,
+              conversationId: conversation.id,
+            },
+          })
+        )
+      )
+    }
+  }
+
   const firstChar = createdChars[0]
   if (firstChar?.openingMessage?.trim()) {
     await prisma.message.create({
       data: {
-        conversationId: conversation.id, role: 'assistant',
-        content: firstChar.openingMessage.trim(), characterId: firstChar.id,
-        isSelected: true, isStreaming: false,
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: firstChar.openingMessage.trim(),
+        characterId: firstChar.id,
+        isSelected: true,
+        isStreaming: false,
       },
     })
   }
@@ -157,6 +199,9 @@ export async function POST(req: NextRequest) {
     catch (e: any) { return NextResponse.json({ error: e.message ?? '멜팅 가져오기 실패' }, { status: 400 }) }
   }
   if (matchesHost(url, 'whif.io', 'whif.club')) {
+    if (url.includes('/universes/')) {
+      return NextResponse.json({ error: '세계관 URL은 직접 등록할 수 없습니다. 소속된 캐릭터 URL을 등록해주세요.' }, { status: 400 })
+    }
     try { return NextResponse.json(await runImport(await captureWhif(url.trim()), url.trim(), userId), { status: 201 }) }
     catch (e: any) { return NextResponse.json({ error: e.message ?? 'Whif 가져오기 실패' }, { status: 400 }) }
   }

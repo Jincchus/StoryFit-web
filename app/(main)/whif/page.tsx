@@ -40,7 +40,6 @@ interface Lorebook {
 
 export default function WhifCenterPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'universes' | 'chats'>('universes')
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
@@ -61,6 +60,9 @@ export default function WhifCenterPage() {
   const [showCreateUni, setShowCreateUni] = useState(false)
   const [newUniTitle, setNewUniTitle] = useState('')
   const [confirmDeleteUniId, setConfirmDeleteUniId] = useState<string | null>(null)
+  const [confirmDeleteCharId, setConfirmDeleteCharId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'universes' | 'characters' | 'chats'>('universes')
+  const [selectedCharId, setSelectedCharId] = useState<string | null>(null)
 
   // Lorebook Inline Form
   const [showAddLore, setShowAddLore] = useState(false)
@@ -138,7 +140,7 @@ export default function WhifCenterPage() {
         setLorebooks([])
       }
       setConfirmDeleteUniId(null)
-      setSuccess('세계관이 삭제되었습니다. 소속 캐릭터는 보존됩니다.')
+      setSuccess('세계관과 소속 캐릭터가 모두 삭제되었습니다.')
       await fetchData()
     } catch (e: any) {
       setError('세계관 삭제 실패: ' + e.message)
@@ -146,8 +148,38 @@ export default function WhifCenterPage() {
     }
   }
 
+  const handleDeleteCharacter = async (charId: string) => {
+    try {
+      await api.delete(`/api/characters/${charId}`)
+      setConfirmDeleteCharId(null)
+      setSuccess('캐릭터가 삭제되었습니다.')
+      
+      const [unisData, charsData, chatsData] = await Promise.all([
+        api.get('/api/collections?isWhif=true'),
+        api.get('/api/characters?isWhif=true'),
+        api.get('/api/conversations?isWhif=true'),
+      ])
+      setUniverses(unisData)
+      setCharacters(charsData)
+      setChats(chatsData)
+
+      if (selectedUniId) {
+        const stillExists = unisData.some((u: any) => u.id === selectedUniId)
+        if (!stillExists) {
+          setSelectedUniId(null)
+          setLorebooks([])
+          setSuccess('마지막 캐릭터가 삭제되어 세계관도 함께 삭제되었습니다.')
+        }
+      }
+    } catch (e: any) {
+      setError('캐릭터 삭제 실패: ' + e.message)
+      setConfirmDeleteCharId(null)
+    }
+  }
+
   const handleSelectUniverse = async (id: string) => {
     setSelectedUniId(id)
+    setSelectedCharId(null)
     setLoreLoading(true)
     setShowAddLore(false)
     setEditingLoreId(null)
@@ -158,6 +190,25 @@ export default function WhifCenterPage() {
       setError('설정 카드를 불러오지 못했습니다.')
     } finally {
       setLoreLoading(false)
+    }
+  }
+
+  const handleSelectCharacter = async (char: Character) => {
+    setSelectedCharId(char.id)
+    const uniId = char.collection?.id ?? null
+    setSelectedUniId(uniId)
+    if (uniId) {
+      setLoreLoading(true)
+      try {
+        const lbData = await api.get(`/api/lorebooks?collectionId=${uniId}`)
+        setLorebooks(lbData)
+      } catch (e) {
+        setError('설정 카드를 불러오지 못했습니다.')
+      } finally {
+        setLoreLoading(false)
+      }
+    } else {
+      setLorebooks([])
     }
   }
 
@@ -246,9 +297,17 @@ export default function WhifCenterPage() {
     <>
       {confirmDeleteUniId && (
         <ConfirmDialog
-          message="이 세계관을 삭제할까요? 소속 캐릭터들은 유지되지만 세계관 묶음 및 설정 카드는 전부 삭제됩니다."
+          message="이 세계관을 삭제할까요? 세계관과 소속 캐릭터, 설정 카드가 전부 삭제되며 복구할 수 없습니다."
           onConfirm={() => handleDeleteUniverse(confirmDeleteUniId)}
           onCancel={() => setConfirmDeleteUniId(null)}
+        />
+      )}
+
+      {confirmDeleteCharId && (
+        <ConfirmDialog
+          message="이 캐릭터를 삭제할까요? 캐릭터와 관련된 모든 대화방 기록도 함께 정리됩니다."
+          onConfirm={() => handleDeleteCharacter(confirmDeleteCharId)}
+          onCancel={() => setConfirmDeleteCharId(null)}
         />
       )}
 
@@ -266,6 +325,8 @@ export default function WhifCenterPage() {
               />
             </div>
           }
+          confirmLabel="생성"
+          confirmVariant="primary"
           onConfirm={handleCreateUniverse}
           onCancel={() => { setShowCreateUni(false); setNewUniTitle('') }}
         />
@@ -308,13 +369,18 @@ export default function WhifCenterPage() {
                   onClick={() => setActiveTab('universes')}
                 >🪐 세계관</button>
                 <button
+                  className={`btn ${activeTab === 'characters' ? 'primary' : 'ghost'}`}
+                  style={{ flex: 1, fontSize: 11, padding: '4px 0' }}
+                  onClick={() => setActiveTab('characters')}
+                >🎭 캐릭터</button>
+                <button
                   className={`btn ${activeTab === 'chats' ? 'primary' : 'ghost'}`}
                   style={{ flex: 1, fontSize: 11, padding: '4px 0' }}
                   onClick={() => setActiveTab('chats')}
                 >💬 채팅방</button>
               </div>
 
-              {activeTab === 'universes' ? (
+              {activeTab === 'universes' && (
                 <div className="vstack" style={{ flex: 1, minHeight: 0, gap: 6 }}>
                   <button
                     className="btn"
@@ -344,7 +410,40 @@ export default function WhifCenterPage() {
                     ))}
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {activeTab === 'characters' && (
+                <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
+                  {loading ? (
+                    <div className="tiny muted text-center" style={{ padding: 20 }}>로딩 중...</div>
+                  ) : characters.length === 0 ? (
+                    <div className="tiny muted text-center" style={{ padding: 20 }}>캐릭터가 없습니다.</div>
+                  ) : characters.map(char => (
+                    <div
+                      key={char.id}
+                      className={`row ${selectedCharId === char.id ? 'selected' : ''}`}
+                      style={{ cursor: 'pointer', padding: '6px 8px', marginBottom: 4, borderRadius: 3 }}
+                      onClick={() => handleSelectCharacter(char)}
+                    >
+                      <div className="thumb" style={{ width: 24, height: 24, flexShrink: 0 }}>
+                        {char.avatarUrl ? (
+                          <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                        ) : (
+                          <PixelAvatar kind="custom" size={24} />
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0, marginLeft: 6 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{char.name}</div>
+                        <div className="tiny muted" style={{ fontSize: 9, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {char.collection?.title ?? '미분류 세계관'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === 'chats' && (
                 <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
                   {loading ? (
                     <div className="tiny muted text-center" style={{ padding: 20 }}>로딩 중...</div>
@@ -400,154 +499,200 @@ export default function WhifCenterPage() {
                     </div>
                   </div>
 
-                  {/* 소속 캐릭터 섹션 */}
-                  <div className="vstack" style={{ gap: 6 }}>
-                    <div className="spread" style={{ alignItems: 'center' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700 }}>🎭 소속 캐릭터 ({selectedUniCharacters.length})</div>
-                      <button
-                        className="btn"
-                        style={{ fontSize: 10, padding: '2px 8px' }}
-                        onClick={() => router.push(`/characters/new?isWhif=true&collectionId=${selectedUniverse.id}`)}
-                      >
-                        + 직접 캐릭터 등록
-                      </button>
-                    </div>
-                    
-                    <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
-                      {selectedUniCharacters.length === 0 ? (
-                        <div className="tiny muted" style={{ padding: 10 }}>소속된 캐릭터가 없습니다. 직접 캐릭터를 추가해보세요.</div>
-                      ) : selectedUniCharacters.map(char => (
-                        <div
-                          key={char.id}
-                          className="hstack"
-                          style={{
-                            background: 'var(--chrome-face)',
-                            border: '1px solid var(--chrome-border)',
-                            padding: '4px 8px',
-                            borderRadius: 4,
-                            alignItems: 'center',
-                            gap: 6
-                          }}
+                  {/* 세계관 탭일 때는 소속 캐릭터 목록을 노출 */}
+                  {activeTab !== 'characters' && (
+                    <div className="vstack" style={{ gap: 6 }}>
+                      <div className="spread" style={{ alignItems: 'center' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700 }}>🎭 소속 캐릭터 ({selectedUniCharacters.length})</div>
+                        <button
+                          className="btn"
+                          style={{ fontSize: 10, padding: '2px 8px' }}
+                          onClick={() => router.push(`/characters/new?isWhif=true&collectionId=${selectedUniverse.id}`)}
                         >
-                          <div style={{ width: 20, height: 20, borderRadius: 3, overflow: 'hidden' }}>
-                            {char.avatarUrl ? (
-                              <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                            ) : (
-                              <PixelAvatar kind="custom" size={20} />
-                            )}
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 700 }}>{char.name}</span>
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            style={{ padding: '0 4px', fontSize: 9, minHeight: 'auto', border: 'none', color: '#a78bfa' }}
-                            onClick={() => router.push(`/characters/${char.id}/edit`)}
-                          >✏</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 설정 카드 (로어북) 섹션 */}
-                  <div className="vstack" style={{ gap: 8, borderTop: '1px solid var(--chrome-border)', paddingTop: 12 }}>
-                    <div className="spread" style={{ alignItems: 'center' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700 }}>📖 세계관 설정 카드 / 백과사전 ({lorebooks.length})</div>
-                      <button
-                        className="btn"
-                        style={{ fontSize: 10, padding: '2px 8px', borderColor: '#8b5cf6', color: '#c084fc' }}
-                        onClick={() => {
-                          setShowAddLore(!showAddLore)
-                          setEditingLoreId(null)
-                          setLoreKeyword('')
-                          setLoreContent('')
-                          setLorePriority(0)
-                        }}
-                      >
-                        {showAddLore ? '닫기' : '+ 설정 카드 추가'}
-                      </button>
-                    </div>
-
-                    {showAddLore && (
-                      <div className="vstack" style={{ gap: 8, background: 'rgba(139, 92, 246, 0.05)', border: '1px solid #7c3aed', padding: 10, borderRadius: 4 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#c084fc' }}>
-                          {editingLoreId ? '설정 카드 수정' : '새 설정 카드 추가'}
-                        </div>
-                        <div>
-                          <label className="label" style={{ fontSize: 10, marginBottom: 2 }}>인식 키워드 (쉼표로 구분)</label>
-                          <input
-                            className="field"
-                            placeholder="예: 마왕성, 검은장미, 아스칼"
-                            value={loreKeyword}
-                            onChange={e => setLoreKeyword(e.target.value)}
-                            style={{ fontSize: 11 }}
-                          />
-                        </div>
-                        <div>
-                          <label className="label" style={{ fontSize: 10, marginBottom: 2 }}>설정 내용 (AI가 해당 키워드 감지 시 인지)</label>
-                          <textarea
-                            className="field"
-                            rows={3}
-                            placeholder="설정 카드의 구체적인 묘사나 백과사전적 사실을 적으세요."
-                            value={loreContent}
-                            onChange={e => setLoreContent(e.target.value)}
-                            style={{ fontSize: 11 }}
-                          />
-                        </div>
-                        <div>
-                          <label className="label" style={{ fontSize: 10, marginBottom: 2 }}>우선순위 (숫자가 높을수록 우선 적용)</label>
-                          <input
-                            className="field"
-                            type="number"
-                            placeholder="0"
-                            value={lorePriority}
-                            onChange={e => setLorePriority(Number(e.target.value))}
-                            style={{ fontSize: 11 }}
-                          />
-                        </div>
-                        <div className="hstack" style={{ gap: 4, justifyContent: 'flex-end' }}>
-                          <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setShowAddLore(false)}>취소</button>
-                          <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px', background: '#7c3aed', borderColor: '#6d28d9' }} onClick={handleSaveLore}>저장</button>
-                        </div>
+                          + 직접 캐릭터 등록
+                        </button>
                       </div>
-                    )}
-
-                    {loreLoading ? (
-                      <div className="tiny muted text-center" style={{ padding: 20 }}>설정 카드를 불러오는 중...</div>
-                    ) : lorebooks.length === 0 ? (
-                      <div className="tiny muted text-center" style={{ padding: 20 }}>등록된 설정 카드가 없습니다.</div>
-                    ) : (
-                      <div className="vstack" style={{ gap: 6 }}>
-                        {lorebooks.map(lb => (
+                      
+                      <div className="hstack" style={{ gap: 8, flexWrap: 'wrap' }}>
+                        {selectedUniCharacters.length === 0 ? (
+                          <div className="tiny muted" style={{ padding: 10 }}>소속된 캐릭터가 없습니다. 직접 캐릭터를 추가해보세요.</div>
+                        ) : selectedUniCharacters.map(char => (
                           <div
-                            key={lb.id}
+                            key={char.id}
+                            className="hstack"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.03)',
+                              background: 'var(--chrome-face)',
                               border: '1px solid var(--chrome-border)',
-                              padding: 8,
-                              borderRadius: 4
+                              padding: '4px 8px',
+                              borderRadius: 4,
+                              alignItems: 'center',
+                              gap: 6
                             }}
                           >
-                            <div className="spread" style={{ alignItems: 'flex-start', marginBottom: 4 }}>
-                              <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
-                                {lb.keyword.map(kw => (
-                                  <span key={kw} style={{ background: '#7c3aed', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10 }}>{kw}</span>
-                                ))}
-                                <span className="tiny muted" style={{ fontSize: 9 }}>우선순위: {lb.priority}</span>
-                              </div>
-                              <div className="hstack" style={{ gap: 4 }}>
-                                <button className="btn ghost" style={{ fontSize: 9, padding: '1px 4px', border: 'none', color: '#a78bfa' }} onClick={() => handleEditLoreClick(lb)}>수정</button>
-                                <button className="btn danger" style={{ fontSize: 9, padding: '1px 4px', border: 'none' }} onClick={() => handleDeleteLore(lb.id)}>삭제</button>
-                              </div>
+                            <div style={{ width: 20, height: 20, borderRadius: 3, overflow: 'hidden' }}>
+                              {char.avatarUrl ? (
+                                <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                              ) : (
+                                <PixelAvatar kind="custom" size={20} />
+                              )}
                             </div>
-                            <p className="tiny" style={{ margin: 0, whiteSpace: 'pre-wrap', color: 'var(--ink-soft)' }}>
-                              {lb.content}
-                            </p>
+                            <span style={{ fontSize: 11, fontWeight: 700 }}>{char.name}</span>
+                            <div className="hstack" style={{ gap: 2 }}>
+                              <button
+                                type="button"
+                                className="btn ghost"
+                                style={{ padding: '0 4px', fontSize: 9, minHeight: 'auto', border: 'none', color: '#a78bfa' }}
+                                onClick={() => router.push(`/characters/${char.id}/edit`)}
+                                title="수정"
+                              >✏</button>
+                              <button
+                                type="button"
+                                className="btn ghost"
+                                style={{ padding: '0 4px', fontSize: 9, minHeight: 'auto', border: 'none', color: '#ff6b8a' }}
+                                onClick={() => setConfirmDeleteCharId(char.id)}
+                                title="삭제"
+                              >✕</button>
+                            </div>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* 캐릭터 탭일 때는 세계관 백과사전(로어북)을 노출 */}
+                  {activeTab === 'characters' && (
+                    <div className="vstack" style={{ gap: 8 }}>
+                      <div className="spread" style={{ alignItems: 'center' }}>
+                        <div style={{ fontSize: 12, fontWeight: 700 }}>📖 세계관 설정 카드 / 백과사전 ({lorebooks.length})</div>
+                        <button
+                          className="btn"
+                          style={{ fontSize: 10, padding: '2px 8px', borderColor: '#8b5cf6', color: '#c084fc' }}
+                          onClick={() => {
+                            setShowAddLore(!showAddLore)
+                            setEditingLoreId(null)
+                            setLoreKeyword('')
+                            setLoreContent('')
+                            setLorePriority(0)
+                          }}
+                        >
+                          {showAddLore ? '닫기' : '+ 설정 카드 추가'}
+                        </button>
+                      </div>
+
+                      {showAddLore && (
+                        <div className="vstack" style={{ gap: 8, background: 'rgba(139, 92, 246, 0.05)', border: '1px solid #7c3aed', padding: 10, borderRadius: 4 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#c084fc' }}>
+                            {editingLoreId ? '설정 카드 수정' : '새 설정 카드 추가'}
+                          </div>
+                          <div>
+                            <label className="label" style={{ fontSize: 10, marginBottom: 2 }}>인식 키워드 (쉼표로 구분)</label>
+                            <input
+                              className="field"
+                              placeholder="예: 마왕성, 검은장미, 아스칼"
+                              value={loreKeyword}
+                              onChange={e => setLoreKeyword(e.target.value)}
+                              style={{ fontSize: 11 }}
+                            />
+                          </div>
+                          <div>
+                            <label className="label" style={{ fontSize: 10, marginBottom: 2 }}>설정 내용 (AI가 해당 키워드 감지 시 인지)</label>
+                            <textarea
+                              className="field"
+                              rows={3}
+                              placeholder="설정 카드의 구체적인 묘사나 백과사전적 사실을 적으세요."
+                              value={loreContent}
+                              onChange={e => setLoreContent(e.target.value)}
+                              style={{ fontSize: 11 }}
+                            />
+                          </div>
+                          <div>
+                            <label className="label" style={{ fontSize: 10, marginBottom: 2 }}>우선순위 (숫자가 높을수록 우선 적용)</label>
+                            <input
+                              className="field"
+                              type="number"
+                              placeholder="0"
+                              value={lorePriority}
+                              onChange={e => setLorePriority(Number(e.target.value))}
+                              style={{ fontSize: 11 }}
+                            />
+                          </div>
+                          <div className="hstack" style={{ gap: 4, justifyContent: 'flex-end' }}>
+                            <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setShowAddLore(false)}>취소</button>
+                            <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px', background: '#7c3aed', borderColor: '#6d28d9' }} onClick={handleSaveLore}>저장</button>
+                          </div>
+                        </div>
+                      )}
+
+                      {loreLoading ? (
+                        <div className="tiny muted text-center" style={{ padding: 20 }}>설정 카드를 불러오는 중...</div>
+                      ) : lorebooks.length === 0 ? (
+                        <div className="tiny muted text-center" style={{ padding: 20 }}>등록된 설정 카드가 없습니다.</div>
+                      ) : (
+                        <div className="vstack" style={{ gap: 6 }}>
+                          {lorebooks.map(lb => (
+                            <div
+                              key={lb.id}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.03)',
+                                border: '1px solid var(--chrome-border)',
+                                padding: 8,
+                                borderRadius: 4
+                              }}
+                            >
+                              <div className="spread" style={{ alignItems: 'flex-start', marginBottom: 4 }}>
+                                <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
+                                  {lb.keyword.map(kw => (
+                                    <span key={kw} style={{ background: '#7c3aed', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10 }}>{kw}</span>
+                                  ))}
+                                  <span className="tiny muted" style={{ fontSize: 9 }}>우선순위: {lb.priority}</span>
+                                </div>
+                                <div className="hstack" style={{ gap: 4 }}>
+                                  <button className="btn ghost" style={{ fontSize: 9, padding: '1px 4px', border: 'none', color: '#a78bfa' }} onClick={() => handleEditLoreClick(lb)}>수정</button>
+                                  <button className="btn danger" style={{ fontSize: 9, padding: '1px 4px', border: 'none' }} onClick={() => handleDeleteLore(lb.id)}>삭제</button>
+                                </div>
+                              </div>
+                              <p className="tiny" style={{ margin: 0, whiteSpace: 'pre-wrap', color: 'var(--ink-soft)' }}>
+                                {lb.content}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+              ) : selectedCharId ? (
+                (() => {
+                  const char = characters.find(c => c.id === selectedCharId)
+                  if (!char) return null
+                  return (
+                    <div className="vstack" style={{ gap: 14 }}>
+                      <div className="spread" style={{ borderBottom: '1px solid var(--chrome-border)', paddingBottom: 8 }}>
+                        <div className="hstack" style={{ gap: 10, alignItems: 'center' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+                            {char.avatarUrl ? (
+                              <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                            ) : (
+                              <PixelAvatar kind="custom" size={32} />
+                            )}
+                          </div>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: 15, color: '#c084fc' }}>{char.name}</h3>
+                            <div className="tiny muted">{char.gender || '성별 미지정'}</div>
+                          </div>
+                        </div>
+                        <div className="hstack" style={{ gap: 4 }}>
+                          <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${char.id}/edit`)}>✏ 수정</button>
+                          <button className="btn danger" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => setConfirmDeleteCharId(char.id)}>✕ 삭제</button>
+                        </div>
+                      </div>
+                      <div className="vstack" style={{ gap: 8 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700 }}>소속 세계관</div>
+                        <div className="tiny muted">이 캐릭터는 소속된 세계관이 없습니다. 수정 페이지에서 세계관을 지정할 수 있습니다.</div>
+                      </div>
+                    </div>
+                  )
+                })()
               ) : (
                 <div className="vstack" style={{ height: '100%', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '40px 0', color: 'var(--ink-soft)' }}>
                   <div style={{ fontSize: 40 }}>🪐</div>

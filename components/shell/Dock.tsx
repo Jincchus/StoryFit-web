@@ -95,6 +95,11 @@ export default function Dock() {
       </div>
       <div style={{ display: 'flex', gap: 4, overflow: 'hidden', flex: 1 }}>
         <button className={`dock-tab ${isHome ? 'active' : ''}`} onClick={() => router.push('/')}>홈</button>
+        <button
+          className={`dock-tab ${isWhif ? 'active' : ''}`}
+          aria-label="WHIF 센터로 이동"
+          onClick={() => router.push('/whif')}
+        >🪐 WHIF</button>
       </div>
       <div className="tray">
         <span title="네트워크" style={{ color: '#22a06b' }}>●</span>

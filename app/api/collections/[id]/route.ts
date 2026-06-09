@@ -54,25 +54,44 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   })
 
   if (!collection) {
-    return NextResponse.json({ error: '컬렉션을 찾을 수 없습니다.' }, { status: 404 })
+    return NextResponse.json({ error: '세계관을 찾을 수 없습니다.' }, { status: 404 })
   }
 
-  // Transaction: 
-  // 1. 컬렉션에 소속된 캐릭터들의 collectionId를 null로 해제하여 캐릭터 보존
-  // 2. 컬렉션 스코프의 로어북 설정 카드 삭제
-  // 3. 컬렉션 삭제
-  await prisma.$transaction([
-    prisma.character.updateMany({
-      where: { collectionId: params.id },
-      data: { collectionId: null },
-    }),
-    prisma.lorebook.deleteMany({
+  // Find all characters belonging to this collection
+  const chars = await prisma.character.findMany({
+    where: { collectionId: params.id },
+    select: { id: true }
+  })
+  const charIds = chars.map(c => c.id)
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete characters and their references
+    if (charIds.length > 0) {
+      await tx.conversationCharacter.deleteMany({ where: { characterId: { in: charIds } } })
+      await tx.conversation.updateMany({ where: { personaCharacterId: { in: charIds } }, data: { personaCharacterId: null } })
+      await tx.message.updateMany({ where: { characterId: { in: charIds } }, data: { characterId: null } })
+      await tx.lorebook.updateMany({ where: { characterId: { in: charIds } }, data: { characterId: null } })
+      await tx.character.deleteMany({ where: { id: { in: charIds } } })
+    }
+
+    // 2. Delete collection-scoped lorebooks
+    await tx.lorebook.deleteMany({
       where: { scope: 'collection', scopeId: params.id },
-    }),
-    prisma.characterCollection.delete({
+    })
+
+    // 3. Delete the collection itself
+    await tx.characterCollection.delete({
       where: { id: params.id },
-    }),
-  ])
+    })
+
+    // 4. Delete the associated dummy conversation if exists
+    if (collection.conversationId) {
+      const exists = await tx.conversation.findUnique({ where: { id: collection.conversationId }, select: { id: true } })
+      if (exists) {
+        await tx.conversation.delete({ where: { id: collection.conversationId } })
+      }
+    }
+  })
 
   return new NextResponse(null, { status: 204 })
 }

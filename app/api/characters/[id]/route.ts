@@ -40,12 +40,43 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!character) return NextResponse.json({ error: '캐릭터를 찾을 수 없습니다.' }, { status: 404 })
   if (character.isPreset || character.creatorId !== userId) return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })
 
-  await prisma.$transaction([
-    prisma.conversationCharacter.deleteMany({ where: { characterId: params.id } }),
-    prisma.conversation.updateMany({ where: { personaCharacterId: params.id }, data: { personaCharacterId: null } }),
-    prisma.message.updateMany({ where: { characterId: params.id }, data: { characterId: null } }),
-    prisma.lorebook.updateMany({ where: { characterId: params.id }, data: { characterId: null } }),
-    prisma.character.delete({ where: { id: params.id } }),
-  ])
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete character references and character
+    await tx.conversationCharacter.deleteMany({ where: { characterId: params.id } })
+    await tx.conversation.updateMany({ where: { personaCharacterId: params.id }, data: { personaCharacterId: null } })
+    await tx.message.updateMany({ where: { characterId: params.id }, data: { characterId: null } })
+    await tx.lorebook.updateMany({ where: { characterId: params.id }, data: { characterId: null } })
+    await tx.character.delete({ where: { id: params.id } })
+
+    // 2. Check if collection should be deleted
+    if (character.collectionId) {
+      const remainingCount = await tx.character.count({
+        where: { collectionId: character.collectionId }
+      })
+      if (remainingCount === 0) {
+        // Delete collection lorebooks
+        await tx.lorebook.deleteMany({
+          where: { scope: 'collection', scopeId: character.collectionId }
+        })
+        // Fetch collection to get conversationId
+        const col = await tx.characterCollection.findUnique({
+          where: { id: character.collectionId },
+          select: { conversationId: true }
+        })
+        // Delete collection itself
+        await tx.characterCollection.delete({
+          where: { id: character.collectionId }
+        })
+        // Delete associated conversation if exists
+        if (col?.conversationId) {
+          const exists = await tx.conversation.findUnique({ where: { id: col.conversationId }, select: { id: true } })
+          if (exists) {
+            await tx.conversation.delete({ where: { id: col.conversationId } })
+          }
+        }
+      }
+    }
+  })
+
   return new NextResponse(null, { status: 204 })
 }

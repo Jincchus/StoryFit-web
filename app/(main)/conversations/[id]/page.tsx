@@ -235,7 +235,11 @@ export default function ChatPage() {
       oldestIdRef.current = msgRes.oldestId
       convModeRef.current = data.mode
       setModel(data.currentAI as AIProvider)
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'universe_placeholder') {
+        router.replace('/whif')
+        return
+      }
       // 언마운트 중 호출되거나 네트워크 오류 시 무시
     } finally {
       setLoadingConv(false)

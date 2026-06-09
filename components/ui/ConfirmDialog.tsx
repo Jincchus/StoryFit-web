@@ -3,11 +3,12 @@ import { useEffect } from 'react'
 interface Props {
   message: React.ReactNode
   confirmLabel?: string
+  confirmVariant?: 'primary' | 'danger'
   onConfirm: () => void
   onCancel: () => void
 }
 
-export default function ConfirmDialog({ message, confirmLabel = '삭제', onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({ message, confirmLabel = '삭제', confirmVariant = 'danger', onConfirm, onCancel }: Props) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel()
@@ -30,7 +31,7 @@ export default function ConfirmDialog({ message, confirmLabel = '삭제', onConf
           <div style={{ fontSize: 12, lineHeight: 1.6 }}>{message}</div>
           <div className="hstack" style={{ gap: 8, justifyContent: 'flex-end' }}>
             <button className="btn ghost" autoFocus onClick={onCancel}>취소</button>
-            <button className="btn danger" onClick={onConfirm}>{confirmLabel}</button>
+            <button className={`btn ${confirmVariant === 'danger' ? 'danger' : 'primary'}`} onClick={onConfirm}>{confirmLabel}</button>
           </div>
         </div>
       </div>
