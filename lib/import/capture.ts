@@ -408,19 +408,6 @@ async function renderMeltingSections(url: string): Promise<{
   })
 }
 
-export async function renderWhifRaw(url: string) {
-  const { apiData } = await renderWhifPageText(url)
-  const normalizeChar = (c: any) => c?.character || c
-  const firstChar = apiData?.character ? normalizeChar(apiData.character) : (apiData?.universeCharacters?.[0] ? normalizeChar(apiData.universeCharacters[0]) : null)
-  return {
-    firstCharKeys: firstChar ? Object.keys(firstChar) : [],
-    firstCharPublicDataKeys: firstChar?.publicData ? Object.keys(firstChar.publicData) : [],
-    firstChar,
-    universeKeys: apiData?.universe ? Object.keys(apiData.universe?.universe ?? apiData.universe) : [],
-    universeCharacterCount: apiData?.universeCharacters?.length ?? 0,
-  }
-}
-
 export async function captureWhif(url: string): Promise<Captured> {
   const { rawText, apiData } = await renderWhifPageText(url)
 
@@ -563,68 +550,6 @@ export async function captureWhif(url: string): Promise<Captured> {
   const text = cleanWhifText(rawText).slice(0, INPUT_CAP)
   if (text.length < 100) throw new Error('Whif 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
   return { sections: [{ tab: null, text }], title: '', imageUrl: '' }
-}
-
-export async function renderZetaRaw(url: string) {
-  // URL에서 플롯 ID 추출
-  const plotId = url.match(/\/plots\/([0-9a-f-]{36})/i)?.[1]
-
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Accept-Language': 'ko-KR,ko;q=0.9',
-    'Accept': 'application/json',
-  }
-
-  // GlobalConfig에 저장된 Zeta 세션 쿠키 시도
-  const zetaCookie = await prisma.globalConfig.findUnique({ where: { key: 'zeta_session_cookie' } })
-  const cookieHeader = zetaCookie?.value?.trim() ?? ''
-
-  const results: Record<string, any> = {}
-
-  if (plotId) {
-    // REST API 엔드포인트들 시도
-    const endpoints = [
-      `https://api.zeta-ai.io/v1/plots/${plotId}`,
-      `https://api.zeta-ai.io/v1/plots/${plotId}/profile`,
-      `https://api.zeta-ai.io/v1/plots/${plotId}/detail`,
-    ]
-    for (const ep of endpoints) {
-      try {
-        const reqHeaders: Record<string, string> = { ...headers }
-        if (cookieHeader) reqHeaders['Cookie'] = cookieHeader
-        const r = await fetch(ep, { headers: reqHeaders })
-        const text = await r.text()
-        try { results[ep] = { status: r.status, body: JSON.parse(text) } }
-        catch { results[ep] = { status: r.status, body: text.slice(0, 500) } }
-      } catch (e: any) {
-        results[ep] = { error: e.message }
-      }
-    }
-  }
-
-  // 원본 페이지 OG 메타 (쿠키 포함)
-  const pageHeaders: Record<string, string> = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Accept-Language': 'ko-KR,ko;q=0.9',
-  }
-  if (cookieHeader) pageHeaders['Cookie'] = cookieHeader
-  const pageRes = await fetch(url, { headers: pageHeaders })
-  const html = await pageRes.text()
-  const pageStatus = pageRes.status
-
-  const ogTitle = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"/) ?.[1] ?? ''
-  const ogDesc = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"/) ?.[1] ?? ''
-  const ogImage = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"/) ?.[1] ?? ''
-  const is403 = html.includes('403:') || html.includes('401:') || pageStatus >= 400
-
-  return {
-    plotId,
-    pageStatus,
-    is403,
-    hasCookie: !!cookieHeader,
-    og: { title: ogTitle, description: ogDesc, image: ogImage },
-    apiResults: results,
-  }
 }
 
 export async function captureZeta(url: string): Promise<Captured> {
