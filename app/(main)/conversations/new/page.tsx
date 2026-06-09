@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
-import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import ParamTooltip from '@/components/ui/ParamTooltip'
 import type { Character } from '@/types'
 
@@ -179,6 +178,7 @@ function NewConversationInner() {
 
   const [altGreetings, setAltGreetings] = useState<{ title: string; text: string }[]>([])
   const [showGreetingModal, setShowGreetingModal] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     if (char) {
@@ -188,6 +188,8 @@ function NewConversationInner() {
       setAltGreetings([])
     }
   }, [char])
+
+  useEffect(() => { setMounted(true) }, [])
 
   const handleStart = async (chosenGreetingText?: string) => {
     if (!char || loading) return
@@ -251,7 +253,7 @@ function NewConversationInner() {
 
   return (
     <>
-    <Win title="새 대화 설정 (New Conversation)" icon={PixelIcons.chat}>
+    <Win title="새 대화 설정 (New Conversation)" icon={<span style={{fontSize:'18px'}}>✨</span>}>
       <div className="vstack" style={{ gap: 12, flex: 1, minHeight: 0 }}>
         <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
           <div>
@@ -285,7 +287,7 @@ function NewConversationInner() {
                       <div className="thumb" style={{ width: 32, height: 32 }}>
                         {c.avatarUrl
                           ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                          : <PixelAvatar kind={c.kind} size={32} />}
+                          : <span style={{fontSize:'22px', lineHeight:1}}>🎭</span>}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
@@ -320,7 +322,7 @@ function NewConversationInner() {
                             <div className="thumb" style={{ width: 28, height: 28 }}>
                               {c.avatarUrl
                                 ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                                : <PixelAvatar kind={c.kind} size={28} />}
+                                : <span style={{fontSize:'20px', lineHeight:1}}>🎭</span>}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
@@ -345,7 +347,7 @@ function NewConversationInner() {
                         <div className="thumb" style={{ width: 32, height: 32 }}>
                           {char.avatarUrl
                             ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                            : <PixelAvatar kind={char.kind} size={32} />}
+                            : <span style={{fontSize:'22px', lineHeight:1}}>🎭</span>}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 11 }}>{char.name}</div>
@@ -369,7 +371,7 @@ function NewConversationInner() {
                           <div className="thumb" style={{ width: 28, height: 28 }}>
                             {c.avatarUrl
                               ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                              : <PixelAvatar kind={c.kind} size={28} />}
+                              : <span style={{fontSize:'20px', lineHeight:1}}>🎭</span>}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
@@ -397,7 +399,7 @@ function NewConversationInner() {
                     <div className="thumb" style={{ width: 32, height: 32 }}>
                       {selectedPersona.avatarUrl
                         ? <img src={selectedPersona.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                        : <PixelAvatar kind={selectedPersona.kind} size={28} />}
+                        : <span style={{fontSize:'20px', lineHeight:1}}>🎭</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 11 }}>{selectedPersona.name}</div>
@@ -407,7 +409,7 @@ function NewConversationInner() {
                 ) : (
                   <>
                     <div className="thumb" style={{ width: 32, height: 32, display: 'grid', placeItems: 'center' }}>
-                      <PixelAvatar kind="player" size={28} />
+                      <span style={{fontSize:'20px', lineHeight:1}}>🧑</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 11 }}>없음</div>
@@ -425,7 +427,7 @@ function NewConversationInner() {
                     onClick={() => { dispatch({ type: 'selectPersona', id: null }); setPersonaOpen(false) }}
                   >
                     <div className="thumb" style={{ width: 28, height: 28, display: 'grid', placeItems: 'center' }}>
-                      <PixelAvatar kind="player" size={24} />
+                      <span style={{fontSize:'18px', lineHeight:1}}>🧑</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 11 }}>없음</div>
@@ -446,7 +448,7 @@ function NewConversationInner() {
                       <div className="thumb" style={{ width: 28, height: 28 }}>
                         {c.avatarUrl
                           ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                          : <PixelAvatar kind={c.kind} size={24} />}
+                          : <span style={{fontSize:'18px', lineHeight:1}}>🎭</span>}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
@@ -739,7 +741,7 @@ function NewConversationInner() {
         </div>
       </div>
     </Win>
-    {showGreetingModal && altGreetings.length > 0 && createPortal(
+    {mounted && showGreetingModal && altGreetings.length > 0 && createPortal(
       <>
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000 }}
