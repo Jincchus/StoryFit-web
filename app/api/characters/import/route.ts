@@ -89,7 +89,8 @@ async function runImport(captured: Captured, url: string, userId: string) {
 
   const isWhif = matchesHost(url, 'whif.io', 'whif.club')
   const isZeta = matchesHost(url, 'zeta-ai.io')
-  const isImmersive = isWhif || isZeta
+  const isMelting = matchesHost(url, 'melting.chat')
+  const isImmersive = isWhif || isZeta || isMelting
 
   const createdChars = await Promise.all(
     result.characters.map((c, i) => {
@@ -144,6 +145,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
       description: result.scenarioDescription ?? '',
       tags: result.tags ?? [],
       ...(captured.zetaMeta ? { zetaMeta: captured.zetaMeta } : {}),
+      ...(captured.meltingMeta ? { meltingMeta: captured.meltingMeta } : {}),
     },
   })
 
