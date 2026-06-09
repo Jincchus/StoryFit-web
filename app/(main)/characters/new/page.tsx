@@ -1,12 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
 import CharacterForm, { type CharFormData } from '@/components/ui/CharacterForm'
 
-export default function CharacterNewPage() {
+function CharacterNewContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const collectionIdParam = searchParams.get('collectionId') ?? ''
@@ -73,5 +73,19 @@ export default function CharacterNewPage() {
         </div>
       </div>
     </Win>
+  )
+}
+
+export default function CharacterNewPage() {
+  return (
+    <Suspense fallback={
+      <Win title="캐릭터 만들기 (Create Character)" icon={PixelIcons.user}>
+        <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0, justifyContent: 'center', alignItems: 'center' }}>
+          <div className="tiny muted">로딩 중...</div>
+        </div>
+      </Win>
+    }>
+      <CharacterNewContent />
+    </Suspense>
   )
 }
