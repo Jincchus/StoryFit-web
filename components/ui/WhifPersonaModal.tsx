@@ -37,16 +37,18 @@ interface Candidate {
 interface Props {
   candidates: Candidate[]
   loading?: boolean
+  defaultName?: string
+  defaultSettings?: string
   onCancel: () => void
   onSelect: (personaCharId: string | null, newPersona?: NewPersonaData) => void
 }
 
-export default function WhifPersonaModal({ candidates, loading, onCancel, onSelect }: Props) {
+export default function WhifPersonaModal({ candidates, loading, defaultName, defaultSettings, onCancel, onSelect }: Props) {
   const [tab, setTab] = useState<'new' | 'existing'>(candidates.length > 0 ? 'existing' : 'new')
   const [selectedId, setSelectedId] = useState<string | null>(candidates[0]?.id ?? null)
-  const [name, setName] = useState('')
+  const [name, setName] = useState(defaultName ?? '')
   const [gender, setGender] = useState('여성')
-  const [settings, setSettings] = useState('')
+  const [settings, setSettings] = useState(defaultSettings ?? '')
   const [relationship, setRelationship] = useState('처음 만남')
 
   const handleStart = () => {
