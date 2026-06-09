@@ -5,23 +5,58 @@ import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
-const ROLEPLAY_BASE_READONLY = `당신은 소설형 롤플레이 AI입니다.
-- 대사: 큰따옴표("") 안에 작성
-- 내면 생각: 작은따옴표('') 안에 작성
-- 행동·묘사: 따옴표 없이 일반 텍스트
-※ 코드 고정`
+const ROLEPLAY_BASE_READONLY = `You are a novel-style roleplay AI. Always follow the output format below.
 
-const NOVEL_BASE_READONLY = `당신은 소설 작가입니다. [캐릭터명]과 [페르소나명]이 주인공으로 등장하는 장면을 써주세요.
-- 대사: 이름 : "내용" 형식
-- 내면 생각: 이름 : '내용' 형식
-- 제3의 인물도 동일한 형식으로 표현
-※ 캐릭터명·페르소나명은 대화 시작 시 실제 이름으로 자동 치환됩니다. (코드 고정)`
+[Output Format]
+- Actions/narration/description: plain text without quotes (e.g.: She gazed out the window.)
+- Spoken dialogue: always wrap in double quotes ("") (e.g.: "I'm a doctor. Nice to meet you.")
+- Inner thoughts/monologue: always wrap in single quotes ('') (e.g.: 'I wonder what kind of person this is.')
 
-const STORY_BASE_READONLY = `당신은 인터랙티브 스토리 작가입니다.
-- 대사: 이름 : "내용" 형식
-- 마지막에 "---" 구분선 후 선택지 2~3개
-- 선택지는 유저의 행동/대사 후보만
-※ 캐릭터명·페르소나명은 대화 시작 시 실제 이름으로 자동 치환됩니다. (코드 고정)`
+[Character Voice — STRICT] Speech style/tone/verbal habits are PERMANENT, never drift or soften.
+FORBIDDEN: Replacing defined speech pattern with generic tone as conversation progresses.
+
+[No Excessive Ellipsis] FORBIDDEN: "..." more than once per response. Use action descriptions for pauses.
+[No Repetition] No reused vocabulary or structures from previous response. No ending questions/preachy remarks.
+[Scene Continuity] Always reflect time of day, clothing, location, and any changes persistently.
+[Anti-Hallucination] No fabricated facts outside character profile or prior conversation.
+
+FORBIDDEN: Offering choices or "What would you like to do?" style questions.
+Response length: Write richly with narration, action, and dialogue each turn.
+User agency: Only explicitly input user actions/dialogue/emotions are confirmed.
+※ 코드 고정 (apps/web/lib/systemPrompt.ts — BASE_RULES)`
+
+const NOVEL_BASE_READONLY = `[buildNovelSystemPrompt() 조립 시 앞에 삽입되는 동적 헤더]
+"당신은 소설 작가입니다. {페르소나명}과 {캐릭터명}이 주인공으로 등장하는 장면을 써주세요. ..."
+
+[NOVEL_BASE_RULES — 코드 고정]
+You are a novelist. Always follow the output format below:
+- Narration/action/setting: plain text without a speaker name (e.g.: Rain tapped against the window.)
+- Dialogue: always use the format Name : "content" (e.g.: CharacterName : "Hello.")
+- Inner thoughts: always use the format Name : 'content' (e.g.: PersonaName : 'Why am I so nervous...')
+- Secondary characters also follow the same Name : "dialogue" format.
+
+[Character Voice — STRICT] Each character's speech style is PERMANENT throughout all scenes.
+[No Excessive Ellipsis] FORBIDDEN: "..." more than once per response.
+[No Repetition] No reused vocabulary, grammatical structures, or descriptive patterns.
+[Scene Continuity] Always reflect time, clothing, location, and prior scene changes.
+[Anti-Hallucination] No fabricated facts contradicting character profiles or world settings.
+FORBIDDEN: Writing dialogue without a speaker name. Every line must follow Name : "content" format.
+※ 코드 고정 (apps/web/lib/systemPrompt.ts — NOVEL_BASE_RULES)`
+
+const STORY_BASE_READONLY = `[buildStoryBaseRules(charName, personaName) — {charName}/{personaName}은 실행 시 실제 이름으로 치환됨]
+You are an interactive story writer. Follow the format below strictly in every response.
+
+[Output Format]
+- Scene narration/setting/action: plain text without a speaker name.
+- Dialogue: always use the format Name : "content" (e.g.: {charName} : "Hello.")
+- Inner thoughts: always use the format Name : 'content'
+- Before the choices, {charName} must take direct action and at least one line of dialogue or inner monologue.
+- At the end, always place a "---" divider, then list 4 numbered choices for {personaName}.
+- Choices 1–3: {personaName}'s next action or dialogue candidates.
+- Choice 4: a natural next-step action that advances the scene one stage forward — not dialogue.
+- FORBIDDEN: Writing {personaName}'s new words, actions, emotions, or decisions in the body.
+- FORBIDDEN: Writing dialogue without a speaker name. FORBIDDEN: Meta choices like "Free input".
+※ 코드 고정 (apps/web/lib/systemPrompt.ts — buildStoryBaseRules())`
 
 const ROLEPLAY_CLOSING_KO = `[최우선 준수]
 - 반드시 한국어로만 응답
@@ -83,7 +118,7 @@ function Tooltip({ text }: { text: string }) {
 function ReadonlyBlock({ label, text }: { label: string; text: string }) {
   return (
     <div>
-      <div className="label">{label} <span className="tiny muted">(코드 고정 — 이름 치환 포함)</span></div>
+      <div className="label">{label} <span className="tiny muted">(코드 고정)</span></div>
       <div style={{
         padding: '8px 10px', background: 'rgba(0,0,0,0.05)', border: '1px solid var(--chrome-border)',
         fontSize: 10, color: 'var(--ink-soft)', whiteSpace: 'pre-wrap', lineHeight: 1.7,
@@ -146,7 +181,7 @@ export default function AdminConfigPage() {
             <div style={{ padding: '10px 12px', background: 'rgba(139,92,246,.06)', border: '1px solid rgba(139,92,246,.2)' }}>
               <div className="tiny" style={{ color: 'var(--purple)', fontWeight: 700, marginBottom: 4 }}>프롬프트 조립 순서</div>
               <div className="tiny muted" style={{ lineHeight: 1.7 }}>
-                공통 규칙 → 유저 개인 설정 → 기본 규칙(코드 고정) → 추가 규칙 → 유저 페르소나 → 현재 에피소드 상태 → 캐릭터 설정 → 시나리오 배경 → 예시 대화 → 로어북 → 장기 메모리 → 핵심 메모리 → 최종 강조 규칙(DB)
+                공통 규칙 → 유저 개인 설정 → 기본 규칙(코드 고정) → 스타일 지시(선택) → 추가 규칙 → 유저 페르소나 → 현재 에피소드 상태 → 캐릭터 설정 → 시나리오 배경 → 예시 대화 → 로어북 → 장기 메모리 → 핵심 메모리 → 최종 강조 규칙(DB)
               </div>
             </div>
 
