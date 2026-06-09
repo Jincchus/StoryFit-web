@@ -62,4 +62,5 @@ export interface AssembledResult {
   tags: string[]
   title: string
   safetyLevel?: string
+  coverImageUrl?: string
 }
