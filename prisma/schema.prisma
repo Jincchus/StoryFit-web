@@ -94,6 +94,7 @@ model CharacterCollection {
   coverImageUrl  String        @default("")
   description    String        @default("")
   tags           String[]      @default([])
+  zetaMeta       Json?
   createdAt      DateTime      @default(now())
 }
 
