@@ -19,11 +19,6 @@ export async function GET(req: NextRequest) {
 
   if (isWhif) {
     whereClause.sourceUrl = { contains: 'whif.' }
-  } else {
-    whereClause.OR = [
-      { sourceUrl: '' },
-      { NOT: { sourceUrl: { contains: 'whif.' } } }
-    ]
   }
 
   const conversations = await prisma.conversation.findMany({

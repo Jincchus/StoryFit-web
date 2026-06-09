@@ -21,9 +21,10 @@ interface ConvItem {
   personaCharacter?: { name: string } | null
 }
 
-function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'STORYFIT' {
+function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'WHIF' | 'STORYFIT' {
   if (sourceUrl?.includes('zeta-ai.io')) return 'ZETA'
   if (sourceUrl?.includes('melting.chat')) return 'MELTING'
+  if (sourceUrl?.includes('whif.io') || sourceUrl?.includes('whif.club')) return 'WHIF'
   return 'STORYFIT'
 }
 
@@ -57,9 +58,16 @@ const SOURCE_FILTERS = [
   { key: 'STORYFIT', label: 'STORYFIT' },
   { key: 'ZETA', label: 'ZETA' },
   { key: 'MELTING', label: 'MELTING' },
+  { key: 'WHIF', label: 'WHIF' },
 ] as const
 
 type SourceFilter = typeof SOURCE_FILTERS[number]['key']
+
+const SOURCE_BADGE_COLOR: Record<string, string> = {
+  ZETA: '#7c5cfc',
+  MELTING: '#e85454',
+  WHIF: '#10b981',
+}
 
 export default function ChatListPage() {
   const router = useRouter()
@@ -342,7 +350,7 @@ export default function ChatListPage() {
                   <div className="hstack" style={{ gap: 4 }}>
                     {conv.isAutoCreated && <span style={{ fontSize: 8, fontWeight: 700, background: '#4fa8e8', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>설정 필요</span>}
                     {getSource(conv.sourceUrl) !== 'STORYFIT' && (
-                      <span style={{ fontSize: 8, fontWeight: 700, background: getSource(conv.sourceUrl) === 'ZETA' ? '#7c5cfc' : '#e85454', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>{getSource(conv.sourceUrl)}</span>
+                      <span style={{ fontSize: 8, fontWeight: 700, background: SOURCE_BADGE_COLOR[getSource(conv.sourceUrl)] ?? '#666', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>{getSource(conv.sourceUrl)}</span>
                     )}
                     <span className="mode-badge" style={{ fontSize: 8 }}>{MODE_LABEL[conv.mode] ?? conv.mode}</span>
                   </div>
