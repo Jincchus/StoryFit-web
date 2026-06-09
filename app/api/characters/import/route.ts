@@ -97,7 +97,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
         data: {
           name: c.name.slice(0, 100),
           gender: c.gender.slice(0, 20),
-          tags: isWhif ? [] : result.tags,
+          tags: isWhif ? (c.tags ?? []) : result.tags,
           additionalInfo: c.additionalInfo,
           exampleDialogues: c.exampleDialogues,
           openingMessage: c.openingMessage,

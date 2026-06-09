@@ -50,6 +50,7 @@ export interface Classification {
 export interface AssembledCharacter {
   name: string
   gender: string
+  tags?: string[]
   additionalInfo: string
   openingMessage: string
   openingMessages?: { id: string; title: string; content: string }[]

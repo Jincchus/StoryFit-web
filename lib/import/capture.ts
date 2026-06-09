@@ -548,7 +548,7 @@ export async function captureWhif(url: string): Promise<Captured> {
       const firstMessages = c.publicData?.firstMessages || c.firstMessages || []
       const recommendedOpenings = c.publicData?.recommendedOpenings || c.recommendedOpenings || []
       const openingMessage = firstMessages[0]?.text || ''
-      const description = c.description || c.publicData?.description || ''
+      const description = c.introduction || c.description || c.publicData?.description || ''
       let additionalInfo = [description, ...recommendedOpenings].filter(Boolean).join('\n\n')
 
       const roleInfo = [
@@ -573,6 +573,7 @@ export async function captureWhif(url: string): Promise<Captured> {
       return {
         name: c.name || '캐릭터',
         gender: c.gender || '',
+        tags: Array.isArray(c.keywords) ? c.keywords : [],
         additionalInfo,
         openingMessage,
         openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
