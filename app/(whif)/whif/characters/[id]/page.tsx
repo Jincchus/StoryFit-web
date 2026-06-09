@@ -7,8 +7,8 @@ import PersonaSelectModal from '@/components/ui/PersonaSelectModal'
 interface Opening { id: string; title: string; content: string }
 interface Character {
   id: string; name: string; gender: string; avatarUrl: string | null; tags: string[]
-  additionalInfo: string; safetyLevel: string
-  openingMessages?: Opening[]; collection?: { id: string } | null
+  additionalInfo: string; openingMessage: string; safetyLevel: string
+  openingMessages?: Opening[]; collection?: { id: string; title: string } | null
 }
 
 export default function CharacterDetailPage() {
@@ -31,7 +31,11 @@ export default function CharacterDetailPage() {
 
   if (!char) return <div className="whif-empty">불러오는 중...</div>
 
-  const openings = char.openingMessages ?? []
+  const openings = char.openingMessages?.length
+    ? char.openingMessages
+    : char.openingMessage?.trim()
+      ? [{ id: 'default', title: '기본 도입부', content: char.openingMessage }]
+      : []
   const nsfw = char.safetyLevel === 'relaxed'
   const personaCandidates = allChars.filter(c => c.collection?.id === char.collection?.id && c.id !== char.id)
 
@@ -118,6 +122,21 @@ export default function CharacterDetailPage() {
                   {openings[openingIdx]?.content}
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* 소속 작품 */}
+          {char.collection && (
+            <div className="whif-section" style={{ paddingTop: 0 }}>
+              <h2 className="whif-section-title">소속 작품</h2>
+              <button onClick={() => router.push(`/whif/universes/${char.collection!.id}`)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--w-surface)',
+                  border: '1px solid var(--w-line)', borderRadius: 10, padding: '10px 14px',
+                  color: 'var(--w-ink)', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+                <span style={{ fontSize: 18 }}>🌐</span>
+                <span style={{ fontWeight: 600 }}>{char.collection.title}</span>
+                <span style={{ marginLeft: 'auto', color: 'var(--w-ink-soft)' }}>›</span>
+              </button>
             </div>
           )}
 

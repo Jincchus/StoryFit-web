@@ -230,62 +230,64 @@ async function renderWhifPageText(url: string): Promise<{
       throw new Error('예상하지 못한 주소로 리다이렉트되었습니다.')
     }
 
-    // 필수 캐릭터 API 응답이 도달할 때까지 최대 10초간 대기
-    const startTime = Date.now()
-    while (Date.now() - startTime < 10000) {
-      if (apiData.character) {
-        break
+    const universeIdFromUrl = url.match(/\/universes\/([^/?#]+)/)?.[1]
+
+    const activeWhifFetch = async (uniId: string) => {
+      try {
+        const uniResult = await page.evaluate(async (id) => {
+          const res = await fetch('https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.UniverseService/GetUniverse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+          })
+          return res.json()
+        }, uniId)
+        if (uniResult?.universe) {
+          apiData.universe = uniResult.universe
+          console.log('[whif-import] universe fetch:', uniResult.universe.name)
+        }
+      } catch (e: any) {
+        console.error('[whif-import] universe fetch failed:', e.message)
       }
-      await new Promise((r) => setTimeout(r, 500))
+      try {
+        const charsResult = await page.evaluate(async (id) => {
+          const res = await fetch('https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.CharacterService/ListByUniverseId', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ universeId: id })
+          })
+          return res.json()
+        }, uniId)
+        if (charsResult?.characters) {
+          apiData.universeCharacters = charsResult.characters
+          console.log('[whif-import] universe characters count:', charsResult.characters.length)
+        }
+      } catch (e: any) {
+        console.error('[whif-import] characters fetch failed:', e.message)
+      }
     }
 
-    // 캐릭터 데이터를 가로챘다면 브라우저 컨텍스트를 활용해 세계관 상세 및 전체 캐릭터 목록을 적극적으로 Fetch 해옵니다.
-    if (apiData.character) {
-      const mainCharObj = apiData.character.character || apiData.character
-      const uniId = mainCharObj.universeId || mainCharObj.universe?.id
-      if (uniId) {
-        console.log('[whif-import] Active fetch triggered for universe id:', uniId)
-        
-        // 1. 세계관 상세 정보(설정 카드/백과사전 포함) Fetch
-        try {
-          const uniResult = await page.evaluate(async (id) => {
-            const res = await fetch('https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.UniverseService/GetUniverse', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id })
-            })
-            return res.json()
-          }, uniId)
-          if (uniResult?.universe) {
-            apiData.universe = uniResult.universe
-            console.log('[whif-import] Active fetch universe success:', uniResult.universe.name)
-          }
-        } catch (e: any) {
-          console.error('[whif-import] Active universe fetch failed:', e.message)
-        }
-
-        // 2. 세계관 내 다른 캐릭터 리스트 Fetch
-        try {
-          const charsResult = await page.evaluate(async (id) => {
-            const res = await fetch('https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.CharacterService/ListByUniverseId', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ universeId: id })
-            })
-            return res.json()
-          }, uniId)
-          if (charsResult?.characters) {
-            apiData.universeCharacters = charsResult.characters
-            console.log('[whif-import] Active fetch universe characters success, count:', charsResult.characters.length)
-          }
-        } catch (e: any) {
-          console.error('[whif-import] Active characters fetch failed:', e.message)
-        }
+    if (universeIdFromUrl) {
+      // 세계관 URL: 페이지 초기화 후 바로 active fetch
+      await new Promise((r) => setTimeout(r, 1500))
+      await activeWhifFetch(universeIdFromUrl)
+    } else {
+      // 캐릭터 URL: GetCharacter 응답 대기 후 active fetch
+      const startTime = Date.now()
+      while (Date.now() - startTime < 10000) {
+        if (apiData.character) break
+        await new Promise((r) => setTimeout(r, 500))
       }
 
-      // 만약 액티브 Fetch가 실패했거나 응답이 없더라도 기존 내장 데이터를 폴백으로 복구해둡니다.
-      if (!apiData.universe && mainCharObj.universe) {
-        apiData.universe = mainCharObj.universe
+      if (apiData.character) {
+        const mainCharObj = apiData.character.character || apiData.character
+        const uniId = mainCharObj.universeId || mainCharObj.universe?.id
+        if (uniId) {
+          await activeWhifFetch(uniId)
+        }
+        if (!apiData.universe && mainCharObj.universe) {
+          apiData.universe = mainCharObj.universe
+        }
       }
     }
 
@@ -512,19 +514,29 @@ export async function captureWhif(url: string): Promise<Captured> {
   // 언세이프 캐릭터는 로그인 시에도 DOM에 "세이프 모드를 해제" 안내 문구가 남아있으므로
   // apiData가 있으면 게이트 체크보다 먼저 처리한다.
   // universe가 없는 단독 캐릭터도 character 데이터만으로 처리한다.
-  if (apiData && apiData.character) {
+  if (apiData && (apiData.character || apiData.universeCharacters?.length > 0)) {
     const normalizeChar = (c: any) => c?.character || c
-    const mainChar = normalizeChar(apiData.character)
-    const otherRaw = apiData.universeCharacters || []
-    const otherChars = otherRaw.map(normalizeChar).filter((c: any) => c && c.id !== mainChar.id)
-    const allChars = [mainChar, ...otherChars].filter(Boolean)
+    let mainChar: any
+    let allChars: any[]
+
+    if (apiData.character) {
+      mainChar = normalizeChar(apiData.character)
+      const otherRaw = apiData.universeCharacters || []
+      const otherChars = otherRaw.map(normalizeChar).filter((c: any) => c && c.id !== mainChar.id)
+      allChars = [mainChar, ...otherChars].filter(Boolean)
+    } else {
+      allChars = (apiData.universeCharacters || []).map(normalizeChar).filter(Boolean)
+      mainChar = allChars[0]
+    }
+
     const universe = apiData.universe?.universe || apiData.universe || {}
 
     const characters = allChars.map((c) => {
-      const firstMessages = c.publicData?.firstMessages || []
-      const recommendedOpenings = c.publicData?.recommendedOpenings || []
+      const firstMessages = c.publicData?.firstMessages || c.firstMessages || []
+      const recommendedOpenings = c.publicData?.recommendedOpenings || c.recommendedOpenings || []
       const openingMessage = firstMessages[0]?.text || ''
-      let additionalInfo = [c.description, ...recommendedOpenings].filter(Boolean).join('\n\n')
+      const description = c.description || c.publicData?.description || ''
+      let additionalInfo = [description, ...recommendedOpenings].filter(Boolean).join('\n\n')
 
       const roleInfo = [
         c.summary && `요약: ${c.summary}`,
@@ -581,6 +593,9 @@ export async function captureWhif(url: string): Promise<Captured> {
     const isNsfw = mainChar.isNsfw || mainChar.publicData?.isNsfw || universe.isNsfw || false
     const safetyLevel = isNsfw ? 'relaxed' : 'standard'
 
+    const uniId = universe.id || mainChar.universeId || mainChar.universe?.id
+    const universeUrl = uniId ? `https://www.whif.io/universes/${uniId}` : undefined
+
     const assembledResult = {
       characters,
       scenarioDescription: universe.description || '',
@@ -592,8 +607,9 @@ export async function captureWhif(url: string): Promise<Captured> {
 
     return {
       sections: [],
-      title: assembledResult.title,
+      title: mainChar.name || '캐릭터',
       imageUrl: mainChar.avatarUrl || universe.imageUrl || '',
+      universeUrl,
       assembledResult,
       lorebooks: lorebooks.length > 0 ? lorebooks : undefined,
     }

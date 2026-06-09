@@ -8,6 +8,7 @@ export interface Captured {
   sections: CapturedSection[]
   title: string
   imageUrl: string
+  universeUrl?: string
   loreUrls?: { url: string; name: string }[]
   assembledResult?: AssembledResult
   lorebooks?: { keyword: string[]; content: string; priority?: number }[]

@@ -40,6 +40,22 @@ function parseTavernJson(json: any): CardShape {
 }
 
 async function runImport(captured: Captured, url: string, userId: string) {
+  // WHIF: 동일 세계관이 이미 등록되어 있으면 중복 생성 방지
+  if (captured.universeUrl) {
+    const existing = await prisma.characterCollection.findFirst({
+      where: { userId, sourceUrl: captured.universeUrl },
+      select: { id: true, conversationId: true, characters: { select: { id: true }, take: 1 } },
+    })
+    if (existing) {
+      return {
+        characterId: existing.characters[0]?.id ?? null,
+        conversationId: existing.conversationId ?? '',
+        collectionId: existing.id,
+        alreadyExists: true,
+      }
+    }
+  }
+
   let result
   if (captured.assembledResult) {
     result = captured.assembledResult
@@ -71,6 +87,8 @@ async function runImport(captured: Captured, url: string, userId: string) {
     ? `${titleSubject}${josa과와(titleSubject)}의 대화`
     : (result.title || `${titleSubject}${josa과와(titleSubject)}의 대화`).trim()
 
+  const isWhif = matchesHost(url, 'whif.io', 'whif.club')
+
   const createdChars = await Promise.all(
     result.characters.map((c, i) => {
       // 각 캐릭터 고유 이미지 우선, 없으면 첫 캐릭터에만 캡처된 대표 이미지 적용
@@ -79,7 +97,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
         data: {
           name: c.name.slice(0, 100),
           gender: c.gender.slice(0, 20),
-          tags: result.tags,
+          tags: isWhif ? [] : result.tags,
           additionalInfo: c.additionalInfo,
           exampleDialogues: c.exampleDialogues,
           openingMessage: c.openingMessage,
@@ -92,8 +110,6 @@ async function runImport(captured: Captured, url: string, userId: string) {
       })
     })
   )
-
-  const isWhif = matchesHost(url, 'whif.io', 'whif.club')
 
   const conversation = await prisma.conversation.create({
     data: {
@@ -114,11 +130,11 @@ async function runImport(captured: Captured, url: string, userId: string) {
   })
 
   // 세계관(컬렉션) 이름은 대화방 접미사("과의 대화")를 빼고 깔끔하게 원본 제목(세계관 명칭) 또는 대표 캐릭터 이름으로 저장합니다.
-  const collectionTitle = (captured.title || result.title || firstName).trim()
+  const collectionTitle = (result.title || captured.title || firstName).trim()
   const collection = await prisma.characterCollection.create({
     data: {
       title: collectionTitle,
-      sourceUrl: url,
+      sourceUrl: captured.universeUrl ?? url,
       userId,
       conversationId: conversation.id,
       coverImageUrl: result.coverImageUrl ?? '',
@@ -210,9 +226,6 @@ export async function POST(req: NextRequest) {
     catch (e: any) { return NextResponse.json({ error: e.message ?? '멜팅 가져오기 실패' }, { status: 400 }) }
   }
   if (matchesHost(url, 'whif.io', 'whif.club')) {
-    if (url.includes('/universes/')) {
-      return NextResponse.json({ error: '세계관 URL은 직접 등록할 수 없습니다. 소속된 캐릭터 URL을 등록해주세요.' }, { status: 400 })
-    }
     try { return NextResponse.json(await runImport(await captureWhif(url.trim()), url.trim(), userId), { status: 201 }) }
     catch (e: any) { return NextResponse.json({ error: e.message ?? 'Whif 가져오기 실패' }, { status: 400 }) }
   }
