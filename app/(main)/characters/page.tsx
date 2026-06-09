@@ -146,10 +146,15 @@ export default function CharactersPage() {
     )}
     <Win title="캐릭터 선택 (Character Select)" icon={PixelIcons.user}>
       <div className="vstack" style={{ gap: 10, flex: 1, minHeight: 0 }}>
-        <div className="spread" style={{ gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>롤플레이 상대를 선택하세요</div>
-            <div className="tiny muted">프리셋 캐릭터 또는 직접 만들기</div>
+        <div className="spread" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <div className="hstack" style={{ gap: 8, minWidth: 0, flex: '1 1 auto' }}>
+            {!selecting && (
+              <button className="btn ghost" style={{ flexShrink: 0, padding: '4px 8px' }} onClick={() => router.back()}>←</button>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>롤플레이 상대를 선택하세요</div>
+              <div className="tiny muted">프리셋 캐릭터 또는 직접 만들기</div>
+            </div>
           </div>
           <div className="hstack" style={{ flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
             {selecting ? (
@@ -169,14 +174,14 @@ export default function CharactersPage() {
               </>
             ) : (
               <>
-                <button className="btn ghost" onClick={() => router.back()}>← 뒤로</button>
                 {selectableInFilter.length > 0 && (
                   <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setSelecting(true)}>☑ 선택</button>
                 )}
-                <button className="btn" style={{ background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed' }} onClick={() => router.push('/whif')}>🪐 WHIF 센터</button>
-                <button className="btn" onClick={() => router.push('/characters/new')}>+ 만들기</button>
+                <button className="btn" style={{ background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed', fontSize: 11 }} onClick={() => router.push('/whif')}>🪐 WHIF</button>
+                <button className="btn" style={{ fontSize: 11 }} onClick={() => router.push('/characters/new')}>+ 만들기</button>
                 <button
                   className="btn primary"
+                  style={{ fontSize: 11 }}
                   disabled={!draft.charId}
                   onClick={() => router.push('/conversations/new')}
                 >

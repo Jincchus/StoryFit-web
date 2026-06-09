@@ -128,7 +128,7 @@ export default function ChatPage() {
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
-  const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false, style: false, persona: true })
+  const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false, style: false, persona: false })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
@@ -1599,6 +1599,19 @@ export default function ChatPage() {
                   <span>내 역할</span>
                   <span className={`acc-arrow ${panelOpen.persona ? 'open' : ''}`}>▼</span>
                 </button>
+                {!panelOpen.persona && (
+                  <div className="hstack" style={{ gap: 6, padding: '4px 0', opacity: 0.75 }}>
+                    <div className="thumb" style={{ width: 18, height: 18, flexShrink: 0 }}>
+                      {conv.personaCharacter?.avatarUrl
+                        ? <img src={conv.personaCharacter.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} alt="" />
+                        : <PixelAvatar kind={conv.personaCharacter ? (conv.personaCharacter as any).kind ?? 'player' : 'player'} size={16} />}
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {conv.personaCharacter ? conv.personaCharacter.name : '없음 (기본 유저)'}
+                    </div>
+                    <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>
+                  </div>
+                )}
                 {panelOpen.persona && (
                 <div className="vstack" style={{ gap: 4, marginTop: 6 }}>
                   <div
