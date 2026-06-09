@@ -587,6 +587,7 @@ export async function captureWhif(url: string): Promise<Captured> {
       tags: universe.tags || [],
       title: universe.name || mainChar.name || '캐릭터',
       safetyLevel,
+      coverImageUrl: universe.imageUrl || mainChar.avatarUrl || '',
     }
 
     return {
