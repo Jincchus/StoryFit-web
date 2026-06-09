@@ -25,7 +25,16 @@ export async function GET(req: NextRequest) {
   const collections = await prisma.characterCollection.findMany({
     where: whereClause,
     orderBy: { createdAt: 'desc' },
-    select: { id: true, title: true, sourceUrl: true, createdAt: true },
+    select: {
+      id: true,
+      title: true,
+      sourceUrl: true,
+      createdAt: true,
+      coverImageUrl: true,
+      description: true,
+      tags: true,
+      characters: { select: { id: true, name: true, avatarUrl: true } },
+    },
   })
   return NextResponse.json(collections)
 }
