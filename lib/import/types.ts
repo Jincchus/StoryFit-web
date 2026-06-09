@@ -56,6 +56,7 @@ export interface AssembledCharacter {
   openingMessages?: { id: string; title: string; content: string }[]
   exampleDialogues: string
   avatarUrl?: string
+  relatedImages?: string[]
 }
 
 export interface AssembledResult {

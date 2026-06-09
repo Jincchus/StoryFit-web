@@ -10,6 +10,12 @@ interface Character {
   id: string; name: string; gender: string; avatarUrl: string | null; tags: string[]
   additionalInfo: string; openingMessage: string; safetyLevel: string
   openingMessages?: Opening[]; collection?: { id: string; title: string } | null
+  relatedImages?: string[]
+}
+
+function getYouTubeId(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+  return m ? m[1] : null
 }
 
 export default function CharacterDetailPage() {
@@ -21,6 +27,7 @@ export default function CharacterDetailPage() {
   const [personaOpen, setPersonaOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
+  const [imgIdx, setImgIdx] = useState(0)
 
   useEffect(() => {
     (async () => {
@@ -39,6 +46,8 @@ export default function CharacterDetailPage() {
       : []
   const nsfw = char.safetyLevel === 'relaxed'
   const personaCandidates = allChars.filter(c => c.collection?.id === char.collection?.id && c.id !== char.id)
+  const relatedImgs = (char.relatedImages ?? []).filter(u => !getYouTubeId(u))
+  const relatedVideo = (char.relatedImages ?? []).find(u => getYouTubeId(u))
 
   const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
     setCreating(true); setError('')
@@ -127,6 +136,59 @@ export default function CharacterDetailPage() {
                   .replace(/\{\{user\}\}/gi, '나')
                   .replace(/\{\{char\}\}/gi, char.name)} />
               </div>
+            </div>
+          )}
+
+          {/* 관련 콘텐츠 */}
+          {(relatedImgs.length > 0 || relatedVideo) && (
+            <div className="whif-section" style={{ paddingTop: 0 }}>
+              <h2 className="whif-section-title">관련 콘텐츠</h2>
+              {relatedImgs.length > 0 && (
+                <div>
+                  <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12 }}>
+                    <img
+                      src={relatedImgs[imgIdx]}
+                      alt=""
+                      style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }}
+                    />
+                    {relatedImgs.length > 1 && (
+                      <>
+                        <button onClick={() => setImgIdx(i => (i - 1 + relatedImgs.length) % relatedImgs.length)}
+                          style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                            background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '50%',
+                            width: 32, height: 32, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          ‹
+                        </button>
+                        <button onClick={() => setImgIdx(i => (i + 1) % relatedImgs.length)}
+                          style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                            background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '50%',
+                            width: 32, height: 32, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          ›
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {relatedImgs.length > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+                      {relatedImgs.map((_, i) => (
+                        <button key={i} onClick={() => setImgIdx(i)}
+                          style={{ width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3, border: 'none', cursor: 'pointer',
+                            background: i === imgIdx ? 'var(--w-accent)' : 'var(--w-line)', padding: 0, transition: 'all 0.2s' }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {relatedVideo && (
+                <div style={{ marginTop: relatedImgs.length > 0 ? 14 : 0, borderRadius: 12, overflow: 'hidden', aspectRatio: '16/9' }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${getYouTubeId(relatedVideo)}`}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              )}
             </div>
           )}
 

@@ -583,6 +583,18 @@ export async function captureWhif(url: string): Promise<Captured> {
           content: resolveImg(String(m.text || '')),
         }))
 
+      let relatedImages: string[] = []
+      try {
+        const relatedData = typeof c.relatedContentJson === 'string'
+          ? JSON.parse(c.relatedContentJson)
+          : (c.relatedContentJson ?? {})
+        const items = Array.isArray(relatedData.items) ? relatedData.items : []
+        relatedImages = items
+          .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+          .filter((item: any) => item.url && (item.type === 'image' || item.type === 'video'))
+          .map((item: any) => String(item.url))
+      } catch {}
+
       return {
         name: c.name || '캐릭터',
         gender: c.gender || '',
@@ -592,6 +604,7 @@ export async function captureWhif(url: string): Promise<Captured> {
         openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
         exampleDialogues: '',
         avatarUrl: c.avatarUrl || '',
+        relatedImages: relatedImages.length > 0 ? relatedImages : undefined,
       }
     })
 

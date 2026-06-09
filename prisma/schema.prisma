@@ -113,6 +113,7 @@ model Character {
   maxOutputTokens     Int       @default(8192)
   thinkingBudget      Int       @default(0)
   defaultAI           String    @default("gemini")
+  relatedImages       String[]  @default([])
   isPreset            Boolean   @default(false)
   isAutoCreated       Boolean   @default(false)
   createdAt           DateTime  @default(now())
