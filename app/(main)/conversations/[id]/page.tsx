@@ -181,7 +181,11 @@ export default function ChatPage() {
   }
 
   const handleComposerInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
-    const val = e.currentTarget.value
+    // JS 기반 auto-resize: textarea 요소만 targeted reflow (field-sizing:content는 매 키 입력마다 전체 페이지 reflow 유발)
+    const el = e.currentTarget
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+    const val = el.value
     if (val.startsWith('!') && !val.includes(' ')) {
       setShowCommandMenu(true)
       setCommandQuery(val)
@@ -421,7 +425,10 @@ export default function ChatPage() {
     lastSentRef.current = msg
     typingStartRef.current = Date.now()
     setTypingDuration(0)
-    if (!content && composerRef.current) composerRef.current.value = ''
+    if (!content && composerRef.current) {
+      composerRef.current.value = ''
+      composerRef.current.style.height = '36px'
+    }
     shouldScrollRef.current = true
     setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content: msg }])
     setTyping(true)
@@ -1353,7 +1360,7 @@ export default function ChatPage() {
                   ref={composerRef}
                   className="field"
                   rows={1}
-                  style={{ resize: 'none', overflow: 'auto', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
+                  style={{ resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
                   placeholder={typing ? 'AI가 응답 중...'
                     : isNovel ? '장면을 지시해보세요…'
                     : isStoryOrMulti ? '직접 입력하거나 선택지를 클릭하세요…'
