@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       inventoryEnabled: body.inventoryEnabled ?? false,
       inventory: body.inventoryEnabled ? ([] as any) : undefined,
       styleConfig: body.styleConfig ?? null,
+      suggestRepliesEnabled: body.suggestRepliesEnabled ?? false,
       sourceUrl: convSourceUrl,
       ...(characterIds.length > 0 ? {
         characters: {
