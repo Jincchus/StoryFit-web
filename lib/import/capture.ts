@@ -665,37 +665,45 @@ export async function captureWhif(url: string): Promise<Captured> {
 }
 
 export async function renderZetaRaw(url: string) {
-  const browser = await puppeteer.launch({
-    executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
-    headless: true,
-    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept-Language': 'ko-KR,ko;q=0.9',
+    },
   })
-  try {
-    const page = await browser.newPage()
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
+  const html = await res.text()
 
-    const captured: { url: string; body: any }[] = []
+  // Next.js RSC flight 청크 추출
+  const flightChunks: any[] = []
+  const re = /self\.__next_f\.push\(\[1,("(?:(?:\\.|[^"\\])*)")\]\)/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(html)) !== null) {
+    try {
+      const raw = JSON.parse(match[1]) as string
+      // JSON 객체가 포함된 청크만 추출
+      const jsonMatches = raw.match(/\{[^{}]{20,}\}/g) ?? []
+      for (const jm of jsonMatches) {
+        try { flightChunks.push(JSON.parse(jm)) } catch {}
+      }
+    } catch {}
+  }
 
-    await page.setRequestInterception(true)
-    page.on('request', r => r.continue())
-    page.on('response', async response => {
-      const respUrl = response.url()
-      const ct = response.headers()['content-type'] ?? ''
-      if (!ct.includes('application/json')) return
-      if (respUrl.includes('/_next/') || respUrl.includes('/favicon') || respUrl.includes('analytics')) return
-      try {
-        const text = await response.text()
-        const body = JSON.parse(text)
-        captured.push({ url: respUrl, body })
-      } catch {}
-    })
+  // 플롯 관련 청크 우선 추출 (plot, character, profile 키워드 포함)
+  const plotChunks = flightChunks.filter(c =>
+    JSON.stringify(c).match(/plot|character|profile|intro|description|name|tag/i)
+  )
 
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
-    await new Promise(r => setTimeout(r, 2000))
+  // og 메타도 추출
+  const ogTitle = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"/) ?.[1] ?? ''
+  const ogDesc = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"/) ?.[1] ?? ''
+  const ogImage = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"/) ?.[1] ?? ''
 
-    return { captured, totalCount: captured.length }
-  } finally {
-    await browser.close()
+  return {
+    og: { title: ogTitle, description: ogDesc, image: ogImage },
+    flightChunkCount: flightChunks.length,
+    plotChunkCount: plotChunks.length,
+    plotChunks: plotChunks.slice(0, 20),
+    allChunks: flightChunks.slice(0, 10),
   }
 }
 
