@@ -461,8 +461,9 @@ export async function captureWhif(url: string): Promise<Captured> {
   // API 가로채기에 성공한 경우 직접 AssembledResult 구성 (AI 분류기 패스)
   // 언세이프 캐릭터는 로그인 시에도 DOM에 "세이프 모드를 해제" 안내 문구가 남아있으므로
   // apiData가 있으면 게이트 체크보다 먼저 처리한다.
-  if (apiData && apiData.character && apiData.universe) {
-    const universe = apiData.universe
+  // universe가 없는 단독 캐릭터도 character 데이터만으로 처리한다.
+  if (apiData && apiData.character) {
+    const universe = apiData.universe ?? {}
     const mainChar = apiData.character
     // ListByUniverseId는 메인 캐릭터 자신도 포함해 내려주므로, 그대로 합치면
     // 동일 캐릭터가 두 번 생성된다 — id가 같은 항목은 제외한다.
