@@ -10,6 +10,7 @@ const BASE_ICONS = [
   { label: 'AI 채팅', emoji: '🤖', href: '/assistant' },
   { label: '캐릭터', emoji: '🎭', href: '/characters' },
   { label: 'WHIF 센터', emoji: '🪐', href: '/whif' },
+  { label: 'ZETA 센터', emoji: '⚡', href: '/zeta' },
   { label: '서재', emoji: '📚', href: '/library' },
   { label: '설정', emoji: '⚙️', href: '/settings' },
 ]
@@ -28,7 +29,7 @@ const GUIDE_SECTIONS = [
   {
     title: '📥 외부 가져오기',
     items: [
-      { emoji: '⚡', label: 'ZETA (zeta-ai.io)', desc: '플롯 프로필 URL을 붙여넣으면 캐릭터·설정을 자동으로 가져옵니다.' },
+      { emoji: '⚡', label: 'ZETA (zeta-ai.io)', desc: '플롯 프로필 URL을 붙여넣으면 캐릭터·설정을 자동으로 가져옵니다.', href: '/zeta' },
       { emoji: '🔥', label: 'Melting (melting.chat)', desc: '캐릭터 페이지 URL로 대화 상대를 바로 불러올 수 있습니다.' },
       { emoji: '🪐', label: 'WHIF (whif.io)', desc: 'WHIF 센터에서 세계관 단위로 캐릭터를 관리하고 가져올 수 있습니다.', href: '/whif' },
     ],
