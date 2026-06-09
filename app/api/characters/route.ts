@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const source = searchParams.get('isWhif') === 'true' ? 'whif'
     : searchParams.get('isZeta') === 'true' ? 'zeta'
+    : searchParams.get('isMelting') === 'true' ? 'melting'
     : 'regular'
 
   const whereClause =
@@ -16,6 +17,8 @@ export async function GET(req: NextRequest) {
       ? { creatorId: userId, collection: { sourceUrl: { contains: 'whif.' } } }
     : source === 'zeta'
       ? { creatorId: userId, collection: { sourceUrl: { contains: 'zeta-ai.io' } } }
+    : source === 'melting'
+      ? { creatorId: userId, collection: { sourceUrl: { contains: 'melting.chat' } } }
       : {
           OR: [
             { isPreset: true },
@@ -28,6 +31,7 @@ export async function GET(req: NextRequest) {
                     AND: [
                       { NOT: { sourceUrl: { contains: 'whif.' } } },
                       { NOT: { sourceUrl: { contains: 'zeta-ai.io' } } },
+                      { NOT: { sourceUrl: { contains: 'melting.chat' } } },
                     ],
                   },
                 },
