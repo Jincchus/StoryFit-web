@@ -230,13 +230,62 @@ async function renderWhifPageText(url: string): Promise<{
       throw new Error('예상하지 못한 주소로 리다이렉트되었습니다.')
     }
 
-    // 필수 API 응답이 도달할 때까지 최대 10초간 대기
+    // 필수 캐릭터 API 응답이 도달할 때까지 최대 10초간 대기
     const startTime = Date.now()
     while (Date.now() - startTime < 10000) {
-      if (apiData.character && apiData.universe) {
+      if (apiData.character) {
         break
       }
       await new Promise((r) => setTimeout(r, 500))
+    }
+
+    // 캐릭터 데이터를 가로챘다면 브라우저 컨텍스트를 활용해 세계관 상세 및 전체 캐릭터 목록을 적극적으로 Fetch 해옵니다.
+    if (apiData.character) {
+      const uniId = apiData.character.universeId || apiData.character.universe?.id
+      if (uniId) {
+        console.log('[whif-import] Active fetch triggered for universe id:', uniId)
+        
+        // 1. 세계관 상세 정보(설정 카드/백과사전 포함) Fetch
+        try {
+          const uniResult = await page.evaluate(async (id) => {
+            const res = await fetch('https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.UniverseService/GetUniverse', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id })
+            })
+            return res.json()
+          }, uniId)
+          if (uniResult?.universe) {
+            apiData.universe = uniResult.universe
+            console.log('[whif-import] Active fetch universe success:', uniResult.universe.name)
+          }
+        } catch (e: any) {
+          console.error('[whif-import] Active universe fetch failed:', e.message)
+        }
+
+        // 2. 세계관 내 다른 캐릭터 리스트 Fetch
+        try {
+          const charsResult = await page.evaluate(async (id) => {
+            const res = await fetch('https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.CharacterService/ListByUniverseId', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ universeId: id })
+            })
+            return res.json()
+          }, uniId)
+          if (charsResult?.characters) {
+            apiData.universeCharacters = charsResult.characters
+            console.log('[whif-import] Active fetch universe characters success, count:', charsResult.characters.length)
+          }
+        } catch (e: any) {
+          console.error('[whif-import] Active characters fetch failed:', e.message)
+        }
+      }
+
+      // 만약 액티브 Fetch가 실패했거나 응답이 없더라도 기존 내장 데이터를 폴백으로 복구해둡니다.
+      if (!apiData.universe && apiData.character.universe) {
+        apiData.universe = apiData.character.universe
+      }
     }
 
     await page.waitForFunction(
