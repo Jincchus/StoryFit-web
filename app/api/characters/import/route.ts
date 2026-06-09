@@ -116,7 +116,15 @@ async function runImport(captured: Captured, url: string, userId: string) {
   // 세계관(컬렉션) 이름은 대화방 접미사("과의 대화")를 빼고 깔끔하게 원본 제목(세계관 명칭) 또는 대표 캐릭터 이름으로 저장합니다.
   const collectionTitle = (captured.title || result.title || firstName).trim()
   const collection = await prisma.characterCollection.create({
-    data: { title: collectionTitle, sourceUrl: url, userId, conversationId: conversation.id },
+    data: {
+      title: collectionTitle,
+      sourceUrl: url,
+      userId,
+      conversationId: conversation.id,
+      coverImageUrl: result.coverImageUrl ?? '',
+      description: result.scenarioDescription ?? '',
+      tags: result.tags ?? [],
+    },
   })
 
   await prisma.character.updateMany({
