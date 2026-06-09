@@ -119,7 +119,7 @@ export default function CharactersPage() {
     try {
       await Promise.all(Array.from(selected).map(id => api.delete(`/api/characters/${id}`)))
       setCharacters(prev => prev.filter(c => !selected.has(c.id)))
-      if (selected.has(draft.charId)) dispatch({ type: 'selectChar', id: '' })
+      if (draft.charId && selected.has(draft.charId)) dispatch({ type: 'selectChar', id: '' })
       exitSelect()
     } catch (e: any) {
       setError(e.message ?? '삭제 중 오류가 발생했습니다.')
