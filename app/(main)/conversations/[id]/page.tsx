@@ -93,6 +93,8 @@ interface Conv {
   inventoryEnabled: boolean; inventory: { name: string; qty: number; description?: string }[] | null
   styleConfig?: Record<string, string | null> | null
   sourceLorebookUrls?: { url: string; name: string }[] | null
+  suggestRepliesEnabled?: boolean
+  chapter?: number
   characters: ConvChar[]
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
   messages: Msg[]
@@ -112,6 +114,18 @@ export default function ChatPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const [conv, setConv] = useState<Conv | null>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [suggestLoading, setSuggestLoading] = useState(false)
+
+  const loadSuggestions = async () => {
+    if (suggestLoading) return
+    setSuggestLoading(true)
+    try {
+      const r = await api.post(`/api/conversations/${params.id}/suggestions`, {})
+      setSuggestions(Array.isArray(r.suggestions) ? r.suggestions : [])
+    } catch { setSuggestions([]) }
+    finally { setSuggestLoading(false) }
+  }
   const [loadingConv, setLoadingConv] = useState(true)
   const [ttsRate, setTtsRate] = useState(1.0)
   useEffect(() => {
@@ -411,6 +425,14 @@ export default function ChatPage() {
       streamUnsubRef.current = null
     }
   }, [params.id])
+
+  useEffect(() => {
+    if (!conv?.suggestRepliesEnabled) return
+    if (typing) return
+    const last = messages[messages.length - 1]
+    if (last && last.role === 'assistant') loadSuggestions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conv?.suggestRepliesEnabled, typing, messages.length])
 
   const fillComposer = (content: string) => {
     if (composerRef.current) {
@@ -1316,6 +1338,24 @@ export default function ChatPage() {
                   <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => { setSendError(''); send(lastSentRef.current) }}>↺ 재시도</button>
                 )}
                 <button className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} onClick={() => setSendError('')}>닫기</button>
+              </div>
+            )}
+            {conv?.suggestRepliesEnabled && !typing && messages[messages.length - 1]?.role === 'assistant' && (
+              <div className="melting-suggests">
+                {suggestLoading && suggestions.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--m-ink-soft, #9b9aa8)', padding: '4px 2px' }}>추천 답변 생성 중…</div>
+                ) : suggestions.length > 0 ? (
+                  <>
+                    {suggestions.map((s, i) => (
+                      <div className="melting-suggest-row" key={i}>
+                        <button className="melting-suggest-chip" onClick={() => fillComposer(s)}>{s}</button>
+                      </div>
+                    ))}
+                    <button className="melting-suggest-regen" disabled={suggestLoading} onClick={loadSuggestions}>
+                      {suggestLoading ? '…' : '🔄 새로 생성'}
+                    </button>
+                  </>
+                ) : null}
               </div>
             )}
             <div className="vstack" style={{ gap: 0, position: 'relative' }}>
