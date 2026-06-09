@@ -10,6 +10,15 @@ export default function NovelText({ text }: NovelTextProps) {
   let key = 0
 
   while (i < text.length) {
+    if (text.slice(i, i + 7) === '{{img::') {
+      const end = text.indexOf('}}', i + 7)
+      if (end !== -1) {
+        const imgUrl = text.slice(i + 7, end)
+        parts.push(<img key={key++} src={imgUrl} alt="" style={{ maxWidth: '100%', borderRadius: 8, margin: '6px 0', display: 'block' }} />)
+        i = end + 2
+        continue
+      }
+    }
     if (text[i] === '*') {
       const end = text.indexOf('*', i + 1)
       if (end !== -1) {

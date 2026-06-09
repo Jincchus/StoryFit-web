@@ -549,6 +549,19 @@ export async function captureWhif(url: string): Promise<Captured> {
       const recommendedOpenings = c.publicData?.recommendedOpenings || c.recommendedOpenings || []
       const openingMessage = firstMessages[0]?.text || ''
       const description = c.introduction || c.description || c.publicData?.description || ''
+
+
+      const imgMap: Record<string, string> = {}
+      if (Array.isArray(c.images)) {
+        for (const img of c.images) {
+          if (img.slug && img.imageUrl) {
+            imgMap[img.slug] = img.imageUrl.replace(/\/[^/]+$/, '/public')
+          }
+        }
+      }
+      const resolveImg = (t: string) =>
+        t.replace(/\{\{img::([^}]+)\}\}/g, (_, slug) => imgMap[slug] ? `{{img::${imgMap[slug]}}}` : '')
+
       let additionalInfo = [description, ...recommendedOpenings].filter(Boolean).join('\n\n')
 
       const roleInfo = [
@@ -567,15 +580,15 @@ export async function captureWhif(url: string): Promise<Captured> {
         .map((m: any, idx: number) => ({
           id: String(m.id || `opening_${idx}`),
           title: String(m.title || (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
-          content: String(m.text || ''),
+          content: resolveImg(String(m.text || '')),
         }))
 
       return {
         name: c.name || '캐릭터',
         gender: c.gender || '',
         tags: Array.isArray(c.keywords) ? c.keywords : [],
-        additionalInfo,
-        openingMessage,
+        additionalInfo: resolveImg(additionalInfo),
+        openingMessage: resolveImg(openingMessage),
         openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
         exampleDialogues: '',
         avatarUrl: c.avatarUrl || '',
