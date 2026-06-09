@@ -15,9 +15,16 @@ interface ConvItem {
   isPinned: boolean
   isAutoCreated: boolean
   tags: string[]
+  sourceUrl: string
   characters: { character: { name: string; kind: string; avatarUrl?: string } }[]
   messages: { content: string }[]
   personaCharacter?: { name: string } | null
+}
+
+function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'STORYFIT' {
+  if (sourceUrl?.includes('zeta-ai.io')) return 'ZETA'
+  if (sourceUrl?.includes('melting.chat')) return 'MELTING'
+  return 'STORYFIT'
 }
 
 function previewText(content: string): string {
@@ -45,6 +52,15 @@ const MODE_FILTERS = [
 
 type ModeFilter = typeof MODE_FILTERS[number]['key']
 
+const SOURCE_FILTERS = [
+  { key: 'all', label: '전체' },
+  { key: 'STORYFIT', label: 'STORYFIT' },
+  { key: 'ZETA', label: 'ZETA' },
+  { key: 'MELTING', label: 'MELTING' },
+] as const
+
+type SourceFilter = typeof SOURCE_FILTERS[number]['key']
+
 export default function ChatListPage() {
   const router = useRouter()
   const [conversations, setConversations] = useState<ConvItem[]>([])
@@ -57,6 +73,7 @@ export default function ChatListPage() {
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [query, setQuery] = useState('')
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all')
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent')
 
   useEffect(() => {
@@ -106,6 +123,7 @@ export default function ChatListPage() {
   const filtered = conversations.filter(c => {
     if (modeFilter === 'multi' && c.mode !== 'tikiTaka' && c.mode !== 'multiStory') return false
     if (modeFilter !== 'all' && modeFilter !== 'multi' && c.mode !== modeFilter) return false
+    if (sourceFilter !== 'all' && getSource(c.sourceUrl) !== sourceFilter) return false
     if (!query.trim()) return true
     const q = query.toLowerCase()
     return c.title.toLowerCase().includes(q) ||
@@ -221,6 +239,17 @@ export default function ChatListPage() {
           >{sortBy === 'recent' ? '⏱ 최신순' : '가나다순'}</button>
         </div>
 
+        <div className="hstack" style={{ flexShrink: 0, gap: 4, flexWrap: 'wrap' }}>
+          {SOURCE_FILTERS.map(f => (
+            <button
+              key={f.key}
+              className={`btn ${sourceFilter === f.key ? 'primary' : 'ghost'}`}
+              style={{ fontSize: 10, padding: '2px 8px' }}
+              onClick={() => setSourceFilter(f.key)}
+            >{f.label}</button>
+          ))}
+        </div>
+
         <div className="scroll" style={{ flex: 1, minHeight: 0 }}>
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
@@ -254,7 +283,7 @@ export default function ChatListPage() {
                 <rect x="6" y="14" width="4" height="1" fill="var(--hot-pink)"/>
                 <rect x="7" y="15" width="2" height="1" fill="var(--hot-pink)"/>
               </svg>
-              {query.trim() || modeFilter !== 'all'
+              {query.trim() || modeFilter !== 'all' || sourceFilter !== 'all'
                 ? <div style={{ marginTop: 8 }}>검색 결과가 없어요</div>
                 : <>
                     <div style={{ marginTop: 8 }}>아직 시작한 롤플레이가 없어요</div>
@@ -312,6 +341,9 @@ export default function ChatListPage() {
                 <div className="vstack" style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                   <div className="hstack" style={{ gap: 4 }}>
                     {conv.isAutoCreated && <span style={{ fontSize: 8, fontWeight: 700, background: '#4fa8e8', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>설정 필요</span>}
+                    {getSource(conv.sourceUrl) !== 'STORYFIT' && (
+                      <span style={{ fontSize: 8, fontWeight: 700, background: getSource(conv.sourceUrl) === 'ZETA' ? '#7c5cfc' : '#e85454', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>{getSource(conv.sourceUrl)}</span>
+                    )}
                     <span className="mode-badge" style={{ fontSize: 8 }}>{MODE_LABEL[conv.mode] ?? conv.mode}</span>
                   </div>
                   <span className="when">{when}</span>

@@ -128,7 +128,7 @@ export default function ChatPage() {
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
-  const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false, style: false })
+  const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false, style: false, persona: true })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [editingTitle, setEditingTitle] = useState(false)
@@ -1343,7 +1343,7 @@ export default function ChatPage() {
                             transition: 'background 0.2s',
                           }}
                         >
-                          <span style={{ fontWeight: 700, fontSize: 13, color: isActive ? '#fff' : '#00ffcc' }}>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: '#fff' }}>
                             {cmd.name}
                           </span>
                           <span style={{ fontSize: 11, color: isActive ? '#eee' : 'var(--muted)' }}>
@@ -1595,8 +1595,12 @@ export default function ChatPage() {
               </div>
 
               <div className="side-section">
-                <div className="label">내 역할</div>
-                <div className="vstack" style={{ gap: 4 }}>
+                <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, persona: !o.persona }))}>
+                  <span>내 역할</span>
+                  <span className={`acc-arrow ${panelOpen.persona ? 'open' : ''}`}>▼</span>
+                </button>
+                {panelOpen.persona && (
+                <div className="vstack" style={{ gap: 4, marginTop: 6 }}>
                   <div
                     className={`persona-option ${!conv.personaCharacter ? 'selected' : ''}`}
                     style={{ cursor: 'pointer' }}
@@ -1631,6 +1635,7 @@ export default function ChatPage() {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
 
               <div className="side-section">
