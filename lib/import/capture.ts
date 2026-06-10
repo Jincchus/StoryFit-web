@@ -825,6 +825,8 @@ export async function captureMelting(url: string): Promise<Captured> {
       return {
         sections: sections.map(s => ({ ...s, text: depersonalizeNickname(s.text, nickname) })),
         title, imageUrl,
+        // TEMP DEBUG: apiData.bot 가로채기 실패 원인 조사용 — 원인 파악 후 제거
+        meltingMeta: { _debugSections: sections },
       }
     }
   } catch (e: any) {
