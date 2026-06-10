@@ -1040,6 +1040,10 @@ body[data-crt="on"]::after{
 .zeta-root{
   --z-bg:#0d0d0f; --z-surface:#1a1a1f; --z-surface-2:#232329; --z-line:#2c2c34;
   --z-ink:#f4f4f6; --z-ink-soft:#9a9aa6; --z-accent:#7c5cff; --z-radius:14px;
+  /* WhifPersonaModal이 이 영역에서도 쓰이므로 --w-* 변수를 동일 톤으로 매핑 */
+  --w-bg:var(--z-bg); --w-surface:var(--z-surface); --w-surface-2:var(--z-surface-2);
+  --w-line:var(--z-line); --w-ink:var(--z-ink); --w-ink-soft:var(--z-ink-soft);
+  --w-accent:var(--z-accent); --w-accent-2:var(--z-accent);
   display:flex; flex-direction:column; height:100%; min-height:0;
   background:var(--z-bg); color:var(--z-ink);
 }
@@ -1091,6 +1095,10 @@ body[data-crt="on"]::after{
 .melting-root{
   --m-bg:#0d0d12; --m-surface:#1a1a22; --m-surface-2:#24242e; --m-line:#33333f;
   --m-ink:#f5f4f8; --m-ink-soft:#9b9aa8; --m-accent:#ff2e93; --m-radius:14px;
+  /* WhifPersonaModal이 이 영역에서도 쓰이므로 --w-* 변수를 동일 톤으로 매핑 */
+  --w-bg:var(--m-bg); --w-surface:var(--m-surface); --w-surface-2:var(--m-surface-2);
+  --w-line:var(--m-line); --w-ink:var(--m-ink); --w-ink-soft:var(--m-ink-soft);
+  --w-accent:var(--m-accent); --w-accent-2:var(--m-accent);
   display:flex; flex-direction:column; height:100%; min-height:0;
   background:var(--m-bg); color:var(--m-ink);
 }
