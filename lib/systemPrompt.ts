@@ -111,10 +111,12 @@ export function replacePlaceholders(text: string, personaName: string, charName?
     result = result
       .replace(/\{\{char\}\}/gi, charName)
       .replace(/\{char\}/gi, charName)
+      .replace(/\{캐릭터\}/g, charName)
   }
   return result
     .replace(/\{\{user\}\}/gi, personaName)
     .replace(/\{user\}/gi, personaName)
+    .replace(/\{유저\}/g, personaName)
     .replace(/\[유저\]/g, personaName)
     .replace(/\[USER\]/gi, personaName)
     .replace(/\bguest\b/gi, personaName)
