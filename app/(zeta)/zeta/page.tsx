@@ -93,13 +93,19 @@ export default function ZetaListPage() {
       </div>
 
       <div className="zeta-scroll">
-        {loading ? (
+        {(() => {
+          const visiblePlots = plots.filter(p => view === 'completed' ? p.completed : !p.completed)
+          return loading ? (
           <div className="zeta-empty">불러오는 중...</div>
-        ) : plots.length === 0 ? (
-          <div className="zeta-empty">가져온 플롯이 없습니다<br />⋮ 메뉴에서 zeta-ai.io 플롯 URL로 가져오세요.</div>
+        ) : visiblePlots.length === 0 ? (
+          view === 'completed'
+            ? <div className="zeta-empty">완결한 작품이 없습니다.</div>
+            : plots.length === 0
+              ? <div className="zeta-empty">가져온 플롯이 없습니다<br />⋮ 메뉴에서 zeta-ai.io 플롯 URL로 가져오세요.</div>
+              : <div className="zeta-empty">진행 중인 작품이 없습니다.</div>
         ) : (
           <div className="zeta-grid">
-            {plots.filter(p => view === 'completed' ? p.completed : !p.completed).map(p => {
+            {visiblePlots.map(p => {
               const mainChar = p.characters.find(c => c.name === p.title) ?? p.characters[0]
               const thumb = p.coverImageUrl || mainChar?.avatarUrl || ''
               const intro = mainChar?.openingMessages?.[0]?.content || mainChar?.openingMessage || ''
@@ -136,7 +142,8 @@ export default function ZetaListPage() {
               )
             })}
           </div>
-        )}
+          )
+        })()}
       </div>
     </>
   )
