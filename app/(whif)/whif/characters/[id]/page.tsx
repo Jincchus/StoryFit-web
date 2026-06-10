@@ -88,7 +88,7 @@ export default function CharacterDetailPage() {
       const resp = await api.post('/api/conversations', {
         title: char.name,
         characterIds: [char.id],
-        mode: 'roleplay',
+        mode: 'story',
         personaCharacterId: personaId,
         ...(chosen !== undefined ? { openingMessage: chosen } : {}),
       })

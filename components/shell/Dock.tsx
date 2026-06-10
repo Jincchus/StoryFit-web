@@ -44,6 +44,8 @@ export default function Dock() {
   const isAssistant = pathname.startsWith('/assistant')
   const isLibrary = pathname.startsWith('/library')
   const isWhif = pathname.startsWith('/whif')
+  const isZeta = pathname.startsWith('/zeta')
+  const isMelting = pathname.startsWith('/melting')
 
   return (
     <div className="dock">
@@ -64,6 +66,12 @@ export default function Dock() {
             </button>
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/whif') }}>
               🪐 WHIF 센터
+            </button>
+            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/zeta') }}>
+              ⚡ ZETA 센터
+            </button>
+            <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/melting') }}>
+              🔥 MELTING 센터
             </button>
             <button className="start-menu-item" onClick={() => { setShowStart(false); router.push('/library') }}>
               📚 서재
@@ -100,6 +108,16 @@ export default function Dock() {
           aria-label="WHIF 센터로 이동"
           onClick={() => router.push('/whif')}
         >🪐 WHIF</button>
+        <button
+          className={`dock-tab ${isZeta ? 'active' : ''}`}
+          aria-label="ZETA 센터로 이동"
+          onClick={() => router.push('/zeta')}
+        >⚡ ZETA</button>
+        <button
+          className={`dock-tab ${isMelting ? 'active' : ''}`}
+          aria-label="MELTING 센터로 이동"
+          onClick={() => router.push('/melting')}
+        >🔥 MELTING</button>
       </div>
       <div className="tray">
         <span title="네트워크" style={{ color: '#22a06b' }}>●</span>

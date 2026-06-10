@@ -77,7 +77,7 @@ export default function MeltingCharDetailPage() {
       const resp = await api.post('/api/conversations', {
         title: col.title,
         characterIds: [mainChar.id],
-        mode: 'roleplay',
+        mode: 'story',
         personaCharacterId: personaId,
         statsEnabled: true,
         statsConfig: [{ name: '호감도', value: 50, min: 0, max: 100 }],

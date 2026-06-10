@@ -55,6 +55,7 @@ interface BuildSystemPromptParams {
   coreMemory?: string
   statusTimeline?: string
   scenarioDescription?: string
+  openingScene?: string
   lorebook?: LorebookEntry[]
   longTermMemory?: string[]
   globalRules?: string
@@ -140,6 +141,12 @@ function buildCharLines(character: Character, personaName?: string): string {
   return lines.join('\n')
 }
 
+// 대화 도입부(오프닝)는 토큰 예산에 따라 최근 메시지 목록에서 잘려나갈 수 있다.
+// 이 경우에도 AI가 최초 장면 설정을 계속 인지하도록 시스템 프롬프트에 별도로 고정한다.
+function buildOpeningSceneSection(openingScene?: string): string {
+  return openingScene?.trim() ? `[오프닝 장면 — 대화의 시작]\n${openingScene.trim()}` : ''
+}
+
 function buildLorebookSection(lorebook: LorebookEntry[]): string {
   const sorted = [...lorebook].sort((a, b) => b.priority - a.priority)
   const selected: string[] = []
@@ -159,6 +166,7 @@ export function buildSystemPrompt({
   coreMemory,
   statusTimeline,
   scenarioDescription,
+  openingScene,
   lorebook = [],
   longTermMemory = [],
   globalRules,
@@ -185,6 +193,8 @@ export function buildSystemPrompt({
     const sd = personaCharacter ? replacePlaceholders(scenarioDescription, personaCharacter.name, character.name) : scenarioDescription
     parts.push(`[시나리오 배경]\n${sd}`)
   }
+  const openingSceneSection = buildOpeningSceneSection(openingScene)
+  if (openingSceneSection) parts.push(openingSceneSection)
   if (character.exampleDialogues?.trim()) {
     const ex = personaCharacter ? replacePlaceholders(character.exampleDialogues, personaCharacter.name, character.name) : character.exampleDialogues
     parts.push(`[예시 대화]\n${ex}`)
@@ -205,6 +215,7 @@ export function buildNovelSystemPrompt({
   coreMemory,
   statusTimeline,
   scenarioDescription,
+  openingScene,
   lorebook = [],
   longTermMemory = [],
   globalRules,
@@ -235,6 +246,8 @@ export function buildNovelSystemPrompt({
     const sd = replacePlaceholders(scenarioDescription, personaName, characterName)
     parts.push(`[시나리오 배경]\n${sd}`)
   }
+  const openingSceneSection = buildOpeningSceneSection(openingScene)
+  if (openingSceneSection) parts.push(openingSceneSection)
   if (character.exampleDialogues?.trim()) {
     const ex = replacePlaceholders(character.exampleDialogues, personaName, characterName)
     parts.push(`[예시 대화 (참고용)]\n${ex}`)
@@ -286,6 +299,7 @@ export function buildStorySystemPrompt({
   coreMemory,
   statusTimeline,
   scenarioDescription,
+  openingScene,
   lorebook = [],
   longTermMemory = [],
   globalRules,
@@ -323,6 +337,8 @@ export function buildStorySystemPrompt({
     const sd = replacePlaceholders(scenarioDescription, personaName, character.name)
     parts.push(`[시나리오 배경]\n${sd}`)
   }
+  const openingSceneSection = buildOpeningSceneSection(openingScene)
+  if (openingSceneSection) parts.push(openingSceneSection)
   if (character.exampleDialogues?.trim()) {
     const ex = replacePlaceholders(character.exampleDialogues, personaName, character.name)
     parts.push(`[예시 대화]\n${ex}`)
@@ -344,6 +360,7 @@ export interface MultiStoryPromptParams {
   coreMemory?: string
   statusTimeline?: string
   scenarioDescription?: string
+  openingScene?: string
   lorebook?: LorebookEntry[]
   longTermMemory?: string[]
   globalRules?: string
@@ -362,6 +379,7 @@ export function buildMultiStorySystemPrompt({
   coreMemory,
   statusTimeline,
   scenarioDescription,
+  openingScene,
   lorebook = [],
   longTermMemory = [],
   globalRules,
@@ -446,6 +464,8 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
     const sd = replacePlaceholders(scenarioDescription, personaName)
     parts.push(`[시나리오 배경]\n${sd}`)
   }
+  const openingSceneSection = buildOpeningSceneSection(openingScene)
+  if (openingSceneSection) parts.push(openingSceneSection)
 
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)

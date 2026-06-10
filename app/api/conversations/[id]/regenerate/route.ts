@@ -73,12 +73,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     avatarUrl: character.avatarUrl ?? undefined,
   }
 
+  const recentHistoryMsgs = sliceByTokenBudget(historyMsgs, 5000)
+  const recentHistoryIds = new Set(recentHistoryMsgs.map(m => m.id))
+  const openingScene = historyMsgs
+    .filter(m => m.role === 'assistant' && !m.parentId && !recentHistoryIds.has(m.id))
+    .map(m => m.content)
+    .join('\n\n')
+
   const promptParams = {
     character: charParam,
     personaCharacter: conv.personaCharacter ?? null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,
+    openingScene,
     lorebook: matchedLorebook,
     longTermMemory,
     globalRules,
@@ -116,7 +124,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const latestUserId = [...historyMsgs].reverse().find(m => m.role === 'user')?.id
   const allowChoices = conv.mode === 'story' || isMultiStory
-  const history = sliceByTokenBudget(historyMsgs, 5000).reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
+  const history = recentHistoryMsgs.reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
     const contentForModel = m.id === latestUserId ? appendTurnControlInstruction(m.content, allowChoices) : m.content
     const last = acc[acc.length - 1]

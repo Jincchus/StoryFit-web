@@ -126,18 +126,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const firstChar = conversation.characters[0]?.character
-  const chosenOpening = body.openingMessage !== undefined
-    ? String(body.openingMessage || '').trim()
-    : firstChar?.openingMessage?.trim()
+  const chars = conversation.characters.map(cc => cc.character)
+  const firstChar = chars[0]
+  const seenOpenings = new Map<string, string>()
+  for (const char of chars) {
+    const content = char.id === firstChar?.id && body.openingMessage !== undefined
+      ? String(body.openingMessage || '').trim()
+      : (char.openingMessage || '').trim()
+    if (!content) continue
+    if (seenOpenings.has(content)) continue
+    seenOpenings.set(content, char.id)
+  }
 
-  if (chosenOpening) {
+  for (const [content, characterId] of Array.from(seenOpenings)) {
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
         role: 'assistant',
-        content: chosenOpening,
-        characterId: firstChar?.id ?? null,
+        content,
+        characterId,
         isSelected: true,
         isStreaming: false,
       },

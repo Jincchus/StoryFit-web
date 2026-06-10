@@ -177,9 +177,6 @@ export default function CharactersPage() {
                 {selectableInFilter.length > 0 && (
                   <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setSelecting(true)}>☑ 선택</button>
                 )}
-                <button className="btn" style={{ background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed', fontSize: 11 }} onClick={() => router.push('/whif')}>🪐 WHIF</button>
-                <button className="btn" style={{ background: '#7c5cff', color: '#fff', border: '1px solid #6a4eef', fontSize: 11 }} onClick={() => router.push('/zeta')}>⚡ ZETA</button>
-                <button className="btn" style={{ background: '#ff2e93', color: '#fff', border: '1px solid #e0257f', fontSize: 11 }} onClick={() => router.push('/melting')}>🔥 MELTING</button>
                 <button className="btn" style={{ fontSize: 11 }} onClick={() => router.push('/characters/new')}>+ 만들기</button>
                 <button
                   className="btn primary"

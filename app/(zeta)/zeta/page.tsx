@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 
+interface Opening { id: string; title: string; content: string }
 interface Plot {
   id: string; title: string; coverImageUrl: string; tags: string[]
-  characters: { id: string; name: string; avatarUrl: string | null }[]
+  characters: { id: string; name: string; avatarUrl: string | null; openingMessage: string; openingMessages?: Opening[] }[]
+  lorebookTitles?: string[]
   zetaMeta?: any
 }
 
@@ -91,7 +93,9 @@ export default function ZetaListPage() {
         ) : (
           <div className="zeta-grid">
             {plots.map(p => {
-              const thumb = p.coverImageUrl || p.characters[0]?.avatarUrl || ''
+              const mainChar = p.characters.find(c => c.name === p.title) ?? p.characters[0]
+              const thumb = p.coverImageUrl || mainChar?.avatarUrl || ''
+              const intro = mainChar?.openingMessages?.[0]?.content || mainChar?.openingMessage || ''
               return (
                 <div key={p.id} className="zeta-card"
                   onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>
@@ -101,6 +105,16 @@ export default function ZetaListPage() {
                     {p.tags?.length > 0 && (
                       <div className="zeta-card-tags">
                         {p.tags.slice(0, 3).map(t => <span key={t} className="zeta-chip">#{t}</span>)}
+                      </div>
+                    )}
+                    {p.lorebookTitles && p.lorebookTitles.length > 0 && (
+                      <div className="zeta-card-tags">
+                        {p.lorebookTitles.slice(0, 3).map(t => <span key={t} className="zeta-chip">📒 {t}</span>)}
+                      </div>
+                    )}
+                    {intro && (
+                      <div style={{ fontSize: 11, color: 'var(--z-ink-soft)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {intro.replace(/\{\{user\}\}/gi, '나').replace(/\{\{char\}\}/gi, mainChar?.name ?? '')}
                       </div>
                     )}
                   </div>

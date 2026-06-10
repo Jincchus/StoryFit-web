@@ -41,10 +41,31 @@ export async function GET(req: NextRequest) {
       tags: true,
       zetaMeta: true,
       meltingMeta: true,
-      characters: { select: { id: true, name: true, avatarUrl: true } },
+      characters: { select: { id: true, name: true, avatarUrl: true, openingMessage: true, openingMessages: true } },
     },
   })
-  return NextResponse.json(collections)
+
+  const collectionIds = collections.map(c => c.id)
+  const lorebooks = collectionIds.length > 0
+    ? await prisma.lorebook.findMany({
+        where: { scope: 'collection', scopeId: { in: collectionIds } },
+        select: { scopeId: true, keyword: true },
+      })
+    : []
+  const lorebookTitlesByCollection = new Map<string, string[]>()
+  for (const lb of lorebooks) {
+    const title = lb.keyword?.[0]
+    if (!title) continue
+    const arr = lorebookTitlesByCollection.get(lb.scopeId) ?? []
+    if (!arr.includes(title)) arr.push(title)
+    lorebookTitlesByCollection.set(lb.scopeId, arr)
+  }
+
+  const result = collections.map(c => ({
+    ...c,
+    lorebookTitles: lorebookTitlesByCollection.get(c.id) ?? [],
+  }))
+  return NextResponse.json(result)
 }
 
 export async function POST(req: NextRequest) {

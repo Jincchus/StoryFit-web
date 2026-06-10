@@ -142,11 +142,26 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     conv.messages,
   )
 
+  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const charName = character?.name || ''
+  const mappedMessages = conv.messages.map(m => ({
+    ...m,
+    content: replacePlaceholders(m.content, personaName, charName)
+  }))
+
+  const recentMsgs = sliceByTokenBudget(mappedMessages, 5000)
+  const recentIds = new Set(recentMsgs.map(m => m.id))
+  const openingScene = mappedMessages
+    .filter(m => m.role === 'assistant' && !m.parentId && !recentIds.has(m.id))
+    .map(m => m.content)
+    .join('\n\n')
+
   const basePromptParams = {
     personaCharacter: conv.personaCharacter ?? null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,
+    openingScene,
     lorebook: matchedLorebook,
     longTermMemory,
     globalRules,
@@ -187,14 +202,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           })
         : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
-  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
-  const charName = character?.name || ''
-  const mappedMessages = conv.messages.map(m => ({
-    ...m,
-    content: replacePlaceholders(m.content, personaName, charName)
-  }))
-
-  const recentMsgs = sliceByTokenBudget(mappedMessages, 5000)
   const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
   const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charName)
   const history = [...recentMsgs, { ...userMsg, content: cleanUserMsgContent }].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {

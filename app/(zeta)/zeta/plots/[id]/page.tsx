@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 interface Opening { id: string; title: string; content: string }
 interface Char {
   id: string; name: string; avatarUrl: string | null; additionalInfo: string
+  gender?: string
   openingMessage: string; openingMessages?: Opening[]
 }
 interface Collection {
@@ -38,13 +39,17 @@ export default function ZetaPlotDetailPage() {
   const [lorebooks, setLorebooks] = useState<any[]>([])
   const [expandedLoreId, setExpandedLoreId] = useState<string | null>(null)
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
+  const [chatModeOpen, setChatModeOpen] = useState(false)
+  const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
   }, [id])
 
   useEffect(() => {
-    const charId = col?.characters?.[0]?.id
+    if (!col) return
+    const main = col.characters.find(c => c.name === col.title) ?? col.characters[0]
+    const charId = main?.id
     if (!charId) return
     api.get(`/api/conversations?characterId=${charId}`).then(setExistingConvs).catch(() => setExistingConvs([]))
   }, [col])
@@ -63,18 +68,31 @@ export default function ZetaPlotDetailPage() {
     }
   }
 
+  const startChat = () => {
+    if (col!.characters.length > 1) {
+      setChatModeOpen(true)
+    } else {
+      setPendingAiCharIds(col!.characters[0] ? [col!.characters[0].id] : null)
+      setPersonaOpen(true)
+    }
+  }
+
   const handleCtaClick = () => {
     if (existingConvs.length > 0) {
       setShowNewChatConfirm(true)
     } else {
-      setPersonaOpen(true)
+      startChat()
     }
   }
 
   if (!col) return <div className="zeta-empty">불러오는 중...</div>
 
   const meta = col.zetaMeta ?? {}
-  const mainChar = col.characters[0]
+  const mainChar = col.characters.find(c => c.name === col.title) ?? col.characters[0]
+  const aiCharIds = pendingAiCharIds ?? (mainChar ? [mainChar.id] : [])
+  const personaCandidates = col.characters
+    .filter(c => !aiCharIds.includes(c.id))
+    .map(c => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl, additionalInfo: c.additionalInfo }))
   const openings: Opening[] = mainChar?.openingMessages?.length
     ? mainChar.openingMessages
     : mainChar?.openingMessage?.trim()
@@ -99,7 +117,7 @@ export default function ZetaPlotDetailPage() {
       const chosen = openings[openingIdx]?.content
       const resp = await api.post('/api/conversations', {
         title: col.title,
-        characterIds: [mainChar.id],
+        characterIds: aiCharIds,
         mode: 'story',
         personaCharacterId: personaId,
         ...(col.description ? { scenarioDescription: col.description } : {}),
@@ -116,14 +134,39 @@ export default function ZetaPlotDetailPage() {
       {showNewChatConfirm && (
         <ConfirmDialog
           message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
-          onConfirm={() => { setShowNewChatConfirm(false); setPersonaOpen(true) }}
+          onConfirm={() => { setShowNewChatConfirm(false); startChat() }}
           onCancel={() => setShowNewChatConfirm(false)}
         />
       )}
 
+      {chatModeOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setChatModeOpen(false)}>
+          <div className="win" style={{ minWidth: 260, maxWidth: 320 }} onClick={e => e.stopPropagation()}>
+            <div className="win-title">
+              <div className="win-title-l"><span>대화 방식 선택</span></div>
+              <div className="win-controls"><button onClick={() => setChatModeOpen(false)}>×</button></div>
+            </div>
+            <div className="win-body vstack" style={{ gap: 8 }}>
+              <button className="btn primary" style={{ textAlign: 'left' }}
+                onClick={() => { setPendingAiCharIds(col!.characters.map(c => c.id)); setChatModeOpen(false); setPersonaOpen(true) }}>
+                👥 다중 대화 (전체 캐릭터 {col.characters.length}명)
+              </button>
+              <div className="tiny muted" style={{ marginTop: 4 }}>1:1 대화 상대 선택</div>
+              {col.characters.map(c => (
+                <button key={c.id} className="btn ghost" style={{ textAlign: 'left' }}
+                  onClick={() => { setPendingAiCharIds([c.id]); setChatModeOpen(false); setPersonaOpen(true) }}>
+                  👤 {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {personaOpen && (
         <WhifPersonaModal
-          candidates={[]}
+          candidates={personaCandidates}
           loading={creating}
           defaultSettings={personaDefaults}
           onCancel={() => { setPersonaOpen(false); setCreating(false) }}

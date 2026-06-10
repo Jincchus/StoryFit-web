@@ -23,9 +23,10 @@ interface ConvItem {
   chapter?: number
 }
 
-function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'STORYFIT' {
+function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'WHIF' | 'STORYFIT' {
   if (sourceUrl?.includes('zeta-ai.io')) return 'ZETA'
   if (sourceUrl?.includes('melting.chat')) return 'MELTING'
+  if (sourceUrl?.includes('whif.')) return 'WHIF'
   return 'STORYFIT'
 }
 
@@ -59,6 +60,7 @@ const SOURCE_FILTERS = [
   { key: 'STORYFIT', label: 'STORYFIT' },
   { key: 'ZETA', label: 'ZETA' },
   { key: 'MELTING', label: 'MELTING' },
+  { key: 'WHIF', label: 'WHIF' },
 ] as const
 
 type SourceFilter = typeof SOURCE_FILTERS[number]['key']
@@ -66,6 +68,7 @@ type SourceFilter = typeof SOURCE_FILTERS[number]['key']
 const SOURCE_BADGE_COLOR: Record<string, string> = {
   ZETA: '#7c5cfc',
   MELTING: '#e85454',
+  WHIF: '#4fa8e8',
 }
 
 export default function ChatListPage() {
