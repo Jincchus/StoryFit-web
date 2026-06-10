@@ -14,6 +14,10 @@ interface Collection {
   id: string; title: string; coverImageUrl: string; description: string; tags: string[]
   characters: Char[]; zetaMeta?: any
 }
+interface ExistingConv {
+  id: string; title: string; updatedAt: string
+  messages: { content: string }[]
+}
 
 function formatCount(n: number) {
   return n >= 10000 ? `${Math.floor(n / 10000)}만` : n >= 1000 ? `${(n / 1000).toFixed(1)}천` : String(n)
@@ -32,10 +36,17 @@ export default function ZetaPlotDetailPage() {
   const [personaOpen, setPersonaOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
+  const [existingConvs, setExistingConvs] = useState<ExistingConv[]>([])
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
   }, [id])
+
+  useEffect(() => {
+    const charId = col?.characters?.[0]?.id
+    if (!charId) return
+    api.get(`/api/conversations?characterId=${charId}`).then(setExistingConvs).catch(() => setExistingConvs([]))
+  }, [col])
 
   if (!col) return <div className="zeta-empty">불러오는 중...</div>
 
@@ -67,7 +78,7 @@ export default function ZetaPlotDetailPage() {
       const resp = await api.post('/api/conversations', {
         title: col.title,
         characterIds: [mainChar.id],
-        mode: 'roleplay',
+        mode: 'story',
         personaCharacterId: personaId,
         ...(col.description ? { scenarioDescription: col.description } : {}),
         ...(chosen !== undefined ? { openingMessage: chosen } : {}),
@@ -183,11 +194,34 @@ export default function ZetaPlotDetailPage() {
             </div>
           )}
 
+          {existingConvs.length > 0 && (
+            <div className="zeta-section" style={{ paddingTop: 0 }}>
+              <h2 className="zeta-section-title">진행 중인 대화</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {existingConvs.map(c => (
+                  <div key={c.id} className="zeta-charcard" style={{ cursor: 'pointer', justifyContent: 'space-between' }} onClick={() => router.push(`/conversations/${c.id}`)}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{c.title}</div>
+                      {c.messages?.[0]?.content && (
+                        <div style={{ color: 'var(--z-ink-soft)', fontSize: 12, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.messages[0].content}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ color: 'var(--z-ink-soft)', fontSize: 11, flexShrink: 0 }}>{formatDate(c.updatedAt)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {error && <div style={{ padding: '8px 16px', color: '#ff6b8a', fontSize: 12 }}>{error}</div>}
         </div>
 
         <div className="zeta-cta">
-          <button className="zeta-cta-btn" onClick={() => setPersonaOpen(true)} disabled={!mainChar}>대화 시작하기</button>
+          <button className="zeta-cta-btn" onClick={() => setPersonaOpen(true)} disabled={!mainChar}>
+            {existingConvs.length > 0 ? '새로운 대화 시작하기' : '대화 시작하기'}
+          </button>
         </div>
       </div>
     </>

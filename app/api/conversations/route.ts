@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const isWhif = searchParams.get('isWhif') === 'true'
   const mode = searchParams.get('mode')
+  const characterId = searchParams.get('characterId')
 
   const whereClause: any = {
     userId,
@@ -19,6 +20,10 @@ export async function GET(req: NextRequest) {
 
   if (isWhif) {
     whereClause.sourceUrl = { contains: 'whif.' }
+  }
+
+  if (characterId) {
+    whereClause.characters = { some: { characterId } }
   }
 
   const conversations = await prisma.conversation.findMany({
