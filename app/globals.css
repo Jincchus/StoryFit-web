@@ -76,6 +76,7 @@ body{
 /* ─── Window-chrome primitives ──────────────────────────────────────────── */
 .win{
   background: var(--paper);
+  color: var(--ink);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   position: relative;
