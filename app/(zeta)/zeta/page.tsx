@@ -9,11 +9,13 @@ interface Plot {
   characters: { id: string; name: string; avatarUrl: string | null; openingMessage: string; openingMessages?: Opening[] }[]
   lorebookTitles?: string[]
   zetaMeta?: any
+  completed?: boolean
 }
 
 export default function ZetaListPage() {
   const router = useRouter()
   const [plots, setPlots] = useState<Plot[]>([])
+  const [view, setView] = useState<'active' | 'completed'>('active')
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -85,6 +87,11 @@ export default function ZetaListPage() {
 
       {msg && <div style={{ padding: '6px 16px', fontSize: 12, color: msg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{msg}</div>}
 
+      <div className="zeta-tabs" style={{ display: 'flex', gap: 6, padding: '8px 16px' }}>
+        <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
+        <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+      </div>
+
       <div className="zeta-scroll">
         {loading ? (
           <div className="zeta-empty">불러오는 중...</div>
@@ -92,13 +99,14 @@ export default function ZetaListPage() {
           <div className="zeta-empty">가져온 플롯이 없습니다<br />⋮ 메뉴에서 zeta-ai.io 플롯 URL로 가져오세요.</div>
         ) : (
           <div className="zeta-grid">
-            {plots.map(p => {
+            {plots.filter(p => view === 'completed' ? p.completed : !p.completed).map(p => {
               const mainChar = p.characters.find(c => c.name === p.title) ?? p.characters[0]
               const thumb = p.coverImageUrl || mainChar?.avatarUrl || ''
               const intro = mainChar?.openingMessages?.[0]?.content || mainChar?.openingMessage || ''
               return (
                 <div key={p.id} className="zeta-card"
                   onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>
+                  {p.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: '#8b5cf6', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
                   {thumb ? <img className="zeta-card-img" src={thumb} alt="" /> : <div className="zeta-card-img" />}
                   <div className="zeta-card-body">
                     <div className="zeta-card-title">{p.title}</div>
