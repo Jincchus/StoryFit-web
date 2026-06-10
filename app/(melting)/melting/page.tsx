@@ -6,11 +6,13 @@ import { api } from '@/lib/api'
 interface MChar {
   id: string; title: string; coverImageUrl: string; tags: string[]
   characters: { id: string; name: string; avatarUrl: string | null }[]
+  completed?: boolean
 }
 
 export default function MeltingListPage() {
   const router = useRouter()
   const [chars, setChars] = useState<MChar[]>([])
+  const [view, setView] = useState<'active' | 'completed'>('active')
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -56,6 +58,8 @@ export default function MeltingListPage() {
     await api.delete(`/api/collections/${id}`); await fetchData()
   }
 
+  const visibleChars = chars.filter(c => view === 'completed' ? c.completed : !c.completed)
+
   return (
     <>
       <div className="melting-header" style={{ position: 'relative' }}>
@@ -82,18 +86,28 @@ export default function MeltingListPage() {
 
       {msg && <div style={{ padding: '6px 16px', fontSize: 12, color: msg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{msg}</div>}
 
+      <div style={{ display: 'flex', gap: 6, padding: '8px 16px' }}>
+        <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
+        <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+      </div>
+
       <div className="melting-scroll">
         {loading ? (
           <div className="melting-empty">불러오는 중...</div>
-        ) : chars.length === 0 ? (
-          <div className="melting-empty">가져온 캐릭터가 없습니다<br />⋮ 메뉴에서 melting.chat 캐릭터 URL로 가져오세요.</div>
+        ) : visibleChars.length === 0 ? (
+          view === 'completed'
+            ? <div className="melting-empty">완결한 캐릭터가 없습니다.</div>
+            : chars.length === 0
+              ? <div className="melting-empty">가져온 캐릭터가 없습니다<br />⋮ 메뉴에서 melting.chat 캐릭터 URL로 가져오세요.</div>
+              : <div className="melting-empty">진행 중인 캐릭터가 없습니다.</div>
         ) : (
           <div className="melting-grid">
-            {chars.map(c => {
+            {visibleChars.map(c => {
               const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
               return (
-                <div key={c.id} className="melting-card"
+                <div key={c.id} className="melting-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/melting/characters/${c.id}`)}>
+                  {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--m-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
                   {thumb ? <img className="melting-card-img" src={thumb} alt="" /> : <div className="melting-card-img" />}
                   <div className="melting-card-body">
                     <div className="melting-card-title">{c.title}</div>
