@@ -57,9 +57,6 @@ export default function ZetaListPage() {
     await api.delete(`/api/collections/${id}`); await fetchData()
   }
 
-  const formatCount = (n: number) =>
-    n >= 10000 ? `${Math.floor(n / 10000)}만` : n >= 1000 ? `${(n / 1000).toFixed(1)}천` : String(n)
-
   return (
     <>
       <div className="zeta-header" style={{ position: 'relative' }}>
@@ -95,7 +92,6 @@ export default function ZetaListPage() {
           <div className="zeta-grid">
             {plots.map(p => {
               const thumb = p.coverImageUrl || p.characters[0]?.avatarUrl || ''
-              const count = p.zetaMeta?.interactionCount ?? 0
               return (
                 <div key={p.id} className="zeta-card"
                   onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>

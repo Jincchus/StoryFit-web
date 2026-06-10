@@ -20,9 +20,6 @@ interface ExistingConv {
   messages: { content: string }[]
 }
 
-function formatCount(n: number) {
-  return n >= 10000 ? `${Math.floor(n / 10000)}만` : n >= 1000 ? `${(n / 1000).toFixed(1)}천` : String(n)
-}
 function formatDate(s?: string) {
   if (!s) return ''
   const d = new Date(s)
@@ -83,7 +80,6 @@ export default function ZetaPlotDetailPage() {
     : mainChar?.openingMessage?.trim()
       ? [{ id: 'default', title: '기본 도입부', content: mainChar.openingMessage }]
       : []
-  const creator = meta.creator ?? null
   const chatProfile = Array.isArray(meta.chatProfiles) ? meta.chatProfiles[0] : null
   const personaDefaults = chatProfile
     ? [chatProfile.summary, chatProfile.description].filter(Boolean).join('\n')
