@@ -19,7 +19,7 @@ function reducer(draft: Draft, action: Action): Draft {
     case 'selectChar':    return { ...draft, charId: action.id }
     case 'selectPersona': return { ...draft, personaId: action.id }
     case 'selectModel':   return { ...draft, modelId: action.id }
-    case 'resetDraft':    return { charId: null, personaId: null, modelId: 'claude' }
+    case 'resetDraft':    return { charId: null, personaId: null, modelId: 'gemini' }
     default: return draft
   }
 }
@@ -27,7 +27,7 @@ function reducer(draft: Draft, action: Action): Draft {
 const AppContext = createContext<{ draft: Draft; dispatch: React.Dispatch<Action> } | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [draft, dispatch] = useReducer(reducer, { charId: null, personaId: null, modelId: 'claude' })
+  const [draft, dispatch] = useReducer(reducer, { charId: null, personaId: null, modelId: 'gemini' })
   return <AppContext.Provider value={{ draft, dispatch }}>{children}</AppContext.Provider>
 }
 

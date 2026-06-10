@@ -2,13 +2,11 @@ import type { AIModel } from '@/types'
 
 export const GEMINI_CHAT_MODEL = 'gemini-2.5-flash'
 export const GEMINI_UTILITY_MODEL = 'gemini-2.5-flash'
-export const CLAUDE_CHAT_MODEL = 'claude-sonnet-4-6'
 
 export const AI_MODELS: AIModel[] = [
-  { id: 'claude',  name: 'Claude Sonnet 4.6', short: 'Claude', tag: 'AI',  className: 'claude', disabled: false },
-  { id: 'gemini',  name: 'Gemini 2.0 Flash',  short: 'Gemini', tag: 'GEM', className: 'gemini', disabled: false },
-  // ChatGPT/GPT-4o: 실제 연동 미구현 (자리만 표시, 추후 구현 예정)
-  // { id: 'chatgpt', name: 'GPT-4o (준비 중)', short: 'GPT-4o', tag: 'GPT', className: 'gpt', disabled: true },
+  { id: 'gemini',  name: 'Gemini 2.0 Flash', short: 'Gemini', tag: 'GEM', className: 'gemini', disabled: false },
+  { id: 'claude',  name: 'Claude (준비 중)',  short: 'Claude', tag: 'AI',  className: '',        disabled: true  },
+  { id: 'chatgpt', name: 'GPT-4o (준비 중)', short: 'GPT-4o', tag: 'GPT', className: 'gpt',     disabled: true  },
 ]
 
 export const DEFAULT_TAGS = ['판타지', 'SF', '로맨스', '일상', '고딕', '액션', '미스터리', '사이버', '자연', '기사도']

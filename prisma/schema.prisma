@@ -22,7 +22,7 @@ model User {
   defaultMaxOutputTokens  Int     @default(8192)
   defaultThinkingBudget   Int     @default(0)
   defaultSafetyLevel      String  @default("standard")
-  defaultAI               String  @default("claude")
+  defaultAI               String  @default("gemini")
   theme                   String  @default("retro")
   characters    Character[]
   conversations Conversation[]
@@ -114,7 +114,7 @@ model Character {
   frequencyPenalty    Float     @default(0.3)
   maxOutputTokens     Int       @default(8192)
   thinkingBudget      Int       @default(0)
-  defaultAI           String    @default("claude")
+  defaultAI           String    @default("gemini")
   relatedImages       String[]  @default([])
   isPreset            Boolean   @default(false)
   isAutoCreated       Boolean   @default(false)
@@ -142,7 +142,7 @@ model Conversation {
   user            User?                   @relation(fields: [userId], references: [id])
   title           String
   summary         String                  @default("")
-  currentAI       String                  @default("claude")
+  currentAI       String                  @default("gemini")
   personaCharacterId String?
   personaCharacter   Character?           @relation(fields: [personaCharacterId], references: [id])
   coreMemory          String                  @default("")

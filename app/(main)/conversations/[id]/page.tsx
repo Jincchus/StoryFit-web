@@ -138,7 +138,7 @@ export default function ChatPage() {
   const [typing, setTyping] = useState(false)
   const [streamingCharId, setStreamingCharId] = useState<string | null>(null)
   const [sendError, setSendError] = useState('')
-  const [model, setModel] = useState<AIProvider>('claude')
+  const [model, setModel] = useState<AIProvider>('gemini')
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
