@@ -1,0 +1,535 @@
+/* ─── WHIF Theme ───────────────────────────────────────────────────────────
+   data-art="whif" 으로 활성화
+   컨셉: WHIF 다크 미니멀 (딥 블랙 & 바이올렛 액센트, 밝은 텍스트)
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="whif"] {
+
+  /* ── 배경 ── */
+  --bg-1: #0d0d0d;
+  --bg-2: #0d0d0d;
+  --bg-3: #17171c;
+
+  /* ── 텍스트 (모두 밝은 톤) ── */
+  --ink:      #f5f5f7;
+  --ink-soft: #b6b6c3;
+
+  /* ── 콘텐츠 배경 ── */
+  --paper:   #17171c;
+  --paper-2: #202028;
+
+  /* ── 액센트 컬러 ── */
+  --pink:      #f472b6;
+  --hot-pink:  #c084fc;
+  --purple:    #8b5cf6;
+  --lavender:  #c4b5fd;
+  --mint:      #34d399;
+  --lemon:     #fde047;
+  --sky:       #38bdf8;
+  --accent:    #8b5cf6;
+
+  /* ── 창 프레임 (chrome) ── */
+  --chrome-face:   #17171c;
+  --chrome-shadow: #000000;
+  --chrome-hi:     #2a2a33;
+  --chrome-border: #2a2a33;
+  --title-grad:    linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+
+  /* ── 폰트 ── */
+  --font-pixel: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-title: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-body:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:  'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+
+  /* ── 레이아웃 ── */
+  --radius:      12px;
+  --shadow-step: 0px;
+  --hairline:    1px;
+}
+
+/* ─── 배경 ─────────────────────────────────────────────────────────────── */
+body[data-art="whif"] {
+  background: #0d0d0d;
+  color: var(--ink);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="whif"] .shell {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 16px;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3);
+}
+
+body[data-art="whif"] .shell-body {
+  background: #0d0d0d;
+  background-image: none;
+}
+
+body[data-art="whif"] .shell-title {
+  background: #17171c;
+  color: #f5f5f7;
+  text-shadow: none;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid #2a2a33;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="whif"] .win {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+body[data-art="whif"] .win-title {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 16px;
+  text-shadow: none;
+  color: #f5f5f7;
+  border-bottom: 1px solid #2a2a33;
+  letter-spacing: -0.01em;
+  border-radius: 12px 12px 0 0;
+}
+
+body[data-art="whif"] .win-controls button {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  box-shadow: none;
+  font-size: 0;
+}
+body[data-art="whif"] .win-controls button:nth-child(1) { background: #ff5f57; }
+body[data-art="whif"] .win-controls button:nth-child(2) { background: #febc2e; }
+body[data-art="whif"] .win-controls button:nth-child(3) { background: #28c840; }
+
+body[data-art="whif"] .win-body {
+  background: #17171c;
+  border: none;
+  box-shadow: none;
+  padding: 16px;
+  border-radius: 0 0 12px 12px;
+  color: var(--ink);
+}
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="whif"] .btn {
+  background: #202028;
+  color: #f5f5f7;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.15s, border-color 0.15s;
+  text-shadow: none;
+}
+
+body[data-art="whif"] .btn:hover { background: #2a2a33; border-color: #34343f; }
+body[data-art="whif"] .btn:active { opacity: 0.8; transform: none; box-shadow: none; }
+
+body[data-art="whif"] .btn.primary {
+  background: #8b5cf6;
+  color: #ffffff;
+  border-color: #8b5cf6;
+  text-shadow: none;
+}
+body[data-art="whif"] .btn.primary:hover { background: #7c3aed; border-color: #7c3aed; }
+
+body[data-art="whif"] .btn.ghost {
+  background: transparent;
+  color: #c4b5fd;
+  border: none;
+  box-shadow: none;
+}
+body[data-art="whif"] .btn.ghost:hover { background: rgba(139,92,246,0.12); }
+
+body[data-art="whif"] .btn.danger {
+  background: transparent;
+  color: #f87171;
+  border: 1px solid #3a2326;
+  box-shadow: none;
+}
+body[data-art="whif"] .btn.danger:hover { background: rgba(248,113,113,0.1); }
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="whif"] .field {
+  background: #202028;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #f5f5f7;
+  padding: 14px 16px;
+}
+
+body[data-art="whif"] .field::placeholder { color: #75757f; }
+
+body[data-art="whif"] .field:focus {
+  border-color: #8b5cf6;
+  background: #17171c;
+  box-shadow: 0 0 0 2px rgba(139,92,246,0.25);
+  outline: none;
+}
+
+body[data-art="whif"] .label {
+  color: #f5f5f7;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="whif"] .chatlog {
+  background: #0d0d0d;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  box-shadow: none;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+/* ─── 말풍선 ─────────────────────────────────────────────────────────────── */
+body[data-art="whif"] .bubble {
+  background: #17171c;
+  color: #f5f5f7;
+  border: 1px solid #2a2a33;
+  border-radius: 4px 12px 12px 12px;
+  box-shadow: none;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+body[data-art="whif"] .seq-block.seq-right .bubble {
+  background: #8b5cf6;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px 4px 12px 12px;
+  box-shadow: 0 2px 8px rgba(139,92,246,0.3);
+}
+
+body[data-art="whif"] .bubble-char    { background: #1c1830 !important; border-color: #4c3a8a !important; color: #d8cdfd !important; }
+body[data-art="whif"] .bubble-third   { background: #122620 !important; border-color: #2c6e57 !important; color: #b6f5dc !important; }
+body[data-art="whif"] .bubble-persona { background: #8b5cf6 !important; border-color: transparent !important; color: #ffffff !important; }
+
+body[data-art="whif"] .msg .who { color: #b6b6c3; font-size: 12px; }
+body[data-art="whif"] .seq-speaker { color: #b6b6c3; }
+
+/* ─── 입력창(composer) ──────────────────────────────────────────────────── */
+body[data-art="whif"] .composer {
+  background: #17171c;
+  border: none;
+  border-top: 1px solid #2a2a33;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="whif"] .dock {
+  background: rgba(23,23,28,0.9);
+  border-top: 1px solid #2a2a33;
+  box-shadow: 0 -1px 0 rgba(0,0,0,0.3);
+  backdrop-filter: blur(20px);
+}
+
+body[data-art="whif"] .dock .start {
+  background: #8b5cf6;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  box-shadow: none;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+body[data-art="whif"] .dock .clock {
+  background: #202028;
+  border: none;
+  border-radius: 12px;
+  color: #f5f5f7;
+  font-family: var(--font-mono);
+}
+
+body[data-art="whif"] .dock-tab {
+  background: transparent;
+  color: #b6b6c3;
+  border: none;
+  border-radius: 12px;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+body[data-art="whif"] .dock-tab.active {
+  background: #8b5cf6;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="whif"] .start-menu {
+  background: rgba(23,23,28,0.97);
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  backdrop-filter: blur(20px);
+}
+
+body[data-art="whif"] .start-menu-item { color: #f5f5f7; font-size: 15px; border-radius: 8px; }
+body[data-art="whif"] .start-menu-item:hover { background: #202028; }
+body[data-art="whif"] .start-menu-item.danger { color: #f87171; }
+body[data-art="whif"] .start-menu-item.danger:hover { background: rgba(248,113,113,0.1); }
+body[data-art="whif"] .start-menu-divider { background: #2a2a33; }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="whif"] .row {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+body[data-art="whif"] .row:hover { background: #202028; }
+
+body[data-art="whif"] .row .thumb {
+  border: 1px solid #2a2a33;
+  border-radius: 8px;
+}
+
+body[data-art="whif"] .row .meta h4 { color: #f5f5f7; font-size: 15px; }
+body[data-art="whif"] .row .meta p { color: #b6b6c3; }
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="whif"] .char-card {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  box-shadow: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+body[data-art="whif"] .char-card h4 { color: #f5f5f7; }
+body[data-art="whif"] .char-card p { color: #b6b6c3; }
+
+body[data-art="whif"] .char-card:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 16px rgba(139,92,246,0.2);
+  transform: translateY(-2px);
+}
+
+body[data-art="whif"] .char-card.selected {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 0;
+  background: #1c1a26;
+}
+
+body[data-art="whif"] .char-card .pic-wrap {
+  background: #202028;
+  border: 1px solid #2a2a33;
+  border-radius: 50%;
+}
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="whif"] .side-panel {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 0;
+  color: var(--ink);
+}
+
+body[data-art="whif"] .side-panel-header { border-color: #2a2a33; color: #f5f5f7; }
+body[data-art="whif"] .side-section { border-color: #2a2a33; }
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="whif"] .chat-header {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 0;
+  color: #f5f5f7;
+}
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="whif"] .tag {
+  background: #202028;
+  color: #d8d8e2;
+  border: 1px solid #2a2a33;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+}
+
+body[data-art="whif"] .tag:hover,
+body[data-art="whif"] .tag.active,
+body[data-art="whif"] .tag-selected {
+  background: #8b5cf6;
+  color: #ffffff;
+  border-color: #8b5cf6;
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="whif"] .msg-action-btn {
+  background: #202028;
+  border: 1px solid #2a2a33;
+  border-radius: 8px;
+  color: #b6b6c3;
+  box-shadow: none;
+  font-size: 11px;
+}
+
+body[data-art="whif"] .msg-action-btn:hover {
+  color: #c4b5fd;
+  background: #2a2a33;
+  border-color: #8b5cf6;
+}
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="whif"] .ai-pill {
+  background: #202028;
+  color: #f5f5f7;
+  border: 1px solid #2a2a33;
+  border-radius: 999px;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+body[data-art="whif"] .ai-dropdown {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+body[data-art="whif"] .ai-dropdown-item { color: #f5f5f7; border-radius: 8px; font-size: 14px; }
+body[data-art="whif"] .ai-dropdown-item:hover { background: #202028; }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="whif"] .form-section {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+body[data-art="whif"] .form-section-title { color: #b6b6c3; letter-spacing: 0.04em; }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="whif"] .persona-option,
+body[data-art="whif"] .ai-model-option {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  color: var(--ink);
+  box-shadow: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+body[data-art="whif"] .persona-option:hover,
+body[data-art="whif"] .ai-model-option:hover:not(.disabled) { background: #202028; }
+
+body[data-art="whif"] .persona-option.selected,
+body[data-art="whif"] .ai-model-option.selected {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 0;
+  background: #1c1a26;
+}
+
+/* ─── 로그인 화면 ────────────────────────────────────────────────────────── */
+body[data-art="whif"] .login-title {
+  background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+body[data-art="whif"] .login-card {
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  padding: 24px;
+}
+
+/* ─── 홈 아이콘 (.di) ────────────────────────────────────────────────────── */
+body[data-art="whif"] .di {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+body[data-art="whif"] .di:hover { transform: translateY(-2px); }
+
+body[data-art="whif"] .di-pic {
+  width: 52px;
+  height: 52px;
+  background: #17171c;
+  border: 1px solid #2a2a33;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+body[data-art="whif"] .di:hover .di-pic {
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 16px rgba(139,92,246,0.25);
+}
+
+body[data-art="whif"] .di span {
+  font-size: 10px;
+  font-weight: 600;
+  color: #f5f5f7;
+  letter-spacing: -0.01em;
+  text-align: center;
+  white-space: pre-line;
+  font-family: var(--font-body);
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="whif"] ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+body[data-art="whif"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body[data-art="whif"] ::-webkit-scrollbar-thumb {
+  background: #2a2a33;
+  border-radius: 4px;
+}
+
+body[data-art="whif"] ::-webkit-scrollbar-thumb:hover {
+  background: #8b5cf6;
+}
+
+/* 가로 스크롤 태그 영역 */
+body[data-art="whif"] .tag-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a33 transparent;
+}
+
+body[data-art="whif"] .tag-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+
+body[data-art="whif"] .tag-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body[data-art="whif"] .tag-scroll::-webkit-scrollbar-thumb {
+  background: #2a2a33;
+  border-radius: 4px;
+}

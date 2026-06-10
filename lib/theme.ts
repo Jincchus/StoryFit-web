@@ -15,11 +15,12 @@ export const THEMES = [
   { id: 'x',           label: 'X (Twitter)',    desc: '다크 잉크 & 블루 DM',       palette: ['#ffffff', '#f7f9f9', '#1d9bf0', '#0f1419'] },
   { id: 'excel',       label: '엑셀',           desc: 'Microsoft Excel 클린 그린',  palette: ['#185c37', '#217346', '#e9f5ee', '#1a1a1a'] },
   { id: 'retroexcel',  label: '레트로 엑셀',    desc: 'Excel 97 레트로 Win95',      palette: ['#c0c0c0', '#000080', '#ffffff', '#000000'] },
+  { id: 'whif',        label: 'WHIF',           desc: '딥 블랙 & 바이올렛 미니멀',   palette: ['#0d0d0d', '#17171c', '#8b5cf6', '#f5f5f7'] },
 ] as const
 
 export type ThemeId = typeof THEMES[number]['id']
 
-const EXTERNAL_THEMES = new Set(['modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld', 'kakao', 'x', 'excel', 'retroexcel'])
+const EXTERNAL_THEMES = new Set(['modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld', 'kakao', 'x', 'excel', 'retroexcel', 'whif'])
 
 export function applyTheme(theme: string): void {
   if (typeof document === 'undefined') return
