@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
+import { aggregateCounts, isCompleted, type CountableConversation } from '@/lib/completion'
 
 export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
@@ -61,10 +62,42 @@ export async function GET(req: NextRequest) {
     lorebookTitlesByCollection.set(lb.scopeId, arr)
   }
 
-  const result = collections.map(c => ({
-    ...c,
-    lorebookTitles: lorebookTitlesByCollection.get(c.id) ?? [],
-  }))
+  // 컬렉션 단위 대화 집계 (소속 캐릭터 기준). 한 대화에 같은 컬렉션 캐릭터가 둘 이상이어도 1회만 집계.
+  const collectionConvLinks = collectionIds.length > 0
+    ? await prisma.conversationCharacter.findMany({
+        where: { conversation: { userId }, character: { collectionId: { in: collectionIds } } },
+        select: {
+          characterId: true,
+          character: { select: { collectionId: true } },
+          conversation: { select: { id: true, isArchived: true, rootConversationId: true, mode: true } },
+        },
+      })
+    : []
+
+  const convsByCollection = new Map<string, Map<string, CountableConversation>>()
+  const archivedCharIds = new Set<string>()
+  for (const link of collectionConvLinks) {
+    const colId = link.character.collectionId
+    if (!colId) continue
+    const map = convsByCollection.get(colId) ?? new Map<string, CountableConversation>()
+    map.set(link.conversation.id, link.conversation)
+    convsByCollection.set(colId, map)
+    const cv = link.conversation
+    if (cv.isArchived && cv.rootConversationId === null && cv.mode !== 'assistant') {
+      archivedCharIds.add(link.characterId)
+    }
+  }
+
+  const result = collections.map(c => {
+    const convMap = convsByCollection.get(c.id)
+    const counts = aggregateCounts(convMap ? Array.from(convMap.values()) : [])
+    return {
+      ...c,
+      lorebookTitles: lorebookTitlesByCollection.get(c.id) ?? [],
+      completed: isCompleted(counts),
+      characters: c.characters.map(ch => ({ ...ch, hasArchived: archivedCharIds.has(ch.id) })),
+    }
+  })
   return NextResponse.json(result)
 }
 
