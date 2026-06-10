@@ -829,10 +829,18 @@ export async function captureMelting(url: string): Promise<Captured> {
         meltingMeta: { _debugSections: sections },
       }
     }
+    // total < 100인 경우에도 디버그용으로 sections를 남긴다
+    return {
+      sections: sections.map(s => ({ ...s, text: depersonalizeNickname(s.text, nickname) })),
+      title, imageUrl,
+      meltingMeta: { _debugSections: sections, _debugNote: 'total < 100' },
+    }
   } catch (e: any) {
     console.log('[melting-import] 헤드리스 실패, OG 메타로 폴백:', e?.message)
+    if (ogDesc.length < 100) throw new Error('멜팅 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
+    return {
+      sections: [{ tab: null, text: depersonalizeNickname(ogDesc, nickname) }], title, imageUrl,
+      meltingMeta: { _debugError: e?.message ?? String(e), _debugOgDesc: ogDesc },
+    }
   }
-
-  if (ogDesc.length < 100) throw new Error('멜팅 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
-  return { sections: [{ tab: null, text: depersonalizeNickname(ogDesc, nickname) }], title, imageUrl }
 }
