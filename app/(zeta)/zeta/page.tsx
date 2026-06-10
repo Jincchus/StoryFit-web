@@ -46,6 +46,12 @@ export default function ZetaListPage() {
     localStorage.setItem('zeta_edit', next ? '1' : '0'); setMenuOpen(false)
   }
 
+  const createPlot = async () => {
+    const title = prompt('새 플롯 이름'); if (!title?.trim()) return
+    await api.post('/api/collections', { title: title.trim(), sourceUrl: `https://zeta-ai.io/local/${Date.now()}` })
+    setMenuOpen(false); await fetchData()
+  }
+
   const deletePlot = async (id: string) => {
     if (!confirm('이 플롯과 소속 캐릭터를 삭제할까요?')) return
     await api.delete(`/api/collections/${id}`); await fetchData()
@@ -70,6 +76,7 @@ export default function ZetaListPage() {
                 style={{ background: 'var(--z-accent)', borderRadius: 8, color: '#fff', textAlign: 'center' }}
                 disabled={importing} onClick={handleImport}>{importing ? '가져오는 중...' : '📥 가져오기'}</button>
             </div>
+            <button className="zeta-menu-item" onClick={createPlot}>+ 새 플롯 만들기</button>
             <button className="zeta-menu-item" onClick={toggleEditMode}>
               {editMode ? '✓ 편집 모드 끄기' : '✏ 편집 모드 켜기'}
             </button>
@@ -93,7 +100,6 @@ export default function ZetaListPage() {
                 <div key={p.id} className="zeta-card"
                   onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>
                   {thumb ? <img className="zeta-card-img" src={thumb} alt="" /> : <div className="zeta-card-img" />}
-                  {count > 0 && <div className="zeta-card-badge">💬 {formatCount(count)}</div>}
                   <div className="zeta-card-body">
                     <div className="zeta-card-title">{p.title}</div>
                     {p.tags?.length > 0 && (

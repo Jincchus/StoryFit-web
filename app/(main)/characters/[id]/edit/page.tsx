@@ -11,8 +11,9 @@ function CharacterEditContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const id = params.id as string
-  // WHIF 센터에서 진입했는지 여부 — 세계관(컬렉션) 목록 필터와 저장 후 복귀 경로를 결정한다.
   const isWhif = searchParams.get('isWhif') === 'true'
+  const isZeta = searchParams.get('isZeta') === 'true'
+  const isMelting = searchParams.get('isMelting') === 'true'
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
@@ -20,9 +21,14 @@ function CharacterEditContent() {
   const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
 
   useEffect(() => {
+    let colsUrl = '/api/collections'
+    if (isWhif) colsUrl += '?isWhif=true'
+    else if (isZeta) colsUrl += '?isZeta=true'
+    else if (isMelting) colsUrl += '?isMelting=true'
+
     Promise.all([
       api.get(`/api/characters/${id}`),
-      api.get(`/api/collections${isWhif ? '?isWhif=true' : ''}`),
+      api.get(colsUrl),
     ]).then(([c, cols]) => {
       setForm({
         name: c.name ?? '',
@@ -36,7 +42,7 @@ function CharacterEditContent() {
       })
       setCollections(Array.isArray(cols) ? cols : [])
     }).catch((e: any) => setFetchError(e.message))
-  }, [id, isWhif])
+  }, [id, isWhif, isZeta, isMelting])
 
   if (fetchError) return (
     <Win title="캐릭터 수정" icon={PixelIcons.user}>
@@ -58,12 +64,22 @@ function CharacterEditContent() {
     setError('')
     try {
       await api.patch(`/api/characters/${id}`, form)
-      router.push(isWhif ? '/whif' : '/characters')
+      if (isWhif) {
+        router.push(form.collectionId ? `/whif/universes/${form.collectionId}` : '/whif')
+      } else if (isZeta) {
+        router.push(form.collectionId ? `/zeta/plots/${form.collectionId}` : '/zeta')
+      } else if (isMelting) {
+        router.push(form.collectionId ? `/melting/characters/${form.collectionId}` : '/melting')
+      } else {
+        router.push('/characters')
+      }
     } catch (e: any) {
       setError(e.message)
       setLoading(false)
     }
   }
+
+  const collectionLabel = isWhif ? '세계관' : isZeta ? '플롯' : isMelting ? '캐릭터' : '컬렉션'
 
   return (
     <Win title="캐릭터 수정 (Edit Character)" icon={PixelIcons.user}>
@@ -85,7 +101,7 @@ function CharacterEditContent() {
         </div>
 
         <div className="scroll" style={{ flex: 1, minHeight: 0, paddingRight: 4 }}>
-          <CharacterForm form={form} onChange={onChange} collections={collections} collectionLabel={isWhif ? '세계관' : '컬렉션'} />
+          <CharacterForm form={form} onChange={onChange} collections={collections} collectionLabel={collectionLabel} />
         </div>
       </div>
     </Win>

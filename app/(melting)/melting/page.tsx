@@ -45,6 +45,12 @@ export default function MeltingListPage() {
     localStorage.setItem('melting_edit', next ? '1' : '0'); setMenuOpen(false)
   }
 
+  const createCharacter = async () => {
+    const title = prompt('새 캐릭터 이름'); if (!title?.trim()) return
+    await api.post('/api/collections', { title: title.trim(), sourceUrl: `https://melting.chat/local/${Date.now()}` })
+    setMenuOpen(false); await fetchData()
+  }
+
   const deleteChar = async (id: string) => {
     if (!confirm('이 캐릭터를 삭제할까요?')) return
     await api.delete(`/api/collections/${id}`); await fetchData()
@@ -66,6 +72,7 @@ export default function MeltingListPage() {
                 style={{ background: 'var(--m-accent)', borderRadius: 8, color: '#fff', textAlign: 'center' }}
                 disabled={importing} onClick={handleImport}>{importing ? '가져오는 중...' : '📥 가져오기'}</button>
             </div>
+            <button className="melting-menu-item" onClick={createCharacter}>+ 새 캐릭터 만들기</button>
             <button className="melting-menu-item" onClick={toggleEditMode}>
               {editMode ? '✓ 편집 모드 끄기' : '✏ 편집 모드 켜기'}
             </button>

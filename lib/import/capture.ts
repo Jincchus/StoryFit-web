@@ -2,6 +2,12 @@ import puppeteer from 'puppeteer-core'
 import { prisma } from '@/lib/prisma'
 import { withMeltingPage } from '@/lib/meltingBrowser'
 import type { Captured } from './types'
+import { generateText } from '@/lib/ai/gemini'
+
+function extractJson(raw: string): string {
+  const match = raw.match(/\[[\s\S]*\]/)
+  return match ? match[0] : raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+}
 import { buildZetaCaptured } from './zeta'
 
 const INPUT_CAP = 40000  // 분류 출력이 작아져 입력 캡을 크게 상향 (잘림 방지)
@@ -552,6 +558,42 @@ export async function captureWhif(url: string): Promise<Captured> {
   return { sections: [{ tab: null, text }], title: '', imageUrl: '' }
 }
 
+function extractLorebookUrls(html: string): { url: string; name: string }[] {
+  const urls: { url: string; name: string }[] = []
+  const regex = /<a[^>]*href=["']([^"']*(?:lorebooks|world-info)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi
+  let match
+  while ((match = regex.exec(html)) !== null) {
+    let href = match[1].trim()
+    let text = match[2].replace(/<[^>]*>/g, '').trim()
+    if (!href.startsWith('http')) {
+      if (href.startsWith('/')) {
+        href = `https://zeta-ai.io${href}`
+      } else {
+        href = `https://zeta-ai.io/${href}`
+      }
+    }
+    if (!urls.some(u => u.url === href)) {
+      urls.push({ url: href, name: text || '로어북' })
+    }
+  }
+  return urls
+}
+
+function preprocessZetaText(html: string): string {
+  let text = html
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]*>/g, '\n')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+  return text.split('\n').map(line => line.trim()).filter(Boolean).join('\n')
+}
+
 export async function captureZeta(url: string): Promise<Captured> {
   const plotId = url.match(/\/plots\/([0-9a-f-]{36})/i)?.[1]
   if (!plotId) throw new Error('Zeta 플롯 URL이 아닙니다 (/plots/{id} 형식 필요)')
@@ -568,8 +610,102 @@ export async function captureZeta(url: string): Promise<Captured> {
   const plot = await res.json()
   if (!plot?.id) throw new Error('Zeta 플롯 데이터를 찾을 수 없습니다')
 
+  // Fetch plot HTML to extract lorebook URLs
+  let loreUrls: { url: string; name: string }[] = []
+  try {
+    const htmlRes = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5'
+      }
+    })
+    if (htmlRes.ok) {
+      const html = await htmlRes.text()
+      loreUrls = extractLorebookUrls(html)
+    }
+  } catch (e: any) {
+    console.error('[zeta-import] Failed to fetch plot HTML for lorebooks:', e.message)
+  }
+
+  // Scrape and parse each lorebook URL using Gemini
+  const lorebooks: { keyword: string[]; content: string; priority?: number }[] = []
+  if (loreUrls.length > 0) {
+    console.log(`[zeta-import] Found ${loreUrls.length} lorebook URLs to scrape.`)
+    for (const item of loreUrls) {
+      try {
+        console.log(`[zeta-import] Scraping lorebook: ${item.url}`)
+        const loreRes = await fetch(item.url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5'
+          }
+        })
+        if (!loreRes.ok) continue
+        const loreHtml = await loreRes.text()
+        const loreText = preprocessZetaText(loreHtml)
+        if (loreText.length < 100) continue
+
+        const systemPrompt = '당신은 로어북 텍스트를 파싱하는 파서입니다. 반드시 JSON 배열만 반환합니다.'
+        const userPrompt = `아래는 Zeta AI 로어북 페이지에서 전체 복사한 텍스트입니다.
+이 텍스트에서 로어북 항목들을 분석하여 JSON 배열로 변환해 주세요.
+
+[텍스트 구조 설명]
+1. 각 항목은 "항목 제목(Name)"으로 시작합니다. (예: "낙해섬 마을주민", "낙해섬 시설" 등)
+2. 항목 제목 바로 아래에는 해당 항목을 활성화할 "트리거 키워드(Keywords)"들이 한 줄에 하나씩 나열됩니다. (예: "마을주민", "김씨 아저씨", "이장", "아버지" 등)
+3. 키워드 나열이 끝나면 본격적인 "항목 설명 내용(Content)"이 시작됩니다. 설명 내용은 여러 줄의 긴 텍스트이며, 다음 항목 제목이 나오기 전까지의 모든 내용이 하나의 설명 내용입니다.
+4. 페이지 최상단의 "로어 정보", "대화량", "연결 플롯" 등의 메타데이터와 페이지 최하단의 "출시일", "수정일" 등은 로어북 항목이 아니므로 파싱에서 완전히 제외해야 합니다.
+
+로어북 텍스트:
+${loreText}
+
+반환 형식 (마크다운 백틱 없이 순수 JSON 배열만 반환):
+[
+  {
+    "name": "항목 제목",
+    "keywords": ["키워드1", "키워드2", "키워드3"],
+    "content": "설명 내용 전체 (줄바꿈 \\n 포함)"
+  }
+]
+
+규칙:
+- keywords 배열에는 항목 제목(name) 자체와 그 아래 한 줄씩 나열된 키워드들을 모두 포함시켜 주세요.
+- content는 누락 없이 원래의 문맥과 설명, 줄바꿈을 완벽히 보존하여 추출해야 합니다.
+- 반드시 유효한 JSON 배열 포맷으로만 응답하세요.`
+
+        const raw = await generateText(systemPrompt, userPrompt, 16384)
+        const parsed = JSON.parse(extractJson(raw))
+        if (Array.isArray(parsed)) {
+          for (const e of parsed) {
+            const kws = Array.isArray(e.keywords) ? e.keywords.filter(Boolean) : [e.name || '']
+            if (e.content) {
+              lorebooks.push({
+                keyword: kws.length > 0 ? kws : [e.name || ''],
+                content: e.content,
+                priority: 0,
+              })
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error(`[zeta-import] Failed to scrape/parse lorebook ${item.url}:`, err.message)
+      }
+    }
+  }
+
   const canonical = `https://zeta-ai.io/ko/plots/${plot.id}/profile`
-  return buildZetaCaptured(plot, canonical)
+  const captured = buildZetaCaptured(plot, canonical)
+  
+  if (lorebooks.length > 0) {
+    captured.lorebooks = lorebooks
+  }
+  
+  captured.zetaMeta = {
+    ...plot,
+    lorebooks: loreUrls.map(item => ({ title: item.name, url: item.url })),
+    interactionCount: 0
+  }
+
+  return captured
 }
 
 export async function captureMelting(url: string): Promise<Captured> {
@@ -598,14 +734,55 @@ export async function captureMelting(url: string): Promise<Captured> {
         .filter(Boolean)
         .slice(0, 15)
 
-      // 멜팅 캐릭터 목소리(TTS) 정보가 있다면 상세설명에 보존
+      // Helper function to find property by candidate keys
+      const getValueByKeys = (obj: any, keys: string[]) => {
+        for (const k of keys) {
+          if (obj[k] && typeof obj[k] === 'string' && obj[k].trim()) {
+            return obj[k].trim()
+          }
+        }
+        return ''
+      }
+
+      const rawOpeningMessage = getValueByKeys(apiData, [
+        'opening', 'firstMessage', 'greeting', 'intro', 'introduction',
+        'firstScene', 'openingMessage', 'startMessage'
+      ]) || apiData.opening || ''
+
+      const profile = getValueByKeys(apiData, [
+        'profile', 'characterProfile', 'profileDescription', 'detailedDescription'
+      ])
+
+      const timeline = getValueByKeys(apiData, [
+        'timeline', 'characterTimeline', 'timelineDescription', 'timelineSetting'
+      ])
+
+      const userSettings = getValueByKeys(apiData, [
+        'userSetting', 'userSettings', 'userPersonaSetting', 'userPersonaSettings',
+        'userPersona', 'userDefaultSetting', 'userDefaultSettings', 'userPersonaDescription'
+      ])
+
       let additionalInfo = apiData.publicDescription || ''
+      if (profile) {
+        additionalInfo += `\n\n[캐릭터 프로필]\n${profile}`
+      }
+      if (timeline) {
+        additionalInfo += `\n\n[타임라인]\n${timeline}`
+      }
+      if (userSettings) {
+        additionalInfo += `\n\n[유저 기본 설정]\n${userSettings}`
+      }
+
+      // 멜팅 캐릭터 목소리(TTS) 정보가 있다면 상세설명에 보존
       if (apiData.voiceId || apiData.voiceName) {
         additionalInfo += `\n\n[음성 설정]\n- 목소리 이름: ${apiData.voiceName || '기본'}\n- 목소리 ID: ${apiData.voiceId || ''}`
         if (apiData.voiceProvider) {
           additionalInfo += `\n- 제공사: ${apiData.voiceProvider}`
         }
       }
+
+      const cleanAdditionalInfo = depersonalizeNickname(additionalInfo, nickname)
+      const cleanOpeningMessage = depersonalizeNickname(rawOpeningMessage, nickname)
 
       const isNsfw = apiData.nsfw || apiData.isNsfw || false
       const safetyLevel = isNsfw ? 'relaxed' : 'standard'
@@ -615,8 +792,8 @@ export async function captureMelting(url: string): Promise<Captured> {
           {
             name: apiData.name || title || '캐릭터',
             gender: '',
-            additionalInfo,
-            openingMessage: apiData.opening || '',
+            additionalInfo: cleanAdditionalInfo,
+            openingMessage: cleanOpeningMessage,
             exampleDialogues: '',
           }
         ],
@@ -633,7 +810,13 @@ export async function captureMelting(url: string): Promise<Captured> {
           ? `https://image-gen.melting.chat/public_images/${apiData.profileImagePath}?s=lg`
           : imageUrl,
         assembledResult,
-        meltingMeta: apiData,
+        meltingMeta: {
+          ...apiData,
+          userSettings: userSettings ? depersonalizeNickname(userSettings, nickname) : '',
+          profile: profile ? depersonalizeNickname(profile, nickname) : '',
+          timeline: timeline ? depersonalizeNickname(timeline, nickname) : '',
+          openingMessage: cleanOpeningMessage,
+        },
       }
     }
 

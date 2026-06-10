@@ -115,24 +115,6 @@ async function runImport(captured: Captured, url: string, userId: string) {
     })
   )
 
-  const conversation = await prisma.conversation.create({
-    data: {
-      userId,
-      title,
-      mode: isImmersive
-        ? (isMulti ? 'tikiTaka' : 'roleplay')
-        : (isMulti ? 'multiStory' : 'story'),
-      currentAI: 'gemini',
-      scenarioDescription: result.scenarioDescription,
-      tags: result.tags,
-      isAutoCreated: true,
-      sourceUrl: url,
-      safetyLevel: result.safetyLevel || 'standard',
-      sourceLorebookUrls: captured.loreUrls && captured.loreUrls.length ? captured.loreUrls : undefined,
-      characters: { create: createdChars.map((c, i) => ({ characterId: c.id, turnOrder: i })) },
-    },
-  })
-
   // 세계관(컬렉션) 이름은 대화방 접미사("과의 대화")를 빼고 깔끔하게 원본 제목(세계관 명칭) 또는 대표 캐릭터 이름으로 저장합니다.
   const collectionTitle = (result.title || captured.title || firstName).trim()
   const collection = await prisma.characterCollection.create({
@@ -140,8 +122,8 @@ async function runImport(captured: Captured, url: string, userId: string) {
       title: collectionTitle,
       sourceUrl: captured.universeUrl ?? url,
       userId,
-      conversationId: conversation.id,
-      coverImageUrl: result.coverImageUrl ?? '',
+      conversationId: null,
+      coverImageUrl: result.coverImageUrl ?? captured.imageUrl ?? '',
       description: result.scenarioDescription ?? '',
       tags: result.tags ?? [],
       ...(captured.zetaMeta ? { zetaMeta: captured.zetaMeta } : {}),
@@ -154,66 +136,26 @@ async function runImport(captured: Captured, url: string, userId: string) {
     data: { collectionId: collection.id },
   })
 
-  // WHIF 백과사전(로어북) 항목이 있는 경우 자동 동기화 저장
+  // 백과사전(로어북) 항목이 있는 경우 자동 동기화 저장
   if (captured.lorebooks && captured.lorebooks.length > 0) {
-    if (isImmersive) {
-      await Promise.all(
-        captured.lorebooks.flatMap((entry) => [
-          prisma.lorebook.create({
-            data: {
-              scope: 'collection',
-              scopeId: collection.id,
-              keyword: entry.keyword,
-              content: entry.content,
-              priority: entry.priority ?? 0,
-              conversationId: null,
-            },
-          }),
-          prisma.lorebook.create({
-            data: {
-              scope: 'conversation',
-              scopeId: conversation.id,
-              keyword: entry.keyword,
-              content: entry.content,
-              priority: entry.priority ?? 0,
-              conversationId: conversation.id,
-            },
-          })
-        ])
+    await Promise.all(
+      captured.lorebooks.map((entry) =>
+        prisma.lorebook.create({
+          data: {
+            scope: 'collection',
+            scopeId: collection.id,
+            keyword: entry.keyword,
+            content: entry.content,
+            priority: entry.priority ?? 0,
+            conversationId: null,
+          },
+        })
       )
-    } else {
-      await Promise.all(
-        captured.lorebooks.map((entry) =>
-          prisma.lorebook.create({
-            data: {
-              scope: 'conversation',
-              scopeId: conversation.id,
-              keyword: entry.keyword,
-              content: entry.content,
-              priority: entry.priority ?? 0,
-              conversationId: conversation.id,
-            },
-          })
-        )
-      )
-    }
+    )
   }
 
   const firstChar = createdChars[0]
-  if (firstChar?.openingMessage?.trim()) {
-    await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: 'assistant',
-        content: firstChar.openingMessage.trim(),
-        characterId: firstChar.id,
-        isSelected: true,
-        isStreaming: false,
-      },
-    })
-  }
-
-  return { characterId: firstChar?.id, conversationId: conversation.id, collectionId: collection.id }
+  return { characterId: firstChar?.id, conversationId: '', collectionId: collection.id }
 }
 
 export async function POST(req: NextRequest) {

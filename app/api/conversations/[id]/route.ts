@@ -11,6 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
     include: {
+      user: { select: { displayName: true } },
       characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
       messages: { orderBy: { createdAt: 'asc' }, where: { isSelected: true } },
       personaCharacter: { select: { id: true, name: true, avatarUrl: true, tags: true, additionalInfo: true } },
@@ -19,16 +20,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
-  // 페르소나가 설정된 경우 메시지 내 유저 플레이스홀더를 실제 이름으로 치환
-  const personaName = conv.personaCharacter?.name
-  if (personaName) {
-    const charName = conv.characters[0]?.character?.name
-    conv.messages = conv.messages.map(m =>
-      m.role === 'assistant'
-        ? { ...m, content: replacePlaceholders(m.content, personaName, charName) }
-        : m
-    )
-  }
+  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const charName = conv.characters[0]?.character?.name
+  conv.messages = conv.messages.map(m =>
+    m.role === 'assistant'
+      ? { ...m, content: replacePlaceholders(m.content, personaName, charName) }
+      : m
+  )
 
   return NextResponse.json(conv)
 }

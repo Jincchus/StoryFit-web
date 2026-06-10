@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, buildMultiStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
+import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, buildMultiStorySystemPrompt, matchLorebook, replacePlaceholders } from '@/lib/systemPrompt'
 import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent, sliceByTokenBudget } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStoryEvaluation, triggerStateTracking } from '@/lib/storyEval'
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
     include: {
+      user: { select: { displayName: true } },
       characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
       messages: { where: { isSelected: true, isStreaming: false }, orderBy: { createdAt: 'asc' } },
       personaCharacter: true,
@@ -186,9 +187,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           })
         : buildSystemPrompt({ ...basePromptParams, character: makeCharParam(character) })
 
-  const recentMsgs = sliceByTokenBudget(conv.messages, 5000)
+  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const charName = character?.name || ''
+  const mappedMessages = conv.messages.map(m => ({
+    ...m,
+    content: replacePlaceholders(m.content, personaName, charName)
+  }))
+
+  const recentMsgs = sliceByTokenBudget(mappedMessages, 5000)
   const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
-  const history = [...recentMsgs, userMsg].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
+  const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charName)
+  const history = [...recentMsgs, { ...userMsg, content: cleanUserMsgContent }].reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
     const contentForModel = m.id === userMsg.id ? appendTurnControlInstruction(m.content, allowChoices) : m.content
     const last = acc[acc.length - 1]
@@ -273,7 +282,7 @@ async function generateAsync({
       allowChoices: conv.mode === 'story',
       forbiddenChoiceNames: conv.mode === 'story' ? [character.name] : [],
       requiredBodyNames: conv.mode === 'story' ? [character.name] : [],
-      personaName: conv.personaCharacter?.name ?? '유저',
+      personaName: conv.personaCharacter?.name || conv.user?.displayName || '유저',
     }
 
     if (needsResponseRevision(cleanText, revisionOptions)) {

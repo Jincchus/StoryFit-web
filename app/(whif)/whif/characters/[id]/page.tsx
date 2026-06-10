@@ -4,6 +4,13 @@ import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+
+function formatDate(s?: string) {
+  if (!s) return ''
+  const d = new Date(s)
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+}
 
 interface Opening { id: string; title: string; content: string }
 interface Character {
@@ -28,6 +35,8 @@ export default function CharacterDetailPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [imgIdx, setImgIdx] = useState(0)
+  const [existingConvs, setExistingConvs] = useState<any[]>([])
+  const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -36,6 +45,20 @@ export default function CharacterDetailPage() {
       setChar(list.find(c => c.id === id) ?? null)
     })()
   }, [id])
+
+  useEffect(() => {
+    if (id) {
+      api.get(`/api/conversations?characterId=${id}`).then(setExistingConvs).catch(() => setExistingConvs([]))
+    }
+  }, [id])
+
+  const handleCtaClick = () => {
+    if (existingConvs.length > 0) {
+      setShowNewChatConfirm(true)
+    } else {
+      setPersonaOpen(true)
+    }
+  }
 
   if (!char) return <div className="whif-empty">불러오는 중...</div>
 
@@ -77,6 +100,14 @@ export default function CharacterDetailPage() {
 
   return (
     <>
+      {showNewChatConfirm && (
+        <ConfirmDialog
+          message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
+          onConfirm={() => { setShowNewChatConfirm(false); setPersonaOpen(true) }}
+          onCancel={() => setShowNewChatConfirm(false)}
+        />
+      )}
+
       {personaOpen && (
         <WhifPersonaModal
           candidates={personaCandidates as any}
@@ -207,12 +238,33 @@ export default function CharacterDetailPage() {
             </div>
           )}
 
+          {existingConvs.length > 0 && (
+            <div className="whif-section" style={{ paddingTop: 0 }}>
+              <h2 className="whif-section-title">진행 중인 대화</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {existingConvs.map(c => (
+                  <div key={c.id} className="whif-card" style={{ cursor: 'pointer', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--w-surface)', border: '1px solid var(--w-line)', borderRadius: 10 }} onClick={() => router.push(`/conversations/${c.id}`)}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--w-ink)' }}>{c.title}</div>
+                      {c.messages?.[0]?.content && (
+                        <div style={{ color: 'var(--w-ink-soft)', fontSize: 12, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.messages[0].content}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ color: 'var(--w-ink-soft)', fontSize: 11, flexShrink: 0, marginLeft: 10 }}>{formatDate(c.updatedAt)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {error && <div style={{ padding: '8px 16px', color: '#ff6b8a', fontSize: 12 }}>{error}</div>}
         </div>
 
         {/* 하단 고정 채팅 하기 */}
         <div className="whif-cta">
-          <button className="whif-cta-btn" onClick={() => setPersonaOpen(true)}>채팅 하기</button>
+          <button className="whif-cta-btn" onClick={handleCtaClick}>채팅 하기</button>
         </div>
       </div>
     </>

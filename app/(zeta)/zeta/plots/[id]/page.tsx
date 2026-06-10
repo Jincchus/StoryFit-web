@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface Opening { id: string; title: string; content: string }
 interface Char {
@@ -37,6 +38,9 @@ export default function ZetaPlotDetailPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [existingConvs, setExistingConvs] = useState<ExistingConv[]>([])
+  const [lorebooks, setLorebooks] = useState<any[]>([])
+  const [expandedLoreId, setExpandedLoreId] = useState<string | null>(null)
+  const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -47,6 +51,28 @@ export default function ZetaPlotDetailPage() {
     if (!charId) return
     api.get(`/api/conversations?characterId=${charId}`).then(setExistingConvs).catch(() => setExistingConvs([]))
   }, [col])
+
+  useEffect(() => {
+    api.get(`/api/lorebooks?collectionId=${id}`).then(setLorebooks).catch(() => {})
+  }, [id])
+
+  const handleDeleteChar = async (charId: string) => {
+    if (!confirm('이 캐릭터를 삭제할까요? 캐릭터와 관련된 모든 대화방 기록도 함께 정리됩니다.')) return
+    try {
+      await api.delete(`/api/characters/${charId}`)
+      api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
+    } catch (e: any) {
+      setError('캐릭터 삭제 실패: ' + e.message)
+    }
+  }
+
+  const handleCtaClick = () => {
+    if (existingConvs.length > 0) {
+      setShowNewChatConfirm(true)
+    } else {
+      setPersonaOpen(true)
+    }
+  }
 
   if (!col) return <div className="zeta-empty">불러오는 중...</div>
 
@@ -91,6 +117,14 @@ export default function ZetaPlotDetailPage() {
 
   return (
     <>
+      {showNewChatConfirm && (
+        <ConfirmDialog
+          message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
+          onConfirm={() => { setShowNewChatConfirm(false); setPersonaOpen(true) }}
+          onCancel={() => setShowNewChatConfirm(false)}
+        />
+      )}
+
       {personaOpen && (
         <WhifPersonaModal
           candidates={[]}
@@ -106,7 +140,6 @@ export default function ZetaPlotDetailPage() {
           <div className="zeta-cover-wrap">
             {col.coverImageUrl ? <img className="zeta-cover" src={col.coverImageUrl} alt="" /> : <div className="zeta-cover" />}
             <button className="zeta-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
-            {creator?.username && <div className="zeta-cover-handle">@{creator.username}</div>}
           </div>
 
           <div className="zeta-section">
@@ -115,9 +148,6 @@ export default function ZetaPlotDetailPage() {
               {meta.verified && <span title="인증됨" style={{ color: 'var(--z-accent)', fontSize: 16 }}>✓</span>}
             </h1>
             {meta.shortDescription && <p style={{ color: 'var(--z-ink-soft)', margin: '0 0 10px', fontSize: 14 }}>{meta.shortDescription}</p>}
-            {meta.interactionCount > 0 && (
-              <div className="zeta-chip" style={{ marginBottom: 10 }}>💬 {formatCount(meta.interactionCount)}</div>
-            )}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {col.tags.map(t => <span key={t} className="zeta-chip">#{t}</span>)}
@@ -127,13 +157,27 @@ export default function ZetaPlotDetailPage() {
 
           {col.characters.length > 0 && (
             <div className="zeta-section" style={{ paddingTop: 0 }}>
-              <h2 className="zeta-section-title">캐릭터</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h2 className="zeta-section-title" style={{ margin: 0 }}>캐릭터</h2>
+                <button className="zeta-chip" style={{ border: '1px solid var(--z-line)', background: 'var(--z-surface-2)', cursor: 'pointer' }}
+                  onClick={() => router.push(`/characters/new?isZeta=true&collectionId=${col.id}`)}>
+                  + 직접 캐릭터 등록
+                </button>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {col.characters.map(c => (
-                  <div key={c.id} className="zeta-charcard" style={{ alignItems: 'flex-start' }}>
-                    {c.avatarUrl ? <img src={c.avatarUrl} alt="" /> : <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--z-line)' }} />}
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 700 }}>{c.name}</div>
+                  <div key={c.id} className="zeta-charcard" style={{ alignItems: 'flex-start', position: 'relative' }}>
+                    {c.avatarUrl ? <img src={c.avatarUrl} alt="" /> : <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--z-line)', flexShrink: 0 }} />}
+                    <div style={{ minWidth: 0, flex: 1, marginLeft: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontWeight: 700 }}>{c.name}</div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="zeta-chip" style={{ border: 'none', cursor: 'pointer', padding: '1px 6px', fontSize: 10 }}
+                            onClick={(e) => { e.stopPropagation(); router.push(`/characters/${c.id}/edit?isZeta=true`) }}>✏ 수정</button>
+                          <button className="zeta-chip" style={{ border: 'none', cursor: 'pointer', padding: '1px 6px', fontSize: 10, color: '#ff6b8a' }}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteChar(c.id) }}>✕ 삭제</button>
+                        </div>
+                      </div>
                       {c.additionalInfo?.trim() && (
                         <div style={{ color: 'var(--z-ink-soft)', fontSize: 12, marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                           {c.additionalInfo
@@ -201,37 +245,36 @@ export default function ZetaPlotDetailPage() {
             </div>
           )}
 
-          {creator && (
-            <div className="zeta-section" style={{ paddingTop: 0 }}>
-              <h2 className="zeta-section-title">크리에이터</h2>
-              {meta.creatorComment && (
-                <p style={{ color: 'var(--z-ink-soft)', lineHeight: 1.6, margin: '0 0 10px', fontSize: 13, whiteSpace: 'pre-wrap' }}>{meta.creatorComment}</p>
-              )}
-              <div className="zeta-creator">
-                {creator.profileImageUrl && <img src={creator.profileImageUrl} alt="" />}
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>{creator.nickname}</div>
-                  {creator.username && <div style={{ color: 'var(--z-ink-soft)', fontSize: 12 }}>@{creator.username}</div>}
-                </div>
-              </div>
-              {(meta.createdAt || meta.updatedAt) && (
-                <div style={{ color: 'var(--z-ink-soft)', fontSize: 11, marginTop: 8 }}>
-                  {meta.createdAt && `출시일 ${formatDate(meta.createdAt)}`}
-                  {meta.updatedAt && ` / 수정일 ${formatDate(meta.updatedAt)}`}
-                </div>
-              )}
-            </div>
-          )}
 
-          {Array.isArray(meta.lorebooks) && meta.lorebooks.length > 0 && (
+
+          {lorebooks.length > 0 && (
             <div className="zeta-section" style={{ paddingTop: 0 }}>
-              <h2 className="zeta-section-title">로어북</h2>
+              <h2 className="zeta-section-title">로어북 ({lorebooks.length})</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {meta.lorebooks.map((lb: any, i: number) => (
-                  <div key={i} className="zeta-charcard" style={{ cursor: 'default' }}>
-                    <span style={{ fontWeight: 700 }}>📒 {lb.name ?? lb.title ?? `로어북 ${i + 1}`}</span>
-                  </div>
-                ))}
+                {lorebooks.map((lb: any) => {
+                  const title = lb.keyword?.[0] || '로어북 항목'
+                  const isExpanded = expandedLoreId === lb.id
+                  return (
+                    <div key={lb.id} className="zeta-charcard" style={{ cursor: 'pointer', flexDirection: 'column', alignItems: 'stretch' }} onClick={() => setExpandedLoreId(isExpanded ? null : lb.id)}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700 }}>📒 {title}</span>
+                        <span style={{ fontSize: 11, color: 'var(--z-ink-soft)' }}>{isExpanded ? '접기 ▲' : '펼치기 ▼'}</span>
+                      </div>
+                      {lb.keyword && lb.keyword.length > 1 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                          {lb.keyword.slice(1).map((k: string) => (
+                            <span key={k} style={{ fontSize: 9, background: 'var(--z-surface-2)', color: 'var(--z-ink-soft)', padding: '1px 6px', borderRadius: 4 }}>{k}</span>
+                          ))}
+                        </div>
+                      )}
+                      {isExpanded && (
+                        <div style={{ fontSize: 12, marginTop: 8, color: 'var(--z-ink-soft)', whiteSpace: 'pre-wrap', borderTop: '1px solid var(--z-line)', paddingTop: 8, lineHeight: 1.5 }}>
+                          {lb.content}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -261,7 +304,7 @@ export default function ZetaPlotDetailPage() {
         </div>
 
         <div className="zeta-cta">
-          <button className="zeta-cta-btn" onClick={() => setPersonaOpen(true)} disabled={!mainChar}>
+          <button className="zeta-cta-btn" onClick={handleCtaClick} disabled={!mainChar}>
             {existingConvs.length > 0 ? '새로운 대화 시작하기' : '대화 시작하기'}
           </button>
         </div>
