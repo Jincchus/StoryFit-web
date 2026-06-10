@@ -144,7 +144,9 @@ export default function CharacterDetailPage() {
           {char.additionalInfo?.trim() && (
             <div className="whif-section" style={{ paddingTop: 0 }}>
               <h2 className="whif-section-title">캐릭터 소개</h2>
-              <p style={{ color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{char.additionalInfo}</p>
+              <p style={{ color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{char.additionalInfo
+                .replace(/\{\{user\}\}/gi, '나')
+                .replace(/\{\{char\}\}/gi, char.name)}</p>
             </div>
           )}
 

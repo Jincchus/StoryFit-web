@@ -139,7 +139,11 @@ export default function WhifExplorePage() {
                     : <div className="whif-card-img" />}
                   <div className="whif-card-body">
                     <div className="whif-card-title">{c.name}</div>
-                    {c.additionalInfo?.trim() && <div className="whif-card-desc">{c.additionalInfo}</div>}
+                    {c.additionalInfo?.trim() && (
+                      <div className="whif-card-desc">{c.additionalInfo
+                        .replace(/\{\{user\}\}/gi, '나')
+                        .replace(/\{\{char\}\}/gi, c.name)}</div>
+                    )}
                   </div>
                   {editMode && (
                     <button onClick={e => { e.stopPropagation(); deleteCharacter(c.id) }}

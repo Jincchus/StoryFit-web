@@ -145,6 +145,8 @@ export default function MeltingCharDetailPage() {
             <div className="melting-section" style={{ paddingTop: 0 }}>
               <h2 className="melting-section-title">상세 설정</h2>
               <MeltingMarkdown text={mainChar.additionalInfo
+                .replace(/\{\{user\}\}/gi, '나')
+                .replace(/\{\{char\}\}/gi, mainChar.name)
                 .replace(/\{유저\}/g, '나')
                 .replace(/\{캐릭터\}/g, mainChar.name)} />
             </div>
