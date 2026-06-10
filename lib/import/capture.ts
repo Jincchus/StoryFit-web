@@ -765,7 +765,7 @@ export async function captureMelting(url: string): Promise<Captured> {
       // "## !요약" 같은 "!"로 시작하는 마크다운 제목은 멜팅 자체 봇 명령어 안내(플랫폼 UI
       // 기능)로, 캐릭터 설정과 무관해 시스템 프롬프트에 넣을 필요가 없다 — 해당 제목부터
       // 끝까지 잘라낸다.
-      let additionalInfo = (apiData.publicDescription || '').replace(/\n+#{1,6}\s*!\S[\s\S]*$/, '').trim()
+      let additionalInfo = (apiData.publicDescription || '').replace(/\n+#{1,6}[^\n!]*!\S[\s\S]*$/, '').trim()
       if (profile) {
         additionalInfo += `\n\n[캐릭터 프로필]\n${profile}`
       }
