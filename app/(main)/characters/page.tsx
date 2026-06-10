@@ -272,6 +272,11 @@ export default function CharactersPage() {
           </div>
         ) : (
         <div className="char-grid scroll">
+          {view === 'completed' && filteredCharacters.length === 0 && (
+            <div className="muted" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 16px', fontSize: 13 }}>
+              완결한 캐릭터가 없습니다.<br />이어가려면 서재에서 꺼내세요.
+            </div>
+          )}
           {filteredCharacters.map(c => {
             const isChecked = selected.has(c.id)
             if (view === 'completed') {
