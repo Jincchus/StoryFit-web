@@ -38,6 +38,8 @@ export interface Character {
   isPreset: boolean
   isAutoCreated?: boolean
   collection?: CharacterCollection | null
+  completed?: boolean
+  hasArchived?: boolean
 }
 
 

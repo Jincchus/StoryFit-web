@@ -35,6 +35,8 @@ export default function CharactersPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState(false)
+  const [view, setView] = useState<'active' | 'completed'>('active')
+  const [duplicating, setDuplicating] = useState(false)
 
   useEffect(() => {
     api.get('/api/characters').then(data => { setCharacters(data); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
@@ -75,10 +77,12 @@ export default function CharactersPage() {
   }, [characters])
 
   const filteredCharacters = useMemo(() => {
-    if (collectionFilter === 'all') return characters
-    if (collectionFilter === 'none') return characters.filter(c => !c.collection && !c.isPreset)
-    return characters.filter(c => c.collection?.id === collectionFilter)
-  }, [characters, collectionFilter])
+    if (view === 'completed') return characters.filter(c => c.completed)
+    const active = characters.filter(c => !c.completed)
+    if (collectionFilter === 'all') return active
+    if (collectionFilter === 'none') return active.filter(c => !c.collection && !c.isPreset)
+    return active.filter(c => c.collection?.id === collectionFilter)
+  }, [characters, collectionFilter, view])
 
   const selectableInFilter = filteredCharacters.filter(c => !c.isPreset)
 
@@ -99,6 +103,21 @@ export default function CharactersPage() {
   }
 
   const exitSelect = () => { setSelecting(false); setSelected(new Set()) }
+
+  const handleDuplicate = async (id: string) => {
+    if (duplicating) return
+    setDuplicating(true)
+    try {
+      await api.post(`/api/characters/${id}/duplicate`, {})
+      const refreshed = await api.get('/api/characters')
+      setCharacters(refreshed)
+      setView('active')
+    } catch (e: any) {
+      setError(e.message ?? '복제 중 오류가 발생했습니다.')
+    } finally {
+      setDuplicating(false)
+    }
+  }
 
   const handleDelete = async (id: string) => {
     try {
@@ -172,7 +191,7 @@ export default function CharactersPage() {
                 </button>
                 <button className="btn ghost" style={{ fontSize: 10 }} onClick={exitSelect}>취소</button>
               </>
-            ) : (
+            ) : view === 'completed' ? null : (
               <>
                 {selectableInFilter.length > 0 && (
                   <button className="btn ghost" style={{ fontSize: 10 }} onClick={() => setSelecting(true)}>☑ 선택</button>
@@ -191,9 +210,22 @@ export default function CharactersPage() {
           </div>
         </div>
 
+        <div className="hstack" style={{ gap: 6 }}>
+          <button
+            className={`btn ${view === 'active' ? 'primary' : 'ghost'}`}
+            style={{ fontSize: 11, padding: '3px 10px' }}
+            onClick={() => { setView('active'); exitSelect() }}
+          >진행 중</button>
+          <button
+            className={`btn ${view === 'completed' ? 'primary' : 'ghost'}`}
+            style={{ fontSize: 11, padding: '3px 10px' }}
+            onClick={() => { setView('completed'); exitSelect() }}
+          >완결 캐릭터</button>
+        </div>
+
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
 
-        {collections.length > 0 && (
+        {view === 'active' && collections.length > 0 && (
           <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
             {[
               { id: 'all', label: '전체' },
@@ -212,7 +244,7 @@ export default function CharactersPage() {
           </div>
         )}
 
-        {selectedChar && !selecting && (
+        {view === 'active' && selectedChar && !selecting && (
           <div className="char-preview-bar">
             <div className="thumb" style={{ width: 28, height: 28 }}>
               {selectedChar.avatarUrl
@@ -242,6 +274,28 @@ export default function CharactersPage() {
         <div className="char-grid scroll">
           {filteredCharacters.map(c => {
             const isChecked = selected.has(c.id)
+            if (view === 'completed') {
+              return (
+                <div key={c.id} className="char-card" style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, background: '#8b5cf6', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>
+                  <div className="pic-wrap">
+                    {c.avatarUrl
+                      ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      : <PixelAvatar kind={c.kind} size={72} />
+                    }
+                  </div>
+                  <h4>{c.name}</h4>
+                  {c.tags?.length > 0
+                    ? <p className="tiny muted" style={{ marginTop: 2 }}>{c.tags.slice(0, 3).join(' · ')}</p>
+                    : <p style={{ opacity: 0 }}>—</p>
+                  }
+                  <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }}>
+                    <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} disabled={duplicating} onClick={() => handleDuplicate(c.id)}>⎘ 복제</button>
+                    <button className="btn danger" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => setConfirmDeleteId(c.id)}>✕ 삭제</button>
+                  </div>
+                </div>
+              )
+            }
             return (
               <div
                 key={c.id}
@@ -297,7 +351,7 @@ export default function CharactersPage() {
             )
           })}
 
-          {!selecting && (
+          {view === 'active' && !selecting && (
             <div className="char-card" onClick={() => router.push('/characters/new')}>
               <div className="pic-wrap" style={{ borderStyle: 'dashed' }}>
                 <PixelAvatar kind="custom" size={72} />
