@@ -22,21 +22,7 @@ export async function GET(req: NextRequest) {
       : {
           OR: [
             { isPreset: true },
-            {
-              creatorId: userId,
-              OR: [
-                { collectionId: null },
-                {
-                  collection: {
-                    AND: [
-                      { NOT: { sourceUrl: { contains: 'whif.' } } },
-                      { NOT: { sourceUrl: { contains: 'zeta-ai.io' } } },
-                      { NOT: { sourceUrl: { contains: 'melting.chat' } } },
-                    ],
-                  },
-                },
-              ],
-            },
+            { creatorId: userId },
           ],
         }
 
