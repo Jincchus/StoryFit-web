@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
+import { aggregateCounts, isCompleted, hasArchived, type CountableConversation } from '@/lib/completion'
 
 export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
@@ -48,14 +49,38 @@ export async function GET(req: NextRequest) {
     },
   })
 
+  // 캐릭터별 대화 집계 (완결/뱃지 판정용)
+  const charIds = characters.map(c => c.id)
+  const convLinks = charIds.length > 0
+    ? await prisma.conversationCharacter.findMany({
+        where: { characterId: { in: charIds }, conversation: { userId } },
+        select: {
+          characterId: true,
+          conversation: { select: { isArchived: true, rootConversationId: true, mode: true } },
+        },
+      })
+    : []
+
+  const convsByChar = new Map<string, CountableConversation[]>()
+  for (const link of convLinks) {
+    const arr = convsByChar.get(link.characterId) ?? []
+    arr.push(link.conversation)
+    convsByChar.set(link.characterId, arr)
+  }
+
   // 직접 collectionId → ConversationCharacter 경유 → 페르소나로 사용된 대화 순으로 컬렉션 결정
-  const result = characters.map(({ conversations, personaConversations, ...c }) => ({
-    ...c,
-    collection: c.collection
-      ?? conversations[0]?.conversation?.characterCollection
-      ?? personaConversations[0]?.characterCollection
-      ?? null,
-  }))
+  const result = characters.map(({ conversations, personaConversations, ...c }) => {
+    const counts = aggregateCounts(convsByChar.get(c.id) ?? [])
+    return {
+      ...c,
+      collection: c.collection
+        ?? conversations[0]?.conversation?.characterCollection
+        ?? personaConversations[0]?.characterCollection
+        ?? null,
+      completed: isCompleted(counts),
+      hasArchived: hasArchived(counts),
+    }
+  })
 
   return NextResponse.json(result)
 }
