@@ -762,7 +762,10 @@ export async function captureMelting(url: string): Promise<Captured> {
         'userPersona', 'userDefaultSetting', 'userDefaultSettings', 'userPersonaDescription'
       ])
 
-      let additionalInfo = apiData.publicDescription || ''
+      // "## !요약" 같은 "!"로 시작하는 마크다운 제목은 멜팅 자체 봇 명령어 안내(플랫폼 UI
+      // 기능)로, 캐릭터 설정과 무관해 시스템 프롬프트에 넣을 필요가 없다 — 해당 제목부터
+      // 끝까지 잘라낸다.
+      let additionalInfo = (apiData.publicDescription || '').replace(/\n+#{1,6}\s*!\S[\s\S]*$/, '').trim()
       if (profile) {
         additionalInfo += `\n\n[캐릭터 프로필]\n${profile}`
       }
@@ -787,11 +790,13 @@ export async function captureMelting(url: string): Promise<Captured> {
       const isNsfw = apiData.nsfw || apiData.isNsfw || false
       const safetyLevel = isNsfw ? 'relaxed' : 'standard'
 
+      const genderMap: Record<string, string> = { male: '남성', female: '여성' }
+
       const assembledResult = {
         characters: [
           {
             name: apiData.name || title || '캐릭터',
-            gender: '',
+            gender: genderMap[apiData.gender] || '',
             additionalInfo: cleanAdditionalInfo,
             openingMessage: cleanOpeningMessage,
             exampleDialogues: '',
@@ -825,22 +830,12 @@ export async function captureMelting(url: string): Promise<Captured> {
       return {
         sections: sections.map(s => ({ ...s, text: depersonalizeNickname(s.text, nickname) })),
         title, imageUrl,
-        // TEMP DEBUG: apiData.bot 가로채기 실패 원인 조사용 — 원인 파악 후 제거
-        meltingMeta: { _debugSections: sections },
       }
-    }
-    // total < 100인 경우에도 디버그용으로 sections를 남긴다
-    return {
-      sections: sections.map(s => ({ ...s, text: depersonalizeNickname(s.text, nickname) })),
-      title, imageUrl,
-      meltingMeta: { _debugSections: sections, _debugNote: 'total < 100' },
     }
   } catch (e: any) {
     console.log('[melting-import] 헤드리스 실패, OG 메타로 폴백:', e?.message)
-    if (ogDesc.length < 100) throw new Error('멜팅 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
-    return {
-      sections: [{ tab: null, text: depersonalizeNickname(ogDesc, nickname) }], title, imageUrl,
-      meltingMeta: { _debugError: e?.message ?? String(e), _debugOgDesc: ogDesc },
-    }
   }
+
+  if (ogDesc.length < 100) throw new Error('멜팅 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
+  return { sections: [{ tab: null, text: depersonalizeNickname(ogDesc, nickname) }], title, imageUrl }
 }

@@ -30,7 +30,6 @@ export default function MeltingCharDetailPage() {
   const [error, setError] = useState('')
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
-  const [showDebug, setShowDebug] = useState(false)
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -179,18 +178,6 @@ export default function MeltingCharDetailPage() {
               </div>
             </div>
           )}
-
-          <div className="melting-section" style={{ paddingTop: 0 }}>
-            <button className="melting-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--m-surface-2)', padding: '4px 8px', fontSize: 11 }}
-              onClick={() => setShowDebug(v => !v)}>
-              {showDebug ? '▲ 원본 데이터 닫기' : '▼ 원본 데이터 보기 (디버그)'}
-            </button>
-            {showDebug && (
-              <pre style={{ marginTop: 8, fontSize: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all', background: 'var(--m-surface-2)', padding: 10, borderRadius: 8, maxHeight: 400, overflow: 'auto' }}>
-                {JSON.stringify({ meltingMeta: meta, characters: col.characters }, null, 2)}
-              </pre>
-            )}
-          </div>
 
           {error && <div style={{ padding: '8px 16px', color: '#ff6b8a', fontSize: 12 }}>{error}</div>}
         </div>
