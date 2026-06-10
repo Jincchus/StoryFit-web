@@ -69,6 +69,7 @@ export default function ZetaPlotDetailPage() {
         characterIds: [mainChar.id],
         mode: 'roleplay',
         personaCharacterId: personaId,
+        ...(col.description ? { scenarioDescription: col.description } : {}),
         ...(chosen !== undefined ? { openingMessage: chosen } : {}),
       })
       router.push(`/conversations/${resp.id}`)
