@@ -1,5 +1,6 @@
 import type { AIProvider } from '@/types'
 import { streamGeminiChat, type GeminiChatParams, type StreamResult } from './gemini'
+import { streamClaudeChat, ClaudeRefusalError } from './claude'
 
 export type StreamChatParams = GeminiChatParams & { provider: AIProvider }
 export type { StreamResult }
@@ -79,6 +80,15 @@ export async function streamChat(
   signal?: AbortSignal,
 ): Promise<StreamResult> {
   switch (params.provider) {
+    case 'claude':
+      try {
+        return await streamClaudeChat(params, onChunk, signal)
+      } catch (err) {
+        if (err instanceof ClaudeRefusalError) {
+          return streamGeminiChat(params, onChunk, signal)
+        }
+        throw err
+      }
     case 'gemini':
       return streamGeminiChat(params, onChunk, signal)
     default:

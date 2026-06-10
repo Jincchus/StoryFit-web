@@ -277,9 +277,9 @@ export default function SettingsPage() {
               <div>
                 <label className="label">기본 AI 모델</label>
                 <select className="field" value={defaultAI} onChange={e => setDefaultAI(e.target.value)}>
+                  <option value="claude">Claude</option>
                   <option value="gemini">Gemini</option>
                   {/* <option value="chatgpt">ChatGPT</option> */}
-                  {/* <option value="claude">Claude</option> */}
                 </select>
               </div>
               <div>

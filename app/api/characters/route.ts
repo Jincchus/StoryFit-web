@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   const safetyLevel = ['strict', 'standard', 'relaxed'].includes(body.safetyLevel) ? body.safetyLevel : 'standard'
   const temperature = Math.min(2, Math.max(0, Number(body.temperature) || 0.9))
   const frequencyPenalty = Math.min(2, Math.max(0, Number(body.frequencyPenalty) || 0.3))
-  const defaultAI = ['gemini', 'claude', 'chatgpt'].includes(body.defaultAI) ? body.defaultAI : 'gemini'
+  const defaultAI = ['gemini', 'claude'].includes(body.defaultAI) ? body.defaultAI : 'claude'
   const collectionId = body.collectionId ? String(body.collectionId) : null
 
   const character = await prisma.character.create({

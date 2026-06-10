@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       userId,
       title,
       mode: body.mode ?? 'roleplay',
-      currentAI: body.currentAI ?? 'gemini',
+      currentAI: body.currentAI ?? 'claude',
       personaCharacterId: body.personaCharacterId ?? null,
       scenarioDescription: body.scenarioDescription ?? '',
       tags: body.tags ?? [],
