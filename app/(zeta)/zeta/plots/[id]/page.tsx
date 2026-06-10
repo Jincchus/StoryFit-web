@@ -130,11 +130,31 @@ export default function ZetaPlotDetailPage() {
               <h2 className="zeta-section-title">캐릭터</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {col.characters.map(c => (
-                  <div key={c.id} className="zeta-charcard">
+                  <div key={c.id} className="zeta-charcard" style={{ alignItems: 'flex-start' }}>
                     {c.avatarUrl ? <img src={c.avatarUrl} alt="" /> : <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--z-line)' }} />}
-                    <span style={{ fontWeight: 700 }}>{c.name}</span>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700 }}>{c.name}</div>
+                      {c.additionalInfo?.trim() && (
+                        <div style={{ color: 'var(--z-ink-soft)', fontSize: 12, marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                          {c.additionalInfo
+                            .replace(/\{\{user\}\}/gi, '나')
+                            .replace(/\{\{char\}\}/gi, c.name)}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {col.description?.trim() && (
+            <div className="zeta-section" style={{ paddingTop: 0 }}>
+              <h2 className="zeta-section-title">스토리</h2>
+              <div className="zeta-intro-box">
+                <NovelText text={col.description
+                  .replace(/\{\{user\}\}/gi, '나')
+                  .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')} />
               </div>
             </div>
           )}
@@ -155,6 +175,28 @@ export default function ZetaPlotDetailPage() {
                 <NovelText text={(openings[openingIdx]?.content ?? '')
                   .replace(/\{\{user\}\}/gi, '나')
                   .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')} />
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(meta.conversations) && meta.conversations.length > 0 && (
+            <div className="zeta-section" style={{ paddingTop: 0 }}>
+              <h2 className="zeta-section-title">예시 대화</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {meta.conversations.map((conv: any, i: number) => (
+                  <div key={i} className="zeta-intro-box">
+                    {(conv.messages ?? []).map((m: any, j: number) => (
+                      <div key={j} style={{ marginBottom: j < (conv.messages?.length ?? 0) - 1 ? 10 : 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, color: 'var(--z-ink)' }}>
+                          {m.sender === 'USER' ? '나' : (m.senderName || mainChar?.name || '캐릭터')}
+                        </div>
+                        <NovelText text={String(m.content ?? '')
+                          .replace(/\{\{user\}\}/gi, '나')
+                          .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')} />
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           )}
