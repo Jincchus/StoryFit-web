@@ -1,4 +1,6 @@
 import puppeteer, { Browser, Page } from 'puppeteer-core'
+import { rm } from 'fs/promises'
+import path from 'path'
 
 // 멜팅(melting.chat) 세션 쿠키는 약 30분마다 만료되어, 매번 사용자가 직접 복사해 갱신해야 했다.
 // 로그인 상태를 디스크(userDataDir)에 저장해두는 영속 브라우저 프로필을 두면, 가져오기를
@@ -10,7 +12,17 @@ const PROFILE_DIR = process.env.MELTING_PROFILE_DIR || '/app/browser-profiles/me
 
 let browserPromise: Promise<Browser> | null = null
 
+// 컨테이너가 재시작되면 이전 프로세스가 남긴 SingletonLock 등이 프로필 디렉터리(영속 볼륨)에
+// 그대로 남아, Chromium이 "다른 컴퓨터의 다른 프로세스가 사용 중"이라고 오판해 실행 자체를
+// 거부한다(이전 프로세스는 이미 죽었으므로 안전하게 지워도 된다). 프로세스 내 단일 인스턴스는
+// browserPromise로 보장하므로, 매 launch 전에 이전 잠금 흔적만 정리한다.
+async function clearStaleLock(): Promise<void> {
+  const lockFiles = ['SingletonLock', 'SingletonSocket', 'SingletonCookie']
+  await Promise.all(lockFiles.map(f => rm(path.join(PROFILE_DIR, f), { force: true }).catch(() => {})))
+}
+
 async function launch(): Promise<Browser> {
+  await clearStaleLock()
   return puppeteer.launch({
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
     headless: true,
