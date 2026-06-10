@@ -182,9 +182,15 @@ async function renderWhifPageText(url: string): Promise<{
     const activeWhifFetch = async (uniId: string) => {
       try {
         const uniResult = await page.evaluate(async (id) => {
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          try {
+            const raw = localStorage.getItem('sb-beizfkcdgqkvhqcqvtwk-auth-token')
+            const token = raw ? JSON.parse(raw)?.access_token : null
+            if (token) headers['Authorization'] = `Bearer ${token}`
+          } catch {}
           const res = await fetch('https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.UniverseService/GetUniverse', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ id })
           })
           return res.json()
@@ -192,15 +198,23 @@ async function renderWhifPageText(url: string): Promise<{
         if (uniResult?.universe) {
           apiData.universe = uniResult.universe
           console.log('[whif-import] universe fetch:', uniResult.universe.name)
+        } else {
+          console.error('[whif-import] universe fetch returned no universe:', JSON.stringify(uniResult)?.slice(0, 300))
         }
       } catch (e: any) {
         console.error('[whif-import] universe fetch failed:', e.message)
       }
       try {
         const charsResult = await page.evaluate(async (id) => {
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+          try {
+            const raw = localStorage.getItem('sb-beizfkcdgqkvhqcqvtwk-auth-token')
+            const token = raw ? JSON.parse(raw)?.access_token : null
+            if (token) headers['Authorization'] = `Bearer ${token}`
+          } catch {}
           const res = await fetch('https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.CharacterService/ListByUniverseId', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ universeId: id })
           })
           return res.json()
@@ -208,6 +222,8 @@ async function renderWhifPageText(url: string): Promise<{
         if (charsResult?.characters) {
           apiData.universeCharacters = charsResult.characters
           console.log('[whif-import] universe characters count:', charsResult.characters.length)
+        } else {
+          console.error('[whif-import] characters fetch returned no characters:', JSON.stringify(charsResult)?.slice(0, 300))
         }
       } catch (e: any) {
         console.error('[whif-import] characters fetch failed:', e.message)
