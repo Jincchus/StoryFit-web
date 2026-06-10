@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
+import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 function formatDate(s?: string) {
@@ -143,7 +144,9 @@ export default function MeltingCharDetailPage() {
           {mainChar?.additionalInfo?.trim() && (
             <div className="melting-section" style={{ paddingTop: 0 }}>
               <h2 className="melting-section-title">상세 설정</h2>
-              <p className="melting-desc">{mainChar.additionalInfo}</p>
+              <MeltingMarkdown text={mainChar.additionalInfo
+                .replace(/\{유저\}/g, '나')
+                .replace(/\{캐릭터\}/g, mainChar.name)} />
             </div>
           )}
 
@@ -153,7 +156,9 @@ export default function MeltingCharDetailPage() {
               <div className="melting-intro-box">
                 <NovelText text={opening
                   .replace(/\{\{user\}\}/gi, '나')
-                  .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')} />
+                  .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')
+                  .replace(/\{유저\}/g, '나')
+                  .replace(/\{캐릭터\}/g, mainChar?.name ?? '')} />
               </div>
             </div>
           )}
