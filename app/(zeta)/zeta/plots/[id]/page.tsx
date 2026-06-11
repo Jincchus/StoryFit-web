@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -221,9 +222,7 @@ export default function ZetaPlotDetailPage() {
                       </div>
                       {c.additionalInfo?.trim() && (
                         <div style={{ color: 'var(--z-ink-soft)', fontSize: 12, marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                          {c.additionalInfo
-                            .replace(/\{\{user\}\}/gi, '나')
-                            .replace(/\{\{char\}\}/gi, c.name)}
+                          {replaceDisplayPlaceholders(c.additionalInfo, '나', c.name)}
                         </div>
                       )}
                     </div>
@@ -237,9 +236,7 @@ export default function ZetaPlotDetailPage() {
             <div className="zeta-section" style={{ paddingTop: 0 }}>
               <h2 className="zeta-section-title">스토리</h2>
               <div className="zeta-intro-box">
-                <NovelText text={col.description
-                  .replace(/\{\{user\}\}/gi, '나')
-                  .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')} />
+                <NovelText text={replaceDisplayPlaceholders(col.description ?? '', '나', mainChar?.name ?? '')} />
               </div>
             </div>
           )}
@@ -257,9 +254,7 @@ export default function ZetaPlotDetailPage() {
                 </div>
               )}
               <div className="zeta-intro-box">
-                <NovelText text={(openings[openingIdx]?.content ?? '')
-                  .replace(/\{\{user\}\}/gi, '나')
-                  .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')} />
+                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', '나', mainChar?.name ?? '')} />
               </div>
             </div>
           )}
@@ -275,9 +270,7 @@ export default function ZetaPlotDetailPage() {
                         <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, color: 'var(--z-ink)' }}>
                           {m.sender === 'USER' ? '나' : (m.senderName || mainChar?.name || '캐릭터')}
                         </div>
-                        <NovelText text={String(m.content ?? '')
-                          .replace(/\{\{user\}\}/gi, '나')
-                          .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')} />
+                        <NovelText text={replaceDisplayPlaceholders(String(m.content ?? ''), '나', mainChar?.name ?? '')} />
                       </div>
                     ))}
                   </div>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface Opening { id: string; title: string; content: string }
 interface Plot {
@@ -128,7 +129,7 @@ export default function ZetaListPage() {
                     )}
                     {intro && (
                       <div style={{ fontSize: 11, color: 'var(--z-ink-soft)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {intro.replace(/\{\{user\}\}/gi, '나').replace(/\{\{char\}\}/gi, mainChar?.name ?? '')}
+                        {replaceDisplayPlaceholders(intro, '나', mainChar?.name ?? '')}
                       </div>
                     )}
                   </div>
