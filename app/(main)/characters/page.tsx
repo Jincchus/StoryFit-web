@@ -85,7 +85,7 @@ export default function CharactersPage() {
 
   const collections = useMemo(() => {
     const map = new Map<string, string>()
-    characters.forEach(c => {
+    characters.filter(c => !c.completed).forEach(c => {
       if (c.collection) map.set(c.collection.id, c.collection.title)
     })
     return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
