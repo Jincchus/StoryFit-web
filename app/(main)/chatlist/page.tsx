@@ -20,6 +20,7 @@ interface ConvItem {
   messages: { content: string }[]
   personaCharacter?: { name: string } | null
   suggestRepliesEnabled?: boolean
+  autoChapterEnabled?: boolean
   chapter?: number
 }
 

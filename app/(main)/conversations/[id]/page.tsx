@@ -95,6 +95,7 @@ interface Conv {
   styleConfig?: Record<string, string | null> | null
   sourceLorebookUrls?: { url: string; name: string }[] | null
   suggestRepliesEnabled?: boolean
+  autoChapterEnabled?: boolean
   chapter?: number
   characters: ConvChar[]
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null

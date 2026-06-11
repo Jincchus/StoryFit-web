@@ -67,6 +67,7 @@ export interface Conversation {
   statusTimeline: string
   scenarioDescription: string
   isSummarizing: boolean
+  autoChapterEnabled?: boolean
   characters: Character[]
   messages: Message[]
 }
