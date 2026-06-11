@@ -308,7 +308,7 @@ export default function ZetaPlotDetailPage() {
                       )}
                       {isExpanded && (
                         <div style={{ fontSize: 12, marginTop: 8, color: 'var(--z-ink-soft)', whiteSpace: 'pre-wrap', borderTop: '1px solid var(--z-line)', paddingTop: 8, lineHeight: 1.5 }}>
-                          {lb.content}
+                          <NovelText text={replaceDisplayPlaceholders(lb.content, '나', mainChar?.name ?? '')} />
                         </div>
                       )}
                     </div>

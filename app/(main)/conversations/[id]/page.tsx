@@ -1152,9 +1152,7 @@ export default function ChatPage() {
                           const rawSpeaker = b.speaker || msgChar.name
                           const speaker = rawSpeaker.replace(/^\[|\]$/g, '').trim()
                           const isPersona = !!conv.personaCharacter && isSamePerson(speaker, conv.personaCharacter.name)
-                          const isConvChar = isTikiTaka
-                            ? conv.characters.some(cc => isSamePerson(speaker, cc.character.name))
-                            : isSamePerson(speaker, msgChar.name)
+                          const isConvChar = conv.characters.some(cc => isSamePerson(speaker, cc.character.name))
                           const thought = b.type === 'thought' ? ' thought-bubble' : ''
                           if (isPersona) {
                             return (
