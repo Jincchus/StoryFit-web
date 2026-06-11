@@ -289,7 +289,7 @@ async function generateAsync({
       allowChoices: conv.mode === 'story',
       forbiddenChoiceNames: conv.mode === 'story' ? [character.name] : [],
       requiredBodyNames: conv.mode === 'story' ? [character.name] : [],
-      personaName: conv.personaCharacter?.name || conv.user?.displayName || '유저',
+      personaName: conv.personaCharacter?.name || conv.user?.displayName || '나',
     }
 
     if (needsResponseRevision(cleanText, revisionOptions)) {
