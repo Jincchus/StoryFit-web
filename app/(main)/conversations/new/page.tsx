@@ -215,7 +215,7 @@ function NewConversationInner() {
           scenarioDescription,
           tags,
           isAutoCreated: false,
-          autoChapterEnabled,
+          autoChapterEnabled: (mode === 'story' || mode === 'multiStory') && autoChapterEnabled,
           personaCharacterId: draft.personaId ?? null,
           ...(isMulti ? { characterIds: importedChars.map(c => c.id) } : {}),
           ...(!isMulti && char ? { soloCharacterId: char.id } : {}),
