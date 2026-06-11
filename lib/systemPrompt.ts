@@ -127,7 +127,9 @@ function buildCharLines(character: Character, personaName?: string): string {
 // 대화 도입부(오프닝)는 토큰 예산에 따라 최근 메시지 목록에서 잘려나갈 수 있다.
 // 이 경우에도 AI가 최초 장면 설정을 계속 인지하도록 시스템 프롬프트에 별도로 고정한다.
 function buildOpeningSceneSection(openingScene?: string): string {
-  return openingScene?.trim() ? `[오프닝 장면 — 대화의 시작]\n${openingScene.trim()}` : ''
+  return openingScene?.trim()
+    ? `[오프닝 장면 — 대화의 시작]\n${openingScene.trim()}\n\n위 오프닝 장면은 대화가 시작되기 직전에 일어난 일이며, 현재 진행 중인 상황입니다. 첫 응답은 이 장면에서 형성된 감정, 갈등, 분위기, 상황을 그대로 이어받아 자연스럽게 진행해야 합니다. 장면을 리셋하거나, 오프닝과 무관한 반응을 하거나, 갈등/감정 상태를 임의로 해소하지 마세요.`
+    : ''
 }
 
 function buildLorebookSection(lorebook: LorebookEntry[]): string {
