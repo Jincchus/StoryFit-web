@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { AI_MODELS } from '@/lib/constants'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
@@ -1022,9 +1023,7 @@ export default function ChatPage() {
                 const isLast = m.id === lastMsg?.id
                 const isEditing = editingId === m.id
                 const processedContent = !isYou
-                  ? m.content
-                      .replace(/\{\{user\}\}/gi, conv.personaCharacter?.name ?? '나')
-                      .replace(/\{\{char\}\}/gi, msgChar.name)
+                  ? replaceDisplayPlaceholders(m.content, conv.personaCharacter?.name ?? '나', msgChar.name)
                   : m.content
                 const storyParsed = isStoryOrMulti && !isYou ? parseStoryChoices(processedContent) : null
                 const blocks = isYou ? [] : (isNovel || isStory || isTikiTaka ? parseNovelBlocks(storyParsed ? storyParsed.body : processedContent) : parseBlocks(processedContent))
@@ -1293,9 +1292,7 @@ export default function ChatPage() {
                     {streaming
                       ? <>
                           {(() => {
-                            const ps = streaming
-                              .replace(/\{\{user\}\}/gi, conv.personaCharacter?.name ?? '나')
-                              .replace(/\{\{char\}\}/gi, streamingChar.name)
+                            const ps = replaceDisplayPlaceholders(streaming, conv.personaCharacter?.name ?? '나', streamingChar.name)
                             return isNovel || isTikiTaka
                               ? <NovelScene text={ps} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
                               : <MessageBlocks text={ps} />

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { fixJosa } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
@@ -144,11 +145,11 @@ export default function MeltingCharDetailPage() {
           {mainChar?.additionalInfo?.trim() && (
             <div className="melting-section" style={{ paddingTop: 0 }}>
               <h2 className="melting-section-title">상세 설정</h2>
-              <MeltingMarkdown text={mainChar.additionalInfo
+              <MeltingMarkdown text={fixJosa(mainChar.additionalInfo
                 .replace(/\{\{user\}\}/gi, '나')
                 .replace(/\{\{char\}\}/gi, mainChar.name)
                 .replace(/\{유저\}/g, '나')
-                .replace(/\{캐릭터\}/g, mainChar.name)} />
+                .replace(/\{캐릭터\}/g, mainChar.name), ['나', mainChar.name])} />
             </div>
           )}
 
@@ -156,11 +157,11 @@ export default function MeltingCharDetailPage() {
             <div className="melting-section" style={{ paddingTop: 0 }}>
               <h2 className="melting-section-title">첫 장면</h2>
               <div className="melting-intro-box">
-                <NovelText text={opening
+                <NovelText text={fixJosa(opening
                   .replace(/\{\{user\}\}/gi, '나')
                   .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')
                   .replace(/\{유저\}/g, '나')
-                  .replace(/\{캐릭터\}/g, mainChar?.name ?? '')} />
+                  .replace(/\{캐릭터\}/g, mainChar?.name ?? ''), ['나', mainChar?.name])} />
               </div>
             </div>
           )}
