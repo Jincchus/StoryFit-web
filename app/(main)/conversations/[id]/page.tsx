@@ -896,7 +896,7 @@ export default function ChatPage() {
                   }
                 </span>
                 <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '👥 멀티' : isStory ? '스토리' : '롤플레이'}</span>
-                {conv?.suggestRepliesEnabled && (conv.chapter ?? 1) > 0 && (
+                {conv?.autoChapterEnabled && (conv.chapter ?? 1) > 1 && (
                   <span className="melting-chapter-badge" style={{ marginLeft: 6 }}>{conv.chapter ?? 1}장</span>
                 )}
               </div>
@@ -1720,6 +1720,25 @@ export default function ChatPage() {
                   value={conv.scenarioDescription}
                   onChange={e => handleScenarioDescription(e.target.value)}
                 />
+              </div>
+
+              <div className="side-section">
+                <div className="spread" style={{ alignItems: 'center' }}>
+                  <div className="label" style={{ marginBottom: 0 }}>🔖 AI 자동 챕터 구분</div>
+                  <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={conv.autoChapterEnabled ?? false}
+                      onChange={async e => {
+                        const checked = e.target.checked
+                        setConv(c => c ? { ...c, autoChapterEnabled: checked } : c)
+                        await api.patch(`/api/conversations/${params.id}`, { autoChapterEnabled: checked }).catch(() => {})
+                      }}
+                    />
+                    <span className="tiny">{conv.autoChapterEnabled ? 'ON' : 'OFF'}</span>
+                  </label>
+                </div>
+                <div className="tiny muted" style={{ marginTop: 4 }}>장면이나 시간대가 크게 전환될 때 AI가 자동으로 새 챕터로 구분합니다.</div>
               </div>
 
               <div className="side-section">
