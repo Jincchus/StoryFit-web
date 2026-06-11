@@ -1,4 +1,5 @@
 import type { Character, LorebookEntry, StyleConfig } from '@/types'
+import { fixJosa } from './josa'
 
 export const BASE_RULES = `You are a novel-style roleplay AI. Always follow the output format below.
 
@@ -114,7 +115,7 @@ export function replacePlaceholders(text: string, personaName: string, charName?
       .replace(/\{char\}/gi, charName)
       .replace(/\{캐릭터\}/g, charName)
   }
-  return result
+  result = result
     .replace(/\{\{user\}\}/gi, personaName)
     .replace(/\{user\}/gi, personaName)
     .replace(/\{유저\}/g, personaName)
@@ -126,6 +127,7 @@ export function replacePlaceholders(text: string, personaName: string, charName?
     .replace(/\b주인공\b/g, personaName)
     .replace(/\buser\b/gi, personaName)
     .replace(/\b당신\b/g, personaName)
+  return fixJosa(result, [personaName, charName])
 }
 
 function buildCharLines(character: Character, personaName?: string): string {
