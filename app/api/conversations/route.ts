@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
       inventory: body.inventoryEnabled ? ([] as any) : undefined,
       styleConfig: body.styleConfig ?? null,
       suggestRepliesEnabled: body.suggestRepliesEnabled ?? false,
+      autoChapterEnabled: body.autoChapterEnabled ?? false,
       sourceUrl: convSourceUrl,
       ...(characterIds.length > 0 ? {
         characters: {
