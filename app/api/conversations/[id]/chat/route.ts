@@ -10,7 +10,7 @@ import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { logAiError } from '@/lib/errorLog'
-import { appendTurnControlInstruction, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
+import { appendTurnControlInstruction, applyLightFixes, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
 import type { AIProvider } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -291,6 +291,8 @@ async function generateAsync({
       requiredBodyNames: conv.mode === 'story' ? [character.name] : [],
       personaName: conv.personaCharacter?.name || conv.user?.displayName || '나',
     }
+
+    cleanText = applyLightFixes(cleanText, revisionOptions)
 
     if (needsResponseRevision(cleanText, revisionOptions)) {
       const revised = await regenerateControlledResponse({

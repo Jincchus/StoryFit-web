@@ -97,6 +97,38 @@ export function appendTurnControlInstruction(content: string, allowChoices = fal
   return `${content.trim()}\n\n${getTurnControlInstruction(allowChoices)}`
 }
 
+export function stripChoiceArtifacts(text: string): string {
+  const trimmed = text.trim()
+  const parts = trimmed.split(SEP_RE)
+  if (parts.length >= 3) {
+    return parts[0].trim()
+  }
+
+  const lines = trimmed.split('\n')
+  while (lines.length > 0) {
+    const last = lines[lines.length - 1].trim()
+    if (!last) {
+      lines.pop()
+      continue
+    }
+    if (CHOICE_PATTERNS.some(pattern => pattern.test(last))) {
+      lines.pop()
+      continue
+    }
+    break
+  }
+  return lines.join('\n').trim()
+}
+
+export function applyLightFixes(text: string, options: boolean | ResponseRevisionOptions = false): string {
+  const allowChoices = typeof options === 'boolean' ? options : !!options.allowChoices
+  const trimmed = text.trim()
+  if (!allowChoices && CHOICE_PATTERNS.some(pattern => pattern.test(trimmed))) {
+    return stripChoiceArtifacts(trimmed)
+  }
+  return trimmed
+}
+
 export function needsResponseRevision(text: string, options: boolean | ResponseRevisionOptions = false): boolean {
   const allowChoices = typeof options === 'boolean' ? options : !!options.allowChoices
   const forbiddenChoiceNames = typeof options === 'boolean' ? [] : options.forbiddenChoiceNames ?? []
@@ -105,8 +137,6 @@ export function needsResponseRevision(text: string, options: boolean | ResponseR
 
   const trimmed = text.trim()
   if (!trimmed) return false
-  if (trimmed.length < 350) return true
-  if (!allowChoices && CHOICE_PATTERNS.some(pattern => pattern.test(trimmed))) return true
   if (allowChoices && hasForbiddenChoiceSpeaker(trimmed, forbiddenChoiceNames)) return true
   if (allowChoices && missesRequiredBodySpeaker(trimmed, requiredBodyNames)) return true
   if (USER_CONTROL_PATTERNS.some(pattern => pattern.test(trimmed))) return true
