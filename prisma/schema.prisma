@@ -165,6 +165,7 @@ model Conversation {
   styleConfig         Json?
   chapter                Int                  @default(1)
   suggestRepliesEnabled  Boolean              @default(false)
+  autoChapterEnabled     Boolean              @default(false)
   isAutoCreated       Boolean                 @default(false)
   sourceUrl           String                  @default("")
   sourceLorebookUrls  Json?
