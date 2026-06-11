@@ -20,6 +20,20 @@ function sparkleAt(x: number, y: number) {
   setTimeout(() => { el.remove(); sparkleCount-- }, 600)
 }
 
+function RoomChips({ rooms }: { rooms?: { id: string; title: string }[] }) {
+  if (!rooms || rooms.length === 0) return null
+  const shown = rooms.slice(0, 2)
+  const extra = rooms.length - shown.length
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center', marginTop: 2 }}>
+      {shown.map(r => (
+        <span key={r.id} style={{ fontSize: 9, fontWeight: 700, background: '#4fa8e8', color: '#fff', padding: '1px 5px', borderRadius: 3, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+      ))}
+      {extra > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink-soft)' }}>+{extra}</span>}
+    </div>
+  )
+}
+
 export default function CharactersPage() {
   const router = useRouter()
   const { draft, dispatch } = useApp()
@@ -294,6 +308,7 @@ export default function CharactersPage() {
                     ? <p className="tiny muted" style={{ marginTop: 2 }}>{c.tags.slice(0, 3).join(' · ')}</p>
                     : <p style={{ opacity: 0 }}>—</p>
                   }
+                  <RoomChips rooms={c.rooms} />
                   <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }}>
                     <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} disabled={duplicating} onClick={() => handleDuplicate(c.id)}>⎘ 복제</button>
                     <button className="btn danger" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => setConfirmDeleteId(c.id)}>✕ 삭제</button>
@@ -332,9 +347,6 @@ export default function CharactersPage() {
                     {isChecked && <span style={{ color: '#fff', fontSize: 10, lineHeight: 1 }}>✓</span>}
                   </div>
                 )}
-                {c.collection && (
-                  <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, background: '#4fa8e8', color: '#fff', padding: '1px 5px', borderRadius: 3, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.collection.title}</div>
-                )}
                 <div className="pic-wrap">
                   {c.avatarUrl
                     ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
@@ -346,6 +358,7 @@ export default function CharactersPage() {
                   ? <p className="tiny muted" style={{ marginTop: 2 }}>{c.tags.slice(0, 3).join(' · ')}</p>
                   : <p style={{ opacity: 0 }}>—</p>
                 }
+                <RoomChips rooms={c.rooms} />
                 {!c.isPreset && !selecting && (
                   <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
                     <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>
