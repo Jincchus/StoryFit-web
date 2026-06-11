@@ -17,7 +17,8 @@ const RANDOM_SETTINGS = [
   '겉은 냉정해 보이지만 속은 따뜻하다. 좋아하는 사람에게 서툴게 다가간다.',
 ]
 
-const RELATIONSHIP_LEVELS = ['처음 만남', '지인', '친구', '썸', '연인']
+const RELATIONSHIP_TAGS = ['신뢰', '통제', '미련', '복종', '애정', '집착']
+const MAX_RELATIONSHIP_TAGS = 2
 const GENDERS = ['여성', '남성', '기타']
 
 export interface NewPersonaData {
@@ -49,7 +50,14 @@ export default function WhifPersonaModal({ candidates, loading, defaultName, def
   const [name, setName] = useState(defaultName ?? '')
   const [gender, setGender] = useState('여성')
   const [settings, setSettings] = useState(defaultSettings ?? '')
-  const [relationship, setRelationship] = useState('처음 만남')
+  const [relationships, setRelationships] = useState<string[]>([])
+
+  const toggleRelationship = (r: string) => {
+    setRelationships(prev =>
+      prev.includes(r) ? prev.filter(x => x !== r)
+        : prev.length < MAX_RELATIONSHIP_TAGS ? [...prev, r] : prev
+    )
+  }
 
   const handleStart = () => {
     if (tab === 'existing' && selectedId) {
@@ -57,7 +65,7 @@ export default function WhifPersonaModal({ candidates, loading, defaultName, def
     } else {
       const additionalInfo = [
         settings.trim() && `성격/설정: ${settings.trim()}`,
-        `관계: ${relationship}`,
+        relationships.length > 0 && `관계: ${relationships.join(', ')}`,
       ].filter(Boolean).join('\n')
       onSelect(null, { name: name.trim() || '유저', gender, additionalInfo })
     }
@@ -153,10 +161,10 @@ export default function WhifPersonaModal({ candidates, loading, defaultName, def
             </div>
 
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--w-ink-soft)', marginBottom: 6 }}>관계 레벨</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--w-ink-soft)', marginBottom: 6 }}>관계 (최대 {MAX_RELATIONSHIP_TAGS}개)</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {RELATIONSHIP_LEVELS.map(r => (
-                  <button key={r} style={chip(relationship === r)} onClick={() => setRelationship(r)}>{r}</button>
+                {RELATIONSHIP_TAGS.map(r => (
+                  <button key={r} style={chip(relationships.includes(r))} onClick={() => toggleRelationship(r)}>{r}</button>
                 ))}
               </div>
             </div>
