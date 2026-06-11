@@ -230,6 +230,13 @@ export default function SettingsPage() {
           {/* ── 프로필·프롬프트 ── */}
           {tab === 'profile' && (
             <div className="vstack" style={{ gap: 16 }}>
+              <a href="/guide" className="hstack" style={{ gap: 8, alignItems: 'center', padding: '8px 10px', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)', background: 'var(--pane)', textDecoration: 'none', color: 'var(--ink)' }}>
+                <span style={{ fontSize: 18 }}>📖</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700 }}>기능 가이드</div>
+                  <div className="tiny muted">슬래시 커맨드, 챕터, 스탯 등 대화를 풍부하게 해주는 기능 모음</div>
+                </div>
+              </a>
               <div className="vstack" style={{ gap: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, borderBottom: '1px solid var(--chrome-border)', paddingBottom: 4 }}>프로필</div>
                 <div>

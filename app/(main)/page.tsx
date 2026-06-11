@@ -13,6 +13,7 @@ const BASE_ICONS = [
   { label: 'ZETA 센터', emoji: '⚡', href: '/zeta' },
   { label: 'MELTING 센터', emoji: '🔥', href: '/melting' },
   { label: '서재', emoji: '📚', href: '/library' },
+  { label: '기능 가이드', emoji: '📖', href: '/guide' },
   { label: '설정', emoji: '⚙️', href: '/settings' },
 ]
 
