@@ -1,5 +1,5 @@
 import type { Character, LorebookEntry, StyleConfig } from '@/types'
-import { fixJosa } from './josa'
+import { fixJosa, applyPersonaPlaceholders } from './josa'
 
 export const BASE_RULES = `You are a novel-style roleplay AI. Always follow the output format below.
 
@@ -108,26 +108,7 @@ export const NOVEL_BASE_RULES = `You are a novelist. Always follow the output fo
 
 // {{user}}, {user}, [유저], user, guest, persona, 페르소나, 주인공, 당신 등 유저 플레이스홀더를 페르소나 이름으로 치환
 export function replacePlaceholders(text: string, personaName: string, charName?: string): string {
-  let result = text
-  if (charName) {
-    result = result
-      .replace(/\{\{char\}\}/gi, charName)
-      .replace(/\{char\}/gi, charName)
-      .replace(/\{캐릭터\}/g, charName)
-  }
-  result = result
-    .replace(/\{\{user\}\}/gi, personaName)
-    .replace(/\{user\}/gi, personaName)
-    .replace(/\{유저\}/g, personaName)
-    .replace(/\[유저\]/g, personaName)
-    .replace(/\[USER\]/gi, personaName)
-    .replace(/\bguest\b/gi, personaName)
-    .replace(/\bpersona\b/gi, personaName)
-    .replace(/\b페르소나\b/g, personaName)
-    .replace(/\b주인공\b/g, personaName)
-    .replace(/\buser\b/gi, personaName)
-    .replace(/\b당신\b/g, personaName)
-  return fixJosa(result, [personaName, charName])
+  return fixJosa(applyPersonaPlaceholders(text, personaName, charName), [personaName, charName])
 }
 
 function buildCharLines(character: Character, personaName?: string): string {
