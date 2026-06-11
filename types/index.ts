@@ -40,6 +40,7 @@ export interface Character {
   collection?: CharacterCollection | null
   completed?: boolean
   hasArchived?: boolean
+  rooms?: { id: string; title: string }[]
 }
 
 
