@@ -337,9 +337,10 @@ async function generateAsync({
         currentInventory: Array.isArray(conv.inventory) ? conv.inventory as any : null,
         statsEnabled: conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0,
         inventoryEnabled: conv.inventoryEnabled && Array.isArray(conv.inventory),
+        autoChapterEnabled: conv.autoChapterEnabled,
       })
     } else {
-      triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '')
+      triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '', conv.autoChapterEnabled)
     }
   } catch (err: any) {
     clearTimeout(timeoutId)

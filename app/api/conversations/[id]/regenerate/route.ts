@@ -252,10 +252,11 @@ async function regenerateAsync({
           currentInventory: Array.isArray(freshConv2.inventory) ? freshConv2.inventory as any : null,
           statsEnabled: freshConv2.statsEnabled && Array.isArray(freshConv2.statsConfig) && (freshConv2.statsConfig as any[]).length > 0,
           inventoryEnabled: freshConv2.inventoryEnabled && Array.isArray(freshConv2.inventory),
+          autoChapterEnabled: conv.autoChapterEnabled,
         })
       }
     } else if (!isMultiStory) {
-      triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '')
+      triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '', conv.autoChapterEnabled)
     }
   } catch (err: any) {
     clearTimeout(timeoutId)
