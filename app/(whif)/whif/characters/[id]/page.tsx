@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -144,9 +145,7 @@ export default function CharacterDetailPage() {
           {char.additionalInfo?.trim() && (
             <div className="whif-section" style={{ paddingTop: 0 }}>
               <h2 className="whif-section-title">캐릭터 소개</h2>
-              <p style={{ color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{char.additionalInfo
-                .replace(/\{\{user\}\}/gi, '나')
-                .replace(/\{\{char\}\}/gi, char.name)}</p>
+              <p style={{ color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{replaceDisplayPlaceholders(char.additionalInfo, '나', char.name)}</p>
             </div>
           )}
 
@@ -165,9 +164,7 @@ export default function CharacterDetailPage() {
                 </div>
               )}
               <div style={{ background: 'var(--w-surface)', border: '1px solid var(--w-line)', borderRadius: 10, padding: 14, color: 'var(--w-ink-soft)', lineHeight: 1.6, fontSize: 14 }}>
-                <NovelText text={(openings[openingIdx]?.content ?? '')
-                  .replace(/\{\{user\}\}/gi, '나')
-                  .replace(/\{\{char\}\}/gi, char.name)} />
+                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', '나', char.name)} />
               </div>
             </div>
           )}

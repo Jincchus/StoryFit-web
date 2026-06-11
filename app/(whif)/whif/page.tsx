@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean }
 interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean }
@@ -161,9 +162,7 @@ export default function WhifExplorePage() {
                   <div className="whif-card-body">
                     <div className="whif-card-title">{c.name}</div>
                     {c.additionalInfo?.trim() && (
-                      <div className="whif-card-desc">{c.additionalInfo
-                        .replace(/\{\{user\}\}/gi, '나')
-                        .replace(/\{\{char\}\}/gi, c.name)}</div>
+                      <div className="whif-card-desc">{replaceDisplayPlaceholders(c.additionalInfo, '나', c.name)}</div>
                     )}
                   </div>
                   {editMode && (

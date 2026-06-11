@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface Universe { id: string; title: string; coverImageUrl: string; description: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[] }
 interface Character { id: string; name: string; avatarUrl: string | null; tags: string[]; collection?: { id: string } | null }
@@ -90,9 +91,7 @@ export default function UniverseDetailPage() {
             <div>
               <p style={{ color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0,
                 ...(expanded ? {} : { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties) }}>
-                {uni.description
-                  .replace(/\{\{user\}\}/gi, '나')
-                  .replace(/\{\{char\}\}/gi, uni.characters?.[0]?.name ?? '')}
+                {replaceDisplayPlaceholders(uni.description, '나', uni.characters?.[0]?.name ?? '')}
               </p>
               <button className="whif-iconbtn" style={{ fontSize: 12, color: 'var(--w-accent)', padding: '6px 0' }}
                 onClick={() => setExpanded(e => !e)}>{expanded ? '접기 ↑' : '더보기 ↓'}</button>
