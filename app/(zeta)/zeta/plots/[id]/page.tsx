@@ -113,6 +113,7 @@ export default function ZetaPlotDetailPage() {
       if (!personaId && newPersona) {
         const p = await api.post('/api/characters', {
           name: newPersona.name, gender: newPersona.gender, additionalInfo: newPersona.additionalInfo,
+          collectionId: col.id,
         })
         personaId = p.id
       }
@@ -120,7 +121,7 @@ export default function ZetaPlotDetailPage() {
       const resp = await api.post('/api/conversations', {
         title: col.title,
         characterIds: aiCharIds,
-        mode: 'story',
+        mode: aiCharIds.length > 1 ? 'multiStory' : 'story',
         personaCharacterId: personaId,
         ...(col.description ? { scenarioDescription: col.description } : {}),
         ...(chosen !== undefined ? { openingMessage: chosen } : {}),

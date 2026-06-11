@@ -82,6 +82,7 @@ export default function CharacterDetailPage() {
           name: newPersona.name,
           gender: newPersona.gender,
           additionalInfo: newPersona.additionalInfo,
+          ...(char.collection?.id ? { collectionId: char.collection.id } : {}),
         })
         personaId = p.id
       }

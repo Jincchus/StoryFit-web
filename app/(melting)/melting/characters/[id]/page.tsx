@@ -72,6 +72,7 @@ export default function MeltingCharDetailPage() {
       if (!personaId && newPersona) {
         const p = await api.post('/api/characters', {
           name: newPersona.name, gender: newPersona.gender, additionalInfo: newPersona.additionalInfo,
+          collectionId: col.id,
         })
         personaId = p.id
       }
