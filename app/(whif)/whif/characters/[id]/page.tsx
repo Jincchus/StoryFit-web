@@ -104,6 +104,8 @@ export default function CharacterDetailPage() {
       {showNewChatConfirm && (
         <ConfirmDialog
           message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
+          confirmLabel="새 대화 시작"
+          confirmVariant="primary"
           onConfirm={() => { setShowNewChatConfirm(false); setPersonaOpen(true) }}
           onCancel={() => setShowNewChatConfirm(false)}
         />

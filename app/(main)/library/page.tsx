@@ -50,6 +50,8 @@ export default function LibraryPage() {
       {unarchiveId && (
         <ConfirmDialog
           message="이 대화를 채팅 목록으로 되돌릴까요?"
+          confirmLabel="꺼내기"
+          confirmVariant="primary"
           onConfirm={() => handleUnarchive(unarchiveId)}
           onCancel={() => setUnarchiveId(null)}
         />
