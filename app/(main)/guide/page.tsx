@@ -1,0 +1,134 @@
+'use client'
+import { useState } from 'react'
+import Win from '@/components/ui/Win'
+import { PixelIcons } from '@/components/ui/PixelAvatar'
+
+type FeatureItem = { emoji: string; label: string; desc: string }
+type FeatureSection = { title: string; items: FeatureItem[] }
+
+const FEATURE_SECTIONS: FeatureSection[] = [
+  {
+    title: '🎮 대화 모드',
+    items: [
+      { emoji: '📖', label: '스토리', desc: 'AI가 장면을 서술하고 선택지를 제시하는 인터랙티브 소설 모드입니다.' },
+      { emoji: '👥', label: '멀티스토리', desc: '여러 캐릭터가 함께 이야기 속에서 상호작용합니다.' },
+      { emoji: '💬', label: '자유 대화 (티키타카)', desc: '선택지 없이 여러 캐릭터가 소설식으로 번갈아 대화합니다.' },
+      { emoji: '✍', label: '소설', desc: '노벨체로 서술되는 1인 대화 모드입니다.' },
+    ],
+  },
+  {
+    title: '🎭 페르소나 (내 역할)',
+    items: [
+      { emoji: '🎭', label: '내 역할 설정', desc: '대화 설정에서 내가 연기할 캐릭터를 지정하면, 내 메시지가 해당 캐릭터로 표시되고 AI도 이를 인지하며 대화합니다.' },
+    ],
+  },
+  {
+    title: '⚙️ 대화 설정',
+    items: [
+      { emoji: '🎨', label: '스타일 설정', desc: '시점·시제·분위기·문체·응답 길이·전개 속도를 선택해 대화 톤을 세밀하게 조정합니다.' },
+      { emoji: '❤️', label: '관계·능력치 스탯', desc: '호감도 등 수치를 AI가 대화 흐름에 따라 자동으로 조정합니다. `!스탯`으로 조회할 수 있습니다.' },
+      { emoji: '🎒', label: '인벤토리', desc: 'AI가 아이템 획득·소모를 자동으로 판단해 관리합니다. `!인벤토리`로 조회할 수 있습니다.' },
+      { emoji: '🔖', label: 'AI 자동 챕터 구분', desc: '장면이 크게 전환되면(시간/장소 변화) 자동으로 챕터(N장)를 나눠 표시합니다.' },
+      { emoji: '🛡', label: '안전 수준', desc: '폭력·성인 표현 허용 정도를 엄격/표준/완화 중에서 선택합니다.' },
+    ],
+  },
+  {
+    title: '🎛 고급 AI 파라미터',
+    items: [
+      { emoji: '🎲', label: '창의성 (temperature)', desc: '낮을수록 일관적이고 예측 가능한 답변, 높을수록 창의적이고 다양한 답변이 나옵니다.' },
+      { emoji: '🔁', label: '반복 억제 (frequency penalty)', desc: '같은 단어·표현이 반복되는 것을 줄여줍니다.' },
+      { emoji: '📏', label: '응답 최대 길이', desc: 'AI 응답의 최대 토큰 수를 조절합니다. 길수록 더 깊이 있는 응답이 가능하지만 생성 시간이 늘어납니다.' },
+      { emoji: '🧠', label: '사고 예산 (thinking budget)', desc: '응답 전 AI가 장면을 설계하는 내부 추론 깊이입니다. 높을수록 일관성이 좋아지지만 응답이 느려질 수 있습니다.' },
+    ],
+  },
+  {
+    title: '💬 슬래시 커맨드',
+    items: [
+      { emoji: '📊', label: '!상태창 (!정보)', desc: '스탯·인벤토리·현재 상황을 한번에 표시합니다.' },
+      { emoji: '❤️', label: '!스탯 (!호감도, !관계)', desc: '관계·능력치 스탯만 표시합니다.' },
+      { emoji: '🎒', label: '!인벤토리 (!소지품)', desc: '소지하고 있는 아이템 목록을 표시합니다.' },
+      { emoji: '🗺', label: '!상황 (!타임라인, !씬)', desc: '현재 장면의 시간·장소·상황을 요약해 보여줍니다.' },
+      { emoji: '❓', label: '!도움말 (!명령어)', desc: '사용 가능한 명령어 목록을 표시합니다.' },
+      { emoji: '💡', label: '사용 팁', desc: '채팅창에 입력하면 AI 비용 없이 즉시 결과를 볼 수 있습니다.' },
+    ],
+  },
+  {
+    title: '🧠 메모리 & 로어북',
+    items: [
+      { emoji: '📌', label: '핵심 메모리', desc: 'AI가 절대 잊으면 안 되는 설정·사실을 등록합니다. 설정 탭에서 직접 편집할 수 있습니다.' },
+      { emoji: '🗺', label: '타임라인 상태', desc: '현재 장면의 시간·장소·상황 요약입니다. 직접 편집할 수 있습니다.' },
+      { emoji: '🧾', label: '장기 메모리', desc: '대화가 길어지면 자동으로 요약되며, 선택해서 핵심 메모리로 승격할 수 있습니다.' },
+      { emoji: '📖', label: '로어북', desc: '키워드가 대화에 등장하면 관련 설정을 AI에게 자동으로 주입합니다. 설정 탭에서 추가·수정·삭제할 수 있습니다.' },
+    ],
+  },
+  {
+    title: '🌿 분기 & 메시지 조작',
+    items: [
+      { emoji: '🌿', label: '분기 (Branch)', desc: '메시지를 우클릭해 해당 지점에서 새 타임라인을 만들 수 있습니다. 상단 탭에서 분기 간 전환이 가능합니다.' },
+      { emoji: '🔀', label: '형제 메시지', desc: '같은 지점에서 재생성된 다른 응답들 사이를 전환해 볼 수 있습니다.' },
+      { emoji: '✏', label: '메시지 수정', desc: '내 메시지를 수정하면 이후 대화가 재생성되고, AI 메시지 수정은 내용만 바뀝니다.' },
+      { emoji: '🔄', label: '재생성 (Regenerate)', desc: '마지막 AI 응답을 다시 생성합니다. 이때 스탯·인벤토리 변화는 자동으로 롤백됩니다.' },
+    ],
+  },
+  {
+    title: '📚 정리 기능',
+    items: [
+      { emoji: '📚', label: '서재', desc: '완결된 대화를 보관합니다. /library에서 모아보고, "꺼내기"로 채팅 목록에 복귀시킬 수 있습니다.' },
+      { emoji: '📌', label: '핀 고정', desc: '자주 쓰는 대화를 채팅 목록 상단에 고정합니다.' },
+      { emoji: '🔖', label: '챕터 뱃지', desc: '자동 챕터 구분이 켜진 대화에서 진행 중인 장(N장)을 표시합니다.' },
+    ],
+  },
+]
+
+export default function GuidePage() {
+  const [openTitles, setOpenTitles] = useState<string[]>([FEATURE_SECTIONS[0].title])
+
+  const toggleSection = (title: string) => {
+    setOpenTitles(prev => prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title])
+  }
+
+  return (
+    <Win title="기능 가이드" icon={PixelIcons.settings}>
+      <div className="scroll" style={{ flex: 1, minHeight: 0, padding: 12 }}>
+        <div className="vstack" style={{ gap: 10 }}>
+          <div className="tiny muted" style={{ lineHeight: 1.6 }}>
+            StoryFit에서 AI와의 대화를 더 풍부하게 만들어주는 기능들을 모아뒀습니다. 섹션을 눌러 펼쳐보세요.
+          </div>
+          {FEATURE_SECTIONS.map(section => {
+            const open = openTitles.includes(section.title)
+            return (
+              <div key={section.title} className="side-section">
+                <button className="acc-toggle" onClick={() => toggleSection(section.title)}>
+                  <span>{section.title}</span>
+                  <span className={`acc-arrow ${open ? 'open' : ''}`}>▼</span>
+                </button>
+                {open && (
+                  <div className="vstack" style={{ gap: 8, marginTop: 6 }}>
+                    {section.items.map(item => (
+                      <div
+                        key={item.label}
+                        style={{
+                          padding: '7px 10px',
+                          borderRadius: 'var(--radius)',
+                          border: '1px solid var(--chrome-border)',
+                          background: 'var(--pane)',
+                          display: 'flex', alignItems: 'flex-start', gap: 10,
+                        }}
+                      >
+                        <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{item.emoji}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700 }}>{item.label}</div>
+                          <div className="tiny muted" style={{ lineHeight: 1.5, marginTop: 2 }}>{item.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </Win>
+  )
+}
