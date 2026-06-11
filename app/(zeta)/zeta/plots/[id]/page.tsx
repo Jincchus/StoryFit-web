@@ -39,6 +39,7 @@ export default function ZetaPlotDetailPage() {
   const [existingConvs, setExistingConvs] = useState<ExistingConv[]>([])
   const [lorebooks, setLorebooks] = useState<any[]>([])
   const [expandedLoreId, setExpandedLoreId] = useState<string | null>(null)
+  const [lorebookSectionOpen, setLorebookSectionOpen] = useState(false)
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
   const [chatModeOpen, setChatModeOpen] = useState(false)
   const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
@@ -283,7 +284,11 @@ export default function ZetaPlotDetailPage() {
 
           {lorebooks.length > 0 && (
             <div className="zeta-section" style={{ paddingTop: 0 }}>
-              <h2 className="zeta-section-title">로어북 ({lorebooks.length})</h2>
+              <button className="acc-toggle" onClick={() => setLorebookSectionOpen(o => !o)}>
+                <span className="zeta-section-title" style={{ margin: 0 }}>로어북 ({lorebooks.length})</span>
+                <span className={`acc-arrow ${lorebookSectionOpen ? 'open' : ''}`}>▼</span>
+              </button>
+              {lorebookSectionOpen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {lorebooks.map((lb: any) => {
                   const title = lb.keyword?.[0] || '로어북 항목'
@@ -310,6 +315,7 @@ export default function ZetaPlotDetailPage() {
                   )
                 })}
               </div>
+              )}
             </div>
           )}
 
