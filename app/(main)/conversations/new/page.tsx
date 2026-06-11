@@ -60,6 +60,7 @@ function NewConversationInner() {
   const [statTagPool, setStatTagPool] = useState<string[]>([])
   const [selectedStats, setSelectedStats] = useState<string[]>([])
   const [inventoryEnabled, setInventoryEnabled] = useState(false)
+  const [autoChapterEnabled, setAutoChapterEnabled] = useState(false)
   const [scenarioDescription, setScenarioDescription] = useState('')
   const [scenarioLoading, setScenarioLoading] = useState(false)
   const [scenarioHint, setScenarioHint] = useState('')
@@ -214,6 +215,7 @@ function NewConversationInner() {
           scenarioDescription,
           tags,
           isAutoCreated: false,
+          autoChapterEnabled,
           personaCharacterId: draft.personaId ?? null,
           ...(isMulti ? { characterIds: importedChars.map(c => c.id) } : {}),
           ...(!isMulti && char ? { soloCharacterId: char.id } : {}),
@@ -241,6 +243,7 @@ function NewConversationInner() {
         statsEnabled: (mode === 'story' || mode === 'multiStory') && statsEnabled && selectedStats.length > 0,
         statsConfig,
         inventoryEnabled: (mode === 'story' || mode === 'multiStory') && inventoryEnabled,
+        autoChapterEnabled: (mode === 'story' || mode === 'multiStory') && autoChapterEnabled,
         styleConfig: Object.values(styleConfig).some(Boolean) ? styleConfig : null,
         openingMessage: chosenGreetingText ?? char.openingMessage,
       })
@@ -532,6 +535,24 @@ function NewConversationInner() {
                   </div>
                   {inventoryEnabled && (
                     <div className="tiny muted">스토리 진행 중 AI가 자동으로 아이템 획득·소모를 판단해 인벤토리를 관리합니다.</div>
+                  )}
+                </div>
+              )}
+              {(mode === 'story' || mode === 'multiStory') && (
+                <div className="vstack" style={{ gap: 6, marginTop: 6, padding: '8px 10px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>
+                  <div className="spread" style={{ alignItems: 'center' }}>
+                    <div className="tiny" style={{ fontWeight: 700 }}>🔖 AI 자동 챕터 구분</div>
+                    <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={autoChapterEnabled}
+                        onChange={e => setAutoChapterEnabled(e.target.checked)}
+                      />
+                      <span className="tiny">{autoChapterEnabled ? 'ON' : 'OFF'}</span>
+                    </label>
+                  </div>
+                  {autoChapterEnabled && (
+                    <div className="tiny muted">장면이나 시간대가 크게 전환될 때 AI가 자동으로 새 챕터로 구분합니다.</div>
                   )}
                 </div>
               )}
