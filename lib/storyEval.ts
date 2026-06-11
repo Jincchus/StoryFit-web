@@ -53,12 +53,14 @@ interface StoryEvalOptions {
   currentInventory: InventoryItem[] | null
   statsEnabled: boolean
   inventoryEnabled: boolean
+  autoChapterEnabled: boolean
 }
 
 interface StoryEvalResult {
   statsDelta: Record<string, number>
   inventoryDelta: { add: InventoryItem[]; remove: { name: string; qty: number }[] }
   statusTimeline: string
+  newChapter: boolean
 }
 
 async function evalStory(opts: StoryEvalOptions): Promise<StoryEvalResult | null> {
@@ -87,13 +89,15 @@ ${statsSection}${inventorySection}
 {
   "stats": {},
   "inventory": { "add": [], "remove": [] },
-  "statusTimeline": "현재 씬 상태를 3~5줄 불릿으로 요약 (장소·시간·동석인물·핵심상황)"
+  "statusTimeline": "현재 씬 상태를 3~5줄 불릿으로 요약 (장소·시간·동석인물·핵심상황)",
+  "newChapter": false
 }
 
 규칙:
 - stats: 변화 있는 스탯만 포함 (변화량 -10~+10 정수). 스탯 평가 대상 아니면 {}
 - inventory.add: 획득 아이템. inventory.remove: 소모·분실 아이템. 변화 없으면 빈 배열
-- statusTimeline: 반드시 작성. 현재 씬 상태를 간결하게 불릿(•) 형식으로`
+- statusTimeline: 반드시 작성. 현재 씬 상태를 간결하게 불릿(•) 형식으로
+- newChapter: 장소·시간대가 근본적으로 전환(큰 시간 점프 또는 완전히 새로운 장소/상황으로 이동)됐을 때만 true, 아니면 false`
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -103,6 +107,7 @@ ${statsSection}${inventorySection}
         statsDelta: (needsStats && parsed.stats) ? parsed.stats : {},
         inventoryDelta: (needsInventory && parsed.inventory) ? parsed.inventory : { add: [], remove: [] },
         statusTimeline: typeof parsed.statusTimeline === 'string' ? parsed.statusTimeline.trim() : '',
+        newChapter: parsed.newChapter === true,
       }
     } catch {
       if (attempt === 1) return null
@@ -153,6 +158,11 @@ async function applyEval(opts: StoryEvalOptions, result: StoryEvalResult): Promi
     updates.push(prisma.conversation.update({ where: { id: opts.convId }, data: { statusTimeline: result.statusTimeline } }))
   }
 
+  // 챕터 자동 증가
+  if (opts.autoChapterEnabled && result.newChapter) {
+    updates.push(prisma.conversation.update({ where: { id: opts.convId }, data: { chapter: { increment: 1 } } }))
+  }
+
   await Promise.all(updates)
 }
 
@@ -167,7 +177,7 @@ export function triggerStoryEvaluation(opts: StoryEvalOptions): void {
 
 const STATE_KEYWORDS = /옷|의상|입고|벗고|갈아입|착용|잠옷|교복|드레스|코트|시간|아침|오전|점심|오후|저녁|밤|새벽|자정|이동|들어|나와|방|집|밖|거리|카페|학교|사무실|arrived|wearing|changed|morning|evening|night|left|entered/i
 
-export function triggerStateTracking(convId: string, userMsg: string, aiMsg: string, currentTimeline: string): void {
+export function triggerStateTracking(convId: string, userMsg: string, aiMsg: string, currentTimeline: string, autoChapterEnabled: boolean): void {
   if (!STATE_KEYWORDS.test(userMsg + ' ' + aiMsg.slice(0, 800))) return
   ;(async () => {
     const systemPrompt = '당신은 소설 씬의 물리적 상태를 추적하는 편집자입니다. JSON만 반환합니다.'
@@ -199,7 +209,7 @@ AI 응답: ${aiMsg.slice(0, 1000)}
       if (typeof parsed.statusTimeline === 'string' && parsed.statusTimeline.trim()) {
         data.statusTimeline = parsed.statusTimeline.trim()
       }
-      if (parsed.newChapter === true) {
+      if (parsed.newChapter === true && autoChapterEnabled) {
         data.chapter = { increment: 1 }
       }
       if (Object.keys(data).length > 0) {
