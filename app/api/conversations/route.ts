@@ -71,6 +71,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 페르소나 캐릭터를 상대 캐릭터의 컬렉션에 합류시켜 캐릭터 디테일/완결창에서 함께 노출
+  const personaCharacterId: string | null = body.personaCharacterId ?? null
+  if (personaCharacterId && collectionIds.length > 0) {
+    const persona = await prisma.character.findFirst({
+      where: { id: personaCharacterId, creatorId: userId },
+      select: { collectionId: true },
+    })
+    if (persona && !persona.collectionId) {
+      await prisma.character.update({
+        where: { id: personaCharacterId },
+        data: { collectionId: collectionIds[0] },
+      })
+    }
+  }
+
   const conversation = await prisma.conversation.create({
     data: {
       userId,
