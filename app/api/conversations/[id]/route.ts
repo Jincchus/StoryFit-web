@@ -97,13 +97,31 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   // URL import로 연결된 컬렉션 제거 (캐릭터는 보존, collectionId만 null로)
   // conversationId 직접 매핑 우선, 없으면 sourceUrl path 기반 폴백 (share_id 변형 대비)
+  // 단, 같은 sourceUrl을 쓰는 다른 대화가 남아있으면 fallback 삭제는 건너뛴다
+  // (그 대화가 참조하는 센터 카드까지 함께 사라지는 것을 방지)
   const baseSourceUrl = target.sourceUrl ? target.sourceUrl.split('?')[0] : ''
+
+  let hasSiblingConversation = false
+  if (baseSourceUrl) {
+    const sibling = await prisma.conversation.findFirst({
+      where: {
+        userId,
+        id: { not: params.id },
+        sourceUrl: { startsWith: baseSourceUrl },
+      },
+      select: { id: true },
+    })
+    hasSiblingConversation = !!sibling
+  }
+
   await prisma.characterCollection.deleteMany({
     where: {
       userId,
       OR: [
         { conversationId: params.id },
-        ...(baseSourceUrl ? [{ sourceUrl: { startsWith: baseSourceUrl }, conversationId: null }] : []),
+        ...(baseSourceUrl && !hasSiblingConversation
+          ? [{ sourceUrl: { startsWith: baseSourceUrl }, conversationId: null }]
+          : []),
       ],
     },
   })
