@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fixJosa, replaceDisplayPlaceholders } from './josa'
+import { fixJosa, applyPersonaPlaceholders, replaceDisplayPlaceholders } from './josa'
 
 describe('fixJosa', () => {
   it('받침 있는 이름 뒤 잘못된 은/는을 은으로 교정한다', () => {
@@ -87,5 +87,38 @@ describe('replaceDisplayPlaceholders', () => {
 
   it('charName이 없으면 {{char}}는 치환하지 않는다', () => {
     expect(replaceDisplayPlaceholders('{{user}}는 인사했다', '민준')).toBe('민준은 인사했다')
+  })
+})
+
+describe('applyPersonaPlaceholders', () => {
+  it('{{user}}/{{char}}/{user}/{char}/{유저}/{캐릭터}/[유저]/[USER]를 치환한다', () => {
+    expect(applyPersonaPlaceholders('{{user}}와 {{char}}', '민준', '철수')).toBe('민준와 철수')
+    expect(applyPersonaPlaceholders('{user}와 {char}', '민준', '철수')).toBe('민준와 철수')
+    expect(applyPersonaPlaceholders('{유저}와 {캐릭터}', '민준', '철수')).toBe('민준와 철수')
+    expect(applyPersonaPlaceholders('[유저]와 [USER]', '민준')).toBe('민준와 민준')
+  })
+
+  it('Guest/User를 대소문자 무관하게 치환한다', () => {
+    expect(applyPersonaPlaceholders('Guest와 User와 GUEST와 guest', '민준')).toBe('민준와 민준와 민준와 민준')
+  })
+
+  it('persona/페르소나/주인공/당신을 치환한다', () => {
+    expect(applyPersonaPlaceholders('persona와 페르소나와 주인공과 당신', '민준')).toBe('민준와 민준와 민준과 민준')
+  })
+
+  it('charName이 없으면 {{char}} 패턴은 치환하지 않는다', () => {
+    expect(applyPersonaPlaceholders('{{user}}와 {{char}}', '민준')).toBe('민준와 {{char}}')
+  })
+})
+
+describe('replaceDisplayPlaceholders - 확장 패턴', () => {
+  it('Guest/User 표기를 페르소나 이름으로 치환하고 조사를 교정한다', () => {
+    expect(replaceDisplayPlaceholders('Guest는 학교에 갔다', '민준')).toBe('민준은 학교에 갔다')
+    expect(replaceDisplayPlaceholders('User는 학교에 갔다', '민준')).toBe('민준은 학교에 갔다')
+  })
+
+  it('당신/페르소나 표기를 페르소나 이름으로 치환하고 조사를 교정한다', () => {
+    expect(replaceDisplayPlaceholders('당신은 누구인가', '철수')).toBe('철수는 누구인가')
+    expect(replaceDisplayPlaceholders('페르소나가 왔다', '철수')).toBe('철수가 왔다')
   })
 })

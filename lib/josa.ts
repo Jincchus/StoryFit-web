@@ -43,8 +43,28 @@ export function fixJosa(text: string, names: (string | undefined | null)[]): str
   return result
 }
 
+export function applyPersonaPlaceholders(text: string, personaName: string, charName?: string): string {
+  let result = text
+  if (charName) {
+    result = result
+      .replace(/\{\{char\}\}/gi, charName)
+      .replace(/\{char\}/gi, charName)
+      .replace(/\{캐릭터\}/g, charName)
+  }
+  return result
+    .replace(/\{\{user\}\}/gi, personaName)
+    .replace(/\{user\}/gi, personaName)
+    .replace(/\{유저\}/g, personaName)
+    .replace(/\[유저\]/g, personaName)
+    .replace(/\[USER\]/gi, personaName)
+    .replace(/\bguest\b/gi, personaName)
+    .replace(/\bpersona\b/gi, personaName)
+    .replace(/페르소나/g, personaName)
+    .replace(/주인공/g, personaName)
+    .replace(/\buser\b/gi, personaName)
+    .replace(/당신/g, personaName)
+}
+
 export function replaceDisplayPlaceholders(text: string, userName: string, charName?: string): string {
-  let result = text.replace(/\{\{user\}\}/gi, userName)
-  if (charName) result = result.replace(/\{\{char\}\}/gi, charName)
-  return fixJosa(result, [userName, charName])
+  return fixJosa(applyPersonaPlaceholders(text, userName, charName), [userName, charName])
 }
