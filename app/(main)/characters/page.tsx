@@ -51,6 +51,7 @@ export default function CharactersPage() {
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [view, setView] = useState<'active' | 'completed'>('active')
   const [duplicating, setDuplicating] = useState(false)
+  const [roomFilter, setRoomFilter] = useState<string>('all')
 
   useEffect(() => {
     api.get('/api/characters').then(data => { setCharacters(data); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
@@ -90,13 +91,25 @@ export default function CharactersPage() {
     return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
   }, [characters])
 
+  const completedRooms = useMemo(() => {
+    const map = new Map<string, string>()
+    characters.filter(c => c.completed).forEach(c => {
+      c.rooms?.forEach(r => map.set(r.id, r.title))
+    })
+    return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
+  }, [characters])
+
   const filteredCharacters = useMemo(() => {
-    if (view === 'completed') return characters.filter(c => c.completed)
+    if (view === 'completed') {
+      const completed = characters.filter(c => c.completed)
+      if (roomFilter === 'all') return completed
+      return completed.filter(c => c.rooms?.some(r => r.id === roomFilter))
+    }
     const active = characters.filter(c => !c.completed)
     if (collectionFilter === 'all') return active
     if (collectionFilter === 'none') return active.filter(c => !c.collection && !c.isPreset)
     return active.filter(c => c.collection?.id === collectionFilter)
-  }, [characters, collectionFilter, view])
+  }, [characters, collectionFilter, roomFilter, view])
 
   const selectableInFilter = filteredCharacters.filter(c => !c.isPreset)
 
@@ -228,12 +241,12 @@ export default function CharactersPage() {
           <button
             className={`btn ${view === 'active' ? 'primary' : 'ghost'}`}
             style={{ fontSize: 11, padding: '3px 10px' }}
-            onClick={() => { setView('active'); exitSelect() }}
+            onClick={() => { setView('active'); setRoomFilter('all'); exitSelect() }}
           >진행 중</button>
           <button
             className={`btn ${view === 'completed' ? 'primary' : 'ghost'}`}
             style={{ fontSize: 11, padding: '3px 10px' }}
-            onClick={() => { setView('completed'); exitSelect() }}
+            onClick={() => { setView('completed'); setRoomFilter('all'); exitSelect() }}
           >완결 캐릭터</button>
         </div>
 
@@ -251,6 +264,24 @@ export default function CharactersPage() {
                 className={`btn ${collectionFilter === tab.id ? 'primary' : 'ghost'}`}
                 style={{ fontSize: 11, padding: '3px 10px' }}
                 onClick={() => { setCollectionFilter(tab.id); exitSelect() }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {view === 'completed' && completedRooms.length > 0 && (
+          <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
+            {[
+              { id: 'all', label: '전체' },
+              ...completedRooms.map(r => ({ id: r.id, label: r.title })),
+            ].map(tab => (
+              <button
+                key={tab.id}
+                className={`btn ${roomFilter === tab.id ? 'primary' : 'ghost'}`}
+                style={{ fontSize: 11, padding: '3px 10px' }}
+                onClick={() => setRoomFilter(tab.id)}
               >
                 {tab.label}
               </button>
