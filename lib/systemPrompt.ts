@@ -293,7 +293,7 @@ export function buildStorySystemPrompt({
   inventory,
   styleConfig,
 }: BuildSystemPromptParams): string {
-  const personaName = personaCharacter?.name ?? '유저'
+  const personaName = personaCharacter?.name ?? '나'
   const parts: string[] = []
 
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
@@ -373,7 +373,7 @@ export function buildMultiStorySystemPrompt({
   inventory,
   styleConfig,
 }: MultiStoryPromptParams): string {
-  const personaName = personaCharacter?.name ?? '유저'
+  const personaName = personaCharacter?.name ?? '나'
   const charNames = characters.map(c => c.name).join(', ')
 
   const isTikiTaka = mode === 'tikiTaka'
