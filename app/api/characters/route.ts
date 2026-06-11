@@ -68,15 +68,48 @@ export async function GET(req: NextRequest) {
     convsByChar.set(link.characterId, arr)
   }
 
+  // 페르소나로 참여한 대화 집계 (완결 판정 + 참여 대화방 태그용)
+  const personaConvs = charIds.length > 0
+    ? await prisma.conversation.findMany({
+        where: {
+          personaCharacterId: { in: charIds },
+          userId,
+          rootConversationId: null,
+          mode: { not: 'assistant' },
+        },
+        select: { id: true, title: true, isArchived: true, personaCharacterId: true },
+      })
+    : []
+
+  const personaRoomsByChar = new Map<string, { id: string; title: string; isArchived: boolean }[]>()
+  for (const pc of personaConvs) {
+    const charId = pc.personaCharacterId as string
+    const arr = personaRoomsByChar.get(charId) ?? []
+    arr.push({ id: pc.id, title: pc.title, isArchived: pc.isArchived })
+    personaRoomsByChar.set(charId, arr)
+  }
+
   // 직접 collectionId → ConversationCharacter 경유 → 페르소나로 사용된 대화 순으로 컬렉션 결정
   const result = characters.map(({ conversations, personaConversations, ...c }) => {
-    const counts = aggregateCounts(convsByChar.get(c.id) ?? [])
+    const personaRooms = personaRoomsByChar.get(c.id) ?? []
+    const counts = aggregateCounts([
+      ...(convsByChar.get(c.id) ?? []),
+      ...personaRooms.map(pr => ({ isArchived: pr.isArchived, rootConversationId: null, mode: 'roleplay' })),
+    ])
+
+    const collection = c.collection
+      ?? conversations[0]?.conversation?.characterCollection
+      ?? personaConversations[0]?.characterCollection
+      ?? null
+
+    const roomsMap = new Map<string, string>()
+    if (collection) roomsMap.set(collection.id, collection.title)
+    for (const pr of personaRooms) roomsMap.set(pr.id, pr.title)
+
     return {
       ...c,
-      collection: c.collection
-        ?? conversations[0]?.conversation?.characterCollection
-        ?? personaConversations[0]?.characterCollection
-        ?? null,
+      collection,
+      rooms: Array.from(roomsMap.entries()).map(([id, title]) => ({ id, title })),
       completed: isCompleted(counts),
       hasArchived: hasArchived(counts),
     }
