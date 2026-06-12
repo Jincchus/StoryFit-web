@@ -11,6 +11,7 @@ import NovelScene from '@/components/ui/NovelScene'
 import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
+import CharacterCardModal from '@/components/ui/CharacterCardModal'
 import type { AIProvider, Character } from '@/types'
 import { getConvStream, clearConvStream, subscribeConvStream, runConvStream, runConvRegenerate } from '@/lib/conversationStream'
 import AiPill from '@/components/ui/AiPill'
@@ -87,7 +88,7 @@ function ChatNarration({ text }: { text: string }) {
 }
 
 interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null; inputTokens?: number; outputTokens?: number }
-interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string; openingMessage?: string } }
+interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string; gender?: string; tags: string[]; additionalInfo: string; exampleDialogues: string; openingMessage?: string; isPreset: boolean } }
 interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
@@ -115,6 +116,7 @@ const COMMANDS = [
 export default function ChatPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const [cardChar, setCardChar] = useState<ConvChar['character'] | null>(null)
   const [conv, setConv] = useState<Conv | null>(null)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [suggestLoading, setSuggestLoading] = useState(false)
@@ -1636,7 +1638,12 @@ export default function ChatPage() {
                 <div className="label">대화 참여자</div>
                 <div className="vstack" style={{ gap: 4 }}>
                   {conv.characters.map(cc => (
-                    <div key={cc.character.id} className="hstack" style={{ gap: 6, padding: '4px 0' }}>
+                    <div
+                      key={cc.character.id}
+                      className="hstack"
+                      style={{ gap: 6, padding: '4px 0', cursor: 'pointer' }}
+                      onClick={() => setCardChar(cc.character)}
+                    >
                       <div className="thumb" style={{ width: 22, height: 22, flexShrink: 0 }}>
                         {cc.character.avatarUrl
                           ? <img src={cc.character.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
@@ -1987,6 +1994,10 @@ export default function ChatPage() {
               </div>
             </div>
             </>
+          )}
+
+          {cardChar && (
+            <CharacterCardModal character={cardChar} onClose={() => setCardChar(null)} />
           )}
         </div>
       </div>
