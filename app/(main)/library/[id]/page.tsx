@@ -158,6 +158,24 @@ export default function LibraryReadPage() {
       }}>
         <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.back()}>← 서재</button>
         <div style={{ flex: 1, fontWeight: 700, fontSize: 13 }}>{conv.title}</div>
+        <button
+          className="btn ghost"
+          style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0 }}
+          title="소설 텍스트로 내보내기"
+          onClick={async () => {
+            try {
+              const res = await fetch(`/api/conversations/${id}/export`, { credentials: 'include' })
+              if (!res.ok) return
+              const blob = await res.blob()
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `${conv.title.replace(/[\\/:*?"<>|]/g, '_')}.txt`
+              a.click()
+              URL.revokeObjectURL(url)
+            } catch {}
+          }}
+        >⬇ 내보내기</button>
       </div>
 
       {branches.length > 1 && (
