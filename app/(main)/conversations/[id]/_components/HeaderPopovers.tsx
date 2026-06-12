@@ -1,0 +1,82 @@
+'use client'
+
+export function StatsPopover({ statsConfig, onClose }: {
+  statsConfig: { name: string; value: number; min: number; max: number }[]
+  onClose: () => void
+}) {
+  return (
+    <>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={onClose} />
+    <div style={{
+      position: 'fixed', top: 56, right: 12, zIndex: 10,
+      background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+      borderRadius: 'var(--radius)', padding: '12px 14px', minWidth: 'min(200px, 90vw)', maxWidth: 'min(260px, 90vw)',
+      boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+    }}>
+      <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 10 }}>📊 스탯</div>
+      <div className="vstack" style={{ gap: 8 }}>
+        {statsConfig.map(stat => {
+          const pct = Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)
+          const color = pct >= 70 ? 'var(--pink)' : pct >= 40 ? 'var(--lavender)' : 'var(--ink-soft)'
+          return (
+            <div key={stat.name}>
+              <div className="spread" style={{ marginBottom: 3 }}>
+                <span className="tiny" style={{ fontWeight: 700 }}>{stat.name}</span>
+                <span className="tiny muted">{stat.value} / {stat.max}</span>
+              </div>
+              <div style={{ height: 6, background: 'var(--chrome-border)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.4s' }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+    </>
+  )
+}
+
+export function InventoryPopover({ inventory, onDelete, onClose }: {
+  inventory: { name: string; qty: number; description?: string }[] | null
+  onDelete: (index: number) => void
+  onClose: () => void
+}) {
+  return (
+    <>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={onClose} />
+    <div style={{
+      position: 'fixed', top: 56, right: 12, zIndex: 10,
+      background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+      borderRadius: 'var(--radius)', padding: '12px 14px', minWidth: 'min(200px, 90vw)', maxWidth: 'min(280px, 90vw)',
+      boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+    }}>
+      <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 10 }}>🎒 인벤토리</div>
+      {(!inventory || inventory.length === 0) ? (
+        <div className="tiny muted">보유 아이템이 없습니다.</div>
+      ) : (
+        <div className="vstack" style={{ gap: 6 }}>
+          {inventory.map((item, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '5px 0', borderBottom: '1px solid var(--chrome-border)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="hstack" style={{ gap: 6, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700 }}>{item.name}</span>
+                  <span style={{ fontSize: 10, color: 'var(--pink)', fontWeight: 700 }}>×{item.qty}</span>
+                </div>
+                {item.description && (
+                  <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.4 }}>{item.description}</div>
+                )}
+              </div>
+              <button
+                className="btn ghost"
+                style={{ padding: '1px 5px', fontSize: 11, color: 'var(--ink-muted)', flexShrink: 0 }}
+                onClick={() => onDelete(i)}
+                title="삭제"
+              >✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+    </>
+  )
+}
