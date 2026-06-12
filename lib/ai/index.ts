@@ -78,10 +78,5 @@ export async function streamChat(
   onChunk: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<StreamResult> {
-  switch (params.provider) {
-    case 'gemini':
-      return streamGeminiChat(params, onChunk, signal)
-    default:
-      return streamGeminiChat(params, onChunk, signal)
-  }
+  return streamGeminiChat(params, onChunk, signal)
 }

@@ -34,8 +34,13 @@ function fuzzyMatch(a: string, b: string): boolean {
 const STAT_KEYWORDS = /호감|신뢰|친밀|관계|감정|분노|두려|공포|행복|슬픔|체력|마나|경험|레벨|포인트|점수|수치|stat|level|exp|hp|mp/i
 const INVENTORY_KEYWORDS = /획득|얻|줬|받|건네|떨어뜨|잃|잃어|소모|사용|아이템|물건|검|칼|지팡이|방패|갑옷|포션|열쇠|동전|금화|item|obtain|drop|lose|pick/i
 
+function clipMiddle(text: string, head: number, tail: number): string {
+  if (text.length <= head + tail) return text
+  return text.slice(0, head) + '\n…(중략)…\n' + text.slice(-tail)
+}
+
 function needsEval(userMsg: string, aiMsg: string, hasStats: boolean, hasInventory: boolean): { stats: boolean; inventory: boolean } {
-  const text = userMsg + ' ' + aiMsg.slice(0, 600)
+  const text = userMsg + ' ' + aiMsg
   return {
     stats: hasStats && STAT_KEYWORDS.test(text),
     inventory: hasInventory && INVENTORY_KEYWORDS.test(text),
@@ -82,7 +87,7 @@ async function evalStory(opts: StoryEvalOptions): Promise<StoryEvalResult | null
   const userPrompt = `아래 스토리 교환을 분석해 JSON으로 반환하세요.
 
 유저 행동: ${opts.userMsg}
-스토리 전개: ${opts.aiMsg.slice(0, 1200)}
+스토리 전개: ${clipMiddle(opts.aiMsg, 1200, 600)}
 ${statsSection}${inventorySection}
 
 반환 형식 (JSON만, 설명 없이):
@@ -178,7 +183,7 @@ export function triggerStoryEvaluation(opts: StoryEvalOptions): void {
 const STATE_KEYWORDS = /옷|의상|입고|벗고|갈아입|착용|잠옷|교복|드레스|코트|시간|아침|오전|점심|오후|저녁|밤|새벽|자정|이동|들어|나와|방|집|밖|거리|카페|학교|사무실|arrived|wearing|changed|morning|evening|night|left|entered/i
 
 export function triggerStateTracking(convId: string, userMsg: string, aiMsg: string, currentTimeline: string, autoChapterEnabled: boolean): void {
-  if (!STATE_KEYWORDS.test(userMsg + ' ' + aiMsg.slice(0, 800))) return
+  if (!STATE_KEYWORDS.test(userMsg + ' ' + aiMsg)) return
   ;(async () => {
     const systemPrompt = '당신은 소설 씬의 물리적 상태를 추적하는 편집자입니다. JSON만 반환합니다.'
     const userPrompt = `아래 대화 교환을 읽고, 현재 씬의 물리적 상태를 JSON으로 반환하세요.
@@ -187,7 +192,7 @@ export function triggerStateTracking(convId: string, userMsg: string, aiMsg: str
 ${currentTimeline || '(없음)'}
 
 유저 발화: ${userMsg.slice(0, 400)}
-AI 응답: ${aiMsg.slice(0, 1000)}
+AI 응답: ${clipMiddle(aiMsg, 1000, 500)}
 
 반환 형식 (JSON만, 설명 없이):
 {

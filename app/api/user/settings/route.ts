@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.defaultMaxOutputTokens === 'number') data.defaultMaxOutputTokens = Math.max(2048, Math.min(32768, Math.round(body.defaultMaxOutputTokens)))
   if (typeof body.defaultThinkingBudget === 'number') data.defaultThinkingBudget = Math.max(0, Math.min(8192, Math.round(body.defaultThinkingBudget)))
   if (['strict', 'standard', 'relaxed'].includes(body.defaultSafetyLevel)) data.defaultSafetyLevel = body.defaultSafetyLevel
-  if (['gemini', 'claude', 'chatgpt'].includes(body.defaultAI)) data.defaultAI = body.defaultAI
+  if (body.defaultAI === 'gemini') data.defaultAI = body.defaultAI
   if (['retro', 'modern', 'modernwhite', 'win95', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld'].includes(body.theme)) data.theme = body.theme
 
   const user = await prisma.user.update({ where: { id: userId }, data, select: USER_SELECT })

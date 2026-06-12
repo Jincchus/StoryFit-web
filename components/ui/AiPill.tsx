@@ -9,9 +9,7 @@ interface AiPillProps {
 }
 
 const DOT_COLOR: Record<AIProvider, string> = {
-  chatgpt: '#a3e0ff',
-  gemini:  '#c9b6ff',
-  claude:  '#b8f5d2',
+  gemini: '#c9b6ff',
 }
 
 export default function AiPill({ modelId, onChange }: AiPillProps) {
