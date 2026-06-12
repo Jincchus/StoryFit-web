@@ -10,6 +10,7 @@ import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { logAiError } from '@/lib/errorLog'
+import { brokerStart, brokerFinish } from '@/lib/streamBroker'
 import { applyLightFixes, needsResponseRevision } from '@/lib/responseControl'
 import {
   conversationContextInclude,
@@ -197,6 +198,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
 
+  brokerStart(assistantMsg.id)
+
   // 백그라운드에서 AI 생성 (응답 즉시 반환)
   generateAsync({
     convId: params.id,
@@ -266,6 +269,7 @@ async function generateAsync({
     if (!cleanText) {
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens: result.inputTokens, outputTokens: result.outputTokens })
       await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
+      brokerFinish(msgId, true)
       return
     }
 
@@ -297,6 +301,7 @@ async function generateAsync({
     } else {
       triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '', conv.autoChapterEnabled)
     }
+    brokerFinish(msgId)
   } catch (err: any) {
     clearTimeout(timeoutId)
     if (state.fullText.trim()) {
@@ -305,9 +310,11 @@ async function generateAsync({
         data: { content: state.fullText, isStreaming: false },
       }).catch(() => {})
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'partial_save', message: err?.message ?? String(err) })
+      brokerFinish(msgId)
     } else {
       await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'api_error', statusCode: err?.status ?? 500, message: err?.message ?? String(err) })
+      brokerFinish(msgId, true)
     }
   }
 }

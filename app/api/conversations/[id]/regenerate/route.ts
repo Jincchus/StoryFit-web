@@ -10,6 +10,7 @@ import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { needsResponseRevision } from '@/lib/responseControl'
+import { brokerStart, brokerFinish } from '@/lib/streamBroker'
 import {
   conversationContextInclude,
   buildCharParam,
@@ -123,6 +124,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
   })
 
+  brokerStart(newMsg.id)
+
   regenerateAsync({
     convId: params.id,
     msgId: newMsg.id,
@@ -220,13 +223,16 @@ async function regenerateAsync({
     } else {
       triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '', conv.autoChapterEnabled)
     }
+    brokerFinish(msgId)
   } catch (err: any) {
     clearTimeout(timeoutId)
     if (state.fullText.trim()) {
       await prisma.message.update({ where: { id: msgId }, data: { content: state.fullText, isStreaming: false } }).catch(() => {})
+      brokerFinish(msgId)
     } else {
       await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
       await prisma.message.update({ where: { id: prevAssistantId }, data: { isSelected: true } }).catch(() => {})
+      brokerFinish(msgId, true)
     }
   }
 }

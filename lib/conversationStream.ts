@@ -28,6 +28,7 @@ function _notify(convId: string) {
 export function clearConvStream(convId: string) {
   const s = _store.get(convId)
   if (s?.pollId != null) clearInterval(s.pollId)
+  try { s?.abort.abort() } catch {}
   _store.delete(convId)
 }
 
@@ -51,6 +52,68 @@ async function doFetch(url: string, body?: unknown, signal?: AbortSignal): Promi
     }
   }
   return res
+}
+
+function startStream(convId: string, msgId: string) {
+  startSse(convId, msgId).then(handled => {
+    if (!handled) startPoll(convId, msgId)
+  })
+}
+
+// SSE로 토큰 즉시 수신. 서버에 활성 스트림이 없거나(404) 도중에 끊기면 false를 반환해 폴링으로 폴백.
+async function startSse(convId: string, msgId: string): Promise<boolean> {
+  const s = _store.get(convId)
+  if (!s) return true
+
+  try {
+    const res = await fetch(`/api/conversations/${convId}/messages/${msgId}/stream`, {
+      credentials: 'include',
+      signal: s.abort.signal,
+    })
+    if (!res.ok || !res.body) return false
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buf = ''
+    let sawDone = false
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += decoder.decode(value, { stream: true })
+      const events = buf.split('\n\n')
+      buf = events.pop() ?? ''
+      for (const ev of events) {
+        const line = ev.split('\n').find(l => l.startsWith('data: '))
+        if (!line) continue
+        let payload: any
+        try { payload = JSON.parse(line.slice(6)) } catch { continue }
+        const cur = _store.get(convId)
+        if (!cur) return true
+        if (typeof payload.snapshot === 'string') cur.text = payload.snapshot
+        if (typeof payload.chunk === 'string') cur.text += payload.chunk
+        if (payload.done) {
+          sawDone = true
+          if (payload.error) {
+            cur.error = 'AI가 응답을 생성하지 않았습니다. 다시 시도해주세요.'
+            cur.retryable = true
+          }
+          cur.done = true
+        }
+        _notify(convId)
+      }
+      if (sawDone) break
+    }
+
+    if (!sawDone) {
+      const cur = _store.get(convId)
+      if (cur && !cur.done) return false
+    }
+    return true
+  } catch (e: any) {
+    if (e?.name === 'AbortError') return true
+    return false
+  }
 }
 
 function startPoll(convId: string, msgId: string) {
@@ -110,7 +173,7 @@ export async function runConvStream(convId: string, content: string) {
     const { messageId } = await res.json()
     state.msgId = messageId
     _notify(convId)
-    startPoll(convId, messageId)
+    startStream(convId, messageId)
   } catch (e: any) {
     if (e.name !== 'AbortError') {
       const s = getConvStream(convId)
@@ -138,7 +201,7 @@ export async function runConvRegenerate(convId: string) {
     const { messageId } = await res.json()
     state.msgId = messageId
     _notify(convId)
-    startPoll(convId, messageId)
+    startStream(convId, messageId)
   } catch (e: any) {
     if (e.name !== 'AbortError') {
       const s = getConvStream(convId)

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { streamChat, stripAnalysisPreamble, sliceByTokenBudget, type StreamChatParams, type StreamResult } from '@/lib/ai'
 import { buildStorySystemPrompt, buildMultiStorySystemPrompt } from '@/lib/systemPrompt'
 import { appendTurnControlInstruction, buildRevisionPrompt } from '@/lib/responseControl'
+import { brokerPublish } from '@/lib/streamBroker'
 import type { AIProvider } from '@/types'
 
 export const conversationContextInclude = {
@@ -96,6 +97,7 @@ export async function streamToMessage({
     { ...gen, systemPrompt, messages: history },
     chunk => {
       state.fullText += chunk
+      brokerPublish(msgId, chunk)
       if (Date.now() - lastFlush > 500) {
         prisma.message.update({ where: { id: msgId }, data: { content: stripAnalysisPreamble(state.fullText) } }).catch(() => {})
         lastFlush = Date.now()
