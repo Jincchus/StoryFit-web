@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
+import { sortByOption, type SortOption } from '@/lib/listSort'
 
 interface Opening { id: string; title: string; content: string }
 interface Plot {
@@ -12,6 +13,7 @@ interface Plot {
   zetaMeta?: any
   completed?: boolean
   started?: boolean
+  createdAt?: string
 }
 
 export default function ZetaListPage() {
@@ -24,11 +26,17 @@ export default function ZetaListPage() {
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
+  const [sort, setSort] = useState<SortOption>('latest')
 
   useEffect(() => {
     setEditMode(localStorage.getItem('zeta_edit') === '1')
+    setSort((localStorage.getItem('zeta_sort') as SortOption) || 'latest')
     fetchData()
   }, [])
+
+  const handleSort = (v: SortOption) => {
+    setSort(v); localStorage.setItem('zeta_sort', v)
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -89,18 +97,32 @@ export default function ZetaListPage() {
 
       {msg && <div style={{ padding: '6px 16px', fontSize: 12, color: msg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{msg}</div>}
 
-      <div className="zeta-tabs" style={{ display: 'flex', gap: 6, padding: '8px 16px' }}>
-        <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
-        <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
-        <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+      <div className="zeta-tabs" style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+        </div>
+        <select
+          className="field"
+          style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }}
+          value={sort}
+          onChange={e => handleSort(e.target.value as SortOption)}
+        >
+          <option value="latest">최신순</option>
+          <option value="alpha">가나다순</option>
+        </select>
       </div>
 
       <div className="zeta-scroll">
         {(() => {
-          const visiblePlots = plots.filter(p =>
-            view === 'completed' ? p.completed
-            : view === 'waiting' ? !p.started
-            : !p.completed && !!p.started
+          const visiblePlots = sortByOption(
+            plots.filter(p =>
+              view === 'completed' ? p.completed
+              : view === 'waiting' ? !p.started
+              : !p.completed && !!p.started
+            ),
+            sort, p => p.title, p => p.createdAt ?? ''
           )
           return loading ? (
           <div className="zeta-empty">불러오는 중...</div>
