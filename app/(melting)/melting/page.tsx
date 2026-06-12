@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { sortByOption, type SortOption } from '@/lib/listSort'
 
 interface MChar {
   id: string; title: string; coverImageUrl: string; tags: string[]
   characters: { id: string; name: string; avatarUrl: string | null }[]
   completed?: boolean
   started?: boolean
+  createdAt?: string
 }
 
 export default function MeltingListPage() {
@@ -20,11 +22,17 @@ export default function MeltingListPage() {
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
+  const [sort, setSort] = useState<SortOption>('latest')
 
   useEffect(() => {
     setEditMode(localStorage.getItem('melting_edit') === '1')
+    setSort((localStorage.getItem('melting_sort') as SortOption) || 'latest')
     fetchData()
   }, [])
+
+  const handleSort = (v: SortOption) => {
+    setSort(v); localStorage.setItem('melting_sort', v)
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -59,10 +67,13 @@ export default function MeltingListPage() {
     await api.delete(`/api/collections/${id}`); await fetchData()
   }
 
-  const visibleChars = chars.filter(c =>
-    view === 'completed' ? c.completed
-    : view === 'waiting' ? !c.started
-    : !c.completed && !!c.started
+  const visibleChars = sortByOption(
+    chars.filter(c =>
+      view === 'completed' ? c.completed
+      : view === 'waiting' ? !c.started
+      : !c.completed && !!c.started
+    ),
+    sort, c => c.title, c => c.createdAt ?? ''
   )
 
   return (
@@ -91,10 +102,21 @@ export default function MeltingListPage() {
 
       {msg && <div style={{ padding: '6px 16px', fontSize: 12, color: msg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{msg}</div>}
 
-      <div style={{ display: 'flex', gap: 6, padding: '8px 16px' }}>
-        <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
-        <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
-        <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+      <div style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+        </div>
+        <select
+          className="field"
+          style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }}
+          value={sort}
+          onChange={e => handleSort(e.target.value as SortOption)}
+        >
+          <option value="latest">최신순</option>
+          <option value="alpha">가나다순</option>
+        </select>
       </div>
 
       <div className="melting-scroll">
