@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
+import { sortByOption, type SortOption } from '@/lib/listSort'
 
-interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean }
-interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean }
+interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
+interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string }
 
 export default function WhifExplorePage() {
   const router = useRouter()
@@ -19,11 +20,22 @@ export default function WhifExplorePage() {
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
+  const [sortUniverses, setSortUniverses] = useState<SortOption>('latest')
+  const [sortCharacters, setSortCharacters] = useState<SortOption>('latest')
 
   useEffect(() => {
     setEditMode(localStorage.getItem('whif_edit') === '1')
+    setSortUniverses((localStorage.getItem('whif_sort_universes') as SortOption) || 'latest')
+    setSortCharacters((localStorage.getItem('whif_sort_characters') as SortOption) || 'latest')
     fetchData()
   }, [])
+
+  const handleSortUniverses = (v: SortOption) => {
+    setSortUniverses(v); localStorage.setItem('whif_sort_universes', v)
+  }
+  const handleSortCharacters = (v: SortOption) => {
+    setSortCharacters(v); localStorage.setItem('whif_sort_characters', v)
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -70,15 +82,21 @@ export default function WhifExplorePage() {
 
   const completedColIds = new Set(universes.filter(u => u.completed).map(u => u.id))
   const isCharCompleted = (c: Character) => !!c.collection && completedColIds.has(c.collection.id)
-  const visibleUniverses = universes.filter(u =>
-    view === 'completed' ? u.completed
-    : view === 'waiting' ? !u.started
-    : !u.completed && !!u.started
+  const visibleUniverses = sortByOption(
+    universes.filter(u =>
+      view === 'completed' ? u.completed
+      : view === 'waiting' ? !u.started
+      : !u.completed && !!u.started
+    ),
+    sortUniverses, u => u.title, u => u.createdAt ?? ''
   )
-  const visibleCharacters = characters.filter(c =>
-    view === 'completed' ? isCharCompleted(c)
-    : view === 'waiting' ? !c.started
-    : !isCharCompleted(c) && !!c.started
+  const visibleCharacters = sortByOption(
+    characters.filter(c =>
+      view === 'completed' ? isCharCompleted(c)
+      : view === 'waiting' ? !c.started
+      : !isCharCompleted(c) && !!c.started
+    ),
+    sortCharacters, c => c.name, c => c.createdAt ?? ''
   )
 
   return (
@@ -112,10 +130,21 @@ export default function WhifExplorePage() {
         <button className={`whif-tab ${tab === 'characters' ? 'active' : ''}`} onClick={() => setTab('characters')}>캐릭터</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, padding: '8px 16px' }}>
-        <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'active' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
-        <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
-        <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'completed' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+      <div style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'active' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
+          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
+          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'completed' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+        </div>
+        <select
+          className="field"
+          style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }}
+          value={tab === 'universes' ? sortUniverses : sortCharacters}
+          onChange={e => tab === 'universes' ? handleSortUniverses(e.target.value as SortOption) : handleSortCharacters(e.target.value as SortOption)}
+        >
+          <option value="latest">최신순</option>
+          <option value="alpha">가나다순</option>
+        </select>
       </div>
 
       <div className="whif-scroll">
