@@ -292,6 +292,7 @@ async function generateAsync({
         msgId,
         userMsg: history[history.length - 1]?.parts[0].text ?? '',
         aiMsg: cleanText,
+        currentTimeline: conv.statusTimeline ?? '',
         currentStats: Array.isArray(conv.statsConfig) ? conv.statsConfig as any : null,
         currentInventory: Array.isArray(conv.inventory) ? conv.inventory as any : null,
         statsEnabled: conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0,

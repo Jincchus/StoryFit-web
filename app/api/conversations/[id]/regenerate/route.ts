@@ -205,7 +205,7 @@ async function regenerateAsync({
     if (conv.mode === 'story' || conv.mode === 'multiStory') {
       const freshConv2 = await prisma.conversation.findUnique({
         where: { id: convId },
-        select: { statsConfig: true, inventory: true, statsEnabled: true, inventoryEnabled: true },
+        select: { statsConfig: true, inventory: true, statsEnabled: true, inventoryEnabled: true, statusTimeline: true },
       }).catch(() => null)
       if (freshConv2) {
         triggerStoryEvaluation({
@@ -213,6 +213,7 @@ async function regenerateAsync({
           msgId,
           userMsg: history[history.length - 1]?.parts[0].text ?? '',
           aiMsg: cleanText,
+          currentTimeline: freshConv2.statusTimeline ?? '',
           currentStats: Array.isArray(freshConv2.statsConfig) ? freshConv2.statsConfig as any : null,
           currentInventory: Array.isArray(freshConv2.inventory) ? freshConv2.inventory as any : null,
           statsEnabled: freshConv2.statsEnabled && Array.isArray(freshConv2.statsConfig) && (freshConv2.statsConfig as any[]).length > 0,

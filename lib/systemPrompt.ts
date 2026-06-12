@@ -154,7 +154,7 @@ export function buildStorySystemPrompt({
   }
 
   // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
-  if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}`)
+  if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}\n(위 상태가 [캐릭터 설정]의 기본 외형·의상과 다르면 위 상태를 우선한다)`)
   if (statsConfig && statsConfig.length > 0) {
     const statsLines = statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')
     parts.push(`[현재 스탯]\n${statsLines}`)
@@ -258,7 +258,7 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
   if (openingSceneSection) parts.push(openingSceneSection)
 
   // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
-  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
+  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}\n(위 상태가 각 캐릭터 설정의 기본 외형·의상과 다르면 위 상태를 우선한다)`)
   if (statsConfig && statsConfig.length > 0) {
     parts.push(`[현재 스탯]\n${statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')}`)
   }
