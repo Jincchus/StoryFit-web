@@ -3,6 +3,7 @@
 export default function ModeSection({
   mode, setMode, statsEnabled, setStatsEnabled, statTagPool, selectedStats, setSelectedStats,
   inventoryEnabled, setInventoryEnabled, autoChapterEnabled, setAutoChapterEnabled,
+  plotEnabled, setPlotEnabled, plotChapters, setPlotChapters,
 }: {
   mode: 'story' | 'multiStory'
   setMode: (m: 'story' | 'multiStory') => void
@@ -15,6 +16,10 @@ export default function ModeSection({
   setInventoryEnabled: (v: boolean) => void
   autoChapterEnabled: boolean
   setAutoChapterEnabled: (v: boolean) => void
+  plotEnabled: boolean
+  setPlotEnabled: (v: boolean) => void
+  plotChapters: number
+  setPlotChapters: (v: number) => void
 }) {
   return (
     <section className="new-conv-section">
@@ -96,6 +101,32 @@ export default function ModeSection({
         </div>
         {autoChapterEnabled && (
           <div className="tiny muted">장면이나 시간대가 크게 전환될 때 AI가 자동으로 새 챕터로 구분합니다.</div>
+        )}
+      </div>
+      <div className="vstack" style={{ gap: 6, marginTop: 6, padding: '8px 10px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>
+        <div className="spread" style={{ alignItems: 'center' }}>
+          <div className="tiny" style={{ fontWeight: 700 }}>🗺 스토리 설계도 (플롯 자동 설계)</div>
+          <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={plotEnabled}
+              onChange={e => setPlotEnabled(e.target.checked)}
+            />
+            <span className="tiny">{plotEnabled ? 'ON' : 'OFF'}</span>
+          </label>
+        </div>
+        {plotEnabled && (
+          <>
+            <div className="tiny muted">AI가 결말까지의 챕터별 플롯을 미리 설계하고, 그 흐름대로 중간 사건을 일으키며 스토리를 이끌어갑니다. 설계 내용은 숨겨지며 대화방 설정에서 확인할 수 있습니다.</div>
+            <label className="tiny muted">총 챕터 수
+              <input
+                type="number" className="field"
+                style={{ marginLeft: 6, width: 52, fontSize: 10, display: 'inline-block' }}
+                min={2} max={30} value={plotChapters}
+                onChange={e => setPlotChapters(parseInt(e.target.value) || 6)}
+              />
+            </label>
+          </>
         )}
       </div>
     </section>

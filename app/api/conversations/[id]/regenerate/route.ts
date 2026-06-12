@@ -9,6 +9,7 @@ import { triggerStoryEvaluation, triggerStateTracking, rollbackStatsDelta, rollb
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
+import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
 import { needsResponseRevision } from '@/lib/responseControl'
 import { brokerStart, brokerFinish } from '@/lib/streamBroker'
 import {
@@ -82,7 +83,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const { recentMsgs: recentHistoryMsgs, openingScene } = splitRecentAndOpening(mappedHistoryMsgs)
 
+  const plotOutline = parsePlotOutline(conv.plotOutline)
   const promptParams = {
+    plotSection: plotOutline ? buildPlotSection(plotOutline, conv.chapter) : undefined,
     personaCharacter: conv.personaCharacter ?? null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
@@ -219,6 +222,8 @@ async function regenerateAsync({
           statsEnabled: freshConv2.statsEnabled && Array.isArray(freshConv2.statsConfig) && (freshConv2.statsConfig as any[]).length > 0,
           inventoryEnabled: freshConv2.inventoryEnabled && Array.isArray(freshConv2.inventory),
           autoChapterEnabled: conv.autoChapterEnabled,
+          plotOutline: parsePlotOutline(conv.plotOutline),
+          currentChapter: conv.chapter,
         })
       }
     } else {

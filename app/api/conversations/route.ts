@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
+import { generatePlotOutline } from '@/lib/plotOutline'
 
 export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
@@ -166,6 +167,28 @@ export async function POST(req: NextRequest) {
         isStreaming: false,
       },
     })
+  }
+
+  const plotChapters = parseInt(body.plotChapters)
+  if (!isAssistant && plotChapters >= 2) {
+    const characterLines = conversation.characters
+      .map(cc => `${cc.character.name}${cc.character.tags?.length ? ` (${cc.character.tags.join(', ')})` : ''}: ${(cc.character.additionalInfo ?? '').slice(0, 300)}`)
+      .join('\n')
+    const openingText = Array.from(seenOpenings.keys()).join('\n\n').slice(0, 2000)
+    generatePlotOutline({
+      scenario: conversation.scenarioDescription,
+      characterLines,
+      totalChapters: Math.min(30, plotChapters),
+      storySoFar: openingText,
+      currentChapter: 1,
+    }).then(outline => {
+      if (outline) {
+        return prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { plotOutline: { ...outline, mode: 'auto' } as any },
+        })
+      }
+    }).catch(err => console.error('[plotOutline] 신규 대화 설계도 생성 실패:', err))
   }
 
   return NextResponse.json(conversation, { status: 201 })

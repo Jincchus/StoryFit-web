@@ -9,6 +9,7 @@ import { checkRateLimit } from '@/lib/rateLimit'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
+import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
 import { logAiError } from '@/lib/errorLog'
 import { brokerStart, brokerFinish } from '@/lib/streamBroker'
 import { applyLightFixes, needsResponseRevision } from '@/lib/responseControl'
@@ -157,7 +158,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const { recentMsgs, openingScene } = splitRecentAndOpening(mappedMessages)
 
+  const plotOutline = parsePlotOutline(conv.plotOutline)
   const basePromptParams = {
+    plotSection: plotOutline ? buildPlotSection(plotOutline, conv.chapter) : undefined,
     personaCharacter: conv.personaCharacter ?? null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
@@ -298,6 +301,8 @@ async function generateAsync({
         statsEnabled: conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0,
         inventoryEnabled: conv.inventoryEnabled && Array.isArray(conv.inventory),
         autoChapterEnabled: conv.autoChapterEnabled,
+        plotOutline: parsePlotOutline(conv.plotOutline),
+        currentChapter: conv.chapter,
       })
     } else {
       triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '', conv.autoChapterEnabled)

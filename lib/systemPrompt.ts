@@ -28,6 +28,7 @@ interface BuildSystemPromptParams {
   statsConfig?: { name: string; value: number; min: number; max: number }[]
   inventory?: { name: string; qty: number; description?: string }[]
   styleConfig?: StyleConfig | null
+  plotSection?: string
 }
 
 function buildStyleSection(s: StyleConfig): string {
@@ -127,6 +128,7 @@ export function buildStorySystemPrompt({
   statsConfig,
   inventory,
   styleConfig,
+  plotSection,
 }: BuildSystemPromptParams): string {
   const personaName = personaCharacter?.name ?? '나'
   const parts: string[] = []
@@ -154,6 +156,7 @@ export function buildStorySystemPrompt({
   }
 
   // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
+  if (plotSection?.trim()) parts.push(plotSection)
   if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}\n(위 상태가 [캐릭터 설정]의 기본 외형·의상과 다르면 위 상태를 우선한다)`)
   if (statsConfig && statsConfig.length > 0) {
     const statsLines = statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')
@@ -189,6 +192,7 @@ export interface MultiStoryPromptParams {
   statsConfig?: { name: string; value: number; min: number; max: number }[]
   inventory?: { name: string; qty: number; description?: string }[]
   styleConfig?: StyleConfig | null
+  plotSection?: string
 }
 
 export function buildMultiStorySystemPrompt({
@@ -207,6 +211,7 @@ export function buildMultiStorySystemPrompt({
   statsConfig,
   inventory,
   styleConfig,
+  plotSection,
 }: MultiStoryPromptParams): string {
   const personaName = personaCharacter?.name ?? '나'
   const charNames = characters.map(c => c.name).join(', ')
@@ -258,6 +263,7 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
   if (openingSceneSection) parts.push(openingSceneSection)
 
   // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
+  if (plotSection?.trim()) parts.push(plotSection)
   if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}\n(위 상태가 각 캐릭터 설정의 기본 외형·의상과 다르면 위 상태를 우선한다)`)
   if (statsConfig && statsConfig.length > 0) {
     parts.push(`[현재 스탯]\n${statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')}`)

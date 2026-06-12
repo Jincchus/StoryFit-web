@@ -307,6 +307,18 @@ export default function SidePanel({
         <div className="tiny muted" style={{ marginTop: 4 }}>장면이나 시간대가 크게 전환될 때 AI가 자동으로 새 챕터로 구분합니다.</div>
       </div>
 
+      {(conv.mode === 'story' || conv.mode === 'multiStory') && (
+        <div className="side-section">
+          <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, plot: !o.plot }))}>
+            <span>🗺 스토리 설계도{conv.plotOutline ? <span className="tiny muted" style={{ fontWeight: 400 }}> ({conv.chapter ?? 1}/{conv.plotOutline.totalChapters}챕터)</span> : null}</span>
+            <span className={`acc-arrow ${panelOpen.plot ? 'open' : ''}`}>▼</span>
+          </button>
+          {panelOpen.plot && (
+            <PlotPanel convId={convId} conv={conv} setConv={setConv} setToast={setToast} />
+          )}
+        </div>
+      )}
+
       <div className="side-section">
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, style: !o.style }))}>
           <span>🎨 스타일 설정</span>
@@ -553,6 +565,132 @@ export default function SidePanel({
       </div>
     </div>
     </>
+  )
+}
+
+function PlotPanel({ convId, conv, setConv, setToast }: {
+  convId: string
+  conv: Conv
+  setConv: React.Dispatch<React.SetStateAction<Conv | null>>
+  setToast: (msg: string) => void
+}) {
+  const [chapterCount, setChapterCount] = useState(conv.plotOutline?.totalChapters ?? 6)
+  const [generating, setGenerating] = useState(false)
+  const [showOutline, setShowOutline] = useState(false)
+  const outline = conv.plotOutline
+
+  const handleGenerate = async () => {
+    if (generating) return
+    setGenerating(true)
+    try {
+      const result = await api.post(`/api/conversations/${convId}/plot`, { totalChapters: chapterCount })
+      setConv(c => c ? { ...c, plotOutline: result } : c)
+      setToast('스토리 설계도가 생성되었습니다')
+    } catch (e: any) {
+      setToast(e.message ?? '설계도 생성에 실패했습니다')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const handleMode = async (mode: 'auto' | 'choice') => {
+    if (!outline || outline.mode === mode) return
+    try {
+      const result = await api.patch(`/api/conversations/${convId}/plot`, { mode })
+      setConv(c => c ? { ...c, plotOutline: result } : c)
+    } catch { setToast('전개 방식 변경에 실패했습니다') }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('스토리 설계도를 삭제할까요? AI가 더 이상 플롯을 따라가지 않습니다.')) return
+    try {
+      await api.delete(`/api/conversations/${convId}/plot`)
+      setConv(c => c ? { ...c, plotOutline: null } : c)
+      setShowOutline(false)
+    } catch { setToast('삭제에 실패했습니다') }
+  }
+
+  return (
+    <div className="vstack" style={{ gap: 6, marginTop: 6 }}>
+      <div className="tiny muted" style={{ lineHeight: 1.5 }}>
+        AI가 결말까지의 챕터별 플롯을 설계하고, 그 흐름대로 스토리를 능동적으로 이끌어갑니다. 설계 내용은 기본적으로 숨겨집니다.
+      </div>
+
+      {!outline ? (
+        <div className="hstack" style={{ gap: 6, alignItems: 'center' }}>
+          <label className="tiny muted">총 챕터
+            <input
+              type="number" className="field"
+              style={{ marginLeft: 4, width: 48, fontSize: 10, display: 'inline-block' }}
+              min={2} max={30} value={chapterCount}
+              onChange={e => setChapterCount(parseInt(e.target.value) || 6)}
+            />
+          </label>
+          <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }} disabled={generating} onClick={handleGenerate}>
+            {generating ? '설계 중...' : '✦ 설계도 생성'}
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="hstack" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, fontWeight: 600 }}>전개 방식</span>
+            <button className={`btn ${outline.mode === 'auto' ? 'primary' : 'ghost'}`} style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => handleMode('auto')}>AI 자동</button>
+            <button className={`btn ${outline.mode === 'choice' ? 'primary' : 'ghost'}`} style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => handleMode('choice')}>선택지 제시</button>
+          </div>
+          <div className="tiny muted">
+            {outline.mode === 'auto'
+              ? 'AI가 설계도를 따라 알아서 사건을 일으키며 진행합니다.'
+              : '챕터가 끝날 때 다음 전개 방향을 선택지로 제시합니다.'}
+          </div>
+
+          <div className="hstack" style={{ gap: 4, flexWrap: 'wrap' }}>
+            <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => setShowOutline(v => !v)}>
+              {showOutline ? '▲ 설계도 숨기기' : '▼ 설계도 보기 (스포일러)'}
+            </button>
+            <label className="tiny muted" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <input
+                type="number" className="field"
+                style={{ width: 40, fontSize: 9, display: 'inline-block', padding: '1px 4px' }}
+                min={2} max={30} value={chapterCount}
+                onChange={e => setChapterCount(parseInt(e.target.value) || 6)}
+              />챕터
+            </label>
+            <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} disabled={generating} onClick={handleGenerate}>
+              {generating ? '재설계 중...' : '↺ 재설계'}
+            </button>
+            <button className="btn danger" style={{ fontSize: 9, padding: '2px 7px' }} onClick={handleDelete}>✕ 삭제</button>
+          </div>
+
+          {showOutline && (
+            <div className="vstack" style={{ gap: 4 }}>
+              {outline.chapters.map(ch => {
+                const isCurrent = ch.index === (conv.chapter ?? 1)
+                return (
+                  <div key={ch.index} style={{
+                    padding: 6, borderRadius: 'var(--radius)',
+                    background: isCurrent ? 'var(--lavender)' : 'var(--pane)',
+                    border: `1px solid ${isCurrent ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
+                  }}>
+                    <div style={{ fontSize: 10, fontWeight: 700 }}>
+                      {isCurrent ? '▶ ' : ''}{ch.index}챕터 「{ch.title}」
+                    </div>
+                    <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.5 }}>{ch.goal}</div>
+                    {ch.events.length > 0 && (
+                      <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.5 }}>
+                        {ch.events.map((ev, i) => <div key={i}>• {ev}</div>)}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              {outline.ending && (
+                <div className="tiny muted" style={{ padding: '4px 6px', lineHeight: 1.5 }}>🏁 결말 방향: {outline.ending}</div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
   )
 }
 

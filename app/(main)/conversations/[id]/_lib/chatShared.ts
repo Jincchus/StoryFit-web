@@ -1,4 +1,10 @@
 export interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null; inputTokens?: number; outputTokens?: number }
+export interface PlotOutlineData {
+  totalChapters: number
+  mode: 'auto' | 'choice'
+  ending: string
+  chapters: { index: number; title: string; goal: string; events: string[]; transition: string }[]
+}
 export interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string; gender?: string; tags: string[]; additionalInfo: string; exampleDialogues: string; openingMessage?: string; isPreset: boolean } }
 export interface Conv {
   id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
@@ -9,6 +15,7 @@ export interface Conv {
   suggestRepliesEnabled?: boolean
   autoChapterEnabled?: boolean
   chapter?: number
+  plotOutline?: PlotOutlineData | null
   characters: ConvChar[]
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
   messages: Msg[]

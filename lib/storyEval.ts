@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { generateText } from '@/lib/ai/gemini'
 import type { StatEntry, InventoryItem } from '@/types'
+import type { PlotOutline } from '@/lib/plotOutline'
 
 // ── JSON 추출 헬퍼 ──────────────────────────────────────────────────────────
 
@@ -60,6 +61,8 @@ interface StoryEvalOptions {
   statsEnabled: boolean
   inventoryEnabled: boolean
   autoChapterEnabled: boolean
+  plotOutline?: PlotOutline | null
+  currentChapter?: number
 }
 
 interface StoryEvalResult {
@@ -84,6 +87,11 @@ async function evalStory(opts: StoryEvalOptions): Promise<StoryEvalResult | null
     ? `\n현재 인벤토리: ${opts.currentInventory.length > 0 ? opts.currentInventory.map(i => `${i.name}(${i.qty}개)`).join(', ') : '없음'}`
     : ''
 
+  const plotChapter = opts.plotOutline?.chapters.find(c => c.index === (opts.currentChapter ?? 1))
+  const chapterRule = plotChapter
+    ? `- newChapter: 현재 챕터의 목표가 달성되었을 때만 true. 현재 챕터 목표: "${plotChapter.goal}" / 전환 조건: "${plotChapter.transition}"`
+    : `- newChapter: 장소·시간대가 근본적으로 전환(큰 시간 점프 또는 완전히 새로운 장소/상황으로 이동)됐을 때만 true, 아니면 false`
+
   const systemPrompt = '당신은 인터랙티브 스토리의 상태 관리자입니다. 스토리 교환을 분석해 JSON만 반환합니다.'
   const userPrompt = `아래 스토리 교환을 분석해 JSON으로 반환하세요.
 
@@ -107,7 +115,7 @@ ${statsSection}${inventorySection}
 - inventory.add: 획득 아이템. inventory.remove: 소모·분실 아이템. 변화 없으면 빈 배열
 - statusTimeline: 반드시 작성. 이전 상태를 기반으로 이번 교환의 변화만 반영해 갱신. 이번 교환에서 언급되지 않은 항목(의상·부상·장소 등)은 이전 상태 그대로 유지
 - 의상·부상·신체 변화(예: 옷을 갈아입음, 다침, 붕대를 감음, 흉터)는 명시적으로 회복·변경되기 전까지 반드시 유지
-- newChapter: 장소·시간대가 근본적으로 전환(큰 시간 점프 또는 완전히 새로운 장소/상황으로 이동)됐을 때만 true, 아니면 false`
+${chapterRule}`
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -168,9 +176,12 @@ async function applyEval(opts: StoryEvalOptions, result: StoryEvalResult): Promi
     updates.push(prisma.conversation.update({ where: { id: opts.convId }, data: { statusTimeline: result.statusTimeline } }))
   }
 
-  // 챕터 자동 증가
-  if (opts.autoChapterEnabled && result.newChapter) {
-    updates.push(prisma.conversation.update({ where: { id: opts.convId }, data: { chapter: { increment: 1 } } }))
+  // 챕터 자동 증가 (플롯 설계도가 있으면 autoChapter 설정과 무관하게 동작, 총 챕터 수 초과 금지)
+  if (result.newChapter && (opts.autoChapterEnabled || opts.plotOutline)) {
+    const total = opts.plotOutline?.totalChapters
+    if (!total || (opts.currentChapter ?? 1) < total) {
+      updates.push(prisma.conversation.update({ where: { id: opts.convId }, data: { chapter: { increment: 1 } } }))
+    }
   }
 
   await Promise.all(updates)

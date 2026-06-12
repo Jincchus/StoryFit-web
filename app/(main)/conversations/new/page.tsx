@@ -38,6 +38,8 @@ function NewConversationInner() {
   const [selectedStats, setSelectedStats] = useState<string[]>([])
   const [inventoryEnabled, setInventoryEnabled] = useState(false)
   const [autoChapterEnabled, setAutoChapterEnabled] = useState(false)
+  const [plotEnabled, setPlotEnabled] = useState(false)
+  const [plotChapters, setPlotChapters] = useState(6)
   const [scenarioDescription, setScenarioDescription] = useState('')
   const [scenarioLoading, setScenarioLoading] = useState(false)
   const [tags, setTags] = useState<string[]>([])
@@ -210,6 +212,7 @@ function NewConversationInner() {
         autoChapterEnabled: (mode === 'story' || mode === 'multiStory') && autoChapterEnabled,
         styleConfig: Object.values(styleConfig).some(Boolean) ? styleConfig : null,
         openingMessage: chosenGreetingText ?? char.openingMessage,
+        ...(plotEnabled ? { plotChapters } : {}),
       })
       router.push(`/conversations/${conv.id}`)
       dispatch({ type: 'resetDraft' })
@@ -275,6 +278,10 @@ function NewConversationInner() {
               setInventoryEnabled={setInventoryEnabled}
               autoChapterEnabled={autoChapterEnabled}
               setAutoChapterEnabled={setAutoChapterEnabled}
+              plotEnabled={plotEnabled}
+              setPlotEnabled={setPlotEnabled}
+              plotChapters={plotChapters}
+              setPlotChapters={setPlotChapters}
             />
 
             <TagsSection tags={tags} setTags={setTags} tagPool={tagPool} />
