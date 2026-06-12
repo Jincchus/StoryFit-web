@@ -103,8 +103,13 @@ export async function GET(req: NextRequest) {
       ?? null
 
     const roomsMap = new Map<string, string>()
-    if (collection) roomsMap.set(collection.id, collection.title)
-    for (const pr of personaRooms) roomsMap.set(pr.id, pr.title)
+    const roomTitles = new Set<string>()
+    if (collection) { roomsMap.set(collection.id, collection.title); roomTitles.add(collection.title) }
+    for (const pr of personaRooms) {
+      if (roomTitles.has(pr.title)) continue
+      roomsMap.set(pr.id, pr.title)
+      roomTitles.add(pr.title)
+    }
 
     return {
       ...c,

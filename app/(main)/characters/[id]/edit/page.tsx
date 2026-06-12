@@ -40,7 +40,13 @@ function CharacterEditContent() {
         openingMessage: c.openingMessage ?? '',
         collectionId: c.collection?.id ?? null,
       })
-      setCollections(Array.isArray(cols) ? cols : [])
+      const colList: { id: string; title: string }[] = Array.isArray(cols) ? cols : []
+      const currentCollection = c.collection
+      setCollections(
+        currentCollection && !colList.some(col => col.id === currentCollection.id)
+          ? [...colList, { id: currentCollection.id, title: currentCollection.title }]
+          : colList
+      )
     }).catch((e: any) => setFetchError(e.message))
   }, [id, isWhif, isZeta, isMelting])
 
