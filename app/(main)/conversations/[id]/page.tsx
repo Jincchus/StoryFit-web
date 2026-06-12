@@ -8,7 +8,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 import CharacterCardModal from '@/components/ui/CharacterCardModal'
 import type { Character } from '@/types'
-import { getConvStream, clearConvStream, subscribeConvStream, runConvStream, runConvRegenerate } from '@/lib/conversationStream'
+import { getConvStream, clearConvStream, subscribeConvStream, runConvStream, runConvRegenerate, runConvContinue } from '@/lib/conversationStream'
 import { getSavedTheme } from '@/lib/theme'
 import { useSpeech } from './_hooks/useSpeech'
 import { useVoiceCall } from './_hooks/useVoiceCall'
@@ -71,6 +71,9 @@ export default function ChatPage() {
   const [recapText, setRecapText] = useState('')
   const [recapLoading, setRecapLoading] = useState(false)
   const [showDicePicker, setShowDicePicker] = useState(false)
+  const [showAutoPicker, setShowAutoPicker] = useState(false)
+  const [autoPlayLeft, setAutoPlayLeft] = useState(0)
+  const autoPlayRef = useRef(0)
 
   const loadRecap = async (force = false) => {
     if (recapLoading) return
@@ -370,16 +373,26 @@ export default function ChatPage() {
       setStreaming(cs.text)
       if (cs.error) { setSendError(cs.error); setSendErrorRetryable(cs.retryable) }
       if (cs.done) {
+        const hadError = !!cs.error
         setTyping(false)
         setStreamingCharId(null)
         clearConvStream(convId)
         streamUnsubRef.current = null
         unsub()
-        loadConv().then(() => setStreaming('')).catch(() => setStreaming(''))
+        loadConv().then(() => {
+          setStreaming('')
+          if (hadError) { autoPlayRef.current = 0; setAutoPlayLeft(0); return }
+          if (autoPlayRef.current > 0) {
+            autoPlayRef.current -= 1
+            setAutoPlayLeft(autoPlayRef.current)
+            if (autoPlayRef.current > 0) continueOnce()
+          }
+        }).catch(() => setStreaming(''))
       }
     })
     streamUnsubRef.current = unsub
     return unsub
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadConv])
 
   useEffect(() => {
@@ -425,6 +438,8 @@ export default function ChatPage() {
   }
 
   const stopStream = () => {
+    autoPlayRef.current = 0
+    setAutoPlayLeft(0)
     streamUnsubRef.current?.()
     streamUnsubRef.current = null
     clearConvStream(params.id)
@@ -433,6 +448,31 @@ export default function ChatPage() {
     setStreamingCharId(null)
     setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
     loadConv().catch(() => {})
+  }
+
+  const continueOnce = () => {
+    typingStartRef.current = Date.now()
+    setTypingDuration(0)
+    shouldScrollRef.current = true
+    setTyping(true)
+    setStreaming('')
+    setSendError('')
+    setSendErrorRetryable(false)
+    runConvContinue(params.id).catch(() => {})
+    subscribeStream(params.id)
+  }
+
+  const startAutoPlay = (n: number) => {
+    if (typing) return
+    autoPlayRef.current = n
+    setAutoPlayLeft(n)
+    setShowAutoPicker(false)
+    continueOnce()
+  }
+
+  const stopAutoPlay = () => {
+    autoPlayRef.current = 0
+    setAutoPlayLeft(0)
   }
 
   // ── 커스텀 배경 및 테마 설정 ──────────────────────────────────────────
@@ -860,6 +900,50 @@ export default function ChatPage() {
                 title={isListening ? '녹음 중지' : '음성 입력 (STT)'}
               >{isListening ? '⏹' : '🎤'}</button>
               {/* ── /STT 마이크 버튼 ── */}
+              {isStoryOrMulti && (
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  {autoPlayLeft > 0 ? (
+                    <button
+                      className="btn danger"
+                      style={{ padding: '0 10px', fontSize: 11, minHeight: 36, whiteSpace: 'nowrap' }}
+                      aria-label="자동 진행 중지"
+                      onClick={stopAutoPlay}
+                    >■ {autoPlayLeft}턴</button>
+                  ) : (
+                    <button
+                      className={`btn ${showAutoPicker ? 'primary' : 'ghost'}`}
+                      style={{ padding: '0 10px', fontSize: 15, minHeight: 36 }}
+                      disabled={typing}
+                      aria-label="관전 모드 (자동 진행)"
+                      title="관전 모드 — 입력 없이 이야기 자동 진행"
+                      onClick={() => setShowAutoPicker(p => !p)}
+                    >⏩</button>
+                  )}
+                  {showAutoPicker && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setShowAutoPicker(false)} />
+                      <div style={{
+                        position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, zIndex: 10,
+                        background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+                        borderRadius: 'var(--radius)', padding: 8, minWidth: 140,
+                        boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+                      }}>
+                        <div className="tiny muted" style={{ marginBottom: 6 }}>몇 턴 동안 관전할까요?</div>
+                        <div className="vstack" style={{ gap: 4 }}>
+                          {[1, 3, 5, 10].map(n => (
+                            <button
+                              key={n}
+                              className="btn ghost"
+                              style={{ fontSize: 10, padding: '4px 8px' }}
+                              onClick={() => startAutoPlay(n)}
+                            >{n}턴 자동 진행</button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               {isStoryOrMulti && (
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   <button

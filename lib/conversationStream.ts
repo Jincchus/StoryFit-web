@@ -182,6 +182,34 @@ export async function runConvStream(convId: string, content: string, dice?: { st
   }
 }
 
+export async function runConvContinue(convId: string) {
+  const abort = new AbortController()
+  const state = _create(convId, abort)
+
+  try {
+    const res = await doFetch(`/api/conversations/${convId}/continue`, {}, abort.signal)
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      state.error = data.error || '자동 진행에 실패했습니다.'
+      state.retryable = res.status >= 500 || res.status === 429
+      state.done = true
+      _notify(convId)
+      return
+    }
+
+    const { messageId } = await res.json()
+    state.msgId = messageId
+    _notify(convId)
+    startStream(convId, messageId)
+  } catch (e: any) {
+    if (e.name !== 'AbortError') {
+      const s = getConvStream(convId)
+      if (s) { s.error = '연결이 끊어졌습니다. 다시 시도해주세요.'; s.retryable = true; s.done = true; _notify(convId) }
+    }
+  }
+}
+
 export async function runConvRegenerate(convId: string) {
   const abort = new AbortController()
   const state = _create(convId, abort)
