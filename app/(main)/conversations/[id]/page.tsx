@@ -18,7 +18,7 @@ import SidePanel from './_components/SidePanel'
 import BranchModal from './_components/BranchModal'
 import CommandMenu from './_components/CommandMenu'
 import VoiceCallOverlay from './_components/VoiceCallOverlay'
-import { StatsPopover, InventoryPopover } from './_components/HeaderPopovers'
+import { StatsPopover, InventoryPopover, RecapPopover } from './_components/HeaderPopovers'
 
 function ComposerCharCount({ composerRef }: { composerRef: React.RefObject<HTMLTextAreaElement> }) {
   const [len, setLen] = useState(0)
@@ -67,6 +67,24 @@ export default function ChatPage() {
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
+  const [showRecap, setShowRecap] = useState(false)
+  const [recapText, setRecapText] = useState('')
+  const [recapLoading, setRecapLoading] = useState(false)
+
+  const loadRecap = async (force = false) => {
+    if (recapLoading) return
+    if (recapText && !force) return
+    setRecapLoading(true)
+    try {
+      const res = await api.post(`/api/conversations/${params.id}/recap`, {})
+      setRecapText(res.recap ?? '')
+    } catch (e: any) {
+      setToast(e.message ?? '줄거리 생성에 실패했습니다')
+      setShowRecap(false)
+    } finally {
+      setRecapLoading(false)
+    }
+  }
   const [editingId, setEditingId] = useState<string | null>(null)
   const [allChars, setAllChars] = useState<Character[]>([])
   const [hasNew, setHasNew] = useState(false)
@@ -615,6 +633,15 @@ export default function ChatPage() {
                 onClick={() => { setShowStats(p => !p); setShowInventory(false) }}
               >STAT</button>
             )}
+            {isStoryOrMulti && (
+              <button
+                className={`btn ${showRecap ? 'primary' : 'ghost'}`}
+                style={{ padding: '3px 7px', fontSize: 10 }}
+                aria-label="지금까지의 줄거리"
+                title="지금까지의 줄거리"
+                onClick={() => { setShowRecap(true); setShowStats(false); setShowInventory(false); loadRecap() }}
+              >📜</button>
+            )}
             <button
               className="btn ghost"
               style={{ padding: '3px 7px', fontSize: 10 }}
@@ -845,6 +872,15 @@ export default function ChatPage() {
 
           {showInventory && (
             <InventoryPopover inventory={conv.inventory} onDelete={handleInventoryDelete} onClose={() => setShowInventory(false)} />
+          )}
+
+          {showRecap && (
+            <RecapPopover
+              recap={recapText}
+              loading={recapLoading}
+              onRegenerate={() => loadRecap(true)}
+              onClose={() => setShowRecap(false)}
+            />
           )}
 
           {showPanel && (

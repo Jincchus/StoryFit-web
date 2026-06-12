@@ -1,5 +1,60 @@
 'use client'
 
+function renderBold(line: string): React.ReactNode {
+  const parts = line.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((p, i) =>
+    p.startsWith('**') && p.endsWith('**')
+      ? <strong key={i} style={{ color: 'var(--hot-pink)' }}>{p.slice(2, -2)}</strong>
+      : p
+  )
+}
+
+export function RecapPopover({ recap, loading, onRegenerate, onClose }: {
+  recap: string
+  loading: boolean
+  onRegenerate: () => void
+  onClose: () => void
+}) {
+  return (
+    <>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9, background: 'rgba(0,0,0,0.3)' }} onClick={onClose} />
+    <div style={{
+      position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10,
+      background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+      borderRadius: 'var(--radius)', padding: '14px 16px', width: 'min(480px, 92vw)', maxHeight: '75dvh',
+      display: 'flex', flexDirection: 'column',
+      boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+    }}>
+      <div className="spread" style={{ marginBottom: 10, flexShrink: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 12 }}>📜 지금까지의 줄거리</div>
+        <div className="hstack" style={{ gap: 4 }}>
+          <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} disabled={loading} onClick={onRegenerate}>
+            {loading ? '...' : '↺ 다시 생성'}
+          </button>
+          <button className="btn ghost" style={{ fontSize: 11, padding: '1px 6px' }} onClick={onClose}>×</button>
+        </div>
+      </div>
+      <div style={{ overflowY: 'auto', minHeight: 0 }}>
+        {loading ? (
+          <div className="vstack" style={{ gap: 8 }}>
+            <div className="skeleton skeleton-line medium" />
+            <div className="skeleton skeleton-line" style={{ width: '95%' }} />
+            <div className="skeleton skeleton-line" style={{ width: '88%' }} />
+            <div className="skeleton skeleton-line short" />
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+            {recap.split('\n').map((line, i) => (
+              <div key={i}>{renderBold(line)}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+    </>
+  )
+}
+
 export function StatsPopover({ statsConfig, onClose }: {
   statsConfig: { name: string; value: number; min: number; max: number }[]
   onClose: () => void
