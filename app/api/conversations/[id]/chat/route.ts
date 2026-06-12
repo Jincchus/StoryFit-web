@@ -26,12 +26,45 @@ import {
 } from '@/lib/chatPipeline'
 import type { AIProvider } from '@/types'
 
+interface DiceResult {
+  statName: string | null
+  statValue: number
+  roll: number
+  outcome: '대성공' | '성공' | '실패' | '대실패'
+}
+
+function rollDice(statName: string | null, statValue: number): DiceResult {
+  const roll = Math.floor(Math.random() * 100) + 1
+  const outcome: DiceResult['outcome'] =
+    roll >= 96 ? '대실패'
+    : roll <= Math.max(1, Math.ceil(statValue / 5)) ? '대성공'
+    : roll <= statValue ? '성공'
+    : '실패'
+  return { statName, statValue, roll, outcome }
+}
+
+const DICE_GUIDES: Record<DiceResult['outcome'], string> = {
+  대성공: '행동이 기대 이상으로 성공한다. 인상적인 성과나 뜻밖의 보상을 서사에 반영하라.',
+  성공: '행동은 성공한다. 단, 서사적 긴장감이나 작은 대가는 유지해도 좋다.',
+  실패: '행동은 실패한다. 실패의 대가, 새로운 위기, 또는 상황 악화를 만들어라. 실패를 미화하거나 우회 성공시키지 마라.',
+  대실패: '행동이 치명적으로 실패하며 상황이 명백히 악화된다. 예상치 못한 부작용을 일으켜라.',
+}
+
+function diceTag(d: DiceResult): string {
+  const label = d.statName ? `${d.statName}(${d.statValue}) · 주사위 ${d.roll}` : `주사위 ${d.roll}`
+  return `🎲 판정 — ${label} → ${d.outcome}`
+}
+
+function diceInstruction(d: DiceResult): string {
+  return `\n\n[SYSTEM — 판정 결과: ${d.outcome}]\n- 이 판정 결과는 최종이다. 절대 뒤집거나 무시하지 마라.\n- ${DICE_GUIDES[d.outcome]}`
+}
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   if (!checkRateLimit(userId)) return NextResponse.json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 })
 
-  const { content } = await req.json()
+  const { content, dice } = await req.json()
   if (!content?.trim()) return NextResponse.json({ error: '메시지 내용이 필요합니다.' }, { status: 400 })
 
   const conv = await prisma.conversation.findUnique({
@@ -128,12 +161,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(err => { console.error('[ragMemory] 메모리 검색 실패:', err); return [] })
 
+  let diceResult: DiceResult | null = null
+  if (dice && (conv.mode === 'story' || conv.mode === 'multiStory')) {
+    const statName = typeof dice.stat === 'string' ? dice.stat.trim() : ''
+    const stats = Array.isArray(conv.statsConfig) ? conv.statsConfig as { name: string; value: number }[] : []
+    const found = statName ? stats.find(s => s.name === statName) : null
+    diceResult = rollDice(found?.name ?? null, found?.value ?? 50)
+  }
+
   const prevMsg = conv.messages[conv.messages.length - 1] ?? null
   const userMsg = await prisma.message.create({
     data: {
       conversationId: params.id,
       role: 'user',
-      content,
+      content: diceResult ? `${content}\n\n${diceTag(diceResult)}` : content,
       isSelected: true,
       parentId: prevMsg?.id ?? null,
     },
@@ -186,6 +227,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
   const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charName)
+    + (diceResult ? diceInstruction(diceResult) : '')
   const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices)
 
   // 스트리밍 플레이스홀더 메시지 생성

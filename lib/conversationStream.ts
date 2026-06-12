@@ -154,12 +154,12 @@ function startPoll(convId: string, msgId: string) {
   tick()
 }
 
-export async function runConvStream(convId: string, content: string) {
+export async function runConvStream(convId: string, content: string, dice?: { stat?: string }) {
   const abort = new AbortController()
   const state = _create(convId, abort)
 
   try {
-    const res = await doFetch(`/api/conversations/${convId}/chat`, { content }, abort.signal)
+    const res = await doFetch(`/api/conversations/${convId}/chat`, dice ? { content, dice } : { content }, abort.signal)
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))

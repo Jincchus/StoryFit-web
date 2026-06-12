@@ -70,6 +70,7 @@ export default function ChatPage() {
   const [showRecap, setShowRecap] = useState(false)
   const [recapText, setRecapText] = useState('')
   const [recapLoading, setRecapLoading] = useState(false)
+  const [showDicePicker, setShowDicePicker] = useState(false)
 
   const loadRecap = async (force = false) => {
     if (recapLoading) return
@@ -403,7 +404,7 @@ export default function ChatPage() {
     }
   }
 
-  const send = (content?: string) => {
+  const send = (content?: string, dice?: { stat?: string }) => {
     const msg = content ?? composerRef.current?.value ?? ''
     if (!msg.trim() || typing) return
     lastSentRef.current = msg
@@ -414,12 +415,12 @@ export default function ChatPage() {
       composerRef.current.style.height = '36px'
     }
     shouldScrollRef.current = true
-    setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content: msg }])
+    setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content: dice ? `${msg}\n\n🎲 판정 중...` : msg }])
     setTyping(true)
     setStreaming('')
     setSendError('')
     setSendErrorRetryable(false)
-    runConvStream(params.id, msg).catch(() => {})
+    runConvStream(params.id, msg, dice).catch(() => {})
     subscribeStream(params.id)
   }
 
@@ -859,6 +860,51 @@ export default function ChatPage() {
                 title={isListening ? '녹음 중지' : '음성 입력 (STT)'}
               >{isListening ? '⏹' : '🎤'}</button>
               {/* ── /STT 마이크 버튼 ── */}
+              {isStoryOrMulti && (
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <button
+                    className={`btn ${showDicePicker ? 'primary' : 'ghost'}`}
+                    style={{ padding: '0 10px', fontSize: 15, minHeight: 36 }}
+                    disabled={typing}
+                    aria-label="판정 전송"
+                    title="스탯 판정 (주사위)"
+                    onClick={() => {
+                      if (!composerRef.current?.value.trim()) { setToast('판정할 행동을 먼저 입력하세요'); return }
+                      setShowDicePicker(p => !p)
+                    }}
+                  >🎲</button>
+                  {showDicePicker && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setShowDicePicker(false)} />
+                      <div style={{
+                        position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, zIndex: 10,
+                        background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
+                        borderRadius: 'var(--radius)', padding: 8, minWidth: 150,
+                        boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+                      }}>
+                        <div className="tiny muted" style={{ marginBottom: 6 }}>어떤 능력으로 판정할까요?</div>
+                        <div className="vstack" style={{ gap: 4 }}>
+                          {conv.statsEnabled && conv.statsConfig?.map(s => (
+                            <button
+                              key={s.name}
+                              className="btn ghost"
+                              style={{ fontSize: 10, padding: '4px 8px', justifyContent: 'space-between', display: 'flex' }}
+                              onClick={() => { setShowDicePicker(false); send(undefined, { stat: s.name }) }}
+                            >
+                              <span>{s.name}</span><span className="muted">{s.value}</span>
+                            </button>
+                          ))}
+                          <button
+                            className="btn ghost"
+                            style={{ fontSize: 10, padding: '4px 8px' }}
+                            onClick={() => { setShowDicePicker(false); send(undefined, {}) }}
+                          >일반 판정 (50%)</button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               <button className="btn primary" onClick={() => send()} disabled={typing}>전송</button>
             </div>
             {/* 글자 수 힌트 — 50자 이상일 때만 */}
