@@ -117,6 +117,7 @@ export async function GET(req: NextRequest) {
       rooms: Array.from(roomsMap.entries()).map(([id, title]) => ({ id, title })),
       completed: isCompleted(counts),
       hasArchived: hasArchived(counts),
+      started: counts.activeCount + counts.archivedCount > 0,
     }
   })
 

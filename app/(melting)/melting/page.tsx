@@ -7,12 +7,13 @@ interface MChar {
   id: string; title: string; coverImageUrl: string; tags: string[]
   characters: { id: string; name: string; avatarUrl: string | null }[]
   completed?: boolean
+  started?: boolean
 }
 
 export default function MeltingListPage() {
   const router = useRouter()
   const [chars, setChars] = useState<MChar[]>([])
-  const [view, setView] = useState<'active' | 'completed'>('active')
+  const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -58,7 +59,11 @@ export default function MeltingListPage() {
     await api.delete(`/api/collections/${id}`); await fetchData()
   }
 
-  const visibleChars = chars.filter(c => view === 'completed' ? c.completed : !c.completed)
+  const visibleChars = chars.filter(c =>
+    view === 'completed' ? c.completed
+    : view === 'waiting' ? !c.started
+    : !c.completed && !!c.started
+  )
 
   return (
     <>
@@ -88,6 +93,7 @@ export default function MeltingListPage() {
 
       <div style={{ display: 'flex', gap: 6, padding: '8px 16px' }}>
         <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
+        <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
         <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
       </div>
 
@@ -97,9 +103,11 @@ export default function MeltingListPage() {
         ) : visibleChars.length === 0 ? (
           view === 'completed'
             ? <div className="melting-empty">완결한 캐릭터가 없습니다.</div>
-            : chars.length === 0
-              ? <div className="melting-empty">가져온 캐릭터가 없습니다<br />⋮ 메뉴에서 melting.chat 캐릭터 URL로 가져오세요.</div>
-              : <div className="melting-empty">진행 중인 캐릭터가 없습니다.</div>
+            : view === 'waiting'
+              ? <div className="melting-empty">대기 중인 캐릭터가 없습니다.</div>
+              : chars.length === 0
+                ? <div className="melting-empty">가져온 캐릭터가 없습니다<br />⋮ 메뉴에서 melting.chat 캐릭터 URL로 가져오세요.</div>
+                : <div className="melting-empty">진행 중인 캐릭터가 없습니다.</div>
         ) : (
           <div className="melting-grid">
             {visibleChars.map(c => {

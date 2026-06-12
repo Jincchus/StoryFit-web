@@ -95,6 +95,7 @@ export async function GET(req: NextRequest) {
       ...c,
       lorebookTitles: lorebookTitlesByCollection.get(c.id) ?? [],
       completed: isCompleted(counts),
+      started: counts.activeCount + counts.archivedCount > 0,
       characters: c.characters.map(ch => ({ ...ch, hasArchived: archivedCharIds.has(ch.id) })),
     }
   })

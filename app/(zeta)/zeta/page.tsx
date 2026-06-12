@@ -11,12 +11,13 @@ interface Plot {
   lorebookTitles?: string[]
   zetaMeta?: any
   completed?: boolean
+  started?: boolean
 }
 
 export default function ZetaListPage() {
   const router = useRouter()
   const [plots, setPlots] = useState<Plot[]>([])
-  const [view, setView] = useState<'active' | 'completed'>('active')
+  const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -90,20 +91,27 @@ export default function ZetaListPage() {
 
       <div className="zeta-tabs" style={{ display: 'flex', gap: 6, padding: '8px 16px' }}>
         <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
+        <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
         <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
       </div>
 
       <div className="zeta-scroll">
         {(() => {
-          const visiblePlots = plots.filter(p => view === 'completed' ? p.completed : !p.completed)
+          const visiblePlots = plots.filter(p =>
+            view === 'completed' ? p.completed
+            : view === 'waiting' ? !p.started
+            : !p.completed && !!p.started
+          )
           return loading ? (
           <div className="zeta-empty">불러오는 중...</div>
         ) : visiblePlots.length === 0 ? (
           view === 'completed'
             ? <div className="zeta-empty">완결한 작품이 없습니다.</div>
-            : plots.length === 0
-              ? <div className="zeta-empty">가져온 플롯이 없습니다<br />⋮ 메뉴에서 zeta-ai.io 플롯 URL로 가져오세요.</div>
-              : <div className="zeta-empty">진행 중인 작품이 없습니다.</div>
+            : view === 'waiting'
+              ? <div className="zeta-empty">대기 중인 작품이 없습니다.</div>
+              : plots.length === 0
+                ? <div className="zeta-empty">가져온 플롯이 없습니다<br />⋮ 메뉴에서 zeta-ai.io 플롯 URL로 가져오세요.</div>
+                : <div className="zeta-empty">진행 중인 작품이 없습니다.</div>
         ) : (
           <div className="zeta-grid">
             {visiblePlots.map(p => {

@@ -4,13 +4,13 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 
-interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean }
-interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean }
+interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean }
+interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean }
 
 export default function WhifExplorePage() {
   const router = useRouter()
   const [tab, setTab] = useState<'characters' | 'universes'>('universes')
-  const [view, setView] = useState<'active' | 'completed'>('active')
+  const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
   const [universes, setUniverses] = useState<Universe[]>([])
   const [characters, setCharacters] = useState<Character[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,8 +70,16 @@ export default function WhifExplorePage() {
 
   const completedColIds = new Set(universes.filter(u => u.completed).map(u => u.id))
   const isCharCompleted = (c: Character) => !!c.collection && completedColIds.has(c.collection.id)
-  const visibleUniverses = universes.filter(u => view === 'completed' ? u.completed : !u.completed)
-  const visibleCharacters = characters.filter(c => view === 'completed' ? isCharCompleted(c) : !isCharCompleted(c))
+  const visibleUniverses = universes.filter(u =>
+    view === 'completed' ? u.completed
+    : view === 'waiting' ? !u.started
+    : !u.completed && !!u.started
+  )
+  const visibleCharacters = characters.filter(c =>
+    view === 'completed' ? isCharCompleted(c)
+    : view === 'waiting' ? !c.started
+    : !isCharCompleted(c) && !!c.started
+  )
 
   return (
     <>
@@ -106,6 +114,7 @@ export default function WhifExplorePage() {
 
       <div style={{ display: 'flex', gap: 6, padding: '8px 16px' }}>
         <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'active' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
+        <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
         <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'completed' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
       </div>
 
@@ -116,9 +125,11 @@ export default function WhifExplorePage() {
           visibleUniverses.length === 0 ? (
             view === 'completed'
               ? <div className="whif-empty">완결한 작품이 없습니다.</div>
-              : universes.length === 0
-                ? <div className="whif-empty">가져온 작품이 없습니다<br />⋮ 메뉴에서 WHIF URL로 가져오세요.</div>
-                : <div className="whif-empty">진행 중인 작품이 없습니다.</div>
+              : view === 'waiting'
+                ? <div className="whif-empty">대기 중인 작품이 없습니다.</div>
+                : universes.length === 0
+                  ? <div className="whif-empty">가져온 작품이 없습니다<br />⋮ 메뉴에서 WHIF URL로 가져오세요.</div>
+                  : <div className="whif-empty">진행 중인 작품이 없습니다.</div>
           ) : (
             <div className="whif-grid">
               {visibleUniverses.map(u => {
@@ -148,9 +159,11 @@ export default function WhifExplorePage() {
           visibleCharacters.length === 0 ? (
             view === 'completed'
               ? <div className="whif-empty">완결한 캐릭터가 없습니다.</div>
-              : characters.length === 0
-                ? <div className="whif-empty">가져온 캐릭터가 없습니다.</div>
-                : <div className="whif-empty">진행 중인 캐릭터가 없습니다.</div>
+              : view === 'waiting'
+                ? <div className="whif-empty">대기 중인 캐릭터가 없습니다.</div>
+                : characters.length === 0
+                  ? <div className="whif-empty">가져온 캐릭터가 없습니다.</div>
+                  : <div className="whif-empty">진행 중인 캐릭터가 없습니다.</div>
           ) : (
             <div className="whif-grid">
               {visibleCharacters.map(c => (
