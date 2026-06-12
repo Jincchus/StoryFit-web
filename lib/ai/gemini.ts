@@ -27,6 +27,15 @@ export interface GeminiChatParams {
 
 export interface StreamResult { text: string; inputTokens: number; outputTokens: number }
 
+// Gemini는 히스토리가 user 턴으로 시작해야 한다.
+// 오프닝 메시지(맨 앞 assistant 턴)를 잘라내면 대화 초반에 인트로가 통째로 사라지므로,
+// 자르는 대신 더미 user 턴을 앞에 붙여 보존한다.
+function toGeminiHistory(messages: GeminiChatParams['messages']): GeminiChatParams['messages'] {
+  const rawHistory = messages.slice(0, -1)
+  if (rawHistory.length === 0 || rawHistory[0].role === 'user') return rawHistory
+  return [{ role: 'user', parts: [{ text: '(오프닝 장면을 시작해줘)' }] }, ...rawHistory]
+}
+
 async function streamViaApiKey(
   params: GeminiChatParams,
   onChunk: (text: string) => void,
@@ -52,9 +61,7 @@ async function streamViaApiKey(
     tools: [],
   })
 
-  const rawHistory = params.messages.slice(0, -1)
-  const firstUserIdx = rawHistory.findIndex(m => m.role === 'user')
-  const history = firstUserIdx >= 0 ? rawHistory.slice(firstUserIdx) : []
+  const history = toGeminiHistory(params.messages)
 
   const chat = model.startChat({ history })
   const lastMessage = params.messages[params.messages.length - 1]
@@ -92,9 +99,7 @@ async function streamViaVertex(
     location: process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1',
   })
 
-  const rawHistory = params.messages.slice(0, -1)
-  const firstUserIdx = rawHistory.findIndex(m => m.role === 'user')
-  const history = firstUserIdx >= 0 ? rawHistory.slice(firstUserIdx) : []
+  const history = toGeminiHistory(params.messages)
 
   const chat = ai.chats.create({
     model: GEMINI_CHAT_MODEL,
