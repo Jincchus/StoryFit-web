@@ -78,7 +78,7 @@ export default function MessageList({
         const branchesFromHere = branches.filter(b => b.branchFromMessageId === m.id && b.id !== convId)
 
         return (
-          <div key={m.id}>
+          <div key={m.id} id={`msg-${m.id}`}>
             {branchesFromHere.length > 0 && (
               <div style={{ display: 'flex', gap: 4, padding: '2px 4px 4px', flexWrap: 'wrap' }}>
                 {branchesFromHere.map(b => (

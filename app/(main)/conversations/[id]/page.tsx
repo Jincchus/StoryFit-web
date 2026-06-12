@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
@@ -36,6 +36,8 @@ function ComposerCharCount({ composerRef }: { composerRef: React.RefObject<HTMLT
 export default function ChatPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const targetMsgId = searchParams.get('msg')
   const [cardChar, setCardChar] = useState<ConvChar['character'] | null>(null)
   const [conv, setConv] = useState<Conv | null>(null)
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -274,6 +276,33 @@ export default function ChatPage() {
   const scrollToBottom = () => {
     if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setHasNew(false) }
   }
+
+  // 본문 검색 결과에서 진입 시 해당 메시지 위치로 이동 (없으면 이전 페이지를 추가 로드하며 탐색)
+  const jumpDoneRef = useRef(false)
+  const jumpAttemptsRef = useRef(0)
+  useEffect(() => {
+    if (!targetMsgId || jumpDoneRef.current || loadingConv || messages.length === 0) return
+    if (messages.some(m => m.id === targetMsgId)) {
+      jumpDoneRef.current = true
+      shouldScrollRef.current = false
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`msg-${targetMsgId}`)
+        if (el) {
+          el.scrollIntoView({ block: 'center' })
+          el.classList.add('msg-jump-highlight')
+          setTimeout(() => el.classList.remove('msg-jump-highlight'), 2500)
+        }
+      })
+      return
+    }
+    if (hasMore && !loadingMore && jumpAttemptsRef.current < 12) {
+      jumpAttemptsRef.current += 1
+      loadMore()
+    } else if (!hasMore || jumpAttemptsRef.current >= 12) {
+      jumpDoneRef.current = true
+      setToast('메시지 위치를 찾지 못했습니다')
+    }
+  }, [targetMsgId, messages, hasMore, loadingMore, loadingConv])
 
   useEffect(() => {
     const el = logRef.current

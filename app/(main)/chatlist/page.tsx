@@ -31,6 +31,20 @@ function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'WHIF' | 'STORYFIT' 
   return 'STORYFIT'
 }
 
+function highlightMatch(snippet: string, query: string): React.ReactNode {
+  const idx = snippet.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return snippet
+  return (
+    <>
+      {snippet.slice(0, idx)}
+      <mark style={{ background: 'var(--lavender)', color: 'var(--hot-pink)', fontWeight: 700, padding: 0 }}>
+        {snippet.slice(idx, idx + query.length)}
+      </mark>
+      {snippet.slice(idx + query.length)}
+    </>
+  )
+}
+
 function previewText(content: string): string {
   return content
     .replace(/\*[^*\n]+\*/g, '')
@@ -61,6 +75,18 @@ const SOURCE_FILTERS = [
 
 type SourceFilter = typeof SOURCE_FILTERS[number]['key']
 
+interface MsgSearchResult {
+  messageId: string
+  role: string
+  snippet: string
+  createdAt: string
+  conversationId: string
+  convTitle: string
+  isArchived: boolean
+  charName: string
+  charAvatarUrl: string | null
+}
+
 const SOURCE_BADGE_COLOR: Record<string, string> = {
   ZETA: '#7c5cfc',
   MELTING: '#e85454',
@@ -81,6 +107,22 @@ export default function ChatListPage() {
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all')
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [sortBy, setSortBy] = useState<'recent' | 'name'>('recent')
+  const [msgResults, setMsgResults] = useState<MsgSearchResult[]>([])
+  const [msgSearching, setMsgSearching] = useState(false)
+  const [showMsgResults, setShowMsgResults] = useState(true)
+
+  useEffect(() => {
+    const q = query.trim()
+    if (q.length < 2) { setMsgResults([]); setMsgSearching(false); return }
+    setMsgSearching(true)
+    const timer = setTimeout(() => {
+      api.get(`/api/search/messages?q=${encodeURIComponent(q)}`)
+        .then(res => setMsgResults(res.results ?? []))
+        .catch(() => setMsgResults([]))
+        .finally(() => setMsgSearching(false))
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [query])
 
   useEffect(() => {
     api.get('/api/conversations')
@@ -226,6 +268,46 @@ export default function ChatListPage() {
             <button className="btn ghost" style={{ fontSize: 11, flexShrink: 0 }} onClick={() => setQuery('')}>✕ 지우기</button>
           )}
         </div>
+
+        {query.trim().length >= 2 && (
+          <div style={{ flexShrink: 0, maxHeight: '40%', overflowY: 'auto', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)', background: 'var(--pane)' }}>
+            <button
+              className="acc-toggle"
+              style={{ padding: '6px 10px', width: '100%' }}
+              onClick={() => setShowMsgResults(v => !v)}
+            >
+              <span style={{ fontSize: 11, fontWeight: 700 }}>
+                💬 본문 검색 결과 {msgSearching ? '(검색 중...)' : `(${msgResults.length})`}
+              </span>
+              <span className={`acc-arrow ${showMsgResults ? 'open' : ''}`}>▼</span>
+            </button>
+            {showMsgResults && !msgSearching && msgResults.length === 0 && (
+              <div className="tiny muted" style={{ padding: '4px 10px 8px' }}>대화 본문에서 일치하는 내용이 없습니다.</div>
+            )}
+            {showMsgResults && msgResults.map(r => (
+              <div
+                key={r.messageId}
+                style={{ padding: '6px 10px', borderTop: '1px solid var(--chrome-border)', cursor: 'pointer' }}
+                onClick={() => router.push(`/conversations/${r.conversationId}?msg=${r.messageId}`)}
+              >
+                <div className="spread" style={{ gap: 6 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.convTitle}
+                    {r.isArchived && <span style={{ marginLeft: 5, fontSize: 9, color: '#8b5cf6' }}>완결</span>}
+                  </div>
+                  <div className="tiny muted" style={{ flexShrink: 0 }}>
+                    {new Date(r.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                  </div>
+                </div>
+                <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.5 }}>
+                  <span style={{ fontWeight: 600 }}>{r.role === 'user' ? '나' : r.charName}</span>
+                  {' · '}
+                  {highlightMatch(r.snippet, query.trim())}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="hstack" style={{ flexShrink: 0, gap: 4, flexWrap: 'wrap' }}>
           {MODE_FILTERS.map(f => (
