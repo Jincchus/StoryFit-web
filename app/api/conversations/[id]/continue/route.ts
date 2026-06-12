@@ -30,6 +30,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   if (!checkRateLimit(userId)) return NextResponse.json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 })
 
+  const body = await req.json().catch(() => ({}))
+  const comebackElapsed: string | null = typeof body?.comeback?.elapsed === 'string' ? body.comeback.elapsed : null
+
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
     include: conversationContextInclude,
@@ -88,14 +91,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
   })
 
-  const spectatorInstruction = `[SYSTEM — 관전 모드]
+  const instruction = comebackElapsed
+    ? `[SYSTEM — 재회 인사]
+${personaName}가 ${comebackElapsed} 만에 돌아왔다. 다음 규칙으로 짧게 응답하라.
+- 캐릭터는 시간이 흐른 것을 자각하고 있다. 마지막 장면의 감정과 상황을 기억한 채, 시간 경과를 자연스럽게 반영해 먼저 말을 걸어라.
+- 장면을 새로 전개하거나 사건을 일으키지 마라. 인사와 짧은 반응까지만.
+- ${personaName}의 새로운 대사·행동·결정을 쓰지 마라.
+- 선택지를 제시하지 마라. 분량은 평소의 절반 이하로 짧게.`
+    : `[SYSTEM — 관전 모드]
 사용자는 지금 개입하지 않고 이야기를 관전 중이다. 다음 규칙으로 이야기를 이어가라.
 - 캐릭터들끼리 대화하고 행동하며 장면을 한 단계 진전시켜라. 새로운 사건이나 갈등을 일으켜도 좋다.
 - ${personaName}의 새로운 대사·행동·결정을 쓰지 마라.
 - 사용자에게 질문하거나 말을 걸지 마라.
 - 선택지를 제시하지 마라. 본문 서술로만 끝내라.`
 
-  const instructionMsg = { id: '__continue__', role: 'user', content: spectatorInstruction }
+  const instructionMsg = { id: '__continue__', role: 'user', content: instruction }
   const history = buildGeminiHistory([...recentMsgs, instructionMsg], instructionMsg.id, false)
 
   const lastMsg = conv.messages[conv.messages.length - 1]

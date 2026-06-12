@@ -182,12 +182,12 @@ export async function runConvStream(convId: string, content: string, dice?: { st
   }
 }
 
-export async function runConvContinue(convId: string) {
+export async function runConvContinue(convId: string, comeback?: { elapsed: string }) {
   const abort = new AbortController()
   const state = _create(convId, abort)
 
   try {
-    const res = await doFetch(`/api/conversations/${convId}/continue`, {}, abort.signal)
+    const res = await doFetch(`/api/conversations/${convId}/continue`, comeback ? { comeback } : {}, abort.signal)
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))

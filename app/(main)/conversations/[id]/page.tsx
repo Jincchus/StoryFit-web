@@ -481,6 +481,42 @@ export default function ChatPage() {
     setAutoPlayLeft(0)
   }
 
+  const [comebackElapsed, setComebackElapsed] = useState<string | null>(null)
+  const comebackCheckedRef = useRef(false)
+  useEffect(() => {
+    if (comebackCheckedRef.current || loadingConv || !conv || messages.length === 0) return
+    comebackCheckedRef.current = true
+    if (conv.mode !== 'story' && conv.mode !== 'multiStory') return
+    const last = messages[messages.length - 1]
+    if (!last.createdAt) return
+    const gapMs = Date.now() - new Date(last.createdAt).getTime()
+    if (gapMs < 24 * 3600 * 1000) return
+    if (sessionStorage.getItem(`sf_comeback_${params.id}_${last.id}`)) return
+    const days = Math.floor(gapMs / 86400000)
+    setComebackElapsed(days >= 1 ? `${days}일` : `${Math.floor(gapMs / 3600000)}시간`)
+  }, [loadingConv, conv, messages, params.id])
+
+  const dismissComeback = () => {
+    const last = messages[messages.length - 1]
+    if (last) sessionStorage.setItem(`sf_comeback_${params.id}_${last.id}`, '1')
+    setComebackElapsed(null)
+  }
+
+  const acceptComeback = () => {
+    if (typing || !comebackElapsed) return
+    const elapsed = comebackElapsed
+    dismissComeback()
+    typingStartRef.current = Date.now()
+    setTypingDuration(0)
+    shouldScrollRef.current = true
+    setTyping(true)
+    setStreaming('')
+    setSendError('')
+    setSendErrorRetryable(false)
+    runConvContinue(params.id, { elapsed }).catch(() => {})
+    subscribeStream(params.id)
+  }
+
   const handleToggleBookmark = (msgId: string, next: boolean) => {
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, bookmarked: next } : m))
     api.patch(`/api/conversations/${params.id}/messages`, { messageId: msgId, bookmarked: next })
@@ -833,6 +869,19 @@ export default function ChatPage() {
               </div>
             )}
 
+            {comebackElapsed && !typing && (
+              <div className="tiny" style={{
+                padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 8,
+                background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)',
+                margin: '0 4px 4px',
+              }}>
+                <span style={{ flex: 1, lineHeight: 1.5 }}>
+                  💭 {comebackElapsed} 만이에요. <b>{char?.name ?? '캐릭터'}</b>{' '}이(가) 먼저 말을 걸고 싶어 해요.
+                </span>
+                <button className="btn primary" style={{ fontSize: 10, padding: '2px 8px', flexShrink: 0 }} onClick={acceptComeback}>인사 받기</button>
+                <button className="btn ghost" style={{ fontSize: 10, padding: '2px 8px', flexShrink: 0 }} onClick={dismissComeback}>무시</button>
+              </div>
+            )}
             {sendError && (
               <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ flex: 1 }}>⚠ {sendError}</span>
