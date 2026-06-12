@@ -253,40 +253,32 @@ export default function CharactersPage() {
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
 
         {view === 'active' && collections.length > 0 && (
-          <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { id: 'all', label: '전체' },
-              { id: 'none', label: '미분류' },
-              ...collections.map(col => ({ id: col.id, label: col.title })),
-            ].map(tab => (
-              <button
-                key={tab.id}
-                className={`btn ${collectionFilter === tab.id ? 'primary' : 'ghost'}`}
-                style={{ fontSize: 11, padding: '3px 10px' }}
-                onClick={() => { setCollectionFilter(tab.id); exitSelect() }}
-              >
-                {tab.label}
-              </button>
+          <select
+            className="field"
+            style={{ fontSize: 11, width: 'auto', minWidth: 120, padding: '3px 8px' }}
+            value={collectionFilter}
+            onChange={e => { setCollectionFilter(e.target.value); exitSelect() }}
+          >
+            <option value="all">전체</option>
+            <option value="none">미분류</option>
+            {collections.map(col => (
+              <option key={col.id} value={col.id}>{col.title}</option>
             ))}
-          </div>
+          </select>
         )}
 
         {view === 'completed' && completedRooms.length > 0 && (
-          <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { id: 'all', label: '전체' },
-              ...completedRooms.map(r => ({ id: r.id, label: r.title })),
-            ].map(tab => (
-              <button
-                key={tab.id}
-                className={`btn ${roomFilter === tab.id ? 'primary' : 'ghost'}`}
-                style={{ fontSize: 11, padding: '3px 10px' }}
-                onClick={() => setRoomFilter(tab.id)}
-              >
-                {tab.label}
-              </button>
+          <select
+            className="field"
+            style={{ fontSize: 11, width: 'auto', minWidth: 120, padding: '3px 8px' }}
+            value={roomFilter}
+            onChange={e => setRoomFilter(e.target.value)}
+          >
+            <option value="all">전체</option>
+            {completedRooms.map(r => (
+              <option key={r.id} value={r.id}>{r.title}</option>
             ))}
-          </div>
+          </select>
         )}
 
         {view === 'active' && selectedChar && !selecting && (
