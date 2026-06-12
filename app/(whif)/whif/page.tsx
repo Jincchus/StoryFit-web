@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { sortByOption, type SortOption } from '@/lib/listSort'
+import { useScrollRestore } from '@/lib/useScrollRestore'
 
 interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
 interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string }
@@ -27,6 +28,8 @@ export default function WhifExplorePage() {
     setEditMode(localStorage.getItem('whif_edit') === '1')
     setSortUniverses((localStorage.getItem('whif_sort_universes') as SortOption) || 'latest')
     setSortCharacters((localStorage.getItem('whif_sort_characters') as SortOption) || 'latest')
+    setTab((sessionStorage.getItem('whif_tab') as typeof tab) || 'universes')
+    setView((sessionStorage.getItem('whif_view') as typeof view) || 'active')
     fetchData()
   }, [])
 
@@ -36,6 +39,14 @@ export default function WhifExplorePage() {
   const handleSortCharacters = (v: SortOption) => {
     setSortCharacters(v); localStorage.setItem('whif_sort_characters', v)
   }
+  const handleTab = (v: typeof tab) => {
+    setTab(v); sessionStorage.setItem('whif_tab', v)
+  }
+  const handleView = (v: typeof view) => {
+    setView(v); sessionStorage.setItem('whif_view', v)
+  }
+
+  const scrollRef = useScrollRestore(`whif_scroll_${tab}_${view}`, !loading)
 
   const fetchData = async () => {
     setLoading(true)
@@ -126,15 +137,15 @@ export default function WhifExplorePage() {
       {msg && <div style={{ padding: '6px 16px', fontSize: 12, color: msg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{msg}</div>}
 
       <div className="whif-tabs">
-        <button className={`whif-tab ${tab === 'universes' ? 'active' : ''}`} onClick={() => setTab('universes')}>작품</button>
-        <button className={`whif-tab ${tab === 'characters' ? 'active' : ''}`} onClick={() => setTab('characters')}>캐릭터</button>
+        <button className={`whif-tab ${tab === 'universes' ? 'active' : ''}`} onClick={() => handleTab('universes')}>작품</button>
+        <button className={`whif-tab ${tab === 'characters' ? 'active' : ''}`} onClick={() => handleTab('characters')}>캐릭터</button>
       </div>
 
       <div style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'active' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
-          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
-          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'completed' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'active' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => handleView('active')}>진행 중</button>
+          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => handleView('waiting')}>대기</button>
+          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'completed' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => handleView('completed')}>완결</button>
         </div>
         <select
           className="field"
@@ -147,7 +158,7 @@ export default function WhifExplorePage() {
         </select>
       </div>
 
-      <div className="whif-scroll">
+      <div className="whif-scroll" ref={scrollRef}>
         {loading ? (
           <div className="whif-empty">불러오는 중...</div>
         ) : tab === 'universes' ? (

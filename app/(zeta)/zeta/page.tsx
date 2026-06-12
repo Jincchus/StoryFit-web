@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { sortByOption, type SortOption } from '@/lib/listSort'
+import { useScrollRestore } from '@/lib/useScrollRestore'
 
 interface Opening { id: string; title: string; content: string }
 interface Plot {
@@ -31,12 +32,19 @@ export default function ZetaListPage() {
   useEffect(() => {
     setEditMode(localStorage.getItem('zeta_edit') === '1')
     setSort((localStorage.getItem('zeta_sort') as SortOption) || 'latest')
+    setView((sessionStorage.getItem('zeta_view') as typeof view) || 'active')
     fetchData()
   }, [])
 
   const handleSort = (v: SortOption) => {
     setSort(v); localStorage.setItem('zeta_sort', v)
   }
+
+  const handleView = (v: typeof view) => {
+    setView(v); sessionStorage.setItem('zeta_view', v)
+  }
+
+  const scrollRef = useScrollRestore(`zeta_scroll_${view}`, !loading)
 
   const fetchData = async () => {
     setLoading(true)
@@ -99,9 +107,9 @@ export default function ZetaListPage() {
 
       <div className="zeta-tabs" style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
-          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
-          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('active')}>진행 중</button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('waiting')}>대기</button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('completed')}>완결</button>
         </div>
         <select
           className="field"
@@ -114,7 +122,7 @@ export default function ZetaListPage() {
         </select>
       </div>
 
-      <div className="zeta-scroll">
+      <div className="zeta-scroll" ref={scrollRef}>
         {(() => {
           const visiblePlots = sortByOption(
             plots.filter(p =>

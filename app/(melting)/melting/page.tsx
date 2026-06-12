@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { sortByOption, type SortOption } from '@/lib/listSort'
+import { useScrollRestore } from '@/lib/useScrollRestore'
 
 interface MChar {
   id: string; title: string; coverImageUrl: string; tags: string[]
@@ -27,12 +28,19 @@ export default function MeltingListPage() {
   useEffect(() => {
     setEditMode(localStorage.getItem('melting_edit') === '1')
     setSort((localStorage.getItem('melting_sort') as SortOption) || 'latest')
+    setView((sessionStorage.getItem('melting_view') as typeof view) || 'active')
     fetchData()
   }, [])
 
   const handleSort = (v: SortOption) => {
     setSort(v); localStorage.setItem('melting_sort', v)
   }
+
+  const handleView = (v: typeof view) => {
+    setView(v); sessionStorage.setItem('melting_view', v)
+  }
+
+  const scrollRef = useScrollRestore(`melting_scroll_${view}`, !loading)
 
   const fetchData = async () => {
     setLoading(true)
@@ -104,9 +112,9 @@ export default function MeltingListPage() {
 
       <div style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('active')}>진행 중</button>
-          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('waiting')}>대기</button>
-          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('completed')}>완결</button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('active')}>진행 중</button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('waiting')}>대기</button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('completed')}>완결</button>
         </div>
         <select
           className="field"
@@ -119,7 +127,7 @@ export default function MeltingListPage() {
         </select>
       </div>
 
-      <div className="melting-scroll">
+      <div className="melting-scroll" ref={scrollRef}>
         {loading ? (
           <div className="melting-empty">불러오는 중...</div>
         ) : visibleChars.length === 0 ? (
