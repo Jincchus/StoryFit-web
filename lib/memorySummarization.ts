@@ -84,7 +84,7 @@ export async function triggerMemorySummarization(
     await prisma.conversation.update({
       where: { id: conversationId },
       data: { isSummarizing: false },
-    }).catch(() => {})
+    }).catch(err => console.error('[memorySummarization] isSummarizing 잠금 해제 실패 — 요약이 멈출 수 있음:', err))
   }
 }
 

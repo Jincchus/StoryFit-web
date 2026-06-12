@@ -220,10 +220,10 @@ AI 응답: ${clipMiddle(aiMsg, 1000, 500)}
       if (Object.keys(data).length > 0) {
         await prisma.conversation.update({ where: { id: convId }, data })
       }
-    } catch {
-      // silent fail — 상태 추적 실패는 대화에 영향 없음
+    } catch (err) {
+      console.error('[stateTracking] 상태 추적 실패:', err)
     }
-  })().catch(() => {})
+  })().catch(err => console.error('[stateTracking] error:', err))
 }
 
 // ── 롤백 (재생성·삭제 시 사용) ──────────────────────────────────────────────

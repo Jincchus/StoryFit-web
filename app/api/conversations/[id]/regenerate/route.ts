@@ -53,15 +53,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   if (conv.mode === 'story') {
     if (conv.inventoryEnabled && Array.isArray(conv.inventory) && lastAssistantFull?.inventoryDelta) {
-      await rollbackInventoryDelta(params.id, lastAssistantFull.inventoryDelta as any, conv.inventory as InventoryItem[]).catch(() => {})
+      await rollbackInventoryDelta(params.id, lastAssistantFull.inventoryDelta as any, conv.inventory as InventoryItem[]).catch(err => console.error('[regenerate] 인벤토리 롤백 실패:', err))
     }
     if (conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0 && lastAssistantFull?.statsDelta) {
-      await rollbackStatsDelta(params.id, lastAssistantFull.statsDelta as any, conv.statsConfig as StatEntry[]).catch(() => {})
+      await rollbackStatsDelta(params.id, lastAssistantFull.statsDelta as any, conv.statsConfig as StatEntry[]).catch(err => console.error('[regenerate] 스탯 롤백 실패:', err))
     }
   }
 
   const historyMsgs = selectedMsgs.filter(m => m.id !== lastAssistant.id)
-  const longTermMemory = await retrieveRelevantMemories(params.id, lastUserMsg?.content ?? '', 6).catch(() => [])
+  const longTermMemory = await retrieveRelevantMemories(params.id, lastUserMsg?.content ?? '', 6).catch(err => { console.error('[ragMemory] 메모리 검색 실패:', err); return [] })
   const [{ globalRules, modeRules, closingRules }, personalRules] = await Promise.all([
     loadGlobalRules(conv.mode),
     getPersonalRulesForConv(userId, conv.mode),
@@ -200,7 +200,7 @@ async function regenerateAsync({
     })
     await prisma.conversation.update({ where: { id: convId }, data: { updatedAt: new Date() } })
 
-    triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
+    triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err => console.error('[memorySummarization] trigger 실패:', err))
 
     if (conv.mode === 'story' || conv.mode === 'multiStory') {
       const freshConv2 = await prisma.conversation.findUnique({

@@ -125,7 +125,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   // ────────────────────────────────────────────────────────────────────────
 
-  const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(() => [])
+  const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(err => { console.error('[ragMemory] 메모리 검색 실패:', err); return [] })
 
   const prevMsg = conv.messages[conv.messages.length - 1] ?? null
   const userMsg = await prisma.message.create({
@@ -284,7 +284,7 @@ async function generateAsync({
     })
     await prisma.conversation.update({ where: { id: convId }, data: { updatedAt: new Date() } })
 
-    triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
+    triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err => console.error('[memorySummarization] trigger 실패:', err))
 
     if (conv.mode === 'story' || conv.mode === 'multiStory') {
       triggerStoryEvaluation({

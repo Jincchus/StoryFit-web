@@ -132,10 +132,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     })
     if (conv) {
       if (conv.inventoryEnabled && msg.inventoryDelta && Array.isArray(conv.inventory)) {
-        await rollbackInventoryDelta(params.id, msg.inventoryDelta as any, conv.inventory as InventoryItem[]).catch(() => {})
+        await rollbackInventoryDelta(params.id, msg.inventoryDelta as any, conv.inventory as InventoryItem[]).catch(err => console.error('[messages] 인벤토리 롤백 실패:', err))
       }
       if (conv.statsEnabled && msg.statsDelta && Array.isArray(conv.statsConfig)) {
-        await rollbackStatsDelta(params.id, msg.statsDelta as any, conv.statsConfig as StatEntry[]).catch(() => {})
+        await rollbackStatsDelta(params.id, msg.statsDelta as any, conv.statsConfig as StatEntry[]).catch(err => console.error('[messages] 스탯 롤백 실패:', err))
       }
     }
   }

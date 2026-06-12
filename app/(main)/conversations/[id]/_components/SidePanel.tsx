@@ -73,7 +73,7 @@ export default function SidePanel({
   const handleStyleConfig = (key: string, val: string) => {
     const next = { ...(conv?.styleConfig ?? {}), [key]: conv?.styleConfig?.[key] === val ? null : val }
     setConv(c => c ? { ...c, styleConfig: next } : c)
-    api.patch(`/api/conversations/${convId}`, { styleConfig: next }).catch(() => {})
+    api.patch(`/api/conversations/${convId}`, { styleConfig: next }).catch(() => setToast('스타일 저장에 실패했습니다'))
   }
 
   const handleCoreMemory = (value: string) => {
@@ -155,7 +155,7 @@ export default function SidePanel({
             const val = e.target.value
             setCurrentTheme(val)
             applyTheme(val)
-            await api.patch('/api/user/settings', { theme: val }).catch(() => {})
+            await api.patch('/api/user/settings', { theme: val }).catch(() => setToast('테마 저장에 실패했습니다'))
           }}
         >
           {THEMES.map(t => (
@@ -295,8 +295,10 @@ export default function SidePanel({
               checked={conv.autoChapterEnabled ?? false}
               onChange={async e => {
                 const checked = e.target.checked
-                setConv(c => c ? { ...c, autoChapterEnabled: checked } : c)
-                await api.patch(`/api/conversations/${convId}`, { autoChapterEnabled: checked }).catch(() => {})
+                try {
+                  await api.patch(`/api/conversations/${convId}`, { autoChapterEnabled: checked })
+                  setConv(c => c ? { ...c, autoChapterEnabled: checked } : c)
+                } catch { setToast('설정 저장에 실패했습니다') }
               }}
             />
             <span className="tiny">{conv.autoChapterEnabled ? 'ON' : 'OFF'}</span>

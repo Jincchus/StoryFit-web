@@ -475,8 +475,10 @@ export default function ChatPage() {
   const handleInventoryDelete = async (index: number) => {
     if (!conv?.inventory) return
     const next = conv.inventory.filter((_, i) => i !== index)
-    setConv(c => c ? { ...c, inventory: next } : c)
-    await api.patch(`/api/conversations/${params.id}`, { inventory: next }).catch(() => {})
+    try {
+      await api.patch(`/api/conversations/${params.id}`, { inventory: next })
+      setConv(c => c ? { ...c, inventory: next } : c)
+    } catch { setToast('인벤토리 저장에 실패했습니다') }
   }
 
   const pendingPatchRef = useRef<Record<string, string>>({})
@@ -486,7 +488,7 @@ export default function ChatPage() {
     if (patchDebounceRef.current[field]) clearTimeout(patchDebounceRef.current[field]!)
     patchDebounceRef.current[field] = setTimeout(() => {
       delete pendingPatchRef.current[field]
-      api.patch(`/api/conversations/${params.id}`, { [field]: value }).catch(() => {})
+      api.patch(`/api/conversations/${params.id}`, { [field]: value }).catch(() => setToast('변경사항 저장에 실패했습니다'))
     }, 600)
   }
 
