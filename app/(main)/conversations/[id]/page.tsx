@@ -1080,7 +1080,16 @@ export default function ChatPage() {
                     ) : isEditing ? (
                       /* ── AI 편집 중 ── */
                       <div className="seq-block seq-left">
-                        <div className="seq-speaker"><span>{msgChar.name}</span></div>
+                        <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {isTikiTaka && (
+                            <div className="thumb" style={{ width: 22, height: 22, flexShrink: 0 }}>
+                              {msgChar.avatarUrl
+                                ? <img src={msgChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} alt="" />
+                                : <PixelAvatar kind={msgChar.kind as any} size={22} />}
+                            </div>
+                          )}
+                          <span>{msgChar.name}</span>
+                        </div>
                         <MessageEdit
                           initialContent={m.content}
                           onSave={c => saveEdit(c, m.id)}
@@ -1156,6 +1165,7 @@ export default function ChatPage() {
                           const speaker = rawSpeaker.replace(/^\[|\]$/g, '').trim()
                           const isPersona = !!conv.personaCharacter && isSamePerson(speaker, conv.personaCharacter.name)
                           const isConvChar = conv.characters.some(cc => isSamePerson(speaker, cc.character.name))
+                          const speakerChar = isTikiTaka ? conv.characters.find(cc => isSamePerson(speaker, cc.character.name))?.character : undefined
                           const thought = b.type === 'thought' ? ' thought-bubble' : ''
                           if (isPersona) {
                             return (
@@ -1168,7 +1178,14 @@ export default function ChatPage() {
                           const bubbleColor = isConvChar ? 'bubble-char' : 'bubble-third'
                           return (
                             <div key={i} className="seq-block seq-left">
-                              <div className="seq-speaker">
+                              <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {speakerChar && (
+                                  <div className="thumb" style={{ width: 22, height: 22, flexShrink: 0 }}>
+                                    {speakerChar.avatarUrl
+                                      ? <img src={speakerChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} alt="" />
+                                      : <PixelAvatar kind={speakerChar.kind as any} size={22} />}
+                                  </div>
+                                )}
                                 <span>{speaker}</span>
                               </div>
                               <div className={`bubble ${bubbleColor}${thought}`}>{b.text}</div>
@@ -1179,7 +1196,14 @@ export default function ChatPage() {
                     ) : (
                       /* ── 폴백: 파싱 불가 시 원본 표시 ── */
                       <div className="seq-block seq-left">
-                        <div className="seq-speaker">
+                        <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {isTikiTaka && (
+                            <div className="thumb" style={{ width: 22, height: 22, flexShrink: 0 }}>
+                              {msgChar.avatarUrl
+                                ? <img src={msgChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} alt="" />
+                                : <PixelAvatar kind={msgChar.kind as any} size={22} />}
+                            </div>
+                          )}
                           <span>{msgChar.name}</span>
                         </div>
                         <div className="bubble bubble-char" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
