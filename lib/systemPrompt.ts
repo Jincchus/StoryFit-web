@@ -281,7 +281,9 @@ export function matchLorebook(entries: LorebookEntry[], recentMessages: { conten
     return entry.keyword.some(kw => {
       const kwNorm = kw.trim().toLowerCase()
       if (!kwNorm) return false
-      // 단어 경계 매칭: 공백/구두점/문장 시작·끝 기준
+      // 한글 키워드는 조사가 바로 붙으므로("마왕성은") 단어 경계 대신 포함 매칭
+      if (/[가-힣]/.test(kwNorm)) return recent.some(msg => msg.includes(kwNorm))
+      // 라틴 키워드는 단어 경계 매칭: 공백/구두점/문장 시작·끝 기준
       const re = new RegExp(`(^|[\\s,\\.\\!\\?\\(\\)"'\\[\\]])(${kwNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})([\\s,\\.\\!\\?\\(\\)"'\\[\\]]|$)`)
       return recent.some(msg => re.test(msg))
     })

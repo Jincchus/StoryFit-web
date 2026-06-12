@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { replacePlaceholders, buildStorySystemPrompt } from './systemPrompt'
-import type { Character } from '@/types'
+import { replacePlaceholders, buildStorySystemPrompt, matchLorebook } from './systemPrompt'
+import type { Character, LorebookEntry } from '@/types'
 
 describe('replacePlaceholders', () => {
   it('치환 후 잘못된 조사를 교정한다', () => {
@@ -41,5 +41,33 @@ describe('buildOpeningSceneSection (buildStorySystemPrompt 경유)', () => {
     const prompt = buildStorySystemPrompt({ character: baseCharacter })
 
     expect(prompt).not.toContain('[오프닝 장면 — 대화의 시작]')
+  })
+})
+
+describe('matchLorebook', () => {
+  const entry = (keyword: string[], over: Partial<LorebookEntry> = {}): LorebookEntry => ({
+    id: 'lb-1', scope: 'conversation', scopeId: 'c-1',
+    keyword, content: '내용', priority: 0, scanDepth: 5, isEnabled: true,
+    ...over,
+  })
+  const msgs = (...contents: string[]) => contents.map(content => ({ content }))
+
+  it('한글 키워드는 조사가 붙어도 매칭된다', () => {
+    expect(matchLorebook([entry(['마왕성'])], msgs('마왕성은 어두웠다'))).toHaveLength(1)
+    expect(matchLorebook([entry(['루나'])], msgs('루나가 웃었다'))).toHaveLength(1)
+  })
+
+  it('한글 키워드가 본문에 없으면 매칭되지 않는다', () => {
+    expect(matchLorebook([entry(['마왕성'])], msgs('평화로운 마을이다'))).toHaveLength(0)
+  })
+
+  it('라틴 키워드는 단어 경계를 지킨다', () => {
+    expect(matchLorebook([entry(['art'])], msgs('the start of it'))).toHaveLength(0)
+    expect(matchLorebook([entry(['art'])], msgs('art is long'))).toHaveLength(1)
+  })
+
+  it('비활성 엔트리는 제외하고 scanDepth 밖의 메시지는 스캔하지 않는다', () => {
+    expect(matchLorebook([entry(['마왕성'], { isEnabled: false })], msgs('마왕성은 어두웠다'))).toHaveLength(0)
+    expect(matchLorebook([entry(['마왕성'], { scanDepth: 1 })], msgs('마왕성에 도착했다', '날씨가 좋다'))).toHaveLength(0)
   })
 })
