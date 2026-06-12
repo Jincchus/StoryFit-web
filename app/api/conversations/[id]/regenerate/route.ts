@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { buildSystemPrompt, buildNovelSystemPrompt, buildStorySystemPrompt, buildMultiStorySystemPrompt, matchLorebook } from '@/lib/systemPrompt'
+import { matchLorebook, replacePlaceholders } from '@/lib/systemPrompt'
 import type { InventoryItem, StatEntry } from '@/types'
-import { streamChat, stripAnalysisPreamble, deduplicatePreviousContent, sliceByTokenBudget } from '@/lib/ai'
+import { stripAnalysisPreamble, deduplicatePreviousContent } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStoryEvaluation, triggerStateTracking, rollbackStatsDelta, rollbackInventoryDelta } from '@/lib/storyEval'
 import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
-import { appendTurnControlInstruction, buildRevisionPrompt, needsResponseRevision } from '@/lib/responseControl'
-import type { Message } from '@/types'
+import { needsResponseRevision } from '@/lib/responseControl'
+import {
+  conversationContextInclude,
+  buildCharParam,
+  splitRecentAndOpening,
+  buildModeSystemPrompt,
+  buildGeminiHistory,
+  streamToMessage,
+  streamRevision,
+  type GenConfig,
+  type GeminiTurn,
+} from '@/lib/chatPipeline'
+import type { AIProvider, Message } from '@/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await authenticate(req)
@@ -18,12 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
-    include: {
-      characters: { include: { character: true }, orderBy: { turnOrder: 'asc' } },
-      messages: { where: { isSelected: true, isStreaming: false }, orderBy: { createdAt: 'asc' } },
-      personaCharacter: true,
-      lorebooks: true,
-    },
+    include: conversationContextInclude,
   })
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
   if (conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
@@ -55,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const historyMsgs = selectedMsgs.filter(m => m.id !== lastAssistant.id)
   const longTermMemory = await retrieveRelevantMemories(params.id, lastUserMsg?.content ?? '', 6).catch(() => [])
-  const [{ globalRules, modeRules }, personalRules] = await Promise.all([
+  const [{ globalRules, modeRules, closingRules }, personalRules] = await Promise.all([
     loadGlobalRules(conv.mode),
     getPersonalRulesForConv(userId, conv.mode),
   ])
@@ -65,23 +71,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     historyMsgs as unknown as Message[],
   )
 
-  const charParam = {
-    ...character,
-    kind: 'custom' as const,
-    safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
-    defaultAI: character.defaultAI as 'gemini' | 'claude' | 'chatgpt',
-    avatarUrl: character.avatarUrl ?? undefined,
-  }
+  const charParam = buildCharParam(character)
 
-  const recentHistoryMsgs = sliceByTokenBudget(historyMsgs, 5000)
-  const recentHistoryIds = new Set(recentHistoryMsgs.map(m => m.id))
-  const openingScene = historyMsgs
-    .filter(m => m.role === 'assistant' && !m.parentId && !recentHistoryIds.has(m.id))
-    .map(m => m.content)
-    .join('\n\n')
+  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const mappedHistoryMsgs = historyMsgs.map(m => ({
+    ...m,
+    content: replacePlaceholders(m.content, personaName, character.name)
+  }))
+
+  const { recentMsgs: recentHistoryMsgs, openingScene } = splitRecentAndOpening(mappedHistoryMsgs)
 
   const promptParams = {
-    character: charParam,
     personaCharacter: conv.personaCharacter ?? null,
     coreMemory: conv.coreMemory,
     statusTimeline: conv.statusTimeline,
@@ -91,50 +91,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     longTermMemory,
     globalRules,
     modeRules,
+    closingRules,
     personalRules,
     styleConfig: (conv.styleConfig ?? null) as any,
   }
-  const isMultiStory = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
-  const freshConv = (conv.mode === 'story' || isMultiStory)
-    ? await prisma.conversation.findUnique({ where: { id: params.id }, select: { statsConfig: true, inventory: true } })
-    : null
+  const isMultiStory = conv.mode === 'multiStory'
+  const freshConv = await prisma.conversation.findUnique({ where: { id: params.id }, select: { statsConfig: true, inventory: true } })
 
-  const systemPrompt = conv.mode === 'novel'
-    ? buildNovelSystemPrompt(promptParams)
-    : conv.mode === 'story'
-      ? buildStorySystemPrompt({
-          ...promptParams,
-          statsConfig: conv.statsEnabled && Array.isArray(freshConv?.statsConfig) ? freshConv.statsConfig as any : undefined,
-          inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv.inventory as any : undefined,
-        })
-      : isMultiStory
-        ? buildMultiStorySystemPrompt({
-            ...promptParams,
-            characters: conv.characters.map((cc: any) => ({
-              ...cc.character,
-              kind: 'custom' as const,
-              safetyLevel: cc.character.safetyLevel as 'strict' | 'standard' | 'relaxed',
-              defaultAI: cc.character.defaultAI as 'gemini' | 'claude' | 'chatgpt',
-              avatarUrl: cc.character.avatarUrl ?? undefined,
-            })),
-            statsConfig: conv.statsEnabled && Array.isArray(freshConv?.statsConfig) ? freshConv.statsConfig as any : undefined,
-            inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv.inventory as any : undefined,
-          })
-        : buildSystemPrompt(promptParams)
+  const systemPrompt = buildModeSystemPrompt({
+    mode: conv.mode,
+    base: promptParams,
+    character: charParam,
+    characters: conv.characters.map((cc: any) => buildCharParam(cc.character)),
+    statsConfig: conv.statsEnabled && Array.isArray(freshConv?.statsConfig) ? freshConv?.statsConfig as any : undefined,
+    inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv?.inventory as any : undefined,
+  })
 
-  const latestUserId = [...historyMsgs].reverse().find(m => m.role === 'user')?.id
+  const latestUserId = [...mappedHistoryMsgs].reverse().find(m => m.role === 'user')?.id
   const allowChoices = conv.mode === 'story' || isMultiStory
-  const history = recentHistoryMsgs.reduce<{ role: 'user' | 'model'; parts: [{ text: string }] }[]>((acc, m) => {
-    const role = m.role === 'user' ? 'user' as const : 'model' as const
-    const contentForModel = m.id === latestUserId ? appendTurnControlInstruction(m.content, allowChoices) : m.content
-    const last = acc[acc.length - 1]
-    if (last && last.role === role) {
-      last.parts[0].text += '\n\n' + contentForModel
-    } else {
-      acc.push({ role, parts: [{ text: contentForModel }] })
-    }
-    return acc
-  }, [])
+  const history = buildGeminiHistory(recentHistoryMsgs, latestUserId, allowChoices)
 
   const newMsg = await prisma.message.create({
     data: {
@@ -170,53 +145,41 @@ async function regenerateAsync({
   character: any
   conv: any
   systemPrompt: string
-  history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
+  history: GeminiTurn[]
 }) {
   const prevAssistantText = [...history].reverse().find(m => m.role === 'model')?.parts[0].text ?? ''
-  let fullText = ''
-  let lastFlush = Date.now()
+  const gen: GenConfig = {
+    provider: conv.currentAI as AIProvider,
+    temperature: character.temperature,
+    frequencyPenalty: character.frequencyPenalty,
+    maxOutputTokens: conv.maxOutputTokens,
+    thinkingBudget: conv.thinkingBudget,
+    safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
+  }
+  const state = { fullText: '' }
   const bgAbort = new AbortController()
   const timeoutId = setTimeout(() => bgAbort.abort(), 5 * 60 * 1000)
 
   try {
-    const result = await streamChat(
-      {
-        provider: conv.currentAI as 'gemini',
-        systemPrompt,
-        messages: history,
-        temperature: character.temperature,
-        frequencyPenalty: character.frequencyPenalty,
-        maxOutputTokens: conv.maxOutputTokens,
-        thinkingBudget: conv.thinkingBudget,
-        safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
-      },
-      chunk => {
-        fullText += chunk
-        if (Date.now() - lastFlush > 500) {
-          prisma.message.update({ where: { id: msgId }, data: { content: stripAnalysisPreamble(fullText) } }).catch(() => {})
-          lastFlush = Date.now()
-        }
-      },
-      bgAbort.signal,
-    )
+    const result = await streamToMessage({ gen, systemPrompt, history, msgId, signal: bgAbort.signal, state })
     clearTimeout(timeoutId)
 
-    let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(fullText), prevAssistantText) || '[응답 없음]'
+    let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText) || '[응답 없음]'
 
     const revisionOptions = {
       allowChoices: conv.mode === 'story',
       forbiddenChoiceNames: conv.mode === 'story' ? [character.name] : [],
       requiredBodyNames: conv.mode === 'story' ? [character.name] : [],
-      personaName: conv.personaCharacter?.name ?? '나',
+      personaName: conv.personaCharacter?.name || conv.user?.displayName || '나',
     }
 
     if (needsResponseRevision(cleanText, revisionOptions)) {
-      const revised = await regenerateControlledResponse({
-        conv,
+      const revised = await streamRevision({
+        gen,
+        temperature: Math.min(Number(character.temperature ?? 0.9), 0.75),
         systemPrompt,
         history,
         firstDraft: cleanText,
-        character,
         revisionOptions,
         signal: bgAbort.signal,
       }).catch(() => '')
@@ -236,8 +199,7 @@ async function regenerateAsync({
 
     triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(() => {})
 
-    const isMultiStory = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
-    if (conv.mode === 'story') {
+    if (conv.mode === 'story' || conv.mode === 'multiStory') {
       const freshConv2 = await prisma.conversation.findUnique({
         where: { id: convId },
         select: { statsConfig: true, inventory: true, statsEnabled: true, inventoryEnabled: true },
@@ -255,49 +217,16 @@ async function regenerateAsync({
           autoChapterEnabled: conv.autoChapterEnabled,
         })
       }
-    } else if (!isMultiStory) {
+    } else {
       triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '', conv.autoChapterEnabled)
     }
   } catch (err: any) {
     clearTimeout(timeoutId)
-    if (fullText.trim()) {
-      await prisma.message.update({ where: { id: msgId }, data: { content: fullText, isStreaming: false } }).catch(() => {})
+    if (state.fullText.trim()) {
+      await prisma.message.update({ where: { id: msgId }, data: { content: state.fullText, isStreaming: false } }).catch(() => {})
     } else {
       await prisma.message.delete({ where: { id: msgId } }).catch(() => {})
       await prisma.message.update({ where: { id: prevAssistantId }, data: { isSelected: true } }).catch(() => {})
     }
   }
-}
-
-async function regenerateControlledResponse({
-  conv, systemPrompt, history, firstDraft, character, revisionOptions, signal,
-}: {
-  conv: any
-  systemPrompt: string
-  history: { role: 'user' | 'model'; parts: [{ text: string }] }[]
-  firstDraft: string
-  character: any
-  revisionOptions: { allowChoices: boolean; forbiddenChoiceNames: string[]; requiredBodyNames: string[] }
-  signal: AbortSignal
-}): Promise<string> {
-  let revisedText = ''
-  await streamChat(
-    {
-      provider: conv.currentAI as 'gemini',
-      systemPrompt,
-      messages: [
-        ...history,
-        { role: 'model', parts: [{ text: firstDraft }] },
-        { role: 'user', parts: [{ text: buildRevisionPrompt(firstDraft, revisionOptions) }] },
-      ],
-      temperature: Math.min(Number(character.temperature ?? 0.9), 0.75),
-      frequencyPenalty: character.frequencyPenalty,
-      maxOutputTokens: conv.maxOutputTokens,
-      thinkingBudget: conv.thinkingBudget,
-      safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
-    },
-    chunk => { revisedText += chunk },
-    signal,
-  )
-  return revisedText
 }

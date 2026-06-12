@@ -39,17 +39,12 @@ function previewText(content: string): string {
 }
 
 const MODE_LABEL: Record<string, string> = {
-  roleplay: '⚔ 롤플레이',
-  novel: '✍ 소설',
-  tikiTaka: '👥 멀티스토리',
   multiStory: '👥 멀티스토리',
   story: '📖 스토리',
 }
 
 const MODE_FILTERS = [
   { key: 'all', label: '전체' },
-  // { key: 'roleplay', label: '⚔ 롤플레이' },
-  // { key: 'novel', label: '✍ 소설' },
   { key: 'story', label: '📖 스토리' },
   { key: 'multi', label: '👥 멀티' },
 ] as const
@@ -132,7 +127,7 @@ export default function ChatListPage() {
   }
 
   const filtered = conversations.filter(c => {
-    if (modeFilter === 'multi' && c.mode !== 'tikiTaka' && c.mode !== 'multiStory') return false
+    if (modeFilter === 'multi' && c.mode !== 'multiStory') return false
     if (modeFilter !== 'all' && modeFilter !== 'multi' && c.mode !== modeFilter) return false
     if (sourceFilter !== 'all' && getSource(c.sourceUrl) !== sourceFilter) return false
     if (!query.trim()) return true

@@ -8,7 +8,7 @@ import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import MessageBlocks from '@/components/ui/MessageBlocks'
 import NovelScene from '@/components/ui/NovelScene'
-import { parseBlocks, parseNovelBlocks } from '@/lib/parseBlocks'
+import { parseNovelBlocks } from '@/lib/parseBlocks'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 import CharacterCardModal from '@/components/ui/CharacterCardModal'
@@ -821,10 +821,9 @@ export default function ChatPage() {
   const char = conv.characters[0]?.character
   if (!char) return null
 
-  const isNovel = conv.mode === 'novel'
-  const isTikiTaka = conv.mode === 'tikiTaka' || conv.mode === 'multiStory'
+  const isMulti = conv.mode === 'multiStory'
   const isStory = conv.mode === 'story'
-  const isStoryOrMulti = conv.mode === 'story' || conv.mode === 'multiStory'
+  const isStoryOrMulti = isStory || isMulti
   const lastMsg = messages[messages.length - 1]
   const isLastAssistant = lastMsg?.role === 'assistant'
 
@@ -877,7 +876,7 @@ export default function ChatPage() {
         </div>
       </>
     )}
-    <Win title={isTikiTaka ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat} noTitle>
+    <Win title={isMulti ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat} noTitle>
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
         <div className="chat-header spread">
           <div className="hstack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
@@ -891,13 +890,13 @@ export default function ChatPage() {
             <div style={{ minWidth: 0 }}>
               <div className="hstack" style={{ gap: 5, overflow: 'hidden' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {isTikiTaka ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
+                  {isMulti ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
                   {conv.personaCharacter
                     ? <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-soft)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 변경">· {conv.personaCharacter.name} ▾</button>
                     : <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-faint)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 설정">+ 페르소나</button>
                   }
                 </span>
-                <span className="mode-badge">{isNovel ? '소설' : isTikiTaka ? '👥 멀티' : isStory ? '스토리' : '롤플레이'}</span>
+                <span className="mode-badge">{isMulti ? '👥 멀티' : '스토리'}</span>
                 {conv?.autoChapterEnabled && (conv.chapter ?? 1) > 1 && (
                   <span className="melting-chapter-badge" style={{ marginLeft: 6 }}>{conv.chapter ?? 1}장</span>
                 )}
@@ -994,17 +993,11 @@ export default function ChatPage() {
               )}
               {messages.length === 0 && !streaming && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
-                  <div style={{ fontSize: 24 }}>{isNovel ? '✍' : isStoryOrMulti ? '📖' : '✦'}</div>
+                  <div style={{ fontSize: 24 }}>📖</div>
                   <div className="tiny muted" style={{ textAlign: 'center', lineHeight: 1.6 }}>
-                    {isNovel
-                      ? <>장면을 지시해보세요.<br />예: "{char.name}와 처음 만나는 장면"</>
-                      : conv.mode === 'multiStory'
-                        ? <>멀티스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
-                        : isTikiTaka
-                          ? <>{conv.characters.map(cc => cc.character.name).join(', ')}와의 이야기를 시작해보세요.<br />메시지를 보내면 캐릭터들이 자연스럽게 반응합니다.</>
-                          : isStory
-                            ? <>스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
-                            : <>{char.name}와의 대화를 시작해보세요.<br />아래에 메시지를 입력하면 됩니다.</>
+                    {isMulti
+                      ? <>멀티스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
+                      : <>스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
                     }
                   </div>
                 </div>
@@ -1029,7 +1022,7 @@ export default function ChatPage() {
                   ? replaceDisplayPlaceholders(m.content, conv.personaCharacter?.name ?? '나', msgChar.name)
                   : m.content
                 const storyParsed = isStoryOrMulti && !isYou ? parseStoryChoices(processedContent) : null
-                const blocks = isYou ? [] : (isNovel || isStory || isTikiTaka ? parseNovelBlocks(storyParsed ? storyParsed.body : processedContent) : parseBlocks(processedContent))
+                const blocks = isYou ? [] : parseNovelBlocks(storyParsed ? storyParsed.body : processedContent)
                 const branchesFromHere = branches.filter(b => b.branchFromMessageId === m.id && b.id !== params.id)
 
                 return (
@@ -1056,7 +1049,7 @@ export default function ChatPage() {
                       /* ── 유저 메시지: 오른쪽 ── */
                       <div className="seq-block seq-right">
                         <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                          {isNovel ? '작가' : (conv.personaCharacter?.name ?? '당신')}
+                          {conv.personaCharacter?.name ?? '당신'}
                           {conv.personaCharacter && (
                             <div className="thumb" style={{ width: 18, height: 18, flexShrink: 0 }}>
                               {conv.personaCharacter.avatarUrl
@@ -1074,14 +1067,14 @@ export default function ChatPage() {
                             onCancel={() => setEditingId(null)}
                           />
                         ) : (
-                          <div className={`bubble ${isNovel ? 'bubble-author' : 'bubble-persona'}`} style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+                          <div className="bubble bubble-persona" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                         )}
                       </div>
                     ) : isEditing ? (
                       /* ── AI 편집 중 ── */
                       <div className="seq-block seq-left">
                         <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {isTikiTaka && (
+                          {isMulti && (
                             <div className="thumb" style={{ width: 22, height: 22, flexShrink: 0 }}>
                               {msgChar.avatarUrl
                                 ? <img src={msgChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} alt="" />
@@ -1165,7 +1158,7 @@ export default function ChatPage() {
                           const speaker = rawSpeaker.replace(/^\[|\]$/g, '').trim()
                           const isPersona = !!conv.personaCharacter && isSamePerson(speaker, conv.personaCharacter.name)
                           const isConvChar = conv.characters.some(cc => isSamePerson(speaker, cc.character.name))
-                          const speakerChar = isTikiTaka ? conv.characters.find(cc => isSamePerson(speaker, cc.character.name))?.character : undefined
+                          const speakerChar = isMulti ? conv.characters.find(cc => isSamePerson(speaker, cc.character.name))?.character : undefined
                           const thought = b.type === 'thought' ? ' thought-bubble' : ''
                           if (isPersona) {
                             return (
@@ -1197,7 +1190,7 @@ export default function ChatPage() {
                       /* ── 폴백: 파싱 불가 시 원본 표시 ── */
                       <div className="seq-block seq-left">
                         <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {isTikiTaka && (
+                          {isMulti && (
                             <div className="thumb" style={{ width: 22, height: 22, flexShrink: 0 }}>
                               {msgChar.avatarUrl
                                 ? <img src={msgChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} alt="" />
@@ -1318,7 +1311,7 @@ export default function ChatPage() {
                       ? <>
                           {(() => {
                             const ps = replaceDisplayPlaceholders(streaming, conv.personaCharacter?.name ?? '나', streamingChar.name)
-                            return isNovel || isTikiTaka
+                            return isMulti
                               ? <NovelScene text={ps} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
                               : <MessageBlocks text={ps} />
                           })()}
@@ -1442,11 +1435,7 @@ export default function ChatPage() {
                   className="field"
                   rows={1}
                   style={{ resize: 'none', overflow: 'hidden', minHeight: 36, maxHeight: 120, lineHeight: '1.5' }}
-                  placeholder={typing ? 'AI가 응답 중...'
-                    : isNovel ? '장면을 지시해보세요…'
-                    : isStoryOrMulti ? '직접 입력하거나 선택지를 클릭하세요…'
-                    : isTikiTaka ? '메시지를 입력하면 모두가 응답합니다…'
-                    : `${char.name}에게 말 걸기…`}
+                  placeholder={typing ? 'AI가 응답 중...' : '직접 입력하거나 선택지를 클릭하세요…'}
                   disabled={typing}
                   onInput={handleComposerInput}
                   onKeyDown={e => {

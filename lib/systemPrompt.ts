@@ -1,44 +1,6 @@
 import type { Character, LorebookEntry, StyleConfig } from '@/types'
 import { fixJosa, applyPersonaPlaceholders } from './josa'
 
-export const BASE_RULES = `You are a novel-style roleplay AI. Always follow the output format below.
-
-[Output Format]
-- Actions/narration/description: plain text without quotes (e.g.: She gazed out the window.)
-- Spoken dialogue: always wrap in double quotes ("") (e.g.: "I'm a doctor. Nice to meet you.")
-- Inner thoughts/monologue: always wrap in single quotes ('') (e.g.: 'I wonder what kind of person this is.')
-
-Never write spoken dialogue without double quotes. Every spoken line must be wrapped in double quotes without exception.
-Maintain the character's perspective consistently and portray their personality, speech style, and worldview coherently.
-
-[Character Voice — STRICT]
-- The character's speech style, tone, and verbal habits defined in the character profile are PERMANENT. They must never drift, soften, or change regardless of conversation length.
-- FORBIDDEN: Replacing the character's defined speech pattern with a generic or neutral tone as the conversation progresses.
-- If the character uses a specific sentence-ending (e.g., ~다냥, ~이에요, ~ㄴ데?), it must appear in every single line of dialogue without exception.
-
-[No Excessive Ellipsis]
-- FORBIDDEN: Using "..." more than once per response.
-- FORBIDDEN: Starting or ending dialogue with "...".
-- Silence, hesitation, or pause must be expressed through action descriptions (e.g.: She averted her eyes.) not "...".
-
-[No Repetition]
-- Do not reuse vocabulary, sentence structures, or action descriptions from the previous response.
-- Never end responses with questions, preachy remarks, or host-like prompts.
-- Use varied vocabulary and fresh action descriptions each turn for natural story flow.
-
-[Scene Continuity]
-- Always reflect the current physical state of the scene: time of day, clothing, location, and any changes that occurred in previous turns.
-- FORBIDDEN: Reverting to initial setup details (outfit, time, place) that have already changed in the story.
-- If the character changed clothes, fell asleep, moved locations, or time passed — these states persist and must be reflected naturally.
-
-[Anti-Hallucination]
-- Do not fabricate facts not established in the character profile or prior conversation.
-- Do not output content that contradicts established facts or states from previous exchanges.
-
-- FORBIDDEN: Offering choices or asking "What would you like to do?" style questions. The character judges and acts on their own, driving the scene.
-- Response length: Write each response richly with narration, action, and dialogue. Do not let responses become noticeably shorter than the previous one.
-- User agency: Only treat actions/dialogue/emotions/decisions explicitly input by the user as confirmed. The character leads the scene through their own feelings and actions, but leaves the user's next reaction to the user.`
-
 function approxTokens(text: string): number {
   let tokens = 0
   for (const ch of text) {
@@ -79,33 +41,6 @@ function buildStyleSection(s: StyleConfig): string {
   return lines.length > 0 ? `[스타일 지시]\n${lines.join('\n')}` : ''
 }
 
-export const NOVEL_BASE_RULES = `You are a novelist. Always follow the output format below:
-- Narration/action/setting: plain text without a speaker name (e.g.: Rain tapped against the window.)
-- Dialogue: always use the format Name : "content" (e.g.: CharacterName : "Hello.")
-- Inner thoughts: always use the format Name : 'content' (e.g.: PersonaName : 'Why am I so nervous...')
-- Secondary characters also follow the same Name : "dialogue" format.
-- Write scenes where characters interact naturally based on the user's scene direction.
-
-[Character Voice — STRICT]
-- Each character's speech style and verbal habits defined in their profile are PERMANENT throughout all scenes.
-- FORBIDDEN: Replacing a character's defined speech pattern with a generic tone as the story progresses.
-
-[No Excessive Ellipsis]
-- FORBIDDEN: Using "..." more than once per response.
-- Hesitation or pause must be expressed through action descriptions, not "...".
-
-[No Repetition]
-- Do not reuse specific vocabulary, grammatical structures, or descriptive patterns from the previous response. Keep sentences varied and literary.
-
-[Scene Continuity]
-- Always reflect current physical states: time of day, clothing, location, and prior scene changes.
-- FORBIDDEN: Reverting to initial setup details that have already changed in the narrative.
-
-[Anti-Hallucination]
-- Do not fabricate facts that contradict the character profiles or world settings.
-
-- FORBIDDEN: Writing dialogue without a speaker name (e.g.: "Hello." alone). Every line of dialogue must follow the Name : "content" format without exception.`
-
 // {{user}}, {user}, [유저], user, guest, persona, 페르소나, 주인공, 당신 등 유저 플레이스홀더를 페르소나 이름으로 치환
 export function replacePlaceholders(text: string, personaName: string, charName?: string): string {
   return fixJosa(applyPersonaPlaceholders(text, personaName, charName), [personaName, charName])
@@ -143,108 +78,6 @@ function buildLorebookSection(lorebook: LorebookEntry[]): string {
     tokenCount += t
   }
   return selected.length > 0 ? `[세계관 정보]\n${selected.join('\n\n')}` : ''
-}
-
-export function buildSystemPrompt({
-  character,
-  personaCharacter,
-  coreMemory,
-  statusTimeline,
-  scenarioDescription,
-  openingScene,
-  lorebook = [],
-  longTermMemory = [],
-  globalRules,
-  modeRules,
-  personalRules,
-  closingRules,
-  styleConfig,
-}: BuildSystemPromptParams): string {
-  const parts: string[] = []
-
-  if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
-  if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
-  parts.push(BASE_RULES)
-  if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
-  if (modeRules?.trim()) parts.push(`[롤플레이 추가 규칙]\n${modeRules}`)
-
-  if (personaCharacter) {
-    const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
-    parts.push(`[유저 페르소나]\n이름: ${personaCharacter.name}${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
-  }
-  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
-  parts.push(`[캐릭터 설정]\n${buildCharLines(character, personaCharacter?.name)}`)
-  if (scenarioDescription?.trim()) {
-    const sd = personaCharacter ? replacePlaceholders(scenarioDescription, personaCharacter.name, character.name) : scenarioDescription
-    parts.push(`[시나리오 배경]\n${sd}`)
-  }
-  const openingSceneSection = buildOpeningSceneSection(openingScene)
-  if (openingSceneSection) parts.push(openingSceneSection)
-  if (character.exampleDialogues?.trim()) {
-    const ex = personaCharacter ? replacePlaceholders(character.exampleDialogues, personaCharacter.name, character.name) : character.exampleDialogues
-    parts.push(`[예시 대화]\n${ex}`)
-  }
-
-  const lorebookSection = buildLorebookSection(lorebook)
-  if (lorebookSection) parts.push(lorebookSection)
-  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
-  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 준수]\n${coreMemory}`)
-  if (closingRules?.trim()) parts.push(closingRules)
-
-  return parts.join('\n\n---\n\n')
-}
-
-export function buildNovelSystemPrompt({
-  character,
-  personaCharacter,
-  coreMemory,
-  statusTimeline,
-  scenarioDescription,
-  openingScene,
-  lorebook = [],
-  longTermMemory = [],
-  globalRules,
-  modeRules,
-  personalRules,
-  closingRules,
-  styleConfig,
-}: BuildSystemPromptParams): string {
-  const personaName = personaCharacter?.name ?? '주인공'
-  const characterName = character.name
-
-  const novelBase = `당신은 소설 작가입니다. ${personaName}과 ${characterName}이 주인공으로 등장하는 장면을 써주세요.\n\n${NOVEL_BASE_RULES.replace('캐릭터명', characterName).replace('페르소나명', personaName)}\n\n주인공은 "${personaName}"과 "${characterName}"이며, 장면에 필요한 제3의 인물은 자유롭게 등장시킬 수 있습니다.`
-
-  const parts: string[] = []
-  if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
-  if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
-  parts.push(novelBase)
-  if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
-  if (modeRules?.trim()) parts.push(`[소설 추가 규칙]\n${modeRules}`)
-
-  if (personaCharacter) {
-    const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
-    parts.push(`[${personaName} 설정]${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
-  }
-  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
-  parts.push(`[${characterName} 설정]\n${buildCharLines(character, personaName)}`)
-  if (scenarioDescription?.trim()) {
-    const sd = replacePlaceholders(scenarioDescription, personaName, characterName)
-    parts.push(`[시나리오 배경]\n${sd}`)
-  }
-  const openingSceneSection = buildOpeningSceneSection(openingScene)
-  if (openingSceneSection) parts.push(openingSceneSection)
-  if (character.exampleDialogues?.trim()) {
-    const ex = replacePlaceholders(character.exampleDialogues, personaName, characterName)
-    parts.push(`[예시 대화 (참고용)]\n${ex}`)
-  }
-
-  const lorebookSection = buildLorebookSection(lorebook)
-  if (lorebookSection) parts.push(lorebookSection)
-  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
-  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 준수]\n${coreMemory}`)
-  if (closingRules?.trim()) parts.push(closingRules)
-
-  return parts.join('\n\n---\n\n')
 }
 
 function buildStoryBaseRules(charName: string, personaName: string): string {
@@ -340,7 +173,6 @@ export function buildStorySystemPrompt({
 
 export interface MultiStoryPromptParams {
   characters: Character[]
-  mode?: string
   personaCharacter?: PersonaCharacter
   coreMemory?: string
   statusTimeline?: string
@@ -359,7 +191,6 @@ export interface MultiStoryPromptParams {
 
 export function buildMultiStorySystemPrompt({
   characters,
-  mode,
   personaCharacter,
   coreMemory,
   statusTimeline,
@@ -378,27 +209,7 @@ export function buildMultiStorySystemPrompt({
   const personaName = personaCharacter?.name ?? '나'
   const charNames = characters.map(c => c.name).join(', ')
 
-  const isTikiTaka = mode === 'tikiTaka'
-
-  const baseRules = isTikiTaka
-    ? `You are a group novel-style roleplay AI with multiple characters.
-All characters interact naturally in each scene — decide who speaks, acts, or reacts organically based on the situation. Do not follow a fixed sequential order.
-
-[Output Format]
-- Scene narration/action/setting: plain text without a speaker name. (e.g.: Rain tapped against the window as they looked at each other.)
-- Dialogue: always use the format Name : "content" (e.g.: ${characters[0]?.name ?? 'Character'} : "Nice to meet you.")
-- Inner thoughts: always use the format Name : 'content' (e.g.: ${characters[0]?.name ?? 'Character'} : 'I wonder if they are telling the truth.')
-- ANY of the following characters may speak, act, or think in each response: ${charNames}
-- FORBIDDEN: Do NOT write a "---" divider or any list of choices at the end. Respond ONLY with the story content (narration and character dialogue/thoughts).
-- FORBIDDEN: Writing ${personaName}'s words, actions, or thoughts in the body. Only write for ${charNames}.
-- FORBIDDEN: Writing dialogue without a speaker name. Every line of dialogue must follow the Name : "content" format.
-
-[Character Voice — STRICT]
-Each character must maintain their unique speech style and personality at all times. Never let characters sound the same.
-
-[No Excessive Ellipsis]
-FORBIDDEN: Using "..." more than once per response. Express hesitation through action descriptions instead.`
-    : `You are an interactive story writer with multiple characters.
+  const baseRules = `You are an interactive story writer with multiple characters.
 All characters interact naturally in each scene — decide who speaks, acts, or reacts based on the situation. Do not follow a fixed order.
 
 [Output Format]

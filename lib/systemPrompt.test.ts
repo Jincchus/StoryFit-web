@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { replacePlaceholders, buildSystemPrompt } from './systemPrompt'
+import { replacePlaceholders, buildStorySystemPrompt } from './systemPrompt'
 import type { Character } from '@/types'
 
 describe('replacePlaceholders', () => {
@@ -12,7 +12,7 @@ describe('replacePlaceholders', () => {
   })
 })
 
-describe('buildOpeningSceneSection (buildSystemPrompt 경유)', () => {
+describe('buildOpeningSceneSection (buildStorySystemPrompt 경유)', () => {
   const baseCharacter: Character = {
     id: 'char-1',
     name: '철수',
@@ -26,7 +26,7 @@ describe('buildOpeningSceneSection (buildSystemPrompt 경유)', () => {
   }
 
   it('openingScene이 있으면 연속성 지시문과 함께 [오프닝 장면] 섹션을 포함한다', () => {
-    const prompt = buildSystemPrompt({
+    const prompt = buildStorySystemPrompt({
       character: baseCharacter,
       openingScene: '철수와 영수가 말다툼을 벌이고 있다.',
     })
@@ -38,7 +38,7 @@ describe('buildOpeningSceneSection (buildSystemPrompt 경유)', () => {
   })
 
   it('openingScene이 없으면 [오프닝 장면] 섹션이 포함되지 않는다', () => {
-    const prompt = buildSystemPrompt({ character: baseCharacter })
+    const prompt = buildStorySystemPrompt({ character: baseCharacter })
 
     expect(prompt).not.toContain('[오프닝 장면 — 대화의 시작]')
   })

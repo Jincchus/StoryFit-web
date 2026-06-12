@@ -43,7 +43,6 @@ const GUIDE_SECTIONS: { title: string; items: GuideItem[] }[] = [
     items: [
       { emoji: '📖', label: '스토리', desc: 'AI가 장면을 서술하고 선택지를 제시하는 인터랙티브 소설.' },
       { emoji: '👥', label: '멀티스토리', desc: '여러 캐릭터가 함께 이야기 속에서 상호작용합니다.' },
-      { emoji: '💬', label: '자유 대화 (그룹)', desc: '선택지 없이 여러 캐릭터가 소설식으로 번갈아 대화합니다.' },
     ],
   },
   {

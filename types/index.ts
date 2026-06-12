@@ -11,7 +11,7 @@ export interface StyleConfig {
 export type StatEntry = { name: string; value: number; min: number; max: number }
 export type InventoryItem = { name: string; qty: number; description?: string }
 export type AIProvider = 'gemini' | 'claude' | 'chatgpt'
-export type ConvMode = 'roleplay' | 'novel' | 'tikiTaka' | 'story'
+export type ConvMode = 'story' | 'multiStory' | 'assistant'
 export type MessageRole = 'user' | 'assistant'
 export type AvatarKind = 'wizard' | 'knight' | 'rogue' | 'maid' | 'vampire' | 'ai' | 'elf' | 'ninja' | 'player' | 'custom'
 

@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
     const personaRooms = personaRoomsByChar.get(c.id) ?? []
     const counts = aggregateCounts([
       ...(convsByChar.get(c.id) ?? []),
-      ...personaRooms.map(pr => ({ isArchived: pr.isArchived, rootConversationId: null, mode: 'roleplay' })),
+      ...personaRooms.map(pr => ({ isArchived: pr.isArchived, rootConversationId: null, mode: 'story' })),
     ])
 
     const collection = c.collection

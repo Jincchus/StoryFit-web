@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
   const title = String(body.title ?? '').trim().slice(0, 200)
   if (!title) return NextResponse.json({ error: 'title은 필수입니다.' }, { status: 400 })
 
-  const isAssistant = (body.mode ?? 'roleplay') === 'assistant'
+  const mode = ['story', 'multiStory', 'assistant'].includes(body.mode) ? body.mode : 'story'
+  const isAssistant = mode === 'assistant'
 
   const characterIds: string[] = Array.isArray(body.characterIds)
     ? body.characterIds.slice(0, 10).map(String)
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
     data: {
       userId,
       title,
-      mode: body.mode ?? 'roleplay',
+      mode,
       currentAI: body.currentAI ?? 'gemini',
       personaCharacterId: body.personaCharacterId ?? null,
       scenarioDescription: body.scenarioDescription ?? '',

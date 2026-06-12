@@ -143,7 +143,7 @@ export default function LibraryReadPage() {
   )
 
   const isStory = conv.mode === 'story'
-  const useProseLayout = conv.mode === 'novel' || isStory
+  const useProseLayout = isStory
   const personaName = conv.personaCharacter?.name?.toLowerCase() ?? ''
 
   return (
@@ -300,7 +300,7 @@ export default function LibraryReadPage() {
             )
           }
 
-          // roleplay / tikiTaka — 기존 버블 레이아웃 유지
+          // multiStory — 기존 버블 레이아웃 유지
           const speaker = isUser ? conv.personaCharacter : char
           return (
             <div key={msg.id} style={{ position: 'relative' }}>

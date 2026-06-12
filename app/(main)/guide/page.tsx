@@ -12,8 +12,6 @@ const FEATURE_SECTIONS: FeatureSection[] = [
     items: [
       { emoji: '📖', label: '스토리', desc: 'AI가 장면을 서술하고 선택지를 제시하는 인터랙티브 소설 모드입니다.' },
       { emoji: '👥', label: '멀티스토리', desc: '여러 캐릭터가 함께 이야기 속에서 상호작용합니다.' },
-      { emoji: '💬', label: '자유 대화 (티키타카)', desc: '선택지 없이 여러 캐릭터가 소설식으로 번갈아 대화합니다.' },
-      { emoji: '✍', label: '소설', desc: '노벨체로 서술되는 1인 대화 모드입니다.' },
     ],
   },
   {
