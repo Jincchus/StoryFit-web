@@ -59,16 +59,46 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-const SEP_RE = /\n(-{3,}|\*{3,}|={3,})\s*\n/
+const SEP_LINE_RE = /^(-{3,}|\*{3,}|={3,})\s*$/
+const CHOICE_LINE_RE = /^(\d+[\.\)]|[①②③④⑤])/
+
+// 마지막 구분선 기준 본문/선택지 분리 — 클라이언트 렌더링과 서버 검증이 같은 파서를 공유한다
+export function splitStoryResponse(text: string): { body: string; choiceBlock: string } {
+  const lines = text.split('\n')
+  let sepIdx = -1
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (SEP_LINE_RE.test(lines[i].trim())) { sepIdx = i; break }
+  }
+  if (sepIdx === -1) return { body: text, choiceBlock: '' }
+  return { body: lines.slice(0, sepIdx).join('\n').trim(), choiceBlock: lines.slice(sepIdx + 1).join('\n') }
+}
+
+// 구분선 뒤가 진짜 선택지인지 판별 — 본문 중간의 마크다운 가로줄(---)을 선택지로 오인하지 않도록
+function looksLikeChoiceBlock(choiceBlock: string): boolean {
+  const lines = choiceBlock.split('\n').map(l => l.trim()).filter(Boolean)
+  if (lines.length === 0) return false
+  const numbered = lines.filter(l => CHOICE_LINE_RE.test(l))
+  return numbered.length >= Math.ceil(lines.length / 2)
+}
+
+export function parseStoryChoices(content: string): { body: string; choices: string[] } {
+  const { body, choiceBlock } = splitStoryResponse(content)
+  if (!choiceBlock || !looksLikeChoiceBlock(choiceBlock)) return { body: content, choices: [] }
+  const choices = choiceBlock
+    .split('\n')
+    .map(l => l.replace(/^[①②③④⑤][\s.]*/,'').replace(/^\d+[\.\)]\s*/, '').trim())
+    .filter(Boolean)
+  return { body, choices }
+}
 
 function getChoiceBlock(text: string): string {
-  const parts = text.split(SEP_RE)
-  // split with capture group → [body, sep, choices]
-  return parts.length >= 3 ? parts[parts.length - 1] : ''
+  const { choiceBlock } = splitStoryResponse(text)
+  return looksLikeChoiceBlock(choiceBlock) ? choiceBlock : ''
 }
 
 function getBodyBlock(text: string): string {
-  return text.split(SEP_RE)[0] ?? text
+  const { body, choiceBlock } = splitStoryResponse(text)
+  return looksLikeChoiceBlock(choiceBlock) ? body : text
 }
 
 function hasForbiddenChoiceSpeaker(text: string, names: string[] = []): boolean {
@@ -99,9 +129,9 @@ export function appendTurnControlInstruction(content: string, allowChoices = fal
 
 export function stripChoiceArtifacts(text: string): string {
   const trimmed = text.trim()
-  const parts = trimmed.split(SEP_RE)
-  if (parts.length >= 3) {
-    return parts[0].trim()
+  const { body, choiceBlock } = splitStoryResponse(trimmed)
+  if (choiceBlock && looksLikeChoiceBlock(choiceBlock)) {
+    return body
   }
 
   const lines = trimmed.split('\n')

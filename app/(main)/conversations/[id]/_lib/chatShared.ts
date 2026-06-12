@@ -24,22 +24,7 @@ export const COMMANDS = [
   { name: '!도움말', desc: '⚙️ 시스템 명령어 도움말' },
 ]
 
-const STORY_SEP_RE = /^(-{3,}|\*{3,}|={3,})\s*$/
-
-export function parseStoryChoices(content: string): { body: string; choices: string[] } {
-  const lines = content.split('\n')
-  let sepIdx = -1
-  for (let i = lines.length - 1; i >= 0; i--) {
-    if (STORY_SEP_RE.test(lines[i].trim())) { sepIdx = i; break }
-  }
-  if (sepIdx === -1) return { body: content, choices: [] }
-  const body = lines.slice(0, sepIdx).join('\n').trim()
-  const choices = lines
-    .slice(sepIdx + 1)
-    .map(l => l.replace(/^[①②③④⑤][\s.]*/,'').replace(/^\d+[\.\)]\s*/, '').trim())
-    .filter(Boolean)
-  return { body, choices }
-}
+export { parseStoryChoices } from '@/lib/responseControl'
 
 function editDistance(a: string, b: string): number {
   const m = a.length, n = b.length
