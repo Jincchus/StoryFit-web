@@ -142,7 +142,7 @@ export default function AdminConfigPage() {
             <div style={{ padding: '10px 12px', background: 'rgba(139,92,246,.06)', border: '1px solid rgba(139,92,246,.2)' }}>
               <div className="tiny" style={{ color: 'var(--purple)', fontWeight: 700, marginBottom: 4 }}>프롬프트 조립 순서</div>
               <div className="tiny muted" style={{ lineHeight: 1.7 }}>
-                공통 규칙 → 유저 개인 설정 → 기본 규칙(코드 고정) → 스타일 지시(선택) → 추가 규칙 → 유저 페르소나 → 현재 에피소드 상태 → 캐릭터 설정 → 시나리오 배경 → 예시 대화 → 로어북 → 장기 메모리 → 핵심 메모리 → 최종 강조 규칙(DB)
+                공통 규칙 → 유저 개인 설정 → 기본 규칙(코드 고정) → 스타일 지시(선택) → 추가 규칙 → 유저 페르소나 → 캐릭터 설정 → 시나리오 배경 → 예시 대화 → 현재 상태·스탯·인벤토리 → 로어북 → 장기 메모리 → 핵심 메모리 → 최종 강조 규칙(DB) ※ 정적 블록을 앞에 둬 Gemini 캐시 적중 유도
               </div>
             </div>
 

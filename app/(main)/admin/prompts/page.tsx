@@ -107,24 +107,24 @@ Inside the dark observatory, only starlight illuminated her face.
               />
               <PromptStep
                 step="5"
-                title="현재 상태 (statusTimeline + 스탯·인벤토리)"
-                vars="statusTimeline + statsConfig + inventory"
-                desc="에피소드 상태 기록이며, 스탯(있을 경우)과 인벤토리(있을 경우)도 이 단계에서 삽입됩니다."
-                source="statusTimeline/statsConfig/inventory: DB Conversation"
-              />
-              <PromptStep
-                step="6"
                 title="캐릭터 설정 및 시나리오 배경"
                 vars="character + scenarioDescription"
                 desc="AI 캐릭터 카드와 시나리오 배경입니다."
                 source="character: DB Character | scenarioDescription: DB Conversation.scenarioDescription"
               />
               <PromptStep
-                step="7"
+                step="6"
                 title="대화 예시 (Few-shot)"
                 vars="character.exampleDialogues"
                 desc="캐릭터 말투 파악을 위한 예시 대화 로그입니다."
                 source="exampleDialogues: DB Character.exampleDialogues"
+              />
+              <PromptStep
+                step="7"
+                title="현재 상태 (statusTimeline + 스탯·인벤토리)"
+                vars="statusTimeline + statsConfig + inventory"
+                desc="에피소드 상태 기록이며, 스탯(있을 경우)과 인벤토리(있을 경우)도 이 단계에서 삽입됩니다. 매 턴 바뀌는 가변 블록이라 정적 블록 뒤에 배치됩니다 (Gemini implicit cache 적중 유도)."
+                source="statusTimeline/statsConfig/inventory: DB Conversation"
               />
               <PromptStep
                 step="8"
@@ -189,24 +189,24 @@ Inside the dark observatory, only starlight illuminated her face.
               />
               <PromptStep
                 step="5"
-                title="현재 에피소드 상태 + 스탯·인벤토리"
-                vars="statusTimeline + statsConfig + inventory"
-                desc="에피소드 타임라인 상태 및 스탯·인벤토리(있을 경우)입니다."
-                source="statusTimeline/statsConfig/inventory: DB Conversation"
-              />
-              <PromptStep
-                step="6"
                 title="각 캐릭터 설정 + 예시 대화"
                 vars="characters[] + exampleDialogues[]"
                 desc="등록된 캐릭터 수만큼 반복 삽입됩니다. 각 캐릭터의 '[{charName} 설정]'과 '[{charName} 예시 대화]'가 쌍으로 들어갑니다."
                 source="characters: DB Character[] (대화방 연결 캐릭터 전체)"
               />
               <PromptStep
-                step="7"
+                step="6"
                 title="시나리오 배경"
                 vars="scenarioDescription"
                 desc="해당 대화방의 시나리오 배경입니다."
                 source="scenarioDescription: DB Conversation.scenarioDescription"
+              />
+              <PromptStep
+                step="7"
+                title="현재 에피소드 상태 + 스탯·인벤토리"
+                vars="statusTimeline + statsConfig + inventory"
+                desc="에피소드 타임라인 상태 및 스탯·인벤토리(있을 경우)입니다. 매 턴 바뀌는 가변 블록이라 정적 블록 뒤에 배치됩니다 (Gemini implicit cache 적중 유도)."
+                source="statusTimeline/statsConfig/inventory: DB Conversation"
               />
               <PromptStep
                 step="8"

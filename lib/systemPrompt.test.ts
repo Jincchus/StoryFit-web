@@ -44,6 +44,26 @@ describe('buildOpeningSceneSection (buildStorySystemPrompt 경유)', () => {
   })
 })
 
+describe('프롬프트 조립 순서 — 정적 프리픽스 유지 (implicit cache)', () => {
+  const character: Character = {
+    id: 'char-1', name: '철수', tags: [], additionalInfo: '',
+    exampleDialogues: '철수 : "안녕"', safetyLevel: 'standard',
+    temperature: 0.9, frequencyPenalty: 0.3, isPreset: false,
+  }
+
+  it('가변 블록(상태·스탯·인벤)은 캐릭터 설정·예시 대화보다 뒤에 온다', () => {
+    const prompt = buildStorySystemPrompt({
+      character,
+      statusTimeline: '마왕성 탐험 중',
+      statsConfig: [{ name: '호감도', value: 50, min: 0, max: 100 }],
+      inventory: [{ name: '열쇠', qty: 1 }],
+    })
+    expect(prompt.indexOf('[예시 대화]')).toBeLessThan(prompt.indexOf('[현재 상태]'))
+    expect(prompt.indexOf('[캐릭터 설정]')).toBeLessThan(prompt.indexOf('[현재 스탯]'))
+    expect(prompt.indexOf('[현재 스탯]')).toBeLessThan(prompt.indexOf('[현재 인벤토리]'))
+  })
+})
+
 describe('matchLorebook', () => {
   const entry = (keyword: string[], over: Partial<LorebookEntry> = {}): LorebookEntry => ({
     id: 'lb-1', scope: 'conversation', scopeId: 'c-1',

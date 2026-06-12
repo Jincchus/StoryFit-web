@@ -141,15 +141,6 @@ export function buildStorySystemPrompt({
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
     parts.push(`[유저 역할]\n이름: ${personaCharacter.name}${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
-  if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}`)
-  if (statsConfig && statsConfig.length > 0) {
-    const statsLines = statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')
-    parts.push(`[현재 스탯]\n${statsLines}`)
-  }
-  if (inventory && inventory.length > 0) {
-    const invLines = inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')
-    parts.push(`[현재 인벤토리]\n${invLines}`)
-  }
   parts.push(`[캐릭터 설정]\n${buildCharLines(character, personaName)}`)
   if (scenarioDescription?.trim()) {
     const sd = replacePlaceholders(scenarioDescription, personaName, character.name)
@@ -160,6 +151,17 @@ export function buildStorySystemPrompt({
   if (character.exampleDialogues?.trim()) {
     const ex = replacePlaceholders(character.exampleDialogues, personaName, character.name)
     parts.push(`[예시 대화]\n${ex}`)
+  }
+
+  // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
+  if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}`)
+  if (statsConfig && statsConfig.length > 0) {
+    const statsLines = statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')
+    parts.push(`[현재 스탯]\n${statsLines}`)
+  }
+  if (inventory && inventory.length > 0) {
+    const invLines = inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')
+    parts.push(`[현재 인벤토리]\n${invLines}`)
   }
 
   const lorebookSection = buildLorebookSection(lorebook)
@@ -240,14 +242,6 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
     parts.push(`[${personaName} 설정]${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
   }
-  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
-  if (statsConfig && statsConfig.length > 0) {
-    parts.push(`[현재 스탯]\n${statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')}`)
-  }
-  if (inventory && inventory.length > 0) {
-    parts.push(`[현재 인벤토리]\n${inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')}`)
-  }
-
   for (const char of characters) {
     parts.push(`[${char.name} 설정]\n${buildCharLines(char, personaName)}`)
     if (char.exampleDialogues?.trim()) {
@@ -262,6 +256,15 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
   }
   const openingSceneSection = buildOpeningSceneSection(openingScene)
   if (openingSceneSection) parts.push(openingSceneSection)
+
+  // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
+  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}`)
+  if (statsConfig && statsConfig.length > 0) {
+    parts.push(`[현재 스탯]\n${statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')}`)
+  }
+  if (inventory && inventory.length > 0) {
+    parts.push(`[현재 인벤토리]\n${inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')}`)
+  }
 
   const lorebookSection = buildLorebookSection(lorebook)
   if (lorebookSection) parts.push(lorebookSection)
