@@ -209,6 +209,7 @@ model Message {
   outputTokens   Int          @default(0)
   inventoryDelta Json?
   statsDelta     Json?
+  bookmarked     Boolean      @default(false)
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])

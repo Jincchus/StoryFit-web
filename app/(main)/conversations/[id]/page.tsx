@@ -299,16 +299,22 @@ export default function ChatPage() {
     if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setHasNew(false) }
   }
 
-  // 본문 검색 결과에서 진입 시 해당 메시지 위치로 이동 (없으면 이전 페이지를 추가 로드하며 탐색)
+  // 본문 검색/북마크에서 진입 시 해당 메시지 위치로 이동 (없으면 이전 페이지를 추가 로드하며 탐색)
+  const [jumpTarget, setJumpTarget] = useState<string | null>(targetMsgId)
   const jumpDoneRef = useRef(false)
   const jumpAttemptsRef = useRef(0)
+  const jumpToMessage = (msgId: string) => {
+    jumpDoneRef.current = false
+    jumpAttemptsRef.current = 0
+    setJumpTarget(msgId)
+  }
   useEffect(() => {
-    if (!targetMsgId || jumpDoneRef.current || loadingConv || messages.length === 0) return
-    if (messages.some(m => m.id === targetMsgId)) {
+    if (!jumpTarget || jumpDoneRef.current || loadingConv || messages.length === 0) return
+    if (messages.some(m => m.id === jumpTarget)) {
       jumpDoneRef.current = true
       shouldScrollRef.current = false
       requestAnimationFrame(() => {
-        const el = document.getElementById(`msg-${targetMsgId}`)
+        const el = document.getElementById(`msg-${jumpTarget}`)
         if (el) {
           el.scrollIntoView({ block: 'center' })
           el.classList.add('msg-jump-highlight')
@@ -324,7 +330,7 @@ export default function ChatPage() {
       jumpDoneRef.current = true
       setToast('메시지 위치를 찾지 못했습니다')
     }
-  }, [targetMsgId, messages, hasMore, loadingMore, loadingConv])
+  }, [jumpTarget, messages, hasMore, loadingMore, loadingConv])
 
   useEffect(() => {
     const el = logRef.current
@@ -473,6 +479,15 @@ export default function ChatPage() {
   const stopAutoPlay = () => {
     autoPlayRef.current = 0
     setAutoPlayLeft(0)
+  }
+
+  const handleToggleBookmark = (msgId: string, next: boolean) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, bookmarked: next } : m))
+    api.patch(`/api/conversations/${params.id}/messages`, { messageId: msgId, bookmarked: next })
+      .catch(() => {
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, bookmarked: !next } : m))
+        setToast('북마크 저장에 실패했습니다')
+      })
   }
 
   // ── 커스텀 배경 및 테마 설정 ──────────────────────────────────────────
@@ -793,6 +808,7 @@ export default function ChatPage() {
                 saveEdit={saveEdit}
                 saveEditOnly={saveEditOnly}
                 onRequestDelete={setConfirmDeleteId}
+                onToggleBookmark={handleToggleBookmark}
                 onRegenerate={handleRegenerate}
                 onBranchSwitch={handleBranchSwitch}
                 onOpenBranchModal={msgId => { setBranchTargetMsgId(msgId); setShowBranchModal(true) }}
@@ -1027,6 +1043,7 @@ export default function ChatPage() {
               debouncedPatch={debouncedPatch}
               setToast={setToast}
               onShowCharCard={setCardChar}
+              onJumpToMessage={jumpToMessage}
               onClose={() => setShowPanel(false)}
             />
           )}

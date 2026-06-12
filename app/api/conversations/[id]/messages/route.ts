@@ -75,6 +75,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json()
 
+  // 북마크 토글
+  if (body.messageId && body.bookmarked !== undefined) {
+    const msg = await prisma.message.findUnique({ where: { id: body.messageId }, select: { conversationId: true } })
+    if (!msg || msg.conversationId !== params.id) {
+      return NextResponse.json({ error: '메시지를 찾을 수 없습니다.' }, { status: 404 })
+    }
+    const updated = await prisma.message.update({
+      where: { id: body.messageId },
+      data: { bookmarked: !!body.bookmarked },
+    })
+    return NextResponse.json(updated)
+  }
+
   // content-only edit (저장만)
   if (body.messageId && body.content !== undefined) {
     const msg = await prisma.message.findUnique({ where: { id: body.messageId } })

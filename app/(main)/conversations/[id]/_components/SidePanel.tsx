@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import PixelAvatar from '@/components/ui/PixelAvatar'
 import { applyTheme, THEMES } from '@/lib/theme'
@@ -10,7 +10,7 @@ import type { Conv, ConvChar, LbEntry, BranchInfo } from '../_lib/chatShared'
 
 export default function SidePanel({
   convId, conv, setConv, allChars, branches, customBg, setCustomBg, currentTheme, setCurrentTheme,
-  debouncedPatch, setToast, onShowCharCard, onClose,
+  debouncedPatch, setToast, onShowCharCard, onJumpToMessage, onClose,
 }: {
   convId: string
   conv: Conv
@@ -24,6 +24,7 @@ export default function SidePanel({
   debouncedPatch: (field: string, value: string) => void
   setToast: (msg: string) => void
   onShowCharCard: (c: ConvChar['character']) => void
+  onJumpToMessage: (msgId: string) => void
   onClose: () => void
 }) {
   const [editingTitle, setEditingTitle] = useState(false)
@@ -307,6 +308,16 @@ export default function SidePanel({
         <div className="tiny muted" style={{ marginTop: 4 }}>장면이나 시간대가 크게 전환될 때 AI가 자동으로 새 챕터로 구분합니다.</div>
       </div>
 
+      <div className="side-section">
+        <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, bookmark: !o.bookmark }))}>
+          <span>🔖 북마크</span>
+          <span className={`acc-arrow ${panelOpen.bookmark ? 'open' : ''}`}>▼</span>
+        </button>
+        {panelOpen.bookmark && (
+          <BookmarkPanel convId={convId} onJump={msgId => { onJumpToMessage(msgId); onClose() }} />
+        )}
+      </div>
+
       {(conv.mode === 'story' || conv.mode === 'multiStory') && (
         <div className="side-section">
           <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, plot: !o.plot }))}>
@@ -565,6 +576,50 @@ export default function SidePanel({
       </div>
     </div>
     </>
+  )
+}
+
+function BookmarkPanel({ convId, onJump }: {
+  convId: string
+  onJump: (msgId: string) => void
+}) {
+  const [bookmarks, setBookmarks] = useState<{ id: string; role: string; content: string; createdAt: string }[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get(`/api/conversations/${convId}/bookmarks`)
+      .then(setBookmarks)
+      .catch(() => setBookmarks([]))
+      .finally(() => setLoading(false))
+  }, [convId])
+
+  if (loading) return <div className="tiny muted" style={{ padding: '6px 0' }}>불러오는 중...</div>
+  if (bookmarks.length === 0) {
+    return <div className="tiny muted" style={{ padding: '6px 0', lineHeight: 1.5 }}>북마크한 메시지가 없습니다.<br />메시지를 탭하고 🔖 버튼으로 명장면을 저장하세요.</div>
+  }
+
+  return (
+    <div className="vstack" style={{ gap: 4, marginTop: 6 }}>
+      {bookmarks.map(b => (
+        <div
+          key={b.id}
+          style={{ padding: 6, background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)', cursor: 'pointer' }}
+          onClick={() => onJump(b.id)}
+        >
+          <div className="spread" style={{ marginBottom: 2 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: b.role === 'user' ? 'var(--accent, #0095f6)' : 'var(--hot-pink)' }}>
+              {b.role === 'user' ? '나' : 'AI'}
+            </span>
+            <span className="tiny muted" style={{ fontSize: 9 }}>
+              {new Date(b.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+          <div className="tiny muted" style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', lineHeight: 1.5 }}>
+            {b.content}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 

@@ -28,7 +28,7 @@ export default function MessageList({
   activeId, setActiveId, editingId, setEditingId,
   speakingId, speak, stopSpeaking,
   send, fillComposer, saveEdit, saveEditOnly,
-  onRequestDelete, onRegenerate, onBranchSwitch, onOpenBranchModal, onStopStream,
+  onRequestDelete, onToggleBookmark, onRegenerate, onBranchSwitch, onOpenBranchModal, onStopStream,
   getMsgChar,
 }: {
   messages: Msg[]
@@ -53,6 +53,7 @@ export default function MessageList({
   saveEdit: (content: string, msgId: string) => void
   saveEditOnly: (content: string, msgId: string) => void
   onRequestDelete: (msgId: string) => void
+  onToggleBookmark: (msgId: string, next: boolean) => void
   onRegenerate: () => void
   onBranchSwitch: (targetMessageId: string) => Promise<void>
   onOpenBranchModal: (msgId: string) => void
@@ -93,6 +94,9 @@ export default function MessageList({
                 ))}
               </div>
             )}
+          {m.bookmarked && (
+            <div style={{ textAlign: isYou ? 'right' : 'left', fontSize: 9, color: 'var(--hot-pink)', padding: '0 6px', lineHeight: 1 }}>🔖</div>
+          )}
           <div
             className={`msg-seq${activeId === m.id ? ' active' : ''}`}
             onClick={() => setActiveId(prev => prev === m.id ? null : m.id)}
@@ -332,6 +336,12 @@ export default function MessageList({
                       onClick={() => speakingId === m.id ? stopSpeaking() : speak(m.content, m.id)}
                     >{speakingId === m.id ? '■ 정지' : '🔊'}</button>
                   )}
+                  <button
+                    className="msg-action-btn"
+                    style={{ color: m.bookmarked ? 'var(--hot-pink)' : undefined }}
+                    aria-label={m.bookmarked ? '북마크 해제' : '북마크'}
+                    onClick={() => onToggleBookmark(m.id, !m.bookmarked)}
+                  >{m.bookmarked ? '🔖 해제' : '🔖'}</button>
                   <button className="msg-action-btn" aria-label="편집" onClick={() => setEditingId(m.id)}>✏ 편집</button>
                   <button
                     className="msg-action-btn"
