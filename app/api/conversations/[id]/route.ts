@@ -91,93 +91,18 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const target = await prisma.conversation.findFirst({
     where: { id: params.id, userId },
-    select: { id: true, rootConversationId: true, isArchived: true, isPinned: true, sourceUrl: true },
+    select: { id: true, rootConversationId: true, isArchived: true, isPinned: true },
   })
   if (!target) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
-
-  // URL import로 연결된 컬렉션 제거 (캐릭터는 보존, collectionId만 null로)
-  // conversationId 직접 매핑 우선, 없으면 sourceUrl path 기반 폴백 (share_id 변형 대비)
-  // 단, 같은 sourceUrl을 쓰는 다른 대화가 남아있으면 fallback 삭제는 건너뛴다
-  // (그 대화가 참조하는 센터 카드까지 함께 사라지는 것을 방지)
-  const baseSourceUrl = target.sourceUrl ? target.sourceUrl.split('?')[0] : ''
-
-  let hasSiblingConversation = false
-  if (baseSourceUrl) {
-    const sibling = await prisma.conversation.findFirst({
-      where: {
-        userId,
-        id: { not: params.id },
-        sourceUrl: { startsWith: baseSourceUrl },
-      },
-      select: { id: true },
-    })
-    hasSiblingConversation = !!sibling
-  }
-
-  // 루트(v1)를 삭제할 때 남은 분기가 있으면 가장 오래된 분기를 새 루트로 승격하므로,
-  // 컬렉션 정리 전에 승격 대상부터 파악한다.
-  const children = target.rootConversationId === null
-    ? await prisma.conversation.findMany({
-        where: { userId, rootConversationId: params.id },
-        orderBy: { createdAt: 'asc' },
-        select: { id: true },
-      })
-    : []
-  const newRootId = children[0]?.id ?? null
-
-  // 컬렉션 정리 — 컬렉션의 캐릭터를 아직 쓰는 다른 대화가 있으면 삭제하지 않는다.
-  // (대화 A 삭제 후에도 같은 캐릭터로 만든 대화 B의 센터 카드가 사라지는 것 방지)
-  const candidateCollections = await prisma.characterCollection.findMany({
-    where: {
-      userId,
-      OR: [
-        { conversationId: params.id },
-        ...(baseSourceUrl && !hasSiblingConversation
-          ? [{ sourceUrl: { startsWith: baseSourceUrl }, conversationId: null }]
-          : []),
-      ],
-    },
-    select: { id: true, conversationId: true, characters: { select: { id: true } } },
-  })
-
-  for (const col of candidateCollections) {
-    if (col.conversationId === params.id && newRootId) {
-      // 분기 승격 시 컬렉션도 새 루트로 재연결
-      await prisma.characterCollection.update({
-        where: { id: col.id },
-        data: { conversationId: newRootId },
-      })
-      continue
-    }
-    const charIds = col.characters.map(c => c.id)
-    const inUse = charIds.length > 0
-      ? await prisma.conversation.findFirst({
-          where: {
-            userId,
-            id: { not: params.id },
-            OR: [
-              { characters: { some: { characterId: { in: charIds } } } },
-              { personaCharacterId: { in: charIds } },
-            ],
-          },
-          select: { id: true },
-        })
-      : null
-    if (inUse) {
-      if (col.conversationId === params.id) {
-        await prisma.characterCollection.update({
-          where: { id: col.id },
-          data: { conversationId: null },
-        })
-      }
-    } else {
-      await prisma.characterCollection.delete({ where: { id: col.id } })
-    }
-  }
 
   // 분기는 rootConversationId 문자열로만 묶인 별도 Conversation이므로, 루트만 지우면
   // 남은 분기들이 고아가 되어 채팅리스트/서재(둘 다 루트 기준)에서 사라진다.
   if (target.rootConversationId === null) {
+    const children = await prisma.conversation.findMany({
+      where: { userId, rootConversationId: params.id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    })
     if (children.length > 0) {
       const [newRoot, ...rest] = children
       await prisma.$transaction([
