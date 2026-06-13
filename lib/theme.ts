@@ -1,5 +1,6 @@
 export const THEMES = [
-  { id: 'instagram',   label: 'Instagram',      desc: 'IG 스타일 (기본)',          palette: ['#ffffff', '#fafafa', '#0095f6', '#000000'] },
+  { id: 'dark',        label: 'StoryFit Dark',  desc: '다크 모드 (기본)',          palette: ['#0d0d0f', '#1a1a20', '#8b5cf6', '#f4f4f6'] },
+  { id: 'instagram',   label: 'Instagram',      desc: 'IG 스타일 라이트',          palette: ['#ffffff', '#fafafa', '#0095f6', '#000000'] },
   { id: 'retro',       label: 'Retro Pixel',    desc: '레트로 픽셀 감성',          palette: ['#f6d4ec', '#c9b6ff', '#e9d8f7', '#2b1f55'] },
   { id: 'modern',      label: 'Modern',         desc: '모던 소프트 UI',            palette: ['#ffffff', '#fce8f5', '#f1e3fa', '#ff6fb5'] },
   { id: 'win95',       label: 'Windows 95',     desc: '클래식 Win95 컨셉',         palette: ['#008080', '#c0c0c0', '#000080', '#ffffff'] },
@@ -20,7 +21,7 @@ export const THEMES = [
 
 export type ThemeId = typeof THEMES[number]['id']
 
-const EXTERNAL_THEMES = new Set(['modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld', 'kakao', 'x', 'excel', 'retroexcel', 'whif'])
+const EXTERNAL_THEMES = new Set(['retro', 'modern', 'win95', 'pink', 'macos', 'modernwhite', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld', 'kakao', 'x', 'excel', 'retroexcel', 'whif'])
 
 export function applyTheme(theme: string): void {
   if (typeof document === 'undefined') return
@@ -45,5 +46,5 @@ export function applyTheme(theme: string): void {
 }
 
 export function getSavedTheme(): string {
-  try { return localStorage.getItem('sf-theme') ?? 'retro' } catch { return 'retro' }
+  try { return localStorage.getItem('sf-theme') ?? 'dark' } catch { return 'dark' }
 }

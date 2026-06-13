@@ -1,23 +1,17 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getIsAdmin } from '@/lib/authClient'
+import { getIsAdmin, apiLogout } from '@/lib/authClient'
 import { api } from '@/lib/api'
 
-const BASE_ICONS = [
-  { label: '채팅 목록', emoji: '💬', href: '/chatlist' },
-  { label: '새 대화', emoji: '✨', href: '/conversations/new' },
-  { label: 'AI 채팅', emoji: '🤖', href: '/assistant' },
-  { label: '캐릭터', emoji: '🎭', href: '/characters' },
-  { label: 'WHIF 센터', emoji: '🪐', href: '/whif' },
-  { label: 'ZETA 센터', emoji: '⚡', href: '/zeta' },
-  { label: 'MELTING 센터', emoji: '🔥', href: '/melting' },
-  { label: '서재', emoji: '📚', href: '/library' },
-  { label: '기능 가이드', emoji: '📖', href: '/guide' },
-  { label: '설정', emoji: '⚙️', href: '/settings' },
-]
-
-const ADMIN_ICON = { label: '관리자\n패널', emoji: '🔧', href: '/admin' }
+interface RecentConv {
+  id: string
+  title: string
+  mode: string
+  updatedAt: string
+  characters: { character: { name: string; avatarUrl?: string } }[]
+  messages: { content: string }[]
+}
 
 type GuideItem = { emoji: string; label: string; desc: string; href?: string }
 
@@ -56,6 +50,22 @@ const GUIDE_SECTIONS: { title: string; items: GuideItem[] }[] = [
   },
 ]
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return '방금'
+  if (min < 60) return `${min}분 전`
+  const hour = Math.floor(min / 60)
+  if (hour < 24) return `${hour}시간 전`
+  const day = Math.floor(hour / 24)
+  if (day < 30) return `${day}일 전`
+  return new Date(iso).toLocaleDateString('ko-KR')
+}
+
+function previewText(content: string): string {
+  return content.replace(/\*[^*\n]+\*/g, '').replace(/\n+/g, ' ').trim().slice(0, 60)
+}
+
 export default function HomePage() {
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
@@ -65,10 +75,21 @@ export default function HomePage() {
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
   const [importSavedId, setImportSavedId] = useState('')
+  const [recent, setRecent] = useState<RecentConv[]>([])
+  const [recentLoading, setRecentLoading] = useState(true)
 
   useEffect(() => {
     setIsAdmin(getIsAdmin())
     if (!localStorage.getItem('sf_onboarded')) setShowGuide(true)
+    api.get('/api/conversations')
+      .then((convs: RecentConv[]) => {
+        const sorted = [...(convs ?? [])].sort(
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        )
+        setRecent(sorted.slice(0, 3))
+      })
+      .catch(() => {})
+      .finally(() => setRecentLoading(false))
   }, [])
 
   const dismissGuide = () => {
@@ -94,7 +115,19 @@ export default function HomePage() {
 
   const closeImport = () => { setShowImport(false); setImportError(''); setImportSavedId('') }
 
-  const icons = isAdmin ? [...BASE_ICONS, ADMIN_ICON] : BASE_ICONS
+  const handleLogout = async () => {
+    await apiLogout()
+    router.replace('/login')
+  }
+
+  const shortcuts = [
+    { emoji: '🤖', label: 'AI 채팅', onClick: () => router.push('/assistant') },
+    { emoji: '🎭', label: '캐릭터', onClick: () => router.push('/characters') },
+    { emoji: '📥', label: '가져오기', onClick: () => setShowImport(true) },
+    { emoji: '📖', label: '가이드', onClick: () => router.push('/guide') },
+    ...(isAdmin ? [{ emoji: '🔧', label: '관리자', onClick: () => router.push('/admin') }] : []),
+    { emoji: '⏻', label: '로그아웃', onClick: handleLogout },
+  ]
 
   return (
     <>
@@ -104,7 +137,6 @@ export default function HomePage() {
           <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 101, width: 'min(420px, 92vw)', maxHeight: '85dvh', display: 'flex', flexDirection: 'column' }}>
             <div className="win-title">
               <div className="win-title-l"><span>StoryFit 가이드</span></div>
-              <div className="win-controls"><button onClick={dismissGuide}>×</button></div>
             </div>
             <div className="win-body vstack" style={{ gap: 14, overflowY: 'auto', flex: 1 }}>
               {GUIDE_SECTIONS.map(section => (
@@ -147,7 +179,6 @@ export default function HomePage() {
           <div className="win" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 101, width: 'min(380px, 90vw)' }}>
             <div className="win-title">
               <div className="win-title-l"><span>설정 가져오기</span></div>
-              <div className="win-controls"><button onClick={closeImport}>×</button></div>
             </div>
             <div className="win-body vstack" style={{ gap: 10 }}>
               <div className="tiny muted" style={{ lineHeight: 1.6 }}>
@@ -165,7 +196,7 @@ export default function HomePage() {
                 autoFocus
                 disabled={importing}
               />
-              {importError && <div className="tiny" style={{ color: '#ff6b8a' }}>⚠ {importError}</div>}
+              {importError && <div className="tiny" style={{ color: 'var(--red)' }}>⚠ {importError}</div>}
               {importSavedId && (
                 <div className="tiny" style={{ color: 'var(--accent)', lineHeight: 1.6 }}>
                   채팅 목록에 저장되었습니다. 채팅 목록에서 클릭하면 새 대화 설정을 이어서 열 수 있습니다.
@@ -185,32 +216,88 @@ export default function HomePage() {
         </>
       )}
 
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        flexWrap: 'wrap',
-        gap: 14,
-        padding: '10px 4px 10px 4px',
-        alignItems: 'flex-start',
-        alignContent: 'flex-start',
-        maxHeight: 'calc(100dvh - 80px)',
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        scrollbarWidth: 'none',
-      }}>
-        {icons.map(({ label, emoji, href }) => (
-          <div key={label} className="di" onClick={() => router.push(href)} style={{ cursor: 'pointer' }}>
-            <div className="di-pic">
-              <div style={{ width: 38, height: 38, display: 'grid', placeItems: 'center', fontSize: 28 }}>{emoji}</div>
+      <div className="scroll" style={{ flex: 1, padding: 14, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <button className="btn primary" style={{ justifyContent: 'center', padding: '12px 14px', fontSize: 14 }} onClick={() => router.push('/conversations/new')}>
+          ✨ 새 대화 시작
+        </button>
+
+        <div className="vstack" style={{ gap: 8 }}>
+          <div className="spread">
+            <div style={{ fontSize: 13, fontWeight: 700 }}>이어하기</div>
+            {recent.length > 0 && (
+              <button className="btn ghost" style={{ fontSize: 11, padding: '2px 6px' }} onClick={() => router.push('/chatlist')}>전체 보기 ›</button>
+            )}
+          </div>
+          {recentLoading ? (
+            <>
+              {[0, 1, 2].map(i => (
+                <div key={i} className="skeleton-row" style={{ border: '1px solid var(--hairline)', borderRadius: 'var(--radius-lg)' }}>
+                  <div className="skeleton skeleton-thumb" style={{ borderRadius: '50%' }} />
+                  <div className="skeleton-lines">
+                    <div className="skeleton skeleton-line medium" />
+                    <div className="skeleton skeleton-line short" />
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : recent.length === 0 ? (
+            <div style={{ padding: '24px 14px', textAlign: 'center', border: '1px dashed var(--line)', borderRadius: 'var(--radius-lg)' }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>📖</div>
+              <div className="tiny muted" style={{ lineHeight: 1.6 }}>아직 진행 중인 이야기가 없어요.<br />새 대화를 시작해보세요.</div>
             </div>
-            <span style={{ whiteSpace: 'pre-line', textAlign: 'center' }}>{label}</span>
+          ) : (
+            recent.map(c => {
+              const char = c.characters[0]?.character
+              const preview = c.messages[0]?.content ? previewText(c.messages[0].content) : ''
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => router.push(`/conversations/${c.id}`)}
+                  style={{
+                    appearance: 'none', cursor: 'pointer', textAlign: 'left',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 'var(--radius-lg)',
+                    background: 'var(--pane)', border: '1px solid var(--hairline)', color: 'var(--ink)',
+                  }}
+                >
+                  <div className="thumb" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'var(--bubble-other)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+                    {char?.avatarUrl
+                      ? <img src={char.avatarUrl} alt="" />
+                      : <span style={{ fontSize: 18 }}>🎭</span>}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</div>
+                    {preview && (
+                      <div className="muted" style={{ fontSize: 12, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>
+                    )}
+                  </div>
+                  <span className="tiny muted" style={{ flexShrink: 0 }}>{timeAgo(c.updatedAt)}</span>
+                </button>
+              )
+            })
+          )}
+        </div>
+
+        <div className="vstack" style={{ gap: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>바로가기</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {shortcuts.map(s => (
+              <button
+                key={s.label}
+                onClick={s.onClick}
+                style={{
+                  appearance: 'none', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  padding: '14px 8px', borderRadius: 'var(--radius-lg)',
+                  background: 'var(--pane)', border: '1px solid var(--hairline)', color: 'var(--ink)',
+                  fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-body)',
+                }}
+              >
+                <span style={{ fontSize: 22 }}>{s.emoji}</span>
+                {s.label}
+              </button>
+            ))}
           </div>
-        ))}
-        <div className="di" onClick={() => setShowImport(true)} style={{ cursor: 'pointer' }}>
-          <div className="di-pic">
-            <div style={{ width: 38, height: 38, display: 'grid', placeItems: 'center', fontSize: 28 }}>📥</div>
-          </div>
-          <span style={{ textAlign: 'center' }}>설정{'\n'}가져오기</span>
         </div>
       </div>
 

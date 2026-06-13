@@ -11,6 +11,7 @@ const SCREEN_LABELS: Record<string, string> = {
   '/characters': '캐릭터 선택',
   '/characters/new': '캐릭터 만들기',
   '/conversations/new': '새 대화',
+  '/explore': '탐색',
   '/settings': '설정',
   '/library': '서재',
 }
@@ -40,9 +41,6 @@ function Shell({ children }: { children: React.ReactNode }) {
               <rect x="6" y="8" width="4" height="1" fill="#1a1438"/>
             </svg>
             <span>StoryFit{label ? ` — ${label}` : ''}</span>
-          </div>
-          <div className="win-controls">
-            <button>_</button><button>▢</button><button>×</button>
           </div>
         </div>
 

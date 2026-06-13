@@ -859,11 +859,11 @@ export default function ChatPage() {
                   onClick={scrollToBottom}
                   style={{
                     position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
-                    background: 'transparent',
-                    border: '1.5px solid #5d0f4a',
+                    background: 'var(--paper)',
+                    border: '1.5px solid var(--hot-pink)',
                     borderRadius: 20, padding: '4px 14px', fontSize: 11, cursor: 'pointer',
                     boxShadow: '0 2px 6px rgba(0,0,0,.2)', whiteSpace: 'nowrap',
-                    color: '#ff2e93',
+                    color: 'var(--hot-pink)',
                   }}
                 >새 답변 ↓</button>
               </div>

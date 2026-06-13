@@ -34,6 +34,13 @@
   --radius-sm: 6px;
   --radius:    8px;
   --radius-lg: 12px;
+
+  /* 레거시 테마 변수 폴백 — 테마 CSS 미로드 상태에서도 깨지지 않도록 */
+  --hot-pink:      #e1306c;
+  --lavender:      rgba(0,149,246,.18);
+  --chrome-face:   #ffffff;
+  --chrome-border: #dbdbdb;
+  --pane:          #fafafa;
 }
 
 body[data-art="modern"]{ }
@@ -44,6 +51,48 @@ body[data-palette="purple"]  { --wall-grad: linear-gradient(180deg, #fff0fa, #f0
 body[data-palette="maroon"]  { --wall-grad: linear-gradient(180deg, #fff5e8, #ffe8e8) }
 body[data-palette="olive"]   { --wall-grad: linear-gradient(180deg, #f0f4ff, #fdf5ff) }
 :root{ --wall-grad: linear-gradient(180deg, #fafafa, #f0f0f0) }
+
+/* ─── StoryFit Dark (기본 테마) — 센터·모바일 앱과 동일한 다크 톤 ────────── */
+body[data-art="dark"]{
+  --bg:           #0d0d0f;
+  --bg-2:         #1a1a20;
+  --paper:        #121215;
+
+  --line:         #2c2c34;
+  --hairline:     #222229;
+  --hairline-2:   #1b1b21;
+
+  --ink:          #f4f4f6;
+  --ink-2:        #d8d8de;
+  --ink-soft:     #9a9aa6;
+  --ink-faint:    #62626e;
+
+  --accent:       #8b5cf6;
+  --accent-2:     #7c3aed;
+
+  --bubble-other: #232329;
+  --wall-grad:    linear-gradient(180deg, #0d0d0f, #111118);
+
+  --hot-pink:      #ff2e93;
+  --lavender:      rgba(139,92,246,.35);
+  --chrome-face:   #1a1a20;
+  --chrome-border: #2c2c34;
+  --pane:          #1a1a20;
+}
+body[data-art="dark"] .btn.primary{ background: var(--accent); border-color: var(--accent); }
+body[data-art="dark"] .btn.primary:hover{ background: var(--accent-2); }
+body[data-art="dark"] .btn.primary:disabled{ background: var(--ink-faint); border-color: var(--ink-faint); }
+body[data-art="dark"] .dock-tab.active{ background: var(--accent); border-color: var(--accent); }
+body[data-art="dark"] select.field{
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%239a9aa6' d='M6 8L0 0h12z'/></svg>") right 12px center / 10px no-repeat,
+    var(--bg-2);
+}
+body[data-art="dark"] .di:hover{ background: rgba(255,255,255,.06); }
+body[data-art="dark"] .msg .bubble .ai-tag{ background: rgba(255,255,255,.08); }
+body[data-art="dark"] .char-card .pic-wrap > *,
+body[data-art="dark"] .row .thumb > *{ background: var(--bg-2); }
+body[data-art="dark"] .shell{ border-color: var(--line); }
 
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -297,12 +346,23 @@ select.field{
 /* ─── Bottom dock (IG bottom tab bar) ───────────────────────────────────── */
 .dock{
   position: relative;
-  display:flex; align-items:center; justify-content: space-between; gap: 6px;
-  padding: 10px 14px 14px;
+  display:flex; align-items:center; justify-content: space-around; gap: 0;
+  padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
   background: var(--paper);
   border-top: 1px solid var(--hairline);
   flex-shrink:0;
 }
+.dock-item{
+  appearance:none; background:none; border:none; cursor:pointer;
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding: 4px 0;
+  font-family: var(--font-body); font-size: 10px; font-weight: 600;
+  color: var(--ink-soft);
+}
+.dock-item .ic{ font-size: 21px; line-height: 1; }
+.dock-item.active{ color: var(--ink); }
+.dock-item.active .ic{ transform: scale(1.08); }
 .dock .start{
   display:flex; align-items:center; gap:5px;
   padding: 6px 12px;
