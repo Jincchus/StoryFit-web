@@ -45,7 +45,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     await tx.conversationCharacter.deleteMany({ where: { characterId: params.id } })
     await tx.conversation.updateMany({ where: { personaCharacterId: params.id }, data: { personaCharacterId: null } })
     await tx.message.updateMany({ where: { characterId: params.id }, data: { characterId: null } })
-    await tx.lorebook.updateMany({ where: { characterId: params.id }, data: { characterId: null } })
     await tx.character.delete({ where: { id: params.id } })
 
     // 2. Check if collection should be deleted
@@ -54,16 +53,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         where: { collectionId: character.collectionId }
       })
       if (remainingCount === 0) {
-        // Delete collection lorebooks
-        await tx.lorebook.deleteMany({
-          where: { scope: 'collection', scopeId: character.collectionId }
-        })
         // Fetch collection to get conversationId
         const col = await tx.characterCollection.findUnique({
           where: { id: character.collectionId },
           select: { conversationId: true }
         })
-        // Delete collection itself
+        // Delete collection itself (collection-scoped lorebooks cascade)
         await tx.characterCollection.delete({
           where: { id: character.collectionId }
         })

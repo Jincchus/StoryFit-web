@@ -142,8 +142,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
       captured.lorebooks.map((entry) =>
         prisma.lorebook.create({
           data: {
-            scope: 'collection',
-            scopeId: collection.id,
+            collectionId: collection.id,
             keyword: entry.keyword,
             content: entry.content,
             priority: entry.priority ?? 0,

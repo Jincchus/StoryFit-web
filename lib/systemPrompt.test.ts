@@ -66,7 +66,7 @@ describe('프롬프트 조립 순서 — 정적 프리픽스 유지 (implicit ca
 
 describe('matchLorebook', () => {
   const entry = (keyword: string[], over: Partial<LorebookEntry> = {}): LorebookEntry => ({
-    id: 'lb-1', scope: 'conversation', scopeId: 'c-1',
+    id: 'lb-1',
     keyword, content: '내용', priority: 0, scanDepth: 5, isEnabled: true,
     ...over,
   })

@@ -84,8 +84,6 @@ export interface AIModel {
 
 export interface LorebookEntry {
   id: string
-  scope: 'conversation' | 'character'
-  scopeId: string
   keyword: string[]
   content: string
   priority: number

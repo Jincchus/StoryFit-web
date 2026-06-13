@@ -68,10 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     getPersonalRulesForConv(userId, conv.mode),
   ])
 
-  const matchedLorebook = matchLorebook(
-    conv.lorebooks.map(l => ({ ...l, scope: l.scope as 'conversation' | 'character' })),
-    historyMsgs as unknown as Message[],
-  )
+  const matchedLorebook = matchLorebook(conv.lorebooks, historyMsgs as unknown as Message[])
 
   const charParam = buildCharParam(character)
 
@@ -156,11 +153,11 @@ async function regenerateAsync({
   const prevAssistantText = [...history].reverse().find(m => m.role === 'model')?.parts[0].text ?? ''
   const gen: GenConfig = {
     provider: conv.currentAI as AIProvider,
-    temperature: character.temperature,
-    frequencyPenalty: character.frequencyPenalty,
+    temperature: conv.temperature,
+    frequencyPenalty: conv.frequencyPenalty,
     maxOutputTokens: conv.maxOutputTokens,
     thinkingBudget: conv.thinkingBudget,
-    safetyLevel: character.safetyLevel as 'strict' | 'standard' | 'relaxed',
+    safetyLevel: conv.safetyLevel as 'strict' | 'standard' | 'relaxed',
   }
   const state = { fullText: '' }
   const bgAbort = new AbortController()
@@ -182,7 +179,7 @@ async function regenerateAsync({
     if (needsResponseRevision(cleanText, revisionOptions)) {
       const revised = await streamRevision({
         gen,
-        temperature: Math.min(Number(character.temperature ?? 0.9), 0.75),
+        temperature: Math.min(Number(character.temperature ?? conv.temperature ?? 0.9), 0.75),
         systemPrompt,
         history,
         firstDraft: cleanText,

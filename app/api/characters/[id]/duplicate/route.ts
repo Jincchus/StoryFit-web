@@ -37,22 +37,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     })
 
-    const lorebooks = await tx.lorebook.findMany({ where: { characterId: params.id } })
-    for (const lb of lorebooks) {
-      await tx.lorebook.create({
-        data: {
-          scope: lb.scope,
-          scopeId: dup.id,
-          keyword: lb.keyword,
-          content: lb.content,
-          priority: lb.priority,
-          scanDepth: lb.scanDepth,
-          isEnabled: lb.isEnabled,
-          characterId: dup.id,
-        },
-      })
-    }
-
     return dup
   })
 

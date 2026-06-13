@@ -47,7 +47,7 @@ export default function UniverseDetailPage() {
       const updated = await api.patch(`/api/lorebooks/${editingLoreId}`, { keyword: keywords, content: loreContent, priority: Number(lorePriority) })
       setLore(prev => prev.map(lb => lb.id === editingLoreId ? updated : lb))
     } else {
-      const created = await api.post('/api/lorebooks', { scope: 'collection', scopeId: id, keyword: keywords, content: loreContent, priority: Number(lorePriority) })
+      const created = await api.post('/api/lorebooks', { collectionId: id, keyword: keywords, content: loreContent, priority: Number(lorePriority) })
       setLore(prev => [created, ...prev])
     }
     setLoreKeyword(''); setLoreContent(''); setLorePriority(0); setShowLoreForm(false); setEditingLoreId(null)

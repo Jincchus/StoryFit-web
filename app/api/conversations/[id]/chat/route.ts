@@ -185,10 +185,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     getPersonalRulesForConv(userId, conv.mode),
   ])
 
-  const matchedLorebook = matchLorebook(
-    conv.lorebooks.map(l => ({ ...l, scope: l.scope as 'conversation' | 'character' })),
-    conv.messages,
-  )
+  const matchedLorebook = matchLorebook(conv.lorebooks, conv.messages)
 
   const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
   const charName = character?.name || ''

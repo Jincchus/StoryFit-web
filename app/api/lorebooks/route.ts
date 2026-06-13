@@ -9,17 +9,15 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const conversationId = searchParams.get('conversationId')
-  const characterId = searchParams.get('characterId')
   const collectionId = searchParams.get('collectionId')
 
-  if (!conversationId && !characterId && !collectionId) {
+  if (!conversationId && !collectionId) {
     return NextResponse.json([])
   }
 
   const conditions: any[] = []
   if (conversationId) conditions.push({ conversationId })
-  if (characterId) conditions.push({ characterId })
-  if (collectionId) conditions.push({ scope: 'collection', scopeId: collectionId })
+  if (collectionId) conditions.push({ collectionId })
 
   const lorebooks = await prisma.lorebook.findMany({
     where: {
@@ -41,14 +39,12 @@ export async function POST(req: NextRequest) {
 
   const lorebook = await prisma.lorebook.create({
     data: {
-      scope: body.scope ?? 'conversation',
-      scopeId: body.scopeId ?? '',
       keyword: body.keyword,
       content: body.content,
       priority: body.priority ?? 0,
       scanDepth: body.scanDepth ?? 5,
       conversationId: body.conversationId ?? null,
-      characterId: body.characterId ?? null,
+      collectionId: body.collectionId ?? null,
     },
   })
   return NextResponse.json(lorebook, { status: 201 })

@@ -24,7 +24,7 @@ export function useLorebook(convId: string, setToast: (msg: string) => void) {
     try {
       const entry = await api.post('/api/lorebooks', {
         keyword, content: lbForm.content, priority: lbForm.priority, scanDepth: lbForm.scanDepth,
-        conversationId: convId, scope: 'conversation', scopeId: convId,
+        conversationId: convId,
       })
       setLorebooks(prev => [...prev, entry])
       setLbForm({ keywords: '', content: '', priority: 0, scanDepth: 5 })

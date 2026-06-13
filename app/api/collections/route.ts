@@ -49,17 +49,17 @@ export async function GET(req: NextRequest) {
   const collectionIds = collections.map(c => c.id)
   const lorebooks = collectionIds.length > 0
     ? await prisma.lorebook.findMany({
-        where: { scope: 'collection', scopeId: { in: collectionIds } },
-        select: { scopeId: true, keyword: true },
+        where: { collectionId: { in: collectionIds } },
+        select: { collectionId: true, keyword: true },
       })
     : []
   const lorebookTitlesByCollection = new Map<string, string[]>()
   for (const lb of lorebooks) {
     const title = lb.keyword?.[0]
-    if (!title) continue
-    const arr = lorebookTitlesByCollection.get(lb.scopeId) ?? []
+    if (!title || !lb.collectionId) continue
+    const arr = lorebookTitlesByCollection.get(lb.collectionId) ?? []
     if (!arr.includes(title)) arr.push(title)
-    lorebookTitlesByCollection.set(lb.scopeId, arr)
+    lorebookTitlesByCollection.set(lb.collectionId, arr)
   }
 
   // 컬렉션 단위 대화 집계 (소속 캐릭터 기준). 한 대화에 같은 컬렉션 캐릭터가 둘 이상이어도 1회만 집계.

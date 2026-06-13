@@ -81,9 +81,6 @@ ${text.slice(0, 30000)}
       prisma.lorebook.create({
         data: {
           conversationId,
-          characterId: null,
-          scope: 'conversation',
-          scopeId: conversationId,
           keyword: Array.isArray(e.keywords) ? e.keywords.filter(Boolean).slice(0, 20) : [],
           content: String(e.content ?? '').trim().slice(0, 5000),
           priority: 0,

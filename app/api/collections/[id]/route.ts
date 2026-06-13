@@ -70,21 +70,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       await tx.conversationCharacter.deleteMany({ where: { characterId: { in: charIds } } })
       await tx.conversation.updateMany({ where: { personaCharacterId: { in: charIds } }, data: { personaCharacterId: null } })
       await tx.message.updateMany({ where: { characterId: { in: charIds } }, data: { characterId: null } })
-      await tx.lorebook.updateMany({ where: { characterId: { in: charIds } }, data: { characterId: null } })
       await tx.character.deleteMany({ where: { id: { in: charIds } } })
     }
 
-    // 2. Delete collection-scoped lorebooks
-    await tx.lorebook.deleteMany({
-      where: { scope: 'collection', scopeId: params.id },
-    })
-
-    // 3. Delete the collection itself
+    // 2. Delete the collection itself (collection-scoped lorebooks cascade)
     await tx.characterCollection.delete({
       where: { id: params.id },
     })
 
-    // 4. Delete the associated dummy conversation if exists
+    // 3. Delete the associated dummy conversation if exists
     if (collection.conversationId) {
       const exists = await tx.conversation.findUnique({ where: { id: collection.conversationId }, select: { id: true } })
       if (exists) {

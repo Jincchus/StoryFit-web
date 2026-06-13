@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
   // Clone collection-level lorebooks to this conversation
   if (collectionIds.length > 0) {
     const collectionLorebooks = await prisma.lorebook.findMany({
-      where: { scope: 'collection', scopeId: { in: collectionIds } },
+      where: { collectionId: { in: collectionIds } },
     })
 
     if (collectionLorebooks.length > 0) {
@@ -130,8 +130,6 @@ export async function POST(req: NextRequest) {
         collectionLorebooks.map(lb =>
           prisma.lorebook.create({
             data: {
-              scope: 'conversation',
-              scopeId: conversation.id,
               keyword: lb.keyword,
               content: lb.content,
               priority: lb.priority,
