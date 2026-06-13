@@ -133,7 +133,17 @@ export default function ZetaListPage() {
             sort, p => p.title, p => p.createdAt ?? ''
           )
           return loading ? (
-          <div className="zeta-empty">불러오는 중...</div>
+          <div className="zeta-grid">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="zeta-card">
+                <div className="skeleton" style={{ width: '100%', aspectRatio: '3/4', borderRadius: 0 }} />
+                <div className="zeta-card-body">
+                  <div className="skeleton skeleton-line medium" />
+                  <div className="skeleton skeleton-line short" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : visiblePlots.length === 0 ? (
           view === 'completed'
             ? <div className="zeta-empty">완결한 작품이 없습니다.</div>

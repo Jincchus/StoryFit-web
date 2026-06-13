@@ -129,7 +129,17 @@ export default function MeltingListPage() {
 
       <div className="melting-scroll" ref={scrollRef}>
         {loading ? (
-          <div className="melting-empty">불러오는 중...</div>
+          <div className="melting-grid">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="melting-card">
+                <div className="skeleton" style={{ width: '100%', aspectRatio: '3/4', borderRadius: 0 }} />
+                <div className="melting-card-body">
+                  <div className="skeleton skeleton-line medium" />
+                  <div className="skeleton skeleton-line short" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : visibleChars.length === 0 ? (
           view === 'completed'
             ? <div className="melting-empty">완결한 캐릭터가 없습니다.</div>

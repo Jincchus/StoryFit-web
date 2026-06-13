@@ -534,6 +534,13 @@ export default function ChatPage() {
   const [showPlusMenu, setShowPlusMenu] = useState(false)
   const [plusMenuSeen, setPlusMenuSeen] = useState(true)
   useEffect(() => { setPlusMenuSeen(!!localStorage.getItem('sf_seen_plusmenu')) }, [])
+  useEffect(() => {
+    if (loadingConv || messages.length === 0) return
+    if (localStorage.getItem('sf_hint_msgactions')) return
+    localStorage.setItem('sf_hint_msgactions', '1')
+    setToast('💡 메시지를 탭하면 편집·북마크·분기 메뉴가 열려요')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingConv])
   const [showTimelineFull, setShowTimelineFull] = useState(false)
   const [diceRolling, setDiceRolling] = useState<string | null>(null)
   const prevTypingRef = useRef(false)

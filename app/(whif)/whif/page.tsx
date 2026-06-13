@@ -160,7 +160,17 @@ export default function WhifExplorePage() {
 
       <div className="whif-scroll" ref={scrollRef}>
         {loading ? (
-          <div className="whif-empty">불러오는 중...</div>
+          <div className="whif-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="whif-card">
+                <div className="skeleton" style={{ width: '100%', aspectRatio: '3/4', borderRadius: 0 }} />
+                <div className="whif-card-body">
+                  <div className="skeleton skeleton-line medium" />
+                  <div className="skeleton skeleton-line short" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : tab === 'universes' ? (
           visibleUniverses.length === 0 ? (
             view === 'completed'
