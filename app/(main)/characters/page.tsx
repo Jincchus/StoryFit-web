@@ -49,7 +49,7 @@ export default function CharactersPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState(false)
-  const [view, setView] = useState<'active' | 'completed'>('active')
+  const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
   const [duplicating, setDuplicating] = useState(false)
   const [roomFilter, setRoomFilter] = useState<string>('all')
 
@@ -105,10 +105,12 @@ export default function CharactersPage() {
       if (roomFilter === 'all') return completed
       return completed.filter(c => c.rooms?.some(r => r.id === roomFilter))
     }
-    const active = characters.filter(c => !c.completed)
-    if (collectionFilter === 'all') return active
-    if (collectionFilter === 'none') return active.filter(c => !c.collection && !c.isPreset)
-    return active.filter(c => c.collection?.id === collectionFilter)
+    const base = view === 'waiting'
+      ? characters.filter(c => !c.completed && !c.started)
+      : characters.filter(c => !c.completed && c.started)
+    if (collectionFilter === 'all') return base
+    if (collectionFilter === 'none') return base.filter(c => !c.collection && !c.isPreset)
+    return base.filter(c => c.collection?.id === collectionFilter)
   }, [characters, collectionFilter, roomFilter, view])
 
   const selectableInFilter = filteredCharacters.filter(c => !c.isPreset)
@@ -244,6 +246,11 @@ export default function CharactersPage() {
             onClick={() => { setView('active'); setRoomFilter('all'); exitSelect() }}
           >진행 중</button>
           <button
+            className={`btn ${view === 'waiting' ? 'primary' : 'ghost'}`}
+            style={{ fontSize: 11, padding: '3px 10px' }}
+            onClick={() => { setView('waiting'); setRoomFilter('all'); exitSelect() }}
+          >대기</button>
+          <button
             className={`btn ${view === 'completed' ? 'primary' : 'ghost'}`}
             style={{ fontSize: 11, padding: '3px 10px' }}
             onClick={() => { setView('completed'); setRoomFilter('all'); exitSelect() }}
@@ -252,7 +259,7 @@ export default function CharactersPage() {
 
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
 
-        {view === 'active' && collections.length > 0 && (
+        {view !== 'completed' && collections.length > 0 && (
           <select
             className="field"
             style={{ fontSize: 11, width: 'auto', minWidth: 120, padding: '3px 8px' }}
@@ -281,7 +288,7 @@ export default function CharactersPage() {
           </select>
         )}
 
-        {view === 'active' && selectedChar && !selecting && (
+        {view !== 'completed' && selectedChar && !selecting && (
           <div className="char-preview-bar">
             <div className="thumb" style={{ width: 28, height: 28 }}>
               {selectedChar.avatarUrl
@@ -312,6 +319,11 @@ export default function CharactersPage() {
           {view === 'completed' && filteredCharacters.length === 0 && (
             <div className="muted" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 16px', fontSize: 13 }}>
               완결한 캐릭터가 없습니다.<br />이어가려면 서재에서 꺼내세요.
+            </div>
+          )}
+          {view === 'waiting' && filteredCharacters.length === 0 && (
+            <div className="muted" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 16px', fontSize: 13 }}>
+              대기 중인 캐릭터가 없습니다.<br />아직 대화를 시작하지 않은 캐릭터가 여기에 표시됩니다.
             </div>
           )}
           {filteredCharacters.map(c => {
