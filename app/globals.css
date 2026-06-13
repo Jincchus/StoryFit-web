@@ -1219,6 +1219,13 @@ body[data-crt="on"]::after{
 .melting-chapter-badge{ display:inline-flex; align-items:center; gap:3px; background:var(--m-accent,#ff2e93);
   color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; }
 
+/* ─── 스토리 모드 가독성 — 서사 텍스트를 넓고 여유 있게 ─────────────────── */
+.story-log .seq-block{ max-width: 92%; }
+.story-log .msg:not(.you):not(.system):not(.typing){ max-width: 92%; }
+.story-log .bubble{ line-height: 1.65; }
+.story-log .seq-narration{ text-align: left; padding: 1px 8px; font-size: inherit; line-height: 1.75; }
+.story-log .narration-block{ text-align: left; padding: 2px 8px; font-size: inherit; line-height: 1.75; }
+
 /* 본문 검색 점프 하이라이트 */
 @keyframes msgJumpFlash{0%,60%{background:color-mix(in srgb, var(--hot-pink, #ff2e93) 18%, transparent)}100%{background:transparent}}
 .msg-jump-highlight{ animation:msgJumpFlash 2.5s ease-out forwards; border-radius:var(--radius); }

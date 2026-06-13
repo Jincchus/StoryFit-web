@@ -529,6 +529,17 @@ export default function ChatPage() {
   // ── 커스텀 배경 및 테마 설정 ──────────────────────────────────────────
   const [customBg, setCustomBg] = useState('')
   const [currentTheme, setCurrentTheme] = useState('retro')
+  const [showPlusMenu, setShowPlusMenu] = useState(false)
+  const [showTimelineFull, setShowTimelineFull] = useState(false)
+  const [chatFontSize, setChatFontSize] = useState(14)
+  useEffect(() => {
+    const saved = parseInt(localStorage.getItem('sf-chat-fs') ?? '', 10)
+    if (saved >= 13 && saved <= 16) setChatFontSize(saved)
+  }, [])
+  const changeChatFontSize = (size: number) => {
+    setChatFontSize(size)
+    localStorage.setItem('sf-chat-fs', String(size))
+  }
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setCurrentTheme(getSavedTheme())
@@ -702,9 +713,15 @@ export default function ChatPage() {
                   <span className="melting-chapter-badge" style={{ marginLeft: 6 }}>{conv.chapter ?? 1}장</span>
                 )}
               </div>
-              <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div
+                className="tiny muted"
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: conv.statusTimeline ? 'pointer' : 'default' }}
+                onClick={() => conv.statusTimeline && setShowTimelineFull(p => !p)}
+                role={conv.statusTimeline ? 'button' : undefined}
+                aria-label="현재 상황 전체 보기"
+              >
                 턴 {Math.floor(messages.length / 2)}
-                {conv.statusTimeline && <span> · {conv.statusTimeline}</span>}
+                {conv.statusTimeline && <span> · {conv.statusTimeline} {showTimelineFull ? '▴' : '▾'}</span>}
               </div>
             </div>
           </div>
@@ -712,7 +729,7 @@ export default function ChatPage() {
             {isStoryOrMulti && conv.inventoryEnabled && (
               <button
                 className={`btn ${showInventory ? 'primary' : 'ghost'}`}
-                style={{ padding: '3px 7px', fontSize: 10 }}
+                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
                 aria-label="인벤토리"
                 onClick={() => { setShowInventory(p => !p); setShowStats(false) }}
               >🎒</button>
@@ -720,7 +737,7 @@ export default function ChatPage() {
             {isStoryOrMulti && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
               <button
                 className={`btn ${showStats ? 'primary' : 'ghost'}`}
-                style={{ padding: '3px 7px', fontSize: 10 }}
+                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
                 aria-label="스탯"
                 onClick={() => { setShowStats(p => !p); setShowInventory(false) }}
               >STAT</button>
@@ -728,7 +745,7 @@ export default function ChatPage() {
             {isStoryOrMulti && (
               <button
                 className={`btn ${showRecap ? 'primary' : 'ghost'}`}
-                style={{ padding: '3px 7px', fontSize: 10 }}
+                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
                 aria-label="지금까지의 줄거리"
                 title="지금까지의 줄거리"
                 onClick={() => { setShowRecap(true); setShowStats(false); setShowInventory(false); loadRecap() }}
@@ -736,19 +753,25 @@ export default function ChatPage() {
             )}
             <button
               className="btn ghost"
-              style={{ padding: '3px 7px', fontSize: 10 }}
+              style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
               aria-label="음성 통화"
               title="실시간 음성 통화"
               onClick={() => setShowVoiceCall(true)}
             >📞</button>
             <button
               className={`btn ${showPanel ? 'primary' : 'ghost'}`}
-              style={{ padding: '3px 7px', fontSize: 10 }}
+              style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
               aria-label="대화 설정"
               onClick={() => setShowPanel(p => !p)}
             >⚙</button>
           </div>
         </div>
+
+        {showTimelineFull && conv.statusTimeline && (
+          <div className="tiny" style={{ padding: '8px 12px', margin: '0 4px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)', lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--ink-soft)', flexShrink: 0 }}>
+            🎬 {conv.statusTimeline}
+          </div>
+        )}
 
         {branches.length > 1 && (
           <div className="hstack" style={{ gap: 4, paddingBottom: 2, overflowX: 'auto', flexShrink: 0 }}>
@@ -780,14 +803,16 @@ export default function ChatPage() {
         <div className="chat-layout">
           <div className="chat-main">
             <div
-              className="chatlog"
+              className={`chatlog${!isMulti ? ' story-log' : ''}`}
               ref={logRef}
               style={{
                 backgroundImage: customBg ? `url(${customBg})` : undefined,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 position: 'relative',
-                zIndex: 1
+                zIndex: 1,
+                fontSize: chatFontSize,
+                lineHeight: 1.6,
               }}
             >
               {customBg && (
@@ -920,6 +945,98 @@ export default function ChatPage() {
                 />
               )}
               <div className="composer" style={{ alignItems: 'flex-end' }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <button
+                    className={`btn ${showPlusMenu ? 'primary' : 'ghost'}`}
+                    style={{ width: 38, height: 38, padding: 0, fontSize: 20, borderRadius: '50%', justifyContent: 'center' }}
+                    disabled={typing}
+                    aria-label="기능 메뉴"
+                    onClick={() => { setShowPlusMenu(p => !p); setShowDicePicker(false); setShowAutoPicker(false) }}
+                  >＋</button>
+                  {showPlusMenu && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => { setShowPlusMenu(false); setShowDicePicker(false); setShowAutoPicker(false) }} />
+                      <div style={{
+                        position: 'absolute', bottom: 'calc(100% + 8px)', left: 0, zIndex: 10,
+                        background: 'var(--chrome-face)', border: '1px solid var(--chrome-border)',
+                        borderRadius: 'var(--radius-lg)', padding: 6, minWidth: 210,
+                        boxShadow: '0 4px 16px rgba(0,0,0,.3)',
+                      }}>
+                        <button
+                          className="btn ghost"
+                          style={{ fontSize: 13, padding: '9px 10px', width: '100%', justifyContent: 'flex-start', gap: 8 }}
+                          onClick={() => { setShowPlusMenu(false); isListening ? stopListening() : startListening() }}
+                        >🎤 {isListening ? '음성 입력 중지' : '음성 입력'}</button>
+                        {isStoryOrMulti && (
+                          <>
+                            <button
+                              className="btn ghost"
+                              style={{ fontSize: 13, padding: '9px 10px', width: '100%', justifyContent: 'space-between', gap: 8 }}
+                              onClick={() => {
+                                if (!composerRef.current?.value.trim()) { setToast('판정할 행동을 먼저 입력하세요'); return }
+                                setShowDicePicker(p => !p); setShowAutoPicker(false)
+                              }}
+                            ><span>🎲 스탯 판정</span><span className="muted">{showDicePicker ? '▾' : '▸'}</span></button>
+                            {showDicePicker && (
+                              <div className="vstack" style={{ gap: 2, padding: '2px 0 6px 22px' }}>
+                                {conv.statsEnabled && conv.statsConfig?.map(s => (
+                                  <button
+                                    key={s.name}
+                                    className="btn ghost"
+                                    style={{ fontSize: 12, padding: '6px 10px', justifyContent: 'space-between', display: 'flex' }}
+                                    onClick={() => { setShowPlusMenu(false); setShowDicePicker(false); send(undefined, { stat: s.name }) }}
+                                  >
+                                    <span>{s.name}</span><span className="muted">{s.value}</span>
+                                  </button>
+                                ))}
+                                <button
+                                  className="btn ghost"
+                                  style={{ fontSize: 12, padding: '6px 10px', justifyContent: 'flex-start' }}
+                                  onClick={() => { setShowPlusMenu(false); setShowDicePicker(false); send(undefined, {}) }}
+                                >일반 판정 (50%)</button>
+                              </div>
+                            )}
+                            <button
+                              className="btn ghost"
+                              style={{ fontSize: 13, padding: '9px 10px', width: '100%', justifyContent: 'space-between', gap: 8 }}
+                              onClick={() => { setShowAutoPicker(p => !p); setShowDicePicker(false) }}
+                            ><span>⏩ 관전 모드</span><span className="muted">{showAutoPicker ? '▾' : '▸'}</span></button>
+                            {showAutoPicker && (
+                              <div className="vstack" style={{ gap: 2, padding: '2px 0 6px 22px' }}>
+                                {[1, 3, 5, 10].map(n => (
+                                  <button
+                                    key={n}
+                                    className="btn ghost"
+                                    style={{ fontSize: 12, padding: '6px 10px', justifyContent: 'flex-start' }}
+                                    onClick={() => { setShowPlusMenu(false); setShowAutoPicker(false); startAutoPlay(n) }}
+                                  >{n}턴 자동 진행</button>
+                                ))}
+                              </div>
+                            )}
+                            <button
+                              className="btn ghost"
+                              style={{ fontSize: 13, padding: '9px 10px', width: '100%', justifyContent: 'flex-start', gap: 8 }}
+                              onClick={() => { setShowPlusMenu(false); setShowRecap(true); loadRecap() }}
+                            >📜 줄거리 요약</button>
+                          </>
+                        )}
+                        <div style={{ height: 1, background: 'var(--hairline)', margin: '4px 0' }} />
+                        <div className="hstack" style={{ gap: 4, padding: '4px 10px 6px', alignItems: 'center' }}>
+                          <span className="tiny muted" style={{ flexShrink: 0 }}>글자 크기</span>
+                          {[13, 14, 15, 16].map(size => (
+                            <button
+                              key={size}
+                              className={`btn ${chatFontSize === size ? 'primary' : 'ghost'}`}
+                              style={{ fontSize: size - 2, padding: '3px 7px', minWidth: 28, justifyContent: 'center' }}
+                              aria-label={`글자 크기 ${size}`}
+                              onClick={() => changeChatFontSize(size)}
+                            >가</button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
                 <textarea
                   ref={composerRef}
                   className="field"
@@ -955,104 +1072,13 @@ export default function ChatPage() {
                     }
                   }}
                 />
-              {/* ── STT 마이크 버튼 ── */}
-              <button
-                className={`btn ${isListening ? 'primary' : 'ghost'}`}
-                style={{ padding: '0 10px', fontSize: 15, flexShrink: 0, minHeight: 36 }}
-                onClick={isListening ? stopListening : startListening}
-                disabled={typing}
-                aria-label={isListening ? '녹음 중지' : '음성 입력'}
-                title={isListening ? '녹음 중지' : '음성 입력 (STT)'}
-              >{isListening ? '⏹' : '🎤'}</button>
-              {/* ── /STT 마이크 버튼 ── */}
-              {isStoryOrMulti && (
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  {autoPlayLeft > 0 ? (
-                    <button
-                      className="btn danger"
-                      style={{ padding: '0 10px', fontSize: 11, minHeight: 36, whiteSpace: 'nowrap' }}
-                      aria-label="자동 진행 중지"
-                      onClick={stopAutoPlay}
-                    >■ {autoPlayLeft}턴</button>
-                  ) : (
-                    <button
-                      className={`btn ${showAutoPicker ? 'primary' : 'ghost'}`}
-                      style={{ padding: '0 10px', fontSize: 15, minHeight: 36 }}
-                      disabled={typing}
-                      aria-label="관전 모드 (자동 진행)"
-                      title="관전 모드 — 입력 없이 이야기 자동 진행"
-                      onClick={() => setShowAutoPicker(p => !p)}
-                    >⏩</button>
-                  )}
-                  {showAutoPicker && (
-                    <>
-                      <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setShowAutoPicker(false)} />
-                      <div style={{
-                        position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, zIndex: 10,
-                        background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
-                        borderRadius: 'var(--radius)', padding: 8, minWidth: 140,
-                        boxShadow: '0 4px 16px rgba(0,0,0,.3)',
-                      }}>
-                        <div className="tiny muted" style={{ marginBottom: 6 }}>몇 턴 동안 관전할까요?</div>
-                        <div className="vstack" style={{ gap: 4 }}>
-                          {[1, 3, 5, 10].map(n => (
-                            <button
-                              key={n}
-                              className="btn ghost"
-                              style={{ fontSize: 10, padding: '4px 8px' }}
-                              onClick={() => startAutoPlay(n)}
-                            >{n}턴 자동 진행</button>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-              {isStoryOrMulti && (
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <button
-                    className={`btn ${showDicePicker ? 'primary' : 'ghost'}`}
-                    style={{ padding: '0 10px', fontSize: 15, minHeight: 36 }}
-                    disabled={typing}
-                    aria-label="판정 전송"
-                    title="스탯 판정 (주사위)"
-                    onClick={() => {
-                      if (!composerRef.current?.value.trim()) { setToast('판정할 행동을 먼저 입력하세요'); return }
-                      setShowDicePicker(p => !p)
-                    }}
-                  >🎲</button>
-                  {showDicePicker && (
-                    <>
-                      <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setShowDicePicker(false)} />
-                      <div style={{
-                        position: 'absolute', bottom: 'calc(100% + 6px)', right: 0, zIndex: 10,
-                        background: 'var(--chrome-face)', border: '1.5px solid var(--chrome-border)',
-                        borderRadius: 'var(--radius)', padding: 8, minWidth: 150,
-                        boxShadow: '0 4px 16px rgba(0,0,0,.3)',
-                      }}>
-                        <div className="tiny muted" style={{ marginBottom: 6 }}>어떤 능력으로 판정할까요?</div>
-                        <div className="vstack" style={{ gap: 4 }}>
-                          {conv.statsEnabled && conv.statsConfig?.map(s => (
-                            <button
-                              key={s.name}
-                              className="btn ghost"
-                              style={{ fontSize: 10, padding: '4px 8px', justifyContent: 'space-between', display: 'flex' }}
-                              onClick={() => { setShowDicePicker(false); send(undefined, { stat: s.name }) }}
-                            >
-                              <span>{s.name}</span><span className="muted">{s.value}</span>
-                            </button>
-                          ))}
-                          <button
-                            className="btn ghost"
-                            style={{ fontSize: 10, padding: '4px 8px' }}
-                            onClick={() => { setShowDicePicker(false); send(undefined, {}) }}
-                          >일반 판정 (50%)</button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+              {autoPlayLeft > 0 && (
+                <button
+                  className="btn danger"
+                  style={{ padding: '0 10px', fontSize: 11, minHeight: 38, whiteSpace: 'nowrap', flexShrink: 0 }}
+                  aria-label="자동 진행 중지"
+                  onClick={stopAutoPlay}
+                >■ {autoPlayLeft}턴</button>
               )}
               <button className="btn primary" onClick={() => send()} disabled={typing}>전송</button>
             </div>
