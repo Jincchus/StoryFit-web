@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { AppProvider } from '@/providers/AppProvider'
 import Dock from '@/components/shell/Dock'
 import { getAccessToken } from '@/lib/authClient'
+import { registerPushTokenIfAvailable } from '@/lib/pushClient'
 
 const SCREEN_LABELS: Record<string, string> = {
   '/': '홈',
@@ -24,8 +25,9 @@ function Shell({ children }: { children: React.ReactNode }) {
   const [wideMode, setWideMode] = useState(false)
 
   useEffect(() => {
-    if (!getAccessToken()) router.replace('/login')
+    if (!getAccessToken()) { router.replace('/login'); return }
     setWideMode(localStorage.getItem('sf_wide') === '1')
+    registerPushTokenIfAvailable()
   }, [])
 
   return (

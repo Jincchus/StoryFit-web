@@ -28,6 +28,15 @@ model User {
   conversations Conversation[]
   characterCollections CharacterCollection[]
   promptPresets PromptPreset[]
+  pushTokens    PushToken[]
+}
+
+model PushToken {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PromptPreset {
