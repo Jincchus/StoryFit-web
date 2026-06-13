@@ -6,8 +6,9 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { getOpenings } from '@/lib/openings'
+import type { Opening } from '@/types'
 
-interface Opening { id: string; title: string; content: string }
 interface Char {
   id: string; name: string; avatarUrl: string | null; additionalInfo: string
   gender?: string
@@ -95,11 +96,7 @@ export default function ZetaPlotDetailPage() {
   const personaCandidates = col.characters
     .filter(c => !aiCharIds.includes(c.id))
     .map(c => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl, additionalInfo: c.additionalInfo }))
-  const openings: Opening[] = mainChar?.openingMessages?.length
-    ? mainChar.openingMessages
-    : mainChar?.openingMessage?.trim()
-      ? [{ id: 'default', title: '기본 도입부', content: mainChar.openingMessage }]
-      : []
+  const openings: Opening[] = getOpenings(mainChar)
   const chatProfile = Array.isArray(meta.chatProfiles) ? meta.chatProfiles[0] : null
   const personaDefaults = chatProfile
     ? [chatProfile.summary, chatProfile.description].filter(Boolean).join('\n')

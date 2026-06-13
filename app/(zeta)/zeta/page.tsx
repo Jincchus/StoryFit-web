@@ -5,8 +5,9 @@ import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
+import { getOpenings } from '@/lib/openings'
+import type { Opening } from '@/types'
 
-interface Opening { id: string; title: string; content: string }
 interface Plot {
   id: string; title: string; coverImageUrl: string; tags: string[]
   characters: { id: string; name: string; avatarUrl: string | null; openingMessage: string; openingMessages?: Opening[] }[]
@@ -157,7 +158,7 @@ export default function ZetaListPage() {
             {visiblePlots.map(p => {
               const mainChar = p.characters.find(c => c.name === p.title) ?? p.characters[0]
               const thumb = p.coverImageUrl || mainChar?.avatarUrl || ''
-              const intro = mainChar?.openingMessages?.[0]?.content || mainChar?.openingMessage || ''
+              const intro = getOpenings(mainChar)[0]?.content || ''
               return (
                 <div key={p.id} className="zeta-card"
                   onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>

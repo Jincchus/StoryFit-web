@@ -82,6 +82,12 @@ export interface AIModel {
   disabled: boolean
 }
 
+export interface Opening {
+  id: string
+  title: string
+  content: string
+}
+
 export interface LorebookEntry {
   id: string
   keyword: string[]

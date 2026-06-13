@@ -6,6 +6,8 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { getOpenings } from '@/lib/openings'
+import type { Opening } from '@/types'
 
 function formatDate(s?: string) {
   if (!s) return ''
@@ -13,7 +15,6 @@ function formatDate(s?: string) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
-interface Opening { id: string; title: string; content: string }
 interface Character {
   id: string; name: string; gender: string; avatarUrl: string | null; tags: string[]
   additionalInfo: string; openingMessage: string; safetyLevel: string
@@ -63,11 +64,7 @@ export default function CharacterDetailPage() {
 
   if (!char) return <div className="whif-empty">불러오는 중...</div>
 
-  const openings = char.openingMessages?.length
-    ? char.openingMessages
-    : char.openingMessage?.trim()
-      ? [{ id: 'default', title: '기본 도입부', content: char.openingMessage }]
-      : []
+  const openings = getOpenings(char)
   const nsfw = char.safetyLevel === 'relaxed'
   const personaCandidates = allChars.filter(c => c.collection?.id === char.collection?.id && c.id !== char.id)
   const relatedImgs = (char.relatedImages ?? []).filter(u => !getYouTubeId(u))

@@ -23,7 +23,10 @@ Prisma 스키마 17개 모델 전체를 실제 코드 사용처와 대조한 결
    - UI에 character-scope 로어북 생성 경로가 없어 항상 null이었음. 필드/관계(`Character.lorebooks`) 삭제.
    - `app/api/lorebooks/route.ts`의 `characterId` 쿼리·생성 파라미터, `import/route.ts`의 `characterId: null`, 캐릭터/컬렉션 삭제 트랜잭션의 `lorebook.updateMany(characterId→null)`, 캐릭터 복제 시 character-scope 로어북 복사 블록(항상 빈 결과) 제거.
 
+5. **`openingMessage`/`openingMessages` 폴백 로직 통합**
+   - `types/index.ts`에 공용 `Opening` 타입 추가, `lib/openings.ts`에 `getOpenings(character)` 헬퍼 추가.
+   - 3곳(`whif/characters/[id]`, `zeta/plots/[id]`, `zeta` 목록)에서 중복된 `openingMessages?.length ? ... : openingMessage ...` 폴백을 `getOpenings()` 호출로 교체. 스키마 변경 없음.
+
 ## 남은 정리 후보 (보류)
 
-- **`openingMessage` (단수) vs `openingMessages` (Json 배열)**: 여러 곳에서 `openingMessages?.[0]?.content || openingMessage` 폴백 반복. 장기적으로 배열 하나로 통합 가능.
 - **onDelete 미지정**: `Character.creator`, `Conversation.user`, `CharacterCollection.user`. 현재 회원 탈퇴 기능이 없어 문제 없으나, 추가 시 Cascade/SetNull 정리 필요.
