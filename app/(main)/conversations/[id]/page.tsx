@@ -531,6 +531,7 @@ export default function ChatPage() {
   const [currentTheme, setCurrentTheme] = useState('retro')
   const [showPlusMenu, setShowPlusMenu] = useState(false)
   const [showTimelineFull, setShowTimelineFull] = useState(false)
+  const [diceRolling, setDiceRolling] = useState<string | null>(null)
   const [chatFontSize, setChatFontSize] = useState(14)
   useEffect(() => {
     const saved = parseInt(localStorage.getItem('sf-chat-fs') ?? '', 10)
@@ -678,6 +679,7 @@ export default function ChatPage() {
   return (
     <>
     {toast && <Toast message={toast} onDone={() => setToast('')} />}
+    {diceRolling && <DiceRollOverlay label={diceRolling} onDone={() => setDiceRolling(null)} />}
     {confirmDeleteId && (
       <ConfirmDialog
         message="이 메시지를 삭제할까요? 복구할 수 없습니다."
@@ -984,7 +986,7 @@ export default function ChatPage() {
                                     key={s.name}
                                     className="btn ghost"
                                     style={{ fontSize: 12, padding: '6px 10px', justifyContent: 'space-between', display: 'flex' }}
-                                    onClick={() => { setShowPlusMenu(false); setShowDicePicker(false); send(undefined, { stat: s.name }) }}
+                                    onClick={() => { setShowPlusMenu(false); setShowDicePicker(false); setDiceRolling(s.name); send(undefined, { stat: s.name }) }}
                                   >
                                     <span>{s.name}</span><span className="muted">{s.value}</span>
                                   </button>
@@ -992,7 +994,7 @@ export default function ChatPage() {
                                 <button
                                   className="btn ghost"
                                   style={{ fontSize: 12, padding: '6px 10px', justifyContent: 'flex-start' }}
-                                  onClick={() => { setShowPlusMenu(false); setShowDicePicker(false); send(undefined, {}) }}
+                                  onClick={() => { setShowPlusMenu(false); setShowDicePicker(false); setDiceRolling('일반'); send(undefined, {}) }}
                                 >일반 판정 (50%)</button>
                               </div>
                             )}
@@ -1139,5 +1141,24 @@ export default function ChatPage() {
       />
     )}
     </>
+  )
+}
+
+function DiceRollOverlay({ label, onDone }: { label: string; onDone: () => void }) {
+  const [num, setNum] = useState(1)
+  useEffect(() => {
+    const iv = setInterval(() => setNum(Math.floor(Math.random() * 100) + 1), 60)
+    const to = setTimeout(() => { clearInterval(iv); onDone() }, 1200)
+    return () => { clearInterval(iv); clearTimeout(to) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.35)', pointerEvents: 'none' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 46, animation: 'dice-spin .5s linear infinite' }}>🎲</div>
+        <div style={{ fontSize: 32, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', textShadow: '0 2px 8px rgba(0,0,0,.5)' }}>{num}</div>
+        <div style={{ fontSize: 12, color: '#fff', opacity: .85 }}>{label} 판정 중…</div>
+      </div>
+    </div>
   )
 }

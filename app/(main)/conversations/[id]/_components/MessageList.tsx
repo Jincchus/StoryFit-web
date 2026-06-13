@@ -8,6 +8,11 @@ import MessageBlocks from '@/components/ui/MessageBlocks'
 import NovelScene from '@/components/ui/NovelScene'
 import { parseStoryChoices, isSamePerson, type Msg, type Conv, type ConvChar, type BranchInfo } from '../_lib/chatShared'
 
+const DICE_TAG_RE = /\n*🎲 판정 — (.+) → (대성공|성공|실패|대실패)\s*$/
+const DICE_OUTCOME_CLASS: Record<string, string> = {
+  대성공: 'crit', 성공: 'success', 실패: 'fail', 대실패: 'fumble',
+}
+
 function ChatNarration({ text }: { text: string }) {
   const parts = text.split(/(\*[^*]+\*|\n)/)
   return (
@@ -122,9 +127,20 @@ export default function MessageList({
                     onSaveOnly={c => saveEditOnly(c, m.id)}
                     onCancel={() => setEditingId(null)}
                   />
-                ) : (
-                  <div className="bubble bubble-persona" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
-                )}
+                ) : (() => {
+                  const diceMatch = m.content.match(DICE_TAG_RE)
+                  const body = diceMatch ? m.content.slice(0, diceMatch.index).trim() : m.content
+                  return (
+                    <>
+                      {body && <div className="bubble bubble-persona" style={{ whiteSpace: 'pre-wrap' }}>{body}</div>}
+                      {diceMatch && (
+                        <div className={`dice-badge dice-${DICE_OUTCOME_CLASS[diceMatch[2]]}`}>
+                          🎲 {diceMatch[1]} → <b>{diceMatch[2]}</b>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             ) : isEditing ? (
               /* ── AI 편집 중 ── */
