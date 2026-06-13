@@ -382,8 +382,13 @@ export default function MessageList({
       {(typing || streaming) && messages[messages.length - 1]?.role !== 'assistant' && (
         <div className="msg-seq">
           <div className="seq-block seq-left">
-            <div className="seq-speaker">
-              <span>{streamingChar.name}</span>
+            <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div className="thumb" style={{ width: 20, height: 20, flexShrink: 0 }}>
+                {streamingChar.avatarUrl
+                  ? <img src={streamingChar.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} alt="" />
+                  : <PixelAvatar kind={streamingChar.kind as any} size={20} />}
+              </div>
+              <span>{streamingChar.name}{!streaming && '이(가) 쓰는 중'}</span>
             </div>
             {streaming
               ? <>

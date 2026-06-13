@@ -794,7 +794,7 @@ export default function ChatPage() {
                     role="button"
                     aria-label={`v${b.version} 분기 삭제`}
                     onClick={e => { e.stopPropagation(); handleDeleteBranch(b) }}
-                    style={{ opacity: 0.55, padding: '0 2px', cursor: 'pointer' }}
+                    style={{ opacity: 0.55, padding: '4px 7px', margin: '-4px -2px', cursor: 'pointer' }}
                   >✕</span>
                 </div>
               )
@@ -926,7 +926,9 @@ export default function ChatPage() {
                   <>
                     {suggestions.map((s, i) => (
                       <div className="melting-suggest-row" key={i}>
-                        <button className="melting-suggest-chip" onClick={() => fillComposer(s)}>{s}</button>
+                        <button className="melting-suggest-chip" onClick={() => fillComposer(s)}>
+                          {s} <span style={{ opacity: .45, fontSize: 11 }}>✏</span>
+                        </button>
                       </div>
                     ))}
                     <button className="melting-suggest-regen" disabled={suggestLoading} onClick={loadSuggestions}>
