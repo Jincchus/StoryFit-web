@@ -10,6 +10,7 @@ import CharacterCardModal from '@/components/ui/CharacterCardModal'
 import type { Character } from '@/types'
 import { getConvStream, clearConvStream, subscribeConvStream, runConvStream, runConvRegenerate, runConvContinue } from '@/lib/conversationStream'
 import { getSavedTheme } from '@/lib/theme'
+import { haptic } from '@/lib/haptics'
 import { useSpeech } from './_hooks/useSpeech'
 import { useVoiceCall } from './_hooks/useVoiceCall'
 import { COMMANDS, parseStoryChoices, type Msg, type Conv, type ConvChar, type BranchInfo } from './_lib/chatShared'
@@ -518,6 +519,7 @@ export default function ChatPage() {
   }
 
   const handleToggleBookmark = (msgId: string, next: boolean) => {
+    haptic('light')
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, bookmarked: next } : m))
     api.patch(`/api/conversations/${params.id}/messages`, { messageId: msgId, bookmarked: next })
       .catch(() => {
@@ -530,8 +532,15 @@ export default function ChatPage() {
   const [customBg, setCustomBg] = useState('')
   const [currentTheme, setCurrentTheme] = useState('retro')
   const [showPlusMenu, setShowPlusMenu] = useState(false)
+  const [plusMenuSeen, setPlusMenuSeen] = useState(true)
+  useEffect(() => { setPlusMenuSeen(!!localStorage.getItem('sf_seen_plusmenu')) }, [])
   const [showTimelineFull, setShowTimelineFull] = useState(false)
   const [diceRolling, setDiceRolling] = useState<string | null>(null)
+  const prevTypingRef = useRef(false)
+  useEffect(() => {
+    if (prevTypingRef.current && !typing) haptic('light')
+    prevTypingRef.current = typing
+  }, [typing])
   const [chatFontSize, setChatFontSize] = useState(14)
   useEffect(() => {
     const saved = parseInt(localStorage.getItem('sf-chat-fs') ?? '', 10)
@@ -679,7 +688,7 @@ export default function ChatPage() {
   return (
     <>
     {toast && <Toast message={toast} onDone={() => setToast('')} />}
-    {diceRolling && <DiceRollOverlay label={diceRolling} onDone={() => setDiceRolling(null)} />}
+    {diceRolling && <DiceRollOverlay label={diceRolling} onDone={() => { setDiceRolling(null); haptic('medium') }} />}
     {confirmDeleteId && (
       <ConfirmDialog
         message="이 메시지를 삭제할까요? 복구할 수 없습니다."
@@ -955,8 +964,14 @@ export default function ChatPage() {
                     style={{ width: 38, height: 38, padding: 0, fontSize: 20, borderRadius: '50%', justifyContent: 'center' }}
                     disabled={typing}
                     aria-label="기능 메뉴"
-                    onClick={() => { setShowPlusMenu(p => !p); setShowDicePicker(false); setShowAutoPicker(false) }}
+                    onClick={() => {
+                      setShowPlusMenu(p => !p); setShowDicePicker(false); setShowAutoPicker(false)
+                      if (!plusMenuSeen) { setPlusMenuSeen(true); localStorage.setItem('sf_seen_plusmenu', '1') }
+                    }}
                   >＋</button>
+                  {!plusMenuSeen && (
+                    <span style={{ position: 'absolute', top: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: 'var(--hot-pink)', border: '1.5px solid var(--paper)', pointerEvents: 'none' }} />
+                  )}
                   {showPlusMenu && (
                     <>
                       <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => { setShowPlusMenu(false); setShowDicePicker(false); setShowAutoPicker(false) }} />

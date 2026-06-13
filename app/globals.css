@@ -1226,6 +1226,23 @@ body[data-crt="on"]::after{
 .story-log .seq-narration{ text-align: left; padding: 1px 8px; font-size: inherit; line-height: 1.75; }
 .story-log .narration-block{ text-align: left; padding: 2px 8px; font-size: inherit; line-height: 1.75; }
 
+/* ─── 채팅 목록 스와이프 액션 (터치 기기) ───────────────────────────────── */
+.swipe-wrap{ position:relative; overflow:hidden; }
+.swipe-actions{
+  position:absolute; top:0; right:0; bottom:0;
+  display:flex; align-items:stretch; z-index:0;
+}
+.swipe-actions button{
+  width:56px; border:none; cursor:pointer;
+  display:grid; place-items:center;
+  font-size:17px; color:#fff;
+}
+.swipe-content{ transition: transform .18s ease; position:relative; z-index:1; }
+.swipe-content.open{ transform: translateX(-168px); }
+@media (hover: none){
+  .row-inline-actions{ display:none !important; }
+}
+
 /* ─── 스탯 판정 (주사위) 연출 ────────────────────────────────────────────── */
 .dice-badge{
   display:inline-flex; align-items:center; gap:5px;

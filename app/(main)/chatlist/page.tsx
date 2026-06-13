@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
@@ -110,6 +110,8 @@ export default function ChatListPage() {
   const [msgResults, setMsgResults] = useState<MsgSearchResult[]>([])
   const [msgSearching, setMsgSearching] = useState(false)
   const [showMsgResults, setShowMsgResults] = useState(true)
+  const [swipedId, setSwipedId] = useState<string | null>(null)
+  const touchStartRef = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
     const q = query.trim()
@@ -386,16 +388,50 @@ export default function ChatListPage() {
             const isChecked = selected.has(conv.id)
 
             return (
+              <div key={conv.id} className="swipe-wrap">
+                {!selecting && swipedId === conv.id && (
+                  <div className="swipe-actions">
+                    <button
+                      style={{ background: 'var(--accent)' }}
+                      aria-label={conv.isPinned ? '핀 해제' : '상단 고정'}
+                      onClick={e => { togglePin(e, conv); setSwipedId(null) }}
+                    >📌</button>
+                    <button
+                      style={{ background: '#8b5cf6' }}
+                      aria-label="서재로 보내기"
+                      onClick={e => { archiveConv(e, conv.id); setSwipedId(null) }}
+                    >📚</button>
+                    <button
+                      style={{ background: 'var(--red)' }}
+                      aria-label="삭제"
+                      onClick={e => { e.stopPropagation(); setConfirmDeleteId(conv.id); setSwipedId(null) }}
+                    >🗑</button>
+                  </div>
+                )}
               <div
-                key={conv.id}
-                className="row"
+                className={`row swipe-content${swipedId === conv.id ? ' open' : ''}`}
                 style={{
                   position: 'relative',
                   cursor: selecting ? 'pointer' : undefined,
-                  background: isChecked ? 'var(--lavender)' : conv.isPinned ? 'var(--pane)' : undefined,
+                  background: isChecked ? 'var(--lavender)' : conv.isPinned ? 'var(--pane)' : 'var(--paper)',
                   borderLeft: conv.isPinned ? '2px solid var(--hot-pink)' : undefined,
                 }}
-                onClick={() => selecting ? toggleSelect(conv.id) : router.push(conv.isAutoCreated ? `/conversations/new?from=${conv.id}` : `/conversations/${conv.id}`)}
+                onTouchStart={e => {
+                  touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+                }}
+                onTouchEnd={e => {
+                  if (selecting) return
+                  const dx = e.changedTouches[0].clientX - touchStartRef.current.x
+                  const dy = Math.abs(e.changedTouches[0].clientY - touchStartRef.current.y)
+                  if (dy > 40) return
+                  if (dx < -40) setSwipedId(conv.id)
+                  else if (dx > 40) setSwipedId(null)
+                }}
+                onClick={() => {
+                  if (swipedId === conv.id) { setSwipedId(null); return }
+                  if (swipedId) { setSwipedId(null) }
+                  selecting ? toggleSelect(conv.id) : router.push(conv.isAutoCreated ? `/conversations/new?from=${conv.id}` : `/conversations/${conv.id}`)
+                }}
               >
                 {selecting && (
                   <div style={{ flexShrink: 0, display: 'grid', placeItems: 'center', width: 22 }}>
@@ -439,7 +475,7 @@ export default function ChatListPage() {
                   </div>
                   <span className="when">{when}</span>
                   {!selecting && (
-                    <div className="hstack" style={{ gap: 4 }}>
+                    <div className="hstack row-inline-actions" style={{ gap: 4 }}>
                       <button
                         className={`btn ${conv.isPinned ? 'primary' : 'ghost'}`}
                         style={{ fontSize: 10, padding: '3px 8px' }}
@@ -460,6 +496,7 @@ export default function ChatListPage() {
                     </div>
                   )}
                 </div>
+              </div>
               </div>
             )
           })}
