@@ -9,7 +9,60 @@ function stripConvSuffix(title) {
   return title.replace(/[과와]의 대화$/, '').trim() || title
 }
 
+// 수동 모드: node scripts/restore-collections.mjs <대화ID> <원본URL>
+// 분기 승격 등으로 대화의 sourceUrl이 비어 자동 복구가 불가능한 건을 직접 지정해 복구한다.
+async function restoreOne(convId, sourceUrl) {
+  const conv = await prisma.conversation.findUnique({
+    where: { id: convId },
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      sourceUrl: true,
+      scenarioDescription: true,
+      tags: true,
+      characterCollection: { select: { id: true } },
+      characters: {
+        orderBy: { turnOrder: 'asc' },
+        select: { character: { select: { id: true, collectionId: true, avatarUrl: true } } },
+      },
+    },
+  })
+  if (!conv) { console.error(`대화를 찾을 수 없음: ${convId}`); process.exit(1) }
+  if (conv.characterCollection) { console.log(`이미 컬렉션이 연결되어 있음: ${conv.title}`); return }
+
+  const chars = conv.characters.map(cc => cc.character)
+  if (chars.length === 0) { console.error('대화에 캐릭터가 없음'); process.exit(1) }
+
+  if (conv.sourceUrl !== sourceUrl) {
+    await prisma.conversation.update({ where: { id: conv.id }, data: { sourceUrl } })
+    console.log(`대화 sourceUrl 채움: "${conv.title}" ← ${sourceUrl}`)
+  }
+
+  const collection = await prisma.characterCollection.create({
+    data: {
+      title: stripConvSuffix(conv.title),
+      sourceUrl,
+      userId: conv.userId,
+      conversationId: conv.id,
+      coverImageUrl: chars[0].avatarUrl ?? '',
+      description: conv.scenarioDescription ?? '',
+      tags: conv.tags ?? [],
+    },
+  })
+  await prisma.character.updateMany({
+    where: { id: { in: chars.map(c => c.id) } },
+    data: { collectionId: collection.id },
+  })
+  console.log(`복구: "${collection.title}" (${sourceUrl}) — 캐릭터 ${chars.length}개, 대화 "${conv.title}"`)
+}
+
 async function main() {
+  const [argConvId, argUrl] = process.argv.slice(2)
+  if (argConvId && argUrl) {
+    await restoreOne(argConvId, argUrl)
+    return
+  }
   const convs = await prisma.conversation.findMany({
     where: {
       rootConversationId: null,
@@ -87,6 +140,24 @@ async function main() {
   }
 
   console.log(`완료 — 컬렉션 재생성 ${restored}건, 기존 컬렉션 재연결 ${relinked}건 (검사 대상 대화 ${convs.length}건)`)
+
+  // sourceUrl이 비어 자동 복구가 불가능한 고아 대화 안내 (가져온 캐릭터인데 컬렉션 없음)
+  const orphanConvs = await prisma.conversation.findMany({
+    where: {
+      rootConversationId: null,
+      sourceUrl: '',
+      mode: { not: 'assistant' },
+      characterCollection: null,
+      characters: { some: { character: { isAutoCreated: true, collectionId: null } } },
+    },
+    select: { id: true, title: true },
+  })
+  if (orphanConvs.length > 0) {
+    console.log('\n⚠ sourceUrl이 없어 자동 복구할 수 없는 대화 — 원본 URL을 지정해 수동 복구하세요:')
+    for (const c of orphanConvs) {
+      console.log(`  "${c.title}" → node scripts/restore-collections.mjs ${c.id} <원본URL>`)
+    }
+  }
 }
 
 main()
