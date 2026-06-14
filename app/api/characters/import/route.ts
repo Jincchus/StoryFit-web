@@ -13,6 +13,18 @@ import type { Captured } from '@/lib/import/types'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'avatars')
 
+// 같은 페이지를 가리키는 URL의 사소한 차이(끝 슬래시·해시)를 제거해 중복 판정을 안정화한다.
+function normalizeUrl(u: string): string {
+  try {
+    const parsed = new URL(u.trim())
+    parsed.hash = ''
+    let s = parsed.toString()
+    return s.endsWith('/') ? s.slice(0, -1) : s
+  } catch {
+    return u.trim().replace(/#.*$/, '').replace(/\/$/, '')
+  }
+}
+
 // 받침(종성) 유무에 따라 "과/와" 조사를 고른다 — "강태헌과의 대화" vs "강태이와의 대화".
 // 한글 음절이 아닌 문자로 끝나면(영문/기호 등) 기본값 "와"를 쓴다.
 function josa과와(word: string): '과' | '와' {
@@ -40,19 +52,23 @@ function parseTavernJson(json: any): CardShape {
 }
 
 async function runImport(captured: Captured, url: string, userId: string) {
-  // WHIF: 동일 세계관이 이미 등록되어 있으면 중복 생성 방지
-  if (captured.universeUrl) {
-    const existing = await prisma.characterCollection.findFirst({
-      where: { userId, sourceUrl: captured.universeUrl },
-      select: { id: true, conversationId: true, characters: { select: { id: true }, take: 1 } },
-    })
-    if (existing) {
-      return {
-        characterId: existing.characters[0]?.id ?? null,
-        conversationId: existing.conversationId ?? '',
-        collectionId: existing.id,
-        alreadyExists: true,
-      }
+  // 동일 URL(또는 canonical 세계관 URL)로 이미 저장된 컬렉션이 있으면 중복 생성 방지.
+  // canonical URL을 못 만드는 센터(melting 등)도 입력 URL 기준으로 막는다.
+  const dedupUrls = Array.from(new Set([
+    captured.universeUrl,
+    url,
+    normalizeUrl(url),
+  ].filter(Boolean))) as string[]
+  const existing = await prisma.characterCollection.findFirst({
+    where: { userId, sourceUrl: { in: dedupUrls } },
+    select: { id: true, conversationId: true, characters: { select: { id: true }, take: 1 } },
+  })
+  if (existing) {
+    return {
+      characterId: existing.characters[0]?.id ?? null,
+      conversationId: existing.conversationId ?? '',
+      collectionId: existing.id,
+      alreadyExists: true,
     }
   }
 
@@ -120,7 +136,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
   const collection = await prisma.characterCollection.create({
     data: {
       title: collectionTitle,
-      sourceUrl: captured.universeUrl ?? url,
+      sourceUrl: captured.universeUrl ?? normalizeUrl(url),
       userId,
       conversationId: null,
       coverImageUrl: result.coverImageUrl ?? captured.imageUrl ?? '',
