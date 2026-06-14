@@ -1223,8 +1223,8 @@ body[data-crt="on"]::after{
 .story-log .seq-block{ max-width: 92%; }
 .story-log .msg:not(.you):not(.system):not(.typing){ max-width: 92%; }
 .story-log .bubble{ line-height: 1.65; }
-.story-log .seq-narration{ text-align: left; padding: 1px 8px; font-size: inherit; line-height: 1.75; }
-.story-log .narration-block{ text-align: left; padding: 2px 8px; font-size: inherit; line-height: 1.75; }
+.story-log .seq-narration{ text-align: center; padding: 1px 8px; font-size: inherit; line-height: 1.75; }
+.story-log .narration-block{ text-align: center; padding: 2px 8px; font-size: inherit; line-height: 1.75; }
 
 /* 다크 센터 스코프에서 스켈레톤 톤 보정 */
 .whif-root .skeleton, .zeta-root .skeleton, .melting-root .skeleton{ background: rgba(255,255,255,.08); }

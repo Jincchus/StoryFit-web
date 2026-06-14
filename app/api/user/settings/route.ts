@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
+import { THEMES } from '@/lib/theme'
+
+const VALID_THEMES = new Set<string>(THEMES.map(t => t.id))
 
 const USER_SELECT = {
   displayName: true,
@@ -43,7 +46,7 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.defaultThinkingBudget === 'number') data.defaultThinkingBudget = Math.max(0, Math.min(8192, Math.round(body.defaultThinkingBudget)))
   if (['strict', 'standard', 'relaxed'].includes(body.defaultSafetyLevel)) data.defaultSafetyLevel = body.defaultSafetyLevel
   if (body.defaultAI === 'gemini') data.defaultAI = body.defaultAI
-  if (['retro', 'modern', 'modernwhite', 'win95', 'maple', 'qplay', 'crazyarcade', 'block', 'cyworld'].includes(body.theme)) data.theme = body.theme
+  if (typeof body.theme === 'string' && VALID_THEMES.has(body.theme)) data.theme = body.theme
 
   const user = await prisma.user.update({ where: { id: userId }, data, select: USER_SELECT })
   return NextResponse.json(user)
