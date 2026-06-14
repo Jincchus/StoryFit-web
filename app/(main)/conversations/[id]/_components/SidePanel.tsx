@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import PixelAvatar from '@/components/ui/PixelAvatar'
 import { applyTheme, THEMES } from '@/lib/theme'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 import type { Character } from '@/types'
 import { useLorebook } from '../_hooks/useLorebook'
 import { useMemoryPanel } from '../_hooks/useMemoryPanel'
@@ -29,6 +30,9 @@ export default function SidePanel({
 }) {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
+  const personaName = conv.personaCharacter?.name ?? '나'
+  const mainCharName = conv.characters[0]?.character.name
+  const display = (text: string) => replaceDisplayPlaceholders(text, personaName, mainCharName)
   const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false, style: false, persona: false })
   const [infoTip, setInfoTip] = useState<string | null>(null)
 
@@ -116,7 +120,7 @@ export default function SidePanel({
             className="field"
             style={{ fontSize: 11 }}
             placeholder="예: 루나가 거절하는 방향"
-            value={conv.branchDescription ?? ''}
+            value={display(conv.branchDescription ?? '')}
             onChange={e => handleBranchDescription(e.target.value)}
             maxLength={100}
           />
@@ -282,7 +286,7 @@ export default function SidePanel({
         <textarea
           className="field" rows={3}
           placeholder={"이 대화의 세계관·배경을 설정하세요\n예: 마법 학원 천문대, 루나는 오늘 밤 예언을 완성해야 한다."}
-          value={conv.scenarioDescription}
+          value={display(conv.scenarioDescription)}
           onChange={e => handleScenarioDescription(e.target.value)}
         />
       </div>
@@ -390,14 +394,14 @@ export default function SidePanel({
           <textarea
             className="field" rows={3}
             placeholder={"절대 잊으면 안 되는 설정을 적어두세요\n예: 유저는 마왕의 딸이다."}
-            value={conv.coreMemory}
+            value={display(conv.coreMemory)}
             onChange={e => handleCoreMemory(e.target.value)}
           />
           <div className="label" style={{ marginTop: 8, marginBottom: 2 }}>타임라인 상태</div>
           <textarea
             className="field" rows={2}
             placeholder={"현재 에피소드 상태\n예: 마왕성 탐험 중 / 루나가 다리를 다침"}
-            value={conv.statusTimeline}
+            value={display(conv.statusTimeline)}
             onChange={e => handleStatusTimeline(e.target.value)}
           />
         </>}
@@ -497,7 +501,7 @@ export default function SidePanel({
                     <button className="msg-action-btn danger" style={{ fontSize: 9 }} onClick={() => handleDeleteLorebook(lb.id)}>✕</button>
                   </div>
                 </div>
-                <div className="tiny muted" style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: 2 }}>{lb.content}</div>
+                <div className="tiny muted" style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: 2 }}>{display(lb.content)}</div>
                 <div className="tiny muted">우선순위 {lb.priority} · 탐색 {lb.scanDepth}턴</div>
               </>
             )}
@@ -629,16 +633,20 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
   setConv: React.Dispatch<React.SetStateAction<Conv | null>>
   setToast: (msg: string) => void
 }) {
-  const [chapterCount, setChapterCount] = useState(conv.plotOutline?.totalChapters ?? 6)
+  const [chapterCount, setChapterCount] = useState<number | ''>(conv.plotOutline?.totalChapters ?? 6)
   const [generating, setGenerating] = useState(false)
   const [showOutline, setShowOutline] = useState(false)
   const outline = conv.plotOutline
+
+  const display = (text: string) => replaceDisplayPlaceholders(text, conv.personaCharacter?.name ?? '나', conv.characters[0]?.character.name)
+
+  const resolvedChapters = Math.min(30, Math.max(2, typeof chapterCount === 'number' ? chapterCount : 6))
 
   const handleGenerate = async () => {
     if (generating) return
     setGenerating(true)
     try {
-      const result = await api.post(`/api/conversations/${convId}/plot`, { totalChapters: chapterCount })
+      const result = await api.post(`/api/conversations/${convId}/plot`, { totalChapters: resolvedChapters })
       setConv(c => c ? { ...c, plotOutline: result } : c)
       setToast('스토리 설계도가 생성되었습니다')
     } catch (e: any) {
@@ -678,7 +686,8 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
               type="number" className="field"
               style={{ marginLeft: 4, width: 48, fontSize: 10, display: 'inline-block' }}
               min={2} max={30} value={chapterCount}
-              onChange={e => setChapterCount(parseInt(e.target.value) || 6)}
+              onChange={e => setChapterCount(e.target.value === '' ? '' : parseInt(e.target.value))}
+              onBlur={() => setChapterCount(resolvedChapters)}
             />
           </label>
           <button className="btn primary" style={{ fontSize: 10, padding: '3px 8px' }} disabled={generating} onClick={handleGenerate}>
@@ -707,7 +716,8 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
                 type="number" className="field"
                 style={{ width: 40, fontSize: 9, display: 'inline-block', padding: '1px 4px' }}
                 min={2} max={30} value={chapterCount}
-                onChange={e => setChapterCount(parseInt(e.target.value) || 6)}
+                onChange={e => setChapterCount(e.target.value === '' ? '' : parseInt(e.target.value))}
+                onBlur={() => setChapterCount(resolvedChapters)}
               />챕터
             </label>
             <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} disabled={generating} onClick={handleGenerate}>
@@ -723,23 +733,25 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
                 return (
                   <div key={ch.index} style={{
                     padding: 6, borderRadius: 'var(--radius)',
-                    background: isCurrent ? 'var(--lavender)' : 'var(--pane)',
-                    border: `1px solid ${isCurrent ? 'var(--hot-pink)' : 'var(--chrome-border)'}`,
+                    background: isCurrent
+                      ? 'color-mix(in srgb, var(--accent) 28%, var(--chrome-face))'
+                      : 'color-mix(in srgb, var(--ink) 8%, var(--chrome-face))',
+                    border: `1px solid ${isCurrent ? 'var(--accent)' : 'var(--chrome-border)'}`,
                   }}>
-                    <div style={{ fontSize: 10, fontWeight: 700 }}>
-                      {isCurrent ? '▶ ' : ''}{ch.index}챕터 「{ch.title}」
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)' }}>
+                      {isCurrent ? '▶ ' : ''}{ch.index}챕터 「{display(ch.title)}」
                     </div>
-                    <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.5 }}>{ch.goal}</div>
+                    <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.5 }}>{display(ch.goal)}</div>
                     {ch.events.length > 0 && (
                       <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.5 }}>
-                        {ch.events.map((ev, i) => <div key={i}>• {ev}</div>)}
+                        {ch.events.map((ev, i) => <div key={i}>• {display(ev)}</div>)}
                       </div>
                     )}
                   </div>
                 )
               })}
               {outline.ending && (
-                <div className="tiny muted" style={{ padding: '4px 6px', lineHeight: 1.5 }}>🏁 결말 방향: {outline.ending}</div>
+                <div className="tiny muted" style={{ padding: '4px 6px', lineHeight: 1.5 }}>🏁 결말 방향: {display(outline.ending)}</div>
               )}
             </div>
           )}

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PixelAvatar from '@/components/ui/PixelAvatar'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 export interface CharacterCardData {
   id: string
@@ -19,11 +20,13 @@ export interface CharacterCardData {
 interface CharacterCardModalProps {
   character: CharacterCardData
   onClose: () => void
+  personaName?: string
 }
 
-export default function CharacterCardModal({ character, onClose }: CharacterCardModalProps) {
+export default function CharacterCardModal({ character, onClose, personaName }: CharacterCardModalProps) {
   const router = useRouter()
   const [showDialogues, setShowDialogues] = useState(false)
+  const display = (text: string) => replaceDisplayPlaceholders(text, personaName ?? '나', character.name)
 
   return (
     <div
@@ -68,14 +71,14 @@ export default function CharacterCardModal({ character, onClose }: CharacterCard
         <div className="vstack" style={{ gap: 4, marginBottom: 12 }}>
           <div className="label">세부 설정</div>
           <div className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-            {character.additionalInfo || <span className="muted">설정 없음</span>}
+            {character.additionalInfo ? display(character.additionalInfo) : <span className="muted">설정 없음</span>}
           </div>
         </div>
 
         {character.openingMessage && (
           <div className="vstack" style={{ gap: 4, marginBottom: 12 }}>
             <div className="label">시작 메시지</div>
-            <div className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{character.openingMessage}</div>
+            <div className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{display(character.openingMessage)}</div>
           </div>
         )}
 
@@ -88,7 +91,7 @@ export default function CharacterCardModal({ character, onClose }: CharacterCard
               </button>
             </div>
             {showDialogues && (
-              <div className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{character.exampleDialogues}</div>
+              <div className="tiny" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{display(character.exampleDialogues)}</div>
             )}
           </div>
         )}

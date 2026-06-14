@@ -98,6 +98,7 @@ function buildStoryBaseRules(charName: string, personaName: string): string {
 - Never include meta choices like "Free input".
 - FORBIDDEN: Writing ${personaName}'s new words, actions, emotions, or decisions in the body. The body must consist only of ${charName}'s and secondary characters' dialogue and actions.
 - FORBIDDEN: Writing dialogue without a speaker name. Whoever speaks must follow the Name : "content" format without exception.
+- FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story prose, dialogue, and the choices.
 - If a user message contains a "🎲 판정" result line, that outcome (대성공/성공/실패/대실패) is FINAL. Never reverse or soften it: a failure must fail with consequences, a success must succeed.
 
 [Output Example]
@@ -230,6 +231,7 @@ All characters interact naturally in each scene — decide who speaks, acts, or 
 - Choices 1–3: ${personaName}'s next action or dialogue. Choice 4: an action advancing the scene.
 - FORBIDDEN: Writing ${personaName}'s words or actions in the body. The body is for ${charNames} only.
 - FORBIDDEN: Writing dialogue without a speaker name.
+- FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story.
 - If a user message contains a "🎲 판정" result line, that outcome (대성공/성공/실패/대실패) is FINAL. Never reverse or soften it: a failure must fail with consequences, a success must succeed.
 
 [Character Voice — STRICT]

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
+import TagFilterBar from '@/components/ui/TagFilterBar'
 
 interface MChar {
   id: string; title: string; coverImageUrl: string; tags: string[]
@@ -24,6 +25,8 @@ export default function MeltingListPage() {
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
   const [sort, setSort] = useState<SortOption>('latest')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     setEditMode(localStorage.getItem('melting_edit') === '1')
@@ -75,11 +78,15 @@ export default function MeltingListPage() {
     await api.delete(`/api/collections/${id}`); await fetchData()
   }
 
+  const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
+  const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
+  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  const tagPool = Array.from(new Set(chars.flatMap(c => c.tags ?? []))).sort()
   const visibleChars = sortByOption(
     chars.filter(c =>
-      view === 'completed' ? c.completed
+      (view === 'completed' ? c.completed
       : view === 'waiting' ? !c.started
-      : !c.completed && !!c.started
+      : !c.completed && !!c.started) && matchesTag(c.tags) && matchesQuery(c.title)
     ),
     sort, c => c.title, c => c.createdAt ?? ''
   )
@@ -87,7 +94,10 @@ export default function MeltingListPage() {
   return (
     <>
       <div className="melting-header" style={{ position: 'relative' }}>
-        <div className="melting-logo">melting</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button className="melting-iconbtn" aria-label="홈으로" onClick={() => router.push('/')}>🏠</button>
+          <div className="melting-logo">melting</div>
+        </div>
         <button className="melting-iconbtn" onClick={() => setMenuOpen(o => !o)}>⋮</button>
         {menuOpen && (
           <div className="melting-menu">
@@ -127,6 +137,18 @@ export default function MeltingListPage() {
         </select>
       </div>
 
+      <div style={{ padding: '0 16px 8px' }}>
+        <input
+          className="field"
+          style={{ fontSize: 12, width: '100%' }}
+          placeholder="이름으로 검색"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      </div>
+
+      <TagFilterBar tags={tagPool} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="melting-chip" accentVar="--m-accent" />
+
       <div className="melting-scroll" ref={scrollRef}>
         {loading ? (
           <div className="melting-grid">
@@ -141,7 +163,9 @@ export default function MeltingListPage() {
             ))}
           </div>
         ) : visibleChars.length === 0 ? (
-          view === 'completed'
+          selectedTags.length > 0 || query.trim()
+            ? <div className="melting-empty">검색 결과가 없습니다.</div>
+          : view === 'completed'
             ? <div className="melting-empty">완결한 캐릭터가 없습니다.</div>
             : view === 'waiting'
               ? <div className="melting-empty">대기 중인 캐릭터가 없습니다.</div>

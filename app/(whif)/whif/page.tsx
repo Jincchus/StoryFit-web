@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
+import TagFilterBar from '@/components/ui/TagFilterBar'
 
 interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
 interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string }
@@ -23,6 +24,8 @@ export default function WhifExplorePage() {
   const [msg, setMsg] = useState('')
   const [sortUniverses, setSortUniverses] = useState<SortOption>('latest')
   const [sortCharacters, setSortCharacters] = useState<SortOption>('latest')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     setEditMode(localStorage.getItem('whif_edit') === '1')
@@ -40,7 +43,7 @@ export default function WhifExplorePage() {
     setSortCharacters(v); localStorage.setItem('whif_sort_characters', v)
   }
   const handleTab = (v: typeof tab) => {
-    setTab(v); sessionStorage.setItem('whif_tab', v)
+    setTab(v); setSelectedTags([]); sessionStorage.setItem('whif_tab', v)
   }
   const handleView = (v: typeof view) => {
     setView(v); sessionStorage.setItem('whif_view', v)
@@ -93,19 +96,23 @@ export default function WhifExplorePage() {
 
   const completedColIds = new Set(universes.filter(u => u.completed).map(u => u.id))
   const isCharCompleted = (c: Character) => !!c.collection && completedColIds.has(c.collection.id)
+  const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
+  const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
+  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  const tagPool = Array.from(new Set((tab === 'universes' ? universes : characters).flatMap(item => item.tags ?? []))).sort()
   const visibleUniverses = sortByOption(
     universes.filter(u =>
-      view === 'completed' ? u.completed
+      (view === 'completed' ? u.completed
       : view === 'waiting' ? !u.started
-      : !u.completed && !!u.started
+      : !u.completed && !!u.started) && matchesTag(u.tags) && matchesQuery(u.title)
     ),
     sortUniverses, u => u.title, u => u.createdAt ?? ''
   )
   const visibleCharacters = sortByOption(
     characters.filter(c =>
-      view === 'completed' ? isCharCompleted(c)
+      (view === 'completed' ? isCharCompleted(c)
       : view === 'waiting' ? !c.started
-      : !isCharCompleted(c) && !!c.started
+      : !isCharCompleted(c) && !!c.started) && matchesTag(c.tags) && matchesQuery(c.name)
     ),
     sortCharacters, c => c.name, c => c.createdAt ?? ''
   )
@@ -113,7 +120,10 @@ export default function WhifExplorePage() {
   return (
     <>
       <div className="whif-header" style={{ position: 'relative' }}>
-        <div className="whif-logo">WHIF</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button className="whif-iconbtn" aria-label="홈으로" onClick={() => router.push('/')}>🏠</button>
+          <div className="whif-logo">WHIF</div>
+        </div>
         <button className="whif-iconbtn" onClick={() => setMenuOpen(o => !o)}>⋮</button>
         {menuOpen && (
           <div className="whif-menu">
@@ -158,6 +168,18 @@ export default function WhifExplorePage() {
         </select>
       </div>
 
+      <div style={{ padding: '0 16px 8px' }}>
+        <input
+          className="field"
+          style={{ fontSize: 12, width: '100%' }}
+          placeholder={tab === 'universes' ? '제목으로 검색' : '이름으로 검색'}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      </div>
+
+      <TagFilterBar tags={tagPool} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="whif-chip" accentVar="--w-accent" />
+
       <div className="whif-scroll" ref={scrollRef}>
         {loading ? (
           <div className="whif-grid">
@@ -173,7 +195,9 @@ export default function WhifExplorePage() {
           </div>
         ) : tab === 'universes' ? (
           visibleUniverses.length === 0 ? (
-            view === 'completed'
+            selectedTags.length > 0 || query.trim()
+              ? <div className="whif-empty">검색 결과가 없습니다.</div>
+            : view === 'completed'
               ? <div className="whif-empty">완결한 작품이 없습니다.</div>
               : view === 'waiting'
                 ? <div className="whif-empty">대기 중인 작품이 없습니다.</div>
@@ -207,7 +231,9 @@ export default function WhifExplorePage() {
           )
         ) : (
           visibleCharacters.length === 0 ? (
-            view === 'completed'
+            selectedTags.length > 0 || query.trim()
+              ? <div className="whif-empty">검색 결과가 없습니다.</div>
+            : view === 'completed'
               ? <div className="whif-empty">완결한 캐릭터가 없습니다.</div>
               : view === 'waiting'
                 ? <div className="whif-empty">대기 중인 캐릭터가 없습니다.</div>

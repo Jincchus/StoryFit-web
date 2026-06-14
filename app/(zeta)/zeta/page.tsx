@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
 import { getOpenings } from '@/lib/openings'
+import TagFilterBar from '@/components/ui/TagFilterBar'
 import type { Opening } from '@/types'
 
 interface Plot {
@@ -29,6 +30,8 @@ export default function ZetaListPage() {
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
   const [sort, setSort] = useState<SortOption>('latest')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     setEditMode(localStorage.getItem('zeta_edit') === '1')
@@ -46,6 +49,11 @@ export default function ZetaListPage() {
   }
 
   const scrollRef = useScrollRestore(`zeta_scroll_${view}`, !loading)
+
+  const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
+  const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
+  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  const tagPool = Array.from(new Set(plots.flatMap(p => p.tags ?? []))).sort()
 
   const fetchData = async () => {
     setLoading(true)
@@ -83,7 +91,10 @@ export default function ZetaListPage() {
   return (
     <>
       <div className="zeta-header" style={{ position: 'relative' }}>
-        <div className="zeta-logo">ZETA</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button className="zeta-iconbtn" aria-label="홈으로" onClick={() => router.push('/')}>🏠</button>
+          <div className="zeta-logo">ZETA</div>
+        </div>
         <button className="zeta-iconbtn" onClick={() => setMenuOpen(o => !o)}>⋮</button>
         {menuOpen && (
           <div className="zeta-menu">
@@ -123,13 +134,25 @@ export default function ZetaListPage() {
         </select>
       </div>
 
+      <div style={{ padding: '0 16px 8px' }}>
+        <input
+          className="field"
+          style={{ fontSize: 12, width: '100%' }}
+          placeholder="제목으로 검색"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      </div>
+
+      <TagFilterBar tags={tagPool} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" />
+
       <div className="zeta-scroll" ref={scrollRef}>
         {(() => {
           const visiblePlots = sortByOption(
             plots.filter(p =>
-              view === 'completed' ? p.completed
+              (view === 'completed' ? p.completed
               : view === 'waiting' ? !p.started
-              : !p.completed && !!p.started
+              : !p.completed && !!p.started) && matchesTag(p.tags) && matchesQuery(p.title)
             ),
             sort, p => p.title, p => p.createdAt ?? ''
           )
@@ -146,7 +169,9 @@ export default function ZetaListPage() {
             ))}
           </div>
         ) : visiblePlots.length === 0 ? (
-          view === 'completed'
+          selectedTags.length > 0 || query.trim()
+            ? <div className="zeta-empty">검색 결과가 없습니다.</div>
+          : view === 'completed'
             ? <div className="zeta-empty">완결한 작품이 없습니다.</div>
             : view === 'waiting'
               ? <div className="zeta-empty">대기 중인 작품이 없습니다.</div>

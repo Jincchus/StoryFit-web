@@ -370,6 +370,9 @@ export default function CharactersPage() {
                   dispatch({ type: 'selectChar', id: c.id })
                 }}
               >
+                {!c.isPreset && !c.isAutoCreated && (
+                  <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 4, fontSize: 9, fontWeight: 700, background: '#2ea66b', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>추가된 캐릭터</div>
+                )}
                 {selecting && !c.isPreset && (
                   <div style={{
                     position: 'absolute', top: 6, left: 6, zIndex: 5,
