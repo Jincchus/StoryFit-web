@@ -5,6 +5,7 @@ const NAV = [
   { href: '/admin', label: '대시보드' },
   { href: '/admin/names', label: '랜덤 이름' },
   { href: '/admin/tags', label: '태그 관리' },
+  { href: '/admin/center-tags', label: '센터 태그' },
   { href: '/admin/config', label: '전역 설정' },
   { href: '/admin/import-cookies', label: '쿠키 가져오기' },
   { href: '/admin/users', label: '유저 관리' },

@@ -1,34 +1,41 @@
 'use client'
 
-export default function TagFilterBar({ tags, selected, onToggle, onClear, chipClass, accentVar }: {
-  tags: string[]
+export interface TagGroup { category: string; tags: string[] }
+
+export default function TagFilterBar({ groups, selected, onToggle, onClear, chipClass, accentVar }: {
+  groups: TagGroup[]
   selected: string[]
   onToggle: (tag: string) => void
   onClear: () => void
   chipClass: string
   accentVar: string
 }) {
-  if (tags.length === 0) return null
+  if (groups.length === 0) return null
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 16px 8px', maxHeight: 96, overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 16px 8px', maxHeight: 220, overflowY: 'auto' }}>
       {selected.length > 0 && (
-        <button
-          className={chipClass}
-          style={{ cursor: 'pointer', border: 'none' }}
-          onClick={onClear}
-        >✕ 전체</button>
+        <div>
+          <button className={chipClass} style={{ cursor: 'pointer', border: 'none' }} onClick={onClear}>✕ 전체 해제</button>
+        </div>
       )}
-      {tags.map(tag => {
-        const active = selected.includes(tag)
-        return (
-          <button
-            key={tag}
-            className={chipClass}
-            style={{ cursor: 'pointer', border: 'none', background: active ? `var(${accentVar})` : undefined, color: active ? '#fff' : undefined }}
-            onClick={() => onToggle(tag)}
-          >#{tag}</button>
-        )
-      })}
+      {groups.map(g => (
+        <div key={g.category} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }}>{g.category}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {g.tags.map(tag => {
+              const active = selected.includes(tag)
+              return (
+                <button
+                  key={tag}
+                  className={chipClass}
+                  style={{ cursor: 'pointer', border: 'none', background: active ? `var(${accentVar})` : undefined, color: active ? '#fff' : undefined }}
+                  onClick={() => onToggle(tag)}
+                >#{tag}</button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

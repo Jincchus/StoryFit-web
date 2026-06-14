@@ -91,6 +91,14 @@ model GlobalConfig {
   updatedAt DateTime @updatedAt
 }
 
+model CenterTag {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  category   String?
+  searchable Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
 model CharacterCollection {
   id             String        @id @default(cuid())
   title          String

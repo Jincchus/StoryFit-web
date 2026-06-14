@@ -7,6 +7,7 @@ import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
 import { getOpenings } from '@/lib/openings'
 import TagFilterBar from '@/components/ui/TagFilterBar'
+import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import type { Opening } from '@/types'
 
 interface Plot {
@@ -33,6 +34,7 @@ export default function ZetaListPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
   const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export default function ZetaListPage() {
     setSort((localStorage.getItem('zeta_sort') as SortOption) || 'latest')
     setView((sessionStorage.getItem('zeta_view') as typeof view) || 'active')
     fetchData()
+    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
 
   const handleSort = (v: SortOption) => {
@@ -55,7 +58,7 @@ export default function ZetaListPage() {
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const tagPool = Array.from(new Set(plots.flatMap(p => p.tags ?? []))).sort()
+  const tagGroups = buildTagGroups(plots.flatMap(p => p.tags ?? []), tagConfig)
 
   const fetchData = async () => {
     setLoading(true)
@@ -151,7 +154,7 @@ export default function ZetaListPage() {
               autoFocus
             />
           </div>
-          <TagFilterBar tags={tagPool} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" />
         </>
       )}
 

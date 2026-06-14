@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
+import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 
 interface MChar {
   id: string; title: string; coverImageUrl: string; tags: string[]
@@ -28,6 +29,7 @@ export default function MeltingListPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
   const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export default function MeltingListPage() {
     setSort((localStorage.getItem('melting_sort') as SortOption) || 'latest')
     setView((sessionStorage.getItem('melting_view') as typeof view) || 'active')
     fetchData()
+    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
 
   const handleSort = (v: SortOption) => {
@@ -83,7 +86,7 @@ export default function MeltingListPage() {
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const tagPool = Array.from(new Set(chars.flatMap(c => c.tags ?? []))).sort()
+  const tagGroups = buildTagGroups(chars.flatMap(c => c.tags ?? []), tagConfig)
   const visibleChars = sortByOption(
     chars.filter(c =>
       (view === 'completed' ? c.completed
@@ -154,7 +157,7 @@ export default function MeltingListPage() {
               autoFocus
             />
           </div>
-          <TagFilterBar tags={tagPool} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="melting-chip" accentVar="--m-accent" />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="melting-chip" accentVar="--m-accent" />
         </>
       )}
 

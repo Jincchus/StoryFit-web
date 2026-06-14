@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
+import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 
 interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
 interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string }
@@ -27,6 +28,7 @@ export default function WhifExplorePage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
   const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
 
   useEffect(() => {
@@ -36,6 +38,7 @@ export default function WhifExplorePage() {
     setTab((sessionStorage.getItem('whif_tab') as typeof tab) || 'universes')
     setView((sessionStorage.getItem('whif_view') as typeof view) || 'active')
     fetchData()
+    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
 
   const handleSortUniverses = (v: SortOption) => {
@@ -101,7 +104,7 @@ export default function WhifExplorePage() {
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const tagPool = Array.from(new Set((tab === 'universes' ? universes : characters).flatMap(item => item.tags ?? []))).sort()
+  const tagGroups = buildTagGroups((tab === 'universes' ? universes : characters).flatMap(item => item.tags ?? []), tagConfig)
   const visibleUniverses = sortByOption(
     universes.filter(u =>
       (view === 'completed' ? u.completed
@@ -185,7 +188,7 @@ export default function WhifExplorePage() {
               autoFocus
             />
           </div>
-          <TagFilterBar tags={tagPool} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="whif-chip" accentVar="--w-accent" />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="whif-chip" accentVar="--w-accent" />
         </>
       )}
 
