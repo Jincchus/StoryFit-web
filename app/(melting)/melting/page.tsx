@@ -6,6 +6,7 @@ import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { useFavorites } from '@/lib/useFavorites'
 
 interface MChar {
   id: string; title: string; coverImageUrl: string; tags: string[]
@@ -18,7 +19,8 @@ interface MChar {
 export default function MeltingListPage() {
   const router = useRouter()
   const [chars, setChars] = useState<MChar[]>([])
-  const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
+  const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
+  const { isFav, toggleFav } = useFavorites()
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -89,7 +91,8 @@ export default function MeltingListPage() {
   const tagGroups = buildTagGroups(chars.flatMap(c => c.tags ?? []), tagConfig)
   const visibleChars = sortByOption(
     chars.filter(c =>
-      (view === 'completed' ? c.completed
+      (view === 'favorites' ? isFav('collection', c.id)
+      : view === 'completed' ? c.completed
       : view === 'waiting' ? !c.started
       : !c.completed && !!c.started) && matchesTag(c.tags) && matchesQuery(c.title)
     ),
@@ -130,6 +133,7 @@ export default function MeltingListPage() {
           <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('active')}>진행 중</button>
           <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('waiting')}>대기</button>
           <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('completed')}>완결</button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('favorites')}>★ 즐겨찾기</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--m-accent)' : 'var(--m-surface-2)', color: searchOpen ? '#fff' : 'var(--m-ink-soft)' }} onClick={toggleSearch}>🔍 검색</button>
@@ -177,6 +181,8 @@ export default function MeltingListPage() {
         ) : visibleChars.length === 0 ? (
           selectedTags.length > 0 || query.trim()
             ? <div className="melting-empty">검색 결과가 없습니다.</div>
+          : view === 'favorites'
+            ? <div className="melting-empty">즐겨찾기한 캐릭터가 없습니다.<br />카드의 ★를 눌러 추가하세요.</div>
           : view === 'completed'
             ? <div className="melting-empty">완결한 캐릭터가 없습니다.</div>
             : view === 'waiting'
@@ -201,11 +207,17 @@ export default function MeltingListPage() {
                       </div>
                     )}
                   </div>
-                  {editMode && (
+                  {editMode ? (
                     <button onClick={e => { e.stopPropagation(); deleteChar(c.id) }}
                       style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
                         border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
                         cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  ) : (
+                    <button onClick={e => { e.stopPropagation(); toggleFav('collection', c.id) }}
+                      aria-label="즐겨찾기"
+                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
+                        border: 'none', color: isFav('collection', c.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
+                        cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', c.id) ? '★' : '☆'}</button>
                   )}
                 </div>
               )

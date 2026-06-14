@@ -93,6 +93,7 @@ const FEATURE_SECTIONS: FeatureSection[] = [
     items: [
       { emoji: '📚', label: '서재', desc: '완결된 대화를 보관합니다. /library에서 모아보고, "꺼내기"로 채팅 목록에 복귀시킬 수 있습니다.' },
       { emoji: '📌', label: '핀 고정', desc: '자주 쓰는 대화를 채팅 목록 상단에 고정합니다.' },
+      { emoji: '★', label: '센터 즐겨찾기', desc: 'WHIF·ZETA·melting 센터에서 카드의 ★를 눌러 즐겨찾기하고, 즐겨찾기 탭에서 모아볼 수 있습니다. 기기 간 동기화됩니다.' },
       { emoji: '🔖', label: '챕터 뱃지', desc: '자동 챕터 구분이 켜진 대화에서 진행 중인 장(N장)을 표시합니다.' },
     ],
   },

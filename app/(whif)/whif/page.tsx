@@ -7,6 +7,7 @@ import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { useFavorites } from '@/lib/useFavorites'
 
 interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
 interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string }
@@ -14,7 +15,8 @@ interface Universe { id: string; title: string; coverImageUrl: string; tags: str
 export default function WhifExplorePage() {
   const router = useRouter()
   const [tab, setTab] = useState<'characters' | 'universes'>('universes')
-  const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
+  const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
+  const { isFav, toggleFav } = useFavorites()
   const [universes, setUniverses] = useState<Universe[]>([])
   const [characters, setCharacters] = useState<Character[]>([])
   const [loading, setLoading] = useState(true)
@@ -107,7 +109,8 @@ export default function WhifExplorePage() {
   const tagGroups = buildTagGroups((tab === 'universes' ? universes : characters).flatMap(item => item.tags ?? []), tagConfig)
   const visibleUniverses = sortByOption(
     universes.filter(u =>
-      (view === 'completed' ? u.completed
+      (view === 'favorites' ? isFav('collection', u.id)
+      : view === 'completed' ? u.completed
       : view === 'waiting' ? !u.started
       : !u.completed && !!u.started) && matchesTag(u.tags) && matchesQuery(u.title)
     ),
@@ -115,7 +118,8 @@ export default function WhifExplorePage() {
   )
   const visibleCharacters = sortByOption(
     characters.filter(c =>
-      (view === 'completed' ? isCharCompleted(c)
+      (view === 'favorites' ? isFav('character', c.id)
+      : view === 'completed' ? isCharCompleted(c)
       : view === 'waiting' ? !c.started
       : !isCharCompleted(c) && !!c.started) && matchesTag(c.tags) && matchesQuery(c.name)
     ),
@@ -161,6 +165,7 @@ export default function WhifExplorePage() {
           <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'active' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => handleView('active')}>진행 중</button>
           <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => handleView('waiting')}>대기</button>
           <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'completed' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => handleView('completed')}>완결</button>
+          <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => handleView('favorites')}>★ 즐겨찾기</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--w-accent)' : 'var(--w-surface-2)', color: searchOpen ? '#fff' : 'var(--w-ink-soft)' }} onClick={toggleSearch}>🔍 검색</button>
@@ -209,6 +214,8 @@ export default function WhifExplorePage() {
           visibleUniverses.length === 0 ? (
             selectedTags.length > 0 || query.trim()
               ? <div className="whif-empty">검색 결과가 없습니다.</div>
+            : view === 'favorites'
+              ? <div className="whif-empty">즐겨찾기한 작품이 없습니다.<br />카드의 ★를 눌러 추가하세요.</div>
             : view === 'completed'
               ? <div className="whif-empty">완결한 작품이 없습니다.</div>
               : view === 'waiting'
@@ -230,11 +237,17 @@ export default function WhifExplorePage() {
                       <div className="whif-card-title">{u.title}</div>
                       <div className="whif-card-sub">{u.characters.length}명 소속</div>
                     </div>
-                    {editMode && (
+                    {editMode ? (
                       <button onClick={e => { e.stopPropagation(); deleteUniverse(u.id) }}
                         style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
                           border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
                           cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    ) : (
+                      <button onClick={e => { e.stopPropagation(); toggleFav('collection', u.id) }}
+                        aria-label="즐겨찾기"
+                        style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
+                          border: 'none', color: isFav('collection', u.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
+                          cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', u.id) ? '★' : '☆'}</button>
                     )}
                   </div>
                 )
@@ -245,6 +258,8 @@ export default function WhifExplorePage() {
           visibleCharacters.length === 0 ? (
             selectedTags.length > 0 || query.trim()
               ? <div className="whif-empty">검색 결과가 없습니다.</div>
+            : view === 'favorites'
+              ? <div className="whif-empty">즐겨찾기한 캐릭터가 없습니다.<br />카드의 ★를 눌러 추가하세요.</div>
             : view === 'completed'
               ? <div className="whif-empty">완결한 캐릭터가 없습니다.</div>
               : view === 'waiting'
@@ -266,11 +281,17 @@ export default function WhifExplorePage() {
                       <div className="whif-card-desc">{replaceDisplayPlaceholders(c.additionalInfo, '나', c.name)}</div>
                     )}
                   </div>
-                  {editMode && (
+                  {editMode ? (
                     <button onClick={e => { e.stopPropagation(); deleteCharacter(c.id) }}
                       style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
                         border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
                         cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  ) : (
+                    <button onClick={e => { e.stopPropagation(); toggleFav('character', c.id) }}
+                      aria-label="즐겨찾기"
+                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
+                        border: 'none', color: isFav('character', c.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
+                        cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('character', c.id) ? '★' : '☆'}</button>
                   )}
                 </div>
               ))}

@@ -8,6 +8,7 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import { getOpenings } from '@/lib/openings'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { useFavorites } from '@/lib/useFavorites'
 import type { Opening } from '@/types'
 
 interface Plot {
@@ -23,7 +24,8 @@ interface Plot {
 export default function ZetaListPage() {
   const router = useRouter()
   const [plots, setPlots] = useState<Plot[]>([])
-  const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
+  const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
+  const { isFav, toggleFav } = useFavorites()
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -127,6 +129,7 @@ export default function ZetaListPage() {
           <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('active')}>진행 중</button>
           <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('waiting')}>대기</button>
           <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('completed')}>완결</button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('favorites')}>★ 즐겨찾기</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--z-accent)' : 'var(--z-surface-2)', color: searchOpen ? '#fff' : 'var(--z-ink-soft)' }} onClick={toggleSearch}>🔍 검색</button>
@@ -162,7 +165,8 @@ export default function ZetaListPage() {
         {(() => {
           const visiblePlots = sortByOption(
             plots.filter(p =>
-              (view === 'completed' ? p.completed
+              (view === 'favorites' ? isFav('collection', p.id)
+              : view === 'completed' ? p.completed
               : view === 'waiting' ? !p.started
               : !p.completed && !!p.started) && matchesTag(p.tags) && matchesQuery(p.title)
             ),
@@ -183,6 +187,8 @@ export default function ZetaListPage() {
         ) : visiblePlots.length === 0 ? (
           selectedTags.length > 0 || query.trim()
             ? <div className="zeta-empty">검색 결과가 없습니다.</div>
+          : view === 'favorites'
+            ? <div className="zeta-empty">즐겨찾기한 작품이 없습니다.<br />카드의 ★를 눌러 추가하세요.</div>
           : view === 'completed'
             ? <div className="zeta-empty">완결한 작품이 없습니다.</div>
             : view === 'waiting'
@@ -219,11 +225,17 @@ export default function ZetaListPage() {
                       </div>
                     )}
                   </div>
-                  {editMode && (
+                  {editMode ? (
                     <button onClick={e => { e.stopPropagation(); deletePlot(p.id) }}
                       style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
                         border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
                         cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                  ) : (
+                    <button onClick={e => { e.stopPropagation(); toggleFav('collection', p.id) }}
+                      aria-label="즐겨찾기"
+                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
+                        border: 'none', color: isFav('collection', p.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
+                        cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', p.id) ? '★' : '☆'}</button>
                   )}
                 </div>
               )
