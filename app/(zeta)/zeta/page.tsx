@@ -32,6 +32,8 @@ export default function ZetaListPage() {
   const [sort, setSort] = useState<SortOption>('latest')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
 
   useEffect(() => {
     setEditMode(localStorage.getItem('zeta_edit') === '1')
@@ -123,28 +125,35 @@ export default function ZetaListPage() {
           <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('waiting')}>대기</button>
           <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('completed')}>완결</button>
         </div>
-        <select
-          className="field"
-          style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }}
-          value={sort}
-          onChange={e => handleSort(e.target.value as SortOption)}
-        >
-          <option value="latest">최신순</option>
-          <option value="alpha">가나다순</option>
-        </select>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--z-accent)' : 'var(--z-surface-2)', color: searchOpen ? '#fff' : 'var(--z-ink-soft)' }} onClick={toggleSearch}>🔍 검색</button>
+          <select
+            className="field"
+            style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }}
+            value={sort}
+            onChange={e => handleSort(e.target.value as SortOption)}
+          >
+            <option value="latest">최신순</option>
+            <option value="alpha">가나다순</option>
+          </select>
+        </div>
       </div>
 
-      <div style={{ padding: '0 16px 8px' }}>
-        <input
-          className="field"
-          style={{ fontSize: 12, width: '100%' }}
-          placeholder="제목으로 검색"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-        />
-      </div>
-
-      <TagFilterBar tags={tagPool} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" />
+      {searchOpen && (
+        <>
+          <div style={{ padding: '0 16px 8px' }}>
+            <input
+              className="field"
+              style={{ fontSize: 12, width: '100%' }}
+              placeholder="제목으로 검색"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <TagFilterBar tags={tagPool} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" />
+        </>
+      )}
 
       <div className="zeta-scroll" ref={scrollRef}>
         {(() => {
