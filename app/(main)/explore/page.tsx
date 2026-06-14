@@ -17,6 +17,11 @@ const CENTERS = [
     desc: '캐릭터 중심의 몰입형 대화 가져오기',
     grad: 'linear-gradient(135deg, #ff2e93, #ff5fae)',
   },
+  {
+    href: '/tikita', emoji: '🎫', name: 'TIKITA 센터',
+    desc: '스토리 URL로 캐릭터·첫 장면 가져오기',
+    grad: 'linear-gradient(135deg, #16b8a6, #27d3bf)',
+  },
 ]
 
 const SHORTCUTS = [

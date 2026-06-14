@@ -13,6 +13,7 @@ function CharacterNewContent() {
   const isWhifParam = searchParams.get('isWhif') === 'true'
   const isZetaParam = searchParams.get('isZeta') === 'true'
   const isMeltingParam = searchParams.get('isMelting') === 'true'
+  const isTikitaParam = searchParams.get('isTikita') === 'true'
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -28,13 +29,14 @@ function CharacterNewContent() {
     if (isWhifParam) url += '?isWhif=true'
     else if (isZetaParam) url += '?isZeta=true'
     else if (isMeltingParam) url += '?isMelting=true'
+    else if (isTikitaParam) url += '?isTikita=true'
 
     api.get(url)
       .then(cols => {
         setCollections(Array.isArray(cols) ? cols : [])
       })
       .catch(() => {})
-  }, [isWhifParam, isZetaParam, isMeltingParam])
+  }, [isWhifParam, isZetaParam, isMeltingParam, isTikitaParam])
 
   const onChange = <K extends keyof CharFormData>(key: K, val: CharFormData[K]) =>
     setForm(f => ({ ...f, [key]: val }))
@@ -51,6 +53,8 @@ function CharacterNewContent() {
         router.push(form.collectionId ? `/zeta/plots/${form.collectionId}` : '/zeta')
       } else if (isMeltingParam) {
         router.push(form.collectionId ? `/melting/characters/${form.collectionId}` : '/melting')
+      } else if (isTikitaParam) {
+        router.push(form.collectionId ? `/tikita/story/${form.collectionId}` : '/tikita')
       } else {
         router.push('/characters')
       }
@@ -60,7 +64,7 @@ function CharacterNewContent() {
     }
   }
 
-  const collectionLabel = isWhifParam ? '세계관' : isZetaParam ? '플롯' : isMeltingParam ? '캐릭터' : '컬렉션'
+  const collectionLabel = isWhifParam ? '세계관' : isZetaParam ? '플롯' : isMeltingParam ? '캐릭터' : isTikitaParam ? '스토리' : '컬렉션'
 
   return (
     <Win title="캐릭터 만들기 (Create Character)" icon={PixelIcons.user}>
