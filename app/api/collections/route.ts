@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   const source = searchParams.get('isWhif') === 'true' ? 'whif'
     : searchParams.get('isZeta') === 'true' ? 'zeta'
     : searchParams.get('isMelting') === 'true' ? 'melting'
+    : searchParams.get('isTikita') === 'true' ? 'tikita'
     : 'regular'
 
   const whereClause: any = { userId }
@@ -21,11 +22,14 @@ export async function GET(req: NextRequest) {
     whereClause.sourceUrl = { contains: 'zeta-ai.io' }
   } else if (source === 'melting') {
     whereClause.sourceUrl = { contains: 'melting.chat' }
+  } else if (source === 'tikita') {
+    whereClause.sourceUrl = { contains: 'tikita.ai' }
   } else {
     whereClause.AND = [
       { NOT: { sourceUrl: { contains: 'whif.' } } },
       { NOT: { sourceUrl: { contains: 'zeta-ai.io' } } },
       { NOT: { sourceUrl: { contains: 'melting.chat' } } },
+      { NOT: { sourceUrl: { contains: 'tikita.ai' } } },
     ]
   }
 
@@ -42,6 +46,7 @@ export async function GET(req: NextRequest) {
       tags: true,
       zetaMeta: true,
       meltingMeta: true,
+      tikitaMeta: true,
       characters: { select: { id: true, name: true, avatarUrl: true, openingMessage: true, openingMessages: true } },
     },
   })

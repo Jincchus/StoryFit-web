@@ -125,6 +125,7 @@ model CharacterCollection {
   tags           String[]      @default([])
   zetaMeta       Json?
   meltingMeta    Json?
+  tikitaMeta     Json?
   createdAt      DateTime      @default(now())
 }
 

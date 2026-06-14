@@ -14,6 +14,7 @@ function CharacterEditContent() {
   const isWhif = searchParams.get('isWhif') === 'true'
   const isZeta = searchParams.get('isZeta') === 'true'
   const isMelting = searchParams.get('isMelting') === 'true'
+  const isTikita = searchParams.get('isTikita') === 'true'
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
@@ -25,6 +26,7 @@ function CharacterEditContent() {
     if (isWhif) colsUrl += '?isWhif=true'
     else if (isZeta) colsUrl += '?isZeta=true'
     else if (isMelting) colsUrl += '?isMelting=true'
+    else if (isTikita) colsUrl += '?isTikita=true'
 
     Promise.all([
       api.get(`/api/characters/${id}`),
@@ -48,7 +50,7 @@ function CharacterEditContent() {
           : colList
       )
     }).catch((e: any) => setFetchError(e.message))
-  }, [id, isWhif, isZeta, isMelting])
+  }, [id, isWhif, isZeta, isMelting, isTikita])
 
   if (fetchError) return (
     <Win title="캐릭터 수정" icon={PixelIcons.user}>
@@ -76,6 +78,8 @@ function CharacterEditContent() {
         router.push(form.collectionId ? `/zeta/plots/${form.collectionId}` : '/zeta')
       } else if (isMelting) {
         router.push(form.collectionId ? `/melting/characters/${form.collectionId}` : '/melting')
+      } else if (isTikita) {
+        router.push(form.collectionId ? `/tikita/story/${form.collectionId}` : '/tikita')
       } else {
         router.push('/characters')
       }
@@ -85,7 +89,7 @@ function CharacterEditContent() {
     }
   }
 
-  const collectionLabel = isWhif ? '세계관' : isZeta ? '플롯' : isMelting ? '캐릭터' : '컬렉션'
+  const collectionLabel = isWhif ? '세계관' : isZeta ? '플롯' : isMelting ? '캐릭터' : isTikita ? '스토리' : '컬렉션'
 
   return (
     <Win title="캐릭터 수정 (Edit Character)" icon={PixelIcons.user}>

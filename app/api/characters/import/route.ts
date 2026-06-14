@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { parsePngTavernCard, buildSystemPromptFromCard } from '@/lib/tavernCard'
 import { captureMelting, captureWhif, captureZeta, matchesHost } from '@/lib/import/capture'
+import { captureTikita } from '@/lib/import/tikita'
 import { splitIntoBlocks } from '@/lib/import/blocks'
 import { classifyBlocks } from '@/lib/import/classify'
 import { assemble, buildFallback } from '@/lib/import/assemble'
@@ -106,7 +107,8 @@ async function runImport(captured: Captured, url: string, userId: string) {
   const isWhif = matchesHost(url, 'whif.io', 'whif.club')
   const isZeta = matchesHost(url, 'zeta-ai.io')
   const isMelting = matchesHost(url, 'melting.chat')
-  const isImmersive = isWhif || isZeta || isMelting
+  const isTikita = matchesHost(url, 'tikita.ai')
+  const isImmersive = isWhif || isZeta || isMelting || isTikita
 
   const createdChars = await Promise.all(
     result.characters.map((c, i) => {
@@ -144,6 +146,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
       tags: result.tags ?? [],
       ...(captured.zetaMeta ? { zetaMeta: captured.zetaMeta } : {}),
       ...(captured.meltingMeta ? { meltingMeta: captured.meltingMeta } : {}),
+      ...(captured.tikitaMeta ? { tikitaMeta: captured.tikitaMeta } : {}),
     },
   })
 
@@ -191,6 +194,10 @@ export async function POST(req: NextRequest) {
   if (matchesHost(url, 'whif.io', 'whif.club')) {
     try { return NextResponse.json(await runImport(await captureWhif(url.trim()), url.trim(), userId), { status: 201 }) }
     catch (e: any) { return NextResponse.json({ error: e.message ?? 'Whif 가져오기 실패' }, { status: 400 }) }
+  }
+  if (matchesHost(url, 'tikita.ai')) {
+    try { return NextResponse.json(await runImport(await captureTikita(url.trim()), url.trim(), userId), { status: 201 }) }
+    catch (e: any) { return NextResponse.json({ error: e.message ?? 'Tikita 가져오기 실패' }, { status: 400 }) }
   }
 
   let res: Response

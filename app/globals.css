@@ -1219,6 +1219,54 @@ body[data-crt="on"]::after{
 .melting-chapter-badge{ display:inline-flex; align-items:center; gap:3px; background:var(--m-accent,#ff2e93);
   color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; }
 
+/* ─── TIKITA immersive (dark, teal, scoped) ─────────────────────── */
+.tikita-root{
+  --t-bg:#0d1213; --t-surface:#161e1f; --t-surface-2:#1f2a2b; --t-line:#2c3a3b;
+  --t-ink:#f1f6f5; --t-ink-soft:#93a4a3; --t-accent:#16b8a6; --t-radius:14px;
+  --w-bg:var(--t-bg); --w-surface:var(--t-surface); --w-surface-2:var(--t-surface-2);
+  --w-line:var(--t-line); --w-ink:var(--t-ink); --w-ink-soft:var(--t-ink-soft);
+  --w-accent:var(--t-accent); --w-accent-2:var(--t-accent);
+  display:flex; flex-direction:column; height:100%; min-height:0;
+  background:var(--t-bg); color:var(--t-ink);
+}
+.tikita-scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+.tikita-header{ flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--t-line);
+  background:linear-gradient(90deg,#16b8a6,#27d3bf); }
+.tikita-logo{ font-size:18px; font-weight:900; letter-spacing:.04em; color:#fff; }
+.tikita-iconbtn{ background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 8px; }
+.tikita-menu{ position:absolute; top:52px; right:12px; z-index:60; background:var(--t-surface-2);
+  border:1px solid var(--t-line); border-radius:10px; overflow:hidden; min-width:220px; }
+.tikita-menu-item{ display:block; width:100%; text-align:left; background:none; border:none;
+  color:var(--t-ink); font-size:13px; padding:11px 14px; cursor:pointer; }
+.tikita-menu-item:hover{ background:var(--t-surface); }
+.tikita-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:16px; }
+.tikita-card{ background:var(--t-surface); border:1px solid var(--t-line); border-radius:var(--t-radius);
+  overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
+.tikita-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--t-surface-2); display:block; }
+.tikita-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.tikita-card-title{ font-size:13px; font-weight:800; color:var(--t-ink); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.tikita-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+.tikita-chip{ display:inline-block; background:var(--t-surface-2); color:var(--t-ink-soft);
+  font-size:10px; padding:2px 8px; border-radius:999px; }
+.tikita-empty{ padding:48px 16px; text-align:center; color:var(--t-ink-soft); font-size:13px; line-height:1.7; }
+.tikita-cover{ width:100%; aspect-ratio:1; object-fit:cover; background:var(--t-surface-2); display:block; }
+.tikita-cover-wrap{ position:relative; }
+.tikita-back{ background:rgba(0,0,0,.4); border:none; color:#fff; font-size:20px; cursor:pointer;
+  padding:2px 10px; border-radius:999px; }
+.tikita-section{ padding:16px; }
+.tikita-section-title{ font-size:15px; font-weight:800; color:var(--t-ink); margin:0 0 10px; }
+.tikita-avatar{ width:72px; height:72px; border-radius:14px; object-fit:cover; flex-shrink:0; }
+.tikita-desc{ color:var(--t-ink-soft); line-height:1.7; font-size:14px; white-space:pre-wrap; }
+.tikita-intro-box{ background:var(--t-surface); border:1px solid var(--t-line); border-radius:12px;
+  padding:14px; color:var(--t-ink-soft); line-height:1.7; font-size:14px; }
+.tikita-cta{ position:sticky; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, transparent, var(--t-bg) 40%); }
+.tikita-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#16b8a6,#27d3bf); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
+
 /* ─── 스토리 모드 가독성 — 서사 텍스트를 넓고 여유 있게 ─────────────────── */
 .story-log .seq-block{ max-width: 92%; }
 .story-log .msg:not(.you):not(.system):not(.typing){ max-width: 92%; }

@@ -64,7 +64,7 @@ const FEATURE_SECTIONS: FeatureSection[] = [
     title: '🔍 검색 & 기록',
     items: [
       { emoji: '🔍', label: '본문 검색', desc: '채팅 목록 검색창에 2글자 이상 입력하면 모든 대화의 메시지 본문에서 검색하고, 결과를 누르면 해당 위치로 바로 이동합니다.' },
-      { emoji: '🏷', label: '센터 태그·제목 검색', desc: 'WHIF·ZETA·melting 센터에서 태그 칩을 눌러 작품/캐릭터를 좁히고, 검색창에 제목·이름을 입력해 빠르게 찾을 수 있습니다.' },
+      { emoji: '🏷', label: '센터 태그·제목 검색', desc: 'WHIF·ZETA·melting·Tikita 센터에서 태그 칩을 눌러 작품/캐릭터를 좁히고, 검색창에 제목·이름을 입력해 빠르게 찾을 수 있습니다.' },
       { emoji: '🔖', label: '메시지 북마크', desc: '명장면 메시지를 탭하고 🔖을 눌러 저장하세요. 사이드패널에서 모아보고 바로 점프할 수 있습니다.' },
       { emoji: '⬇', label: '소설 내보내기', desc: '서재의 완결작을 선택지 없이 정제된 소설 텍스트(.txt)로 다운로드합니다.' },
       { emoji: '🔠', label: '글자 크기', desc: '채팅 입력창 옆 ＋ 메뉴에서 본문 글자 크기를 조절할 수 있습니다.' },
@@ -93,7 +93,7 @@ const FEATURE_SECTIONS: FeatureSection[] = [
     items: [
       { emoji: '📚', label: '서재', desc: '완결된 대화를 보관합니다. /library에서 모아보고, "꺼내기"로 채팅 목록에 복귀시킬 수 있습니다.' },
       { emoji: '📌', label: '핀 고정', desc: '자주 쓰는 대화를 채팅 목록 상단에 고정합니다.' },
-      { emoji: '★', label: '센터 즐겨찾기', desc: 'WHIF·ZETA·melting 센터에서 카드의 ★를 눌러 즐겨찾기하고, 즐겨찾기 탭에서 모아볼 수 있습니다. 기기 간 동기화됩니다.' },
+      { emoji: '★', label: '센터 즐겨찾기', desc: 'WHIF·ZETA·melting·Tikita 센터에서 카드의 ★를 눌러 즐겨찾기하고, 즐겨찾기 탭에서 모아볼 수 있습니다. 기기 간 동기화됩니다.' },
       { emoji: '🔖', label: '챕터 뱃지', desc: '자동 챕터 구분이 켜진 대화에서 진행 중인 장(N장)을 표시합니다.' },
     ],
   },
