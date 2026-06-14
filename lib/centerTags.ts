@@ -42,3 +42,33 @@ export async function syncCenterTags(): Promise<void> {
     skipDuplicates: true,
   })
 }
+
+// 실제 카드(Character/CharacterCollection)의 tags 배열에서 태그 이름을 바꾼다(병합 시 중복 제거).
+export async function renameTagOnCards(from: string, to: string): Promise<void> {
+  const [chars, cols] = await Promise.all([
+    prisma.character.findMany({ where: { tags: { has: from } }, select: { id: true, tags: true } }),
+    prisma.characterCollection.findMany({ where: { tags: { has: from } }, select: { id: true, tags: true } }),
+  ])
+  for (const c of chars) {
+    const next = Array.from(new Set(c.tags.map(t => (t === from ? to : t))))
+    await prisma.character.update({ where: { id: c.id }, data: { tags: next } })
+  }
+  for (const c of cols) {
+    const next = Array.from(new Set(c.tags.map(t => (t === from ? to : t))))
+    await prisma.characterCollection.update({ where: { id: c.id }, data: { tags: next } })
+  }
+}
+
+// 실제 카드의 tags 배열에서 태그 이름을 제거한다.
+export async function removeTagFromCards(name: string): Promise<void> {
+  const [chars, cols] = await Promise.all([
+    prisma.character.findMany({ where: { tags: { has: name } }, select: { id: true, tags: true } }),
+    prisma.characterCollection.findMany({ where: { tags: { has: name } }, select: { id: true, tags: true } }),
+  ])
+  for (const c of chars) {
+    await prisma.character.update({ where: { id: c.id }, data: { tags: c.tags.filter(t => t !== name) } })
+  }
+  for (const c of cols) {
+    await prisma.characterCollection.update({ where: { id: c.id }, data: { tags: c.tags.filter(t => t !== name) } })
+  }
+}

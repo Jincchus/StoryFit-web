@@ -34,6 +34,28 @@ export default function AdminCenterTagsPage() {
     }
   }
 
+  const refresh = () => api.get('/api/admin/center-tags').then(d => { setTags(d.tags); setCategories(d.categories) }).catch(() => {})
+
+  const renameTag = async (t: CenterTag) => {
+    const input = prompt(`"${t.name}" 태그의 새 이름을 입력하세요.\n(이미 있는 태그명을 입력하면 그 태그로 병합됩니다)`, t.name)
+    const next = input?.trim()
+    if (!next || next === t.name) return
+    const merging = tags.some(x => x.id !== t.id && x.name === next)
+    if (merging && !confirm(`"${next}" 태그로 병합할까요? "${t.name}"이(가) 붙은 카드들이 "${next}"로 바뀝니다.`)) return
+    try {
+      await api.patch(`/api/admin/center-tags/${t.id}`, { name: next })
+      await refresh()
+    } catch (e: any) { setError(e.message) }
+  }
+
+  const deleteTag = async (t: CenterTag) => {
+    if (!confirm(`"${t.name}" 태그를 삭제할까요?\n이 태그가 붙은 모든 카드에서도 제거됩니다.`)) return
+    setTags(prev => prev.filter(x => x.id !== t.id))
+    try {
+      await api.delete(`/api/admin/center-tags/${t.id}`)
+    } catch (e: any) { setError(e.message); refresh() }
+  }
+
   const addCategory = async () => {
     const name = newCategory.trim()
     if (!name || categories.includes(name)) { setNewCategory(''); return }
@@ -111,9 +133,9 @@ export default function AdminCenterTagsPage() {
                 <div className="vstack" style={{ gap: 4 }}>
                   {items.map(t => (
                     <div key={t.id} className="hstack" style={{ gap: 6, alignItems: 'center', padding: '4px 8px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)' }}>
-                      <span style={{ flex: 1, fontSize: 12, opacity: t.searchable ? 1 : 0.45 }}>#{t.name}</span>
+                      <span style={{ flex: 1, fontSize: 12, color: 'var(--ink)', opacity: t.searchable ? 1 : 0.45 }}>#{t.name}</span>
                       <select
-                        className="field" style={{ width: 110, fontSize: 11, padding: '2px 6px' }}
+                        className="field" style={{ width: 100, fontSize: 11, padding: '2px 6px' }}
                         value={t.category ?? UNSET}
                         onChange={e => patchTag(t.id, { category: e.target.value === UNSET ? null : e.target.value })}
                       >
@@ -121,10 +143,20 @@ export default function AdminCenterTagsPage() {
                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                       <button
-                        className={`btn ${t.searchable ? 'primary' : 'ghost'}`}
-                        style={{ fontSize: 10, padding: '2px 8px', minWidth: 64 }}
+                        style={{
+                          fontSize: 10, padding: '3px 8px', minWidth: 58, borderRadius: 'var(--radius)', cursor: 'pointer', fontWeight: 700,
+                          border: t.searchable ? 'none' : '1px solid var(--chrome-border)',
+                          background: t.searchable ? 'var(--accent)' : 'transparent',
+                          color: t.searchable ? '#fff' : 'var(--ink-soft)',
+                        }}
                         onClick={() => patchTag(t.id, { searchable: !t.searchable })}
                       >{t.searchable ? '노출 Y' : '노출 N'}</button>
+                      <button aria-label="이름 수정" title="이름 수정/병합"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-soft)', fontSize: 12, padding: '2px 4px' }}
+                        onClick={() => renameTag(t)}>✏</button>
+                      <button aria-label="삭제" title="삭제"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b8a', fontSize: 13, padding: '2px 4px' }}
+                        onClick={() => deleteTag(t)}>✕</button>
                     </div>
                   ))}
                 </div>
