@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
+import CollectionEditModal from '@/components/ui/CollectionEditModal'
 
 interface Universe { id: string; title: string; coverImageUrl: string; description: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[] }
 interface Character { id: string; name: string; avatarUrl: string | null; tags: string[]; collection?: { id: string } | null }
@@ -16,6 +17,7 @@ export default function UniverseDetailPage() {
   const [lore, setLore] = useState<Lorebook[]>([])
   const [expanded, setExpanded] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
 
   // Lorebook form state
   const [showLoreForm, setShowLoreForm] = useState(false)
@@ -69,13 +71,24 @@ export default function UniverseDetailPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      {showEdit && (
+        <CollectionEditModal
+          collection={{ id: uni.id, title: uni.title, tags: uni.tags ?? [], description: uni.description ?? '', coverImageUrl: uni.coverImageUrl ?? '' }}
+          label="세계관"
+          onClose={() => setShowEdit(false)}
+          onSaved={u => setUni(prev => prev ? { ...prev, ...u } : prev)}
+        />
+      )}
       <div className="whif-scroll">
         {/* Cover */}
         <div style={{ position: 'relative' }}>
           {cover ? <img className="whif-cover" src={cover} alt="" /> : <div className="whif-cover" />}
           <button className="whif-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
           {editMode && (
-            <button className="whif-iconbtn" style={{ position: 'absolute', top: 12, right: 8, color: '#ff6b8a' }} onClick={deleteUniverse}>삭제</button>
+            <div style={{ position: 'absolute', top: 12, right: 8, display: 'flex', gap: 8 }}>
+              <button className="whif-iconbtn" style={{ color: 'var(--w-accent)' }} onClick={() => setShowEdit(true)}>✏ 정보 수정</button>
+              <button className="whif-iconbtn" style={{ color: '#ff6b8a' }} onClick={deleteUniverse}>삭제</button>
+            </div>
           )}
         </div>
 

@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { getOpenings } from '@/lib/openings'
 import type { Opening } from '@/types'
 
@@ -44,6 +45,7 @@ export default function ZetaPlotDetailPage() {
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
   const [chatModeOpen, setChatModeOpen] = useState(false)
   const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -131,6 +133,14 @@ export default function ZetaPlotDetailPage() {
 
   return (
     <>
+      {showEdit && (
+        <CollectionEditModal
+          collection={{ id: col.id, title: col.title, tags: col.tags ?? [], description: col.description ?? '', coverImageUrl: col.coverImageUrl ?? '' }}
+          label="플롯"
+          onClose={() => setShowEdit(false)}
+          onSaved={u => setCol(prev => prev ? { ...prev, ...u } : prev)}
+        />
+      )}
       {showNewChatConfirm && (
         <ConfirmDialog
           message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
@@ -184,10 +194,13 @@ export default function ZetaPlotDetailPage() {
           </div>
 
           <div className="zeta-section">
-            <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px', color: 'var(--z-ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              {col.title}
-              {meta.verified && <span title="인증됨" style={{ color: 'var(--z-accent)', fontSize: 16 }}>✓</span>}
-            </h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 6px', color: 'var(--z-ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {col.title}
+                {meta.verified && <span title="인증됨" style={{ color: 'var(--z-accent)', fontSize: 16 }}>✓</span>}
+              </h1>
+              <button className="zeta-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--z-surface-2)', flexShrink: 0 }} onClick={() => setShowEdit(true)}>✏ 정보 수정</button>
+            </div>
             {meta.shortDescription && <p style={{ color: 'var(--z-ink-soft)', margin: '0 0 10px', fontSize: 14 }}>{meta.shortDescription}</p>}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

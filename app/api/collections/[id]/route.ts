@@ -32,14 +32,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: '컬렉션을 찾을 수 없습니다.' }, { status: 404 })
   }
 
-  const { title } = await req.json()
-  if (!title?.trim()) {
-    return NextResponse.json({ error: '컬렉션 이름이 필요합니다.' }, { status: 400 })
+  const body = await req.json()
+  const data: { title?: string; tags?: string[]; description?: string; coverImageUrl?: string } = {}
+
+  if ('title' in body) {
+    if (!String(body.title ?? '').trim()) return NextResponse.json({ error: '컬렉션 이름이 필요합니다.' }, { status: 400 })
+    data.title = String(body.title).trim().slice(0, 200)
   }
+  if (Array.isArray(body.tags)) {
+    data.tags = body.tags.map((t: unknown) => String(t).trim()).filter(Boolean).slice(0, 30)
+  }
+  if (typeof body.description === 'string') data.description = body.description.slice(0, 10000)
+  if (typeof body.coverImageUrl === 'string') data.coverImageUrl = body.coverImageUrl.slice(0, 2000)
+
+  if (Object.keys(data).length === 0) return NextResponse.json({ error: '수정할 내용이 없습니다.' }, { status: 400 })
 
   const updated = await prisma.characterCollection.update({
     where: { id: params.id },
-    data: { title: String(title).trim().slice(0, 200) },
+    data,
   })
 
   return NextResponse.json(updated)

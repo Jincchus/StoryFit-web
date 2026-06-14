@@ -7,6 +7,7 @@ import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPerso
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import CollectionEditModal from '@/components/ui/CollectionEditModal'
 
 function formatDate(s?: string) {
   if (!s) return ''
@@ -32,6 +33,7 @@ export default function MeltingCharDetailPage() {
   const [error, setError] = useState('')
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -94,6 +96,14 @@ export default function MeltingCharDetailPage() {
 
   return (
     <>
+      {showEdit && (
+        <CollectionEditModal
+          collection={{ id: col.id, title: col.title, tags: col.tags ?? [], description: col.description ?? '', coverImageUrl: col.coverImageUrl ?? '' }}
+          label="캐릭터"
+          onClose={() => setShowEdit(false)}
+          onSaved={u => setCol(prev => prev ? { ...prev, ...u } : prev)}
+        />
+      )}
       {showNewChatConfirm && (
         <ConfirmDialog
           message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
@@ -129,10 +139,14 @@ export default function MeltingCharDetailPage() {
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: 'var(--m-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col.title}</h1>
-                  {mainChar && (
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button className="melting-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--m-surface-2)', padding: '4px 8px', fontSize: 11 }}
-                      onClick={() => router.push(`/characters/${mainChar.id}/edit?isMelting=true`)}>✏ 수정</button>
-                  )}
+                      onClick={() => setShowEdit(true)}>✏ 정보</button>
+                    {mainChar && (
+                      <button className="melting-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--m-surface-2)', padding: '4px 8px', fontSize: 11 }}
+                        onClick={() => router.push(`/characters/${mainChar.id}/edit?isMelting=true`)}>✏ 캐릭터</button>
+                    )}
+                  </div>
                 </div>
                 {meta.nsfw && <span className="melting-chip" style={{ background: 'var(--m-accent)', color: '#fff' }}>NSFW</span>}
               </div>

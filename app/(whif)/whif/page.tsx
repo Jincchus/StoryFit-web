@@ -282,10 +282,13 @@ export default function WhifExplorePage() {
                     )}
                   </div>
                   {editMode ? (
-                    <button onClick={e => { e.stopPropagation(); deleteCharacter(c.id) }}
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
-                        border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
-                        cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4, zIndex: 3 }}>
+                      <button onClick={e => { e.stopPropagation(); router.push(`/characters/${c.id}/edit?isWhif=true`) }}
+                        aria-label="수정"
+                        style={{ background: 'rgba(0,0,0,0.7)', border: 'none', color: '#c4b5fd', borderRadius: 999, width: 24, height: 24, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✏</button>
+                      <button onClick={e => { e.stopPropagation(); deleteCharacter(c.id) }}
+                        style={{ background: 'rgba(0,0,0,0.7)', border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    </div>
                   ) : (
                     <button onClick={e => { e.stopPropagation(); toggleFav('character', c.id) }}
                       aria-label="즐겨찾기"
