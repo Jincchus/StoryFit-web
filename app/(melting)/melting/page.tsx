@@ -86,7 +86,7 @@ export default function MeltingListPage() {
   }
 
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
-  const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
+  const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   const tagGroups = buildTagGroups(chars.flatMap(c => c.tags ?? []), tagConfig)
   const visibleChars = sortByOption(
@@ -94,7 +94,7 @@ export default function MeltingListPage() {
       (view === 'favorites' ? isFav('collection', c.id)
       : view === 'completed' ? c.completed
       : view === 'waiting' ? !c.started
-      : !c.completed && !!c.started) && matchesTag(c.tags) && matchesQuery(c.title)
+      : !c.completed && !!c.started) && matchesTag(c.tags) && matchesQuery(c.title, c.tags)
     ),
     sort, c => c.title, c => c.createdAt ?? ''
   )

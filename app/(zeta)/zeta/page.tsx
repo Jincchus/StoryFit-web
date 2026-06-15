@@ -60,7 +60,7 @@ export default function ZetaListPage() {
   const scrollRef = useScrollRestore(`zeta_scroll_${view}`, !loading)
 
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
-  const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
+  const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   const tagGroups = buildTagGroups(plots.flatMap(p => p.tags ?? []), tagConfig)
 
@@ -170,7 +170,7 @@ export default function ZetaListPage() {
               (view === 'favorites' ? isFav('collection', p.id)
               : view === 'completed' ? p.completed
               : view === 'waiting' ? !p.started
-              : !p.completed && !!p.started) && matchesTag(p.tags) && matchesQuery(p.title)
+              : !p.completed && !!p.started) && matchesTag(p.tags) && matchesQuery(p.title, p.tags)
             ),
             sort, p => p.title, p => p.createdAt ?? ''
           )

@@ -106,7 +106,7 @@ export default function WhifExplorePage() {
   const completedColIds = new Set(universes.filter(u => u.completed).map(u => u.id))
   const isCharCompleted = (c: Character) => !!c.collection && completedColIds.has(c.collection.id)
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
-  const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
+  const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   const tagGroups = buildTagGroups((tab === 'universes' ? universes : characters).flatMap(item => item.tags ?? []), tagConfig)
   const visibleUniverses = sortByOption(
@@ -114,7 +114,7 @@ export default function WhifExplorePage() {
       (view === 'favorites' ? isFav('collection', u.id)
       : view === 'completed' ? u.completed
       : view === 'waiting' ? !u.started
-      : !u.completed && !!u.started) && matchesTag(u.tags) && matchesQuery(u.title)
+      : !u.completed && !!u.started) && matchesTag(u.tags) && matchesQuery(u.title, u.tags)
     ),
     sortUniverses, u => u.title, u => u.createdAt ?? ''
   )
@@ -123,7 +123,7 @@ export default function WhifExplorePage() {
       (view === 'favorites' ? isFav('character', c.id)
       : view === 'completed' ? isCharCompleted(c)
       : view === 'waiting' ? !c.started
-      : !isCharCompleted(c) && !!c.started) && matchesTag(c.tags) && matchesQuery(c.name)
+      : !isCharCompleted(c) && !!c.started) && matchesTag(c.tags) && matchesQuery(c.name, c.tags)
     ),
     sortCharacters, c => c.name, c => c.createdAt ?? ''
   )

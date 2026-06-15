@@ -87,7 +87,7 @@ export default function TikitaListPage() {
   }
 
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
-  const matchesQuery = (title: string) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) }
+  const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   const tagGroups = buildTagGroups(stories.flatMap(s => s.tags ?? []), tagConfig)
   const visibleStories = sortByOption(
@@ -95,7 +95,7 @@ export default function TikitaListPage() {
       (view === 'favorites' ? isFav('collection', s.id)
       : view === 'completed' ? s.completed
       : view === 'waiting' ? !s.started
-      : !s.completed && !!s.started) && matchesTag(s.tags) && matchesQuery(s.title)
+      : !s.completed && !!s.started) && matchesTag(s.tags) && matchesQuery(s.title, s.tags)
     ),
     sort, s => s.title, s => s.createdAt ?? ''
   )
