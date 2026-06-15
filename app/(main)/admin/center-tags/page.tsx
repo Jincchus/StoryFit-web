@@ -66,6 +66,15 @@ export default function AdminCenterTagsPage() {
     } catch (e: any) { setError(e.message) }
   }
 
+  const mergeDuplicates = async () => {
+    if (!confirm('대소문자·공백만 다른 동일 태그를 하나로 병합할까요?\n실제 카드의 태그에도 반영됩니다.')) return
+    try {
+      const { merged } = await api.post('/api/admin/center-tags/merge-duplicates', {})
+      await refresh()
+      alert(merged > 0 ? `${merged}개 중복 태그를 병합했습니다.` : '병합할 중복 태그가 없습니다.')
+    } catch (e: any) { setError(e.message) }
+  }
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return q ? tags.filter(t => t.name.toLowerCase().includes(q)) : tags
@@ -96,7 +105,7 @@ export default function AdminCenterTagsPage() {
         <div className="scroll" style={{ flex: 1, minHeight: 0, padding: 4 }}>
           <div className="vstack" style={{ gap: 12 }}>
             <div className="tiny muted">
-              각 센터(WHIF·ZETA·melting)에서 URL로 가져온 태그를 모읍니다. 카테고리를 지정하고 노출 여부를 끄면 센터 검색창에서 숨겨집니다.
+              각 센터(WHIF·ZETA·melting·Tikita)에서 URL로 가져온 태그를 전역으로 모읍니다(센터 구분 없이 같은 이름은 한 번만). 카테고리를 지정하고 노출 여부를 끄면 센터 검색창에서 숨겨집니다.
               {unsetCount > 0 && <> · <b style={{ color: 'var(--hot-pink)' }}>미설정 {unsetCount}개</b></>}
             </div>
 
@@ -107,6 +116,7 @@ export default function AdminCenterTagsPage() {
                 value={query}
                 onChange={e => setQuery(e.target.value)}
               />
+              <button className="btn ghost" style={{ fontSize: 11, whiteSpace: 'nowrap' }} onClick={mergeDuplicates}>🔀 중복 병합</button>
             </div>
 
             <div className="hstack" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
