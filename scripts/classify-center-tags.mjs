@@ -19,6 +19,20 @@ const RULES = {
   '여자주인공': ['청순녀','백치미','햇살녀','까칠녀','당당녀','순정녀','얀데레녀','동안녀','연하녀','누나','악녀','미소녀','새침녀','막내','여주'],
   '성격': ['츤데레','얀데레','쿨','다정','무뚝뚝','냉정','집착','능글','순수','천진','까칠','소심','활발','내향적','외향적','다혈질','시크','무심','대형견','멍멍이','직설적','도도','차분','사차원','4차원','능청','새디스트','마조히스트','순둥이'],
   '관계': ['첫사랑','소꿉친구','계약연애','계약결혼','정략결혼','사내연애','상사부하','선후배','사제','형제','남매','라이벌','짝사랑','삼각관계','금지된사랑','연상연하','동거','원나잇','재회','전남친','전여친','친구','운명','신분차이','신분차','주종관계','주종','동료','부부','약혼','약혼자','연인','썸','비밀연애','불륜','적과의동침'],
+  '분위기': ['애틋함','애틋','애절','절절','설렘','설렘주의','달달','달달함','달콤','달콤살벌','살벌','새콤달콤','힐링','잔잔','잔잔함','두근','두근두근','심쿵','심장폭행','따뜻','따뜻함','훈훈','몽글몽글','청량','로맨틱','다크','어두움','음울','우울','긴장감','긴장','스릴','오싹','섬뜩','격정','격정적','농밀','자극적','코지','평화','진지','애매모호','몽환적','몽환','감성','감성적','잔혹','병맛','코믹'],
+}
+
+const CATEGORIES_KEY = 'center_tag_categories'
+async function ensureCategory(name) {
+  const cfg = await prisma.globalConfig.findUnique({ where: { key: CATEGORIES_KEY } })
+  if (!cfg) return // 설정 없음 → 앱 기본 카테고리(분위기 포함) 사용
+  let cats
+  try { cats = JSON.parse(cfg.value) } catch { return }
+  if (Array.isArray(cats) && !cats.includes(name)) {
+    cats.push(name)
+    await prisma.globalConfig.update({ where: { key: CATEGORIES_KEY }, data: { value: JSON.stringify(cats) } })
+    console.log(`카테고리 '${name}' 추가됨`)
+  }
 }
 
 const lookup = new Map()
@@ -27,6 +41,7 @@ for (const [cat, names] of Object.entries(RULES)) {
 }
 
 async function main() {
+  if (APPLY) await ensureCategory('분위기')
   const tags = await prisma.centerTag.findMany({ orderBy: { name: 'asc' } })
   const unset = tags.filter(t => !t.category)
 

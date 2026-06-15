@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 
 const CATEGORIES_KEY = 'center_tag_categories'
-export const DEFAULT_CATEGORIES = ['세계관', '남자주인공', '여자주인공', '직업', '장르', '성격', '관계', '배경']
+export const DEFAULT_CATEGORIES = ['세계관', '남자주인공', '여자주인공', '직업', '장르', '성격', '관계', '분위기', '배경']
 
 export async function getCategories(): Promise<string[]> {
   const cfg = await prisma.globalConfig.findUnique({ where: { key: CATEGORIES_KEY } })
