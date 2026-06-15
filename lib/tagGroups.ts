@@ -34,7 +34,7 @@ export function buildTagGroups(itemTags: string[], config: CenterTagConfig | nul
   const groups: TagGroup[] = []
   for (const cat of order) {
     const arr = byCat.get(cat)
-    if (arr && arr.length) groups.push({ category: cat, tags: arr.sort() })
+    if (arr && arr.length) groups.push({ category: cat, tags: arr.sort((a, b) => a.localeCompare(b, 'ko')) })
   }
   return groups
 }

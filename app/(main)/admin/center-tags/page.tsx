@@ -77,7 +77,8 @@ export default function AdminCenterTagsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return q ? tags.filter(t => t.name.toLowerCase().includes(q)) : tags
+    const base = q ? tags.filter(t => t.name.toLowerCase().includes(q)) : tags
+    return [...base].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
   }, [tags, query])
 
   const groups = useMemo(() => {
