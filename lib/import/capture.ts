@@ -298,6 +298,24 @@ function depersonalizeNickname(text: string, nickname: string): string {
   return text.split(trimmed).join('[유저]')
 }
 
+// 멜팅의 일부 "첫 장면" 미리보기는 <desc>묘사</desc><talk>대사</talk> 마크업으로 내려온다.
+// StoryFit의 노벨체 렌더링(NovelText)은 이 태그를 모르므로, *묘사*(이탤릭)/"대사"(굵게)
+// 컨벤션으로 변환해 일반 텍스트로 만든다.
+function convertMeltingOpeningTags(text: string): string {
+  const wrapLines = (inner: string, marker: '*' | '"') =>
+    inner.split('\n').map(line => {
+      const t = line.trim()
+      if (!t) return ''
+      return marker === '*' ? `*${t}*` : `"${t}"`
+    }).join('\n')
+
+  return text
+    .replace(/<desc>([\s\S]*?)<\/desc>/g, (_, inner) => wrapLines(inner, '*'))
+    .replace(/<talk>([\s\S]*?)<\/talk>/g, (_, inner) => wrapLines(inner, '"'))
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 // 로그인 세션으로 캐릭터 페이지를 렌더링해 "상세 설명"/"첫 장면" 탭을 섹션으로 분리해 반환한다.
 // 세션이 없거나 만료된 경우 로그인 게이트 문구가 포함되어 '세션 게이트' 예외를 던진다 — 호출 측에서 OG 메타로 폴백한다.
 async function renderMeltingSections(url: string): Promise<{
@@ -305,7 +323,7 @@ async function renderMeltingSections(url: string): Promise<{
   apiData?: any
 }> {
   return withMeltingPage(async (page) => {
-    const apiData: { bot?: any } = {}
+    const apiData: { bot?: any; openings?: any[] } = {}
 
     await page.setRequestInterception(true)
     page.on('request', (request) => {
@@ -319,6 +337,9 @@ async function renderMeltingSections(url: string): Promise<{
           const json = JSON.parse(text)
           if (json.json?.bot) {
             apiData.bot = json.json.bot
+          }
+          if (Array.isArray(json.json?.openings)) {
+            apiData.openings = json.json.openings
           }
         } catch {}
       }
@@ -357,7 +378,7 @@ async function renderMeltingSections(url: string): Promise<{
           { tab: '상세 설명', text: apiData.bot.publicDescription || '' },
           { tab: '첫 장면', text: apiData.bot.opening || '' }
         ],
-        apiData: apiData.bot
+        apiData: { ...apiData.bot, openings: apiData.openings }
       }
     }
 
@@ -679,6 +700,25 @@ export async function captureMelting(url: string): Promise<Captured> {
       const cleanAdditionalInfo = depersonalizeNickname(additionalInfo, nickname)
       const cleanOpeningMessage = depersonalizeNickname(rawOpeningMessage, nickname)
 
+      // 멜팅은 캐릭터당 여러 "첫 장면"(도입부)을 등록할 수 있다 — 전부 가져와 선택 가능한
+      // 도입부 목록으로 저장한다 (WHIF의 openingMessages와 동일한 구조).
+      // 잠긴(미해금) 도입부의 opening 필드는 실제 본문 뒤에 마스킹(█✶▌ 등)된 더미 텍스트가
+      // 이어 붙어 있다 — previewByMode의 preview(마스킹 없는 앞부분)가 있으면 그걸 쓰고,
+      // 기본 도입부처럼 preview가 없는 경우에만 opening 원문을 그대로 쓴다.
+      const rawOpenings = Array.isArray(apiData.openings) ? apiData.openings : []
+      const openingMessages = rawOpenings
+        .map((o: any) => {
+          const mode = o?.recommendedMode === 'chat' ? 'chat' : 'novel'
+          const preview = o?.previewByMode?.[mode]?.preview ?? o?.previewByMode?.novel?.preview ?? o?.previewByMode?.chat?.preview
+          return { ...o, opening: preview ?? o?.opening }
+        })
+        .filter((o: any) => typeof o?.opening === 'string' && o.opening.trim().length > 0)
+        .map((o: any, idx: number) => ({
+          id: String(o.id || `opening_${idx}`),
+          title: String(o.title || (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
+          content: depersonalizeNickname(convertMeltingOpeningTags(String(o.opening || '')), nickname),
+        }))
+
       const isNsfw = apiData.nsfw || apiData.isNsfw || false
       const safetyLevel = isNsfw ? 'relaxed' : 'standard'
 
@@ -691,6 +731,7 @@ export async function captureMelting(url: string): Promise<Captured> {
             gender: genderMap[apiData.gender] || '',
             additionalInfo: cleanAdditionalInfo,
             openingMessage: cleanOpeningMessage,
+            openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
             exampleDialogues: '',
           }
         ],

@@ -8,6 +8,8 @@ import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
+import { getOpenings } from '@/lib/openings'
+import type { Opening } from '@/types'
 
 function formatDate(s?: string) {
   if (!s) return ''
@@ -17,7 +19,7 @@ function formatDate(s?: string) {
 
 interface Char {
   id: string; name: string; avatarUrl: string | null; additionalInfo: string
-  openingMessage: string; tags: string[]
+  openingMessage: string; openingMessages?: Opening[]; tags: string[]
 }
 interface Collection {
   id: string; title: string; coverImageUrl: string; description: string; tags: string[]
@@ -28,8 +30,10 @@ export default function MeltingCharDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const [col, setCol] = useState<Collection | null>(null)
+  const [openingIdx, setOpeningIdx] = useState(0)
   const [personaOpen, setPersonaOpen] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [generatingOpening, setGeneratingOpening] = useState(false)
   const [error, setError] = useState('')
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
@@ -59,12 +63,31 @@ export default function MeltingCharDetailPage() {
   const meta = col.meltingMeta ?? {}
   const mainChar = col.characters[0]
   const tagline = meta.publicTagline ?? col.description ?? ''
-  const opening = mainChar?.openingMessage ?? ''
+  const openings = getOpenings(mainChar)
+  const opening = openings[openingIdx]?.content ?? ''
 
   const parsedUserSettings = meta.userSettings || (() => {
     const match = mainChar?.additionalInfo?.match(/\[유저 기본 설정\]\n([\s\S]*?)(?:\n\n\[|$)/)
     return match ? match[1].trim() : ''
   })()
+
+  const handleGenerateOpening = async () => {
+    if (!mainChar) return
+    const target = openings[openingIdx]
+    if (!target) return
+    setGeneratingOpening(true); setError('')
+    try {
+      const { openingMessages } = await api.post(`/api/characters/${mainChar.id}/openings/generate`, { openingId: target.id })
+      setCol(prev => prev ? {
+        ...prev,
+        characters: prev.characters.map(c => c.id === mainChar.id ? { ...c, openingMessages } : c),
+      } : prev)
+    } catch (e: any) {
+      setError('도입부 생성 실패: ' + e.message)
+    } finally {
+      setGeneratingOpening(false)
+    }
+  }
 
   const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
     if (!mainChar) return
@@ -170,9 +193,26 @@ export default function MeltingCharDetailPage() {
             </div>
           )}
 
-          {opening.trim() && (
+          {openings.length > 0 && (
             <div className="melting-section" style={{ paddingTop: 0 }}>
               <h2 className="melting-section-title">첫 장면</h2>
+              {openings.length > 1 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+                  {openings.map((op, i) => (
+                    <button key={op.id} className={`melting-chip ${i === openingIdx ? 'sel' : ''}`}
+                      style={{ border: 'none', cursor: 'pointer' }} onClick={() => setOpeningIdx(i)}>
+                      {op.title}
+                    </button>
+                  ))}
+                  {openingIdx !== 0 && (
+                    <button className="melting-chip" disabled={generatingOpening}
+                      style={{ border: 'none', cursor: generatingOpening ? 'default' : 'pointer', background: 'var(--m-accent)', color: '#fff', marginLeft: 'auto' }}
+                      onClick={handleGenerateOpening}>
+                      {generatingOpening ? '생성 중...' : '✨ AI로 이어쓰기'}
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="melting-intro-box">
                 <NovelText text={fixJosa(opening
                   .replace(/\{\{user\}\}/gi, '나')
