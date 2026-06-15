@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { fixJosa } from '@/lib/josa'
+import { fixJosa, replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
@@ -40,6 +40,16 @@ export default function MeltingCharDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [isEditingOpening, setIsEditingOpening] = useState(false)
   const [editContent, setEditContent] = useState('')
+  const [userDisplayName, setUserDisplayName] = useState('나')
+
+  useEffect(() => {
+    api.get('/api/user/settings')
+      .then((data: any) => {
+        if (data.displayName) setUserDisplayName(data.displayName)
+      })
+      .catch(() => {})
+  }, [])
+
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -229,11 +239,7 @@ export default function MeltingCharDetailPage() {
           {mainChar?.additionalInfo?.trim() && (
             <div className="melting-section" style={{ paddingTop: 0 }}>
               <h2 className="melting-section-title">상세 설정</h2>
-              <MeltingMarkdown text={fixJosa(mainChar.additionalInfo
-                .replace(/\{\{user\}\}/gi, '나')
-                .replace(/\{\{char\}\}/gi, mainChar.name)
-                .replace(/\{유저\}/g, '나')
-                .replace(/\{캐릭터\}/g, mainChar.name), ['나', mainChar.name])} />
+              <MeltingMarkdown text={replaceDisplayPlaceholders(mainChar.additionalInfo, userDisplayName, mainChar.name)} />
             </div>
           )}
 
@@ -286,11 +292,7 @@ export default function MeltingCharDetailPage() {
                 </div>
               ) : (
                 <div className="melting-intro-box">
-                  <NovelText text={fixJosa(opening
-                    .replace(/\{\{user\}\}/gi, '나')
-                    .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')
-                    .replace(/\{유저\}/g, '나')
-                    .replace(/\{캐릭터\}/g, mainChar?.name ?? ''), ['나', mainChar?.name])} />
+                  <NovelText text={replaceDisplayPlaceholders(opening, userDisplayName, mainChar?.name ?? '')} />
                 </div>
               )}
             </div>
