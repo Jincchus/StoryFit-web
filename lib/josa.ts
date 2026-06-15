@@ -83,8 +83,6 @@ export function applyPersonaPlaceholders(text: string, personaName: string, char
     .replace(/\{persona\}/gi, personaName)
     .replace(/\bpersona\b/gi, personaName)
     .replace(/페르소나/g, personaName)
-    .replace(/주인공/g, personaName)
-    .replace(/당신/g, personaName)
 }
 
 export function replaceDisplayPlaceholders(text: string, userName: string, charNameOrNames?: string | string[]): string {

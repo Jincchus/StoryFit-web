@@ -102,8 +102,9 @@ describe('applyPersonaPlaceholders', () => {
     expect(applyPersonaPlaceholders('Guest와 User와 GUEST와 guest', '민준')).toBe('민준와 민준와 민준와 민준')
   })
 
-  it('persona/페르소나/주인공/당신을 치환한다', () => {
-    expect(applyPersonaPlaceholders('persona와 페르소나와 주인공과 당신', '민준')).toBe('민준와 민준와 민준과 민준')
+  it('persona/페르소나를 치환한다 (주인공/당신은 일반 단어라 치환하지 않음)', () => {
+    expect(applyPersonaPlaceholders('persona와 페르소나', '민준')).toBe('민준와 민준')
+    expect(applyPersonaPlaceholders('주인공과 당신', '민준')).toBe('주인공과 당신')
   })
 
   it('charName이 없으면 {{char}} 패턴은 치환하지 않는다', () => {
@@ -117,8 +118,8 @@ describe('replaceDisplayPlaceholders - 확장 패턴', () => {
     expect(replaceDisplayPlaceholders('User는 학교에 갔다', '민준')).toBe('민준은 학교에 갔다')
   })
 
-  it('당신/페르소나 표기를 페르소나 이름으로 치환하고 조사를 교정한다', () => {
-    expect(replaceDisplayPlaceholders('당신은 누구인가', '철수')).toBe('철수는 누구인가')
+  it('페르소나 표기를 페르소나 이름으로 치환하고 조사를 교정한다 (당신은 미치환)', () => {
     expect(replaceDisplayPlaceholders('페르소나가 왔다', '철수')).toBe('철수가 왔다')
+    expect(replaceDisplayPlaceholders('당신은 누구인가', '철수')).toBe('당신은 누구인가')
   })
 })
