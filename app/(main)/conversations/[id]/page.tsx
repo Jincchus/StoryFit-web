@@ -1150,7 +1150,7 @@ export default function ChatPage() {
           )}
 
           {cardChar && (
-            <CharacterCardModal character={cardChar} personaName={conv?.personaCharacter?.name ?? '나'} onClose={() => setCardChar(null)} />
+            <CharacterCardModal character={cardChar} personaName={conv?.personaCharacter?.name ?? conv?.user?.displayName ?? '나'} onClose={() => setCardChar(null)} />
           )}
         </div>
       </div>

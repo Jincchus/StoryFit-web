@@ -7,6 +7,7 @@ import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPerso
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { getOpenings } from '@/lib/openings'
+import { useDisplayName } from '@/lib/useDisplayName'
 import type { Opening } from '@/types'
 
 function formatDate(s?: string) {
@@ -39,6 +40,7 @@ export default function CharacterDetailPage() {
   const [imgIdx, setImgIdx] = useState(0)
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
+  const userName = useDisplayName()
 
   useEffect(() => {
     (async () => {
@@ -145,7 +147,7 @@ export default function CharacterDetailPage() {
           {char.additionalInfo?.trim() && (
             <div className="whif-section" style={{ paddingTop: 0 }}>
               <h2 className="whif-section-title">캐릭터 소개</h2>
-              <p style={{ color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{replaceDisplayPlaceholders(char.additionalInfo, '나', char.name)}</p>
+              <p style={{ color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{replaceDisplayPlaceholders(char.additionalInfo, userName, char.name)}</p>
             </div>
           )}
 
@@ -164,7 +166,7 @@ export default function CharacterDetailPage() {
                 </div>
               )}
               <div style={{ background: 'var(--w-surface)', border: '1px solid var(--w-line)', borderRadius: 10, padding: 14, color: 'var(--w-ink-soft)', lineHeight: 1.6, fontSize: 14 }}>
-                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', '나', char.name)} />
+                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, char.name)} />
               </div>
             </div>
           )}

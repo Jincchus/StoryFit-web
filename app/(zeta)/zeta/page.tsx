@@ -9,6 +9,7 @@ import { getOpenings } from '@/lib/openings'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
+import { useDisplayName } from '@/lib/useDisplayName'
 import type { Opening } from '@/types'
 
 interface Plot {
@@ -26,6 +27,7 @@ export default function ZetaListPage() {
   const [plots, setPlots] = useState<Plot[]>([])
   const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
   const { isFav, toggleFav } = useFavorites()
+  const userName = useDisplayName()
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -221,7 +223,7 @@ export default function ZetaListPage() {
                     )}
                     {intro && (
                       <div style={{ fontSize: 11, color: 'var(--z-ink-soft)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {replaceDisplayPlaceholders(intro, '나', mainChar?.name ?? '')}
+                        {replaceDisplayPlaceholders(intro, userName, mainChar?.name ?? '')}
                       </div>
                     )}
                   </div>

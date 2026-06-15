@@ -7,6 +7,7 @@ import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPerso
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
+import { useDisplayName } from '@/lib/useDisplayName'
 
 function formatDate(s?: string) {
   if (!s) return ''
@@ -33,6 +34,7 @@ export default function TikitaStoryDetailPage() {
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const userName = useDisplayName()
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -153,7 +155,7 @@ export default function TikitaStoryDetailPage() {
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">상세 설정</h2>
               <div className="tikita-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(mainChar.additionalInfo, '나', mainChar.name)} />
+                <NovelText text={replaceDisplayPlaceholders(mainChar.additionalInfo, userName, mainChar.name)} />
               </div>
             </div>
           )}
@@ -162,7 +164,7 @@ export default function TikitaStoryDetailPage() {
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">첫 장면</h2>
               <div className="tikita-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(opening, '나', mainChar?.name ?? '')} />
+                <NovelText text={replaceDisplayPlaceholders(opening, userName, mainChar?.name ?? '')} />
               </div>
             </div>
           )}

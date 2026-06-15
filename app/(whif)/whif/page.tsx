@@ -8,6 +8,7 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
+import { useDisplayName } from '@/lib/useDisplayName'
 
 interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
 interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string }
@@ -17,6 +18,7 @@ export default function WhifExplorePage() {
   const [tab, setTab] = useState<'characters' | 'universes'>('universes')
   const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
   const { isFav, toggleFav } = useFavorites()
+  const userName = useDisplayName()
   const [universes, setUniverses] = useState<Universe[]>([])
   const [characters, setCharacters] = useState<Character[]>([])
   const [loading, setLoading] = useState(true)
@@ -278,7 +280,7 @@ export default function WhifExplorePage() {
                   <div className="whif-card-body">
                     <div className="whif-card-title">{c.name}</div>
                     {c.additionalInfo?.trim() && (
-                      <div className="whif-card-desc">{replaceDisplayPlaceholders(c.additionalInfo, '나', c.name)}</div>
+                      <div className="whif-card-desc">{replaceDisplayPlaceholders(c.additionalInfo, userName, c.name)}</div>
                     )}
                   </div>
                   {editMode ? (

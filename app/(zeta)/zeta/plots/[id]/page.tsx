@@ -7,6 +7,7 @@ import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPerso
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
+import { useDisplayName } from '@/lib/useDisplayName'
 import { getOpenings } from '@/lib/openings'
 import type { Opening } from '@/types'
 
@@ -46,6 +47,7 @@ export default function ZetaPlotDetailPage() {
   const [chatModeOpen, setChatModeOpen] = useState(false)
   const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
   const [showEdit, setShowEdit] = useState(false)
+  const userName = useDisplayName()
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -234,7 +236,7 @@ export default function ZetaPlotDetailPage() {
                       </div>
                       {c.additionalInfo?.trim() && (
                         <div style={{ color: 'var(--z-ink-soft)', fontSize: 12, marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                          {replaceDisplayPlaceholders(c.additionalInfo, '나', c.name)}
+                          {replaceDisplayPlaceholders(c.additionalInfo, userName, c.name)}
                         </div>
                       )}
                     </div>
@@ -248,7 +250,7 @@ export default function ZetaPlotDetailPage() {
             <div className="zeta-section" style={{ paddingTop: 0 }}>
               <h2 className="zeta-section-title">스토리</h2>
               <div className="zeta-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(col.description ?? '', '나', mainChar?.name ?? '')} />
+                <NovelText text={replaceDisplayPlaceholders(col.description ?? '', userName, mainChar?.name ?? '')} />
               </div>
             </div>
           )}
@@ -266,7 +268,7 @@ export default function ZetaPlotDetailPage() {
                 </div>
               )}
               <div className="zeta-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', '나', mainChar?.name ?? '')} />
+                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, mainChar?.name ?? '')} />
               </div>
             </div>
           )}
@@ -280,9 +282,9 @@ export default function ZetaPlotDetailPage() {
                     {(conv.messages ?? []).map((m: any, j: number) => (
                       <div key={j} style={{ marginBottom: j < (conv.messages?.length ?? 0) - 1 ? 10 : 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4, color: 'var(--z-ink)' }}>
-                          {m.sender === 'USER' ? '나' : (m.senderName || mainChar?.name || '캐릭터')}
+                          {m.sender === 'USER' ? userName : (m.senderName || mainChar?.name || '캐릭터')}
                         </div>
-                        <NovelText text={replaceDisplayPlaceholders(String(m.content ?? ''), '나', mainChar?.name ?? '')} />
+                        <NovelText text={replaceDisplayPlaceholders(String(m.content ?? ''), userName, mainChar?.name ?? '')} />
                       </div>
                     ))}
                   </div>
@@ -319,7 +321,7 @@ export default function ZetaPlotDetailPage() {
                       )}
                       {isExpanded && (
                         <div style={{ fontSize: 12, marginTop: 8, color: 'var(--z-ink-soft)', whiteSpace: 'pre-wrap', borderTop: '1px solid var(--z-line)', paddingTop: 8, lineHeight: 1.5 }}>
-                          <NovelText text={replaceDisplayPlaceholders(lb.content, '나', mainChar?.name ?? '')} />
+                          <NovelText text={replaceDisplayPlaceholders(lb.content, userName, mainChar?.name ?? '')} />
                         </div>
                       )}
                     </div>
