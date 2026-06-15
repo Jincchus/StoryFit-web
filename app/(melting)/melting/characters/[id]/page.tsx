@@ -247,7 +247,7 @@ export default function MeltingCharDetailPage() {
                   </button>
                 ))}
                 
-                {currentOpening?.originalPreview && currentOpening?.isGenerated === false && (
+                {openingIdx !== 0 && currentOpening?.isGenerated !== true && (
                   <button className="melting-chip" disabled={generatingOpening}
                     style={{ border: 'none', cursor: generatingOpening ? 'default' : 'pointer', background: 'var(--m-accent)', color: '#fff', marginLeft: 'auto' }}
                     onClick={handleGenerateOpening}>
@@ -263,7 +263,7 @@ export default function MeltingCharDetailPage() {
                 )}
 
                 {!isEditingOpening && (
-                  <button className="melting-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--m-surface-2)', marginLeft: (currentOpening?.originalPreview) ? '0' : 'auto' }}
+                  <button className="melting-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--m-surface-2)', marginLeft: (openingIdx !== 0 && currentOpening?.isGenerated !== true) || (currentOpening?.originalPreview && currentOpening?.isGenerated === true) ? '0' : 'auto' }}
                     onClick={() => { setEditContent(opening); setIsEditingOpening(true) }}>
                     ✏ 편집
                   </button>
