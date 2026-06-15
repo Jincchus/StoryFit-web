@@ -13,6 +13,7 @@ export interface PlotOutline {
   mode: 'auto' | 'choice'
   ending: string
   chapters: PlotChapter[]
+  source?: 'tikita' | 'ai'
 }
 
 export function parsePlotOutline(raw: unknown): PlotOutline | null {
@@ -30,6 +31,7 @@ export function parsePlotOutline(raw: unknown): PlotOutline | null {
       events: Array.isArray(c.events) ? c.events.map(String) : [],
       transition: String(c.transition ?? ''),
     })),
+    source: o.source === 'tikita' ? 'tikita' : 'ai',
   }
 }
 

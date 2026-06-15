@@ -48,6 +48,27 @@ export async function captureTikita(url: string): Promise<Captured> {
     }
   } catch { /* 상세 실패 시 스토리 단일 캐릭터로 폴백 */ }
 
+  // 에피소드(챕터형 진행) — 크리에이터가 직접 설계한 순차 에피소드를 PlotChapter 형태로 변환
+  let episodes: { index: number; title: string; goal: string; events: string[]; transition: string }[] = []
+  try {
+    const epRes = await fetch(
+      `${TIKITA_BASE}/rest/v1/story_episodes?story_id=eq.${encodeURIComponent(story.id)}&select=*&order=display_order`,
+      { headers }
+    )
+    if (epRes.ok) {
+      const epRows = await epRes.json()
+      if (Array.isArray(epRows)) {
+        episodes = epRows.map((e: any, i: number) => ({
+          index: i + 1,
+          title: String(e.title || `${i + 1}화`).trim(),
+          goal: String(e.body_md || '').trim(),
+          events: [],
+          transition: String(e.transition_condition || '').trim(),
+        }))
+      }
+    }
+  } catch { /* 에피소드 조회 실패 시 무시 — 단일 시작점으로 동작 */ }
+
   const tags: string[] = Array.from(new Set(
     [...(story.tags ?? []), ...(story.categories ?? [])].map((t: any) => String(t).trim()).filter(Boolean)
   ))
@@ -102,6 +123,7 @@ export async function captureTikita(url: string): Promise<Captured> {
       creatorNotes: story.creator_notes ?? '',
       introHtml: story.intro_html ?? null,
       introMode: story.intro_mode ?? null,
+      episodes,
     },
   }
 }

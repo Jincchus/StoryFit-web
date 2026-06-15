@@ -4,6 +4,7 @@ export interface PlotOutlineData {
   mode: 'auto' | 'choice'
   ending: string
   chapters: { index: number; title: string; goal: string; events: string[]; transition: string }[]
+  source?: 'tikita' | 'ai'
 }
 export interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string; gender?: string; tags: string[]; additionalInfo: string; exampleDialogues: string; openingMessage?: string; isPreset: boolean } }
 export interface Conv {

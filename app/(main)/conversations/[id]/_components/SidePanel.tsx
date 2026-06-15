@@ -325,7 +325,7 @@ export default function SidePanel({
       {(conv.mode === 'story' || conv.mode === 'multiStory') && (
         <div className="side-section">
           <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, plot: !o.plot }))}>
-            <span>🗺 스토리 설계도{conv.plotOutline ? <span className="tiny muted" style={{ fontWeight: 400 }}> ({conv.chapter ?? 1}/{conv.plotOutline.totalChapters}챕터)</span> : null}</span>
+            <span>{conv.plotOutline?.source === 'tikita' ? '📖 에피소드' : '🗺 스토리 설계도'}{conv.plotOutline ? <span className="tiny muted" style={{ fontWeight: 400 }}> ({conv.chapter ?? 1}/{conv.plotOutline.totalChapters}{conv.plotOutline.source === 'tikita' ? '화' : '챕터'})</span> : null}</span>
             <span className={`acc-arrow ${panelOpen.plot ? 'open' : ''}`}>▼</span>
           </button>
           {panelOpen.plot && (
@@ -641,6 +641,7 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
   const display = (text: string) => replaceDisplayPlaceholders(text, conv.personaCharacter?.name ?? '나', conv.characters[0]?.character.name)
 
   const resolvedChapters = Math.min(30, Math.max(2, typeof chapterCount === 'number' ? chapterCount : 6))
+  const isTikita = outline?.source === 'tikita'
 
   const handleGenerate = async () => {
     if (generating) return
@@ -665,7 +666,10 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
   }
 
   const handleDelete = async () => {
-    if (!confirm('스토리 설계도를 삭제할까요? AI가 더 이상 플롯을 따라가지 않습니다.')) return
+    const msg = isTikita
+      ? '에피소드 추적을 해제할까요? AI가 더 이상 원작 에피소드 흐름을 따라가지 않습니다.'
+      : '스토리 설계도를 삭제할까요? AI가 더 이상 플롯을 따라가지 않습니다.'
+    if (!confirm(msg)) return
     try {
       await api.delete(`/api/conversations/${convId}/plot`)
       setConv(c => c ? { ...c, plotOutline: null } : c)
@@ -676,7 +680,9 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
   return (
     <div className="vstack" style={{ gap: 6, marginTop: 6 }}>
       <div className="tiny muted" style={{ lineHeight: 1.5 }}>
-        AI가 결말까지의 챕터별 플롯을 설계하고, 그 흐름대로 스토리를 능동적으로 이끌어갑니다. 설계 내용은 기본적으로 숨겨집니다.
+        {isTikita
+          ? '원작이 설계한 에피소드 흐름을 따라 스토리를 진행합니다. 내용은 기본적으로 숨겨집니다.'
+          : 'AI가 결말까지의 챕터별 플롯을 설계하고, 그 흐름대로 스토리를 능동적으로 이끌어갑니다. 설계 내용은 기본적으로 숨겨집니다.'}
       </div>
 
       {!outline ? (
@@ -709,21 +715,29 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
 
           <div className="hstack" style={{ gap: 4, flexWrap: 'wrap' }}>
             <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => setShowOutline(v => !v)}>
-              {showOutline ? '▲ 설계도 숨기기' : '▼ 설계도 보기 (스포일러)'}
+              {showOutline
+                ? (isTikita ? '▲ 에피소드 숨기기' : '▲ 설계도 숨기기')
+                : (isTikita ? '▼ 에피소드 보기' : '▼ 설계도 보기 (스포일러)')}
             </button>
-            <label className="tiny muted" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              <input
-                type="number" className="field"
-                style={{ width: 40, fontSize: 9, display: 'inline-block', padding: '1px 4px' }}
-                min={2} max={30} value={chapterCount}
-                onChange={e => setChapterCount(e.target.value === '' ? '' : parseInt(e.target.value))}
-                onBlur={() => setChapterCount(resolvedChapters)}
-              />챕터
-            </label>
-            <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} disabled={generating} onClick={handleGenerate}>
-              {generating ? '재설계 중...' : '↺ 재설계'}
+            {!isTikita && (
+              <label className="tiny muted" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <input
+                  type="number" className="field"
+                  style={{ width: 40, fontSize: 9, display: 'inline-block', padding: '1px 4px' }}
+                  min={2} max={30} value={chapterCount}
+                  onChange={e => setChapterCount(e.target.value === '' ? '' : parseInt(e.target.value))}
+                  onBlur={() => setChapterCount(resolvedChapters)}
+                />챕터
+              </label>
+            )}
+            {!isTikita && (
+              <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} disabled={generating} onClick={handleGenerate}>
+                {generating ? '재설계 중...' : '↺ 재설계'}
+              </button>
+            )}
+            <button className="btn danger" style={{ fontSize: 9, padding: '2px 7px' }} onClick={handleDelete}>
+              {isTikita ? '✕ 추적 해제' : '✕ 삭제'}
             </button>
-            <button className="btn danger" style={{ fontSize: 9, padding: '2px 7px' }} onClick={handleDelete}>✕ 삭제</button>
           </div>
 
           {showOutline && (
@@ -739,7 +753,7 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
                     border: `1px solid ${isCurrent ? 'var(--accent)' : 'var(--chrome-border)'}`,
                   }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink)' }}>
-                      {isCurrent ? '▶ ' : ''}{ch.index}챕터 「{display(ch.title)}」
+                      {isCurrent ? '▶ ' : ''}{ch.index}{isTikita ? '화' : '챕터'} 「{display(ch.title)}」
                     </div>
                     <div className="tiny muted" style={{ marginTop: 2, lineHeight: 1.5 }}>{display(ch.goal)}</div>
                     {ch.events.length > 0 && (

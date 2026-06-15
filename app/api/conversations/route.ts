@@ -63,13 +63,24 @@ export async function POST(req: NextRequest) {
   const collectionIds = Array.from(new Set(selectedChars.map(c => c.collectionId).filter(Boolean))) as string[]
 
   let convSourceUrl = body.sourceUrl ?? ''
-  if (!convSourceUrl && collectionIds.length > 0) {
+  let tikitaPlotOutline: any = null
+  if (collectionIds.length > 0) {
     const col = await prisma.characterCollection.findFirst({
       where: { id: { in: collectionIds } },
-      select: { sourceUrl: true }
+      select: { sourceUrl: true, tikitaMeta: true }
     })
-    if (col?.sourceUrl) {
+    if (!convSourceUrl && col?.sourceUrl) {
       convSourceUrl = col.sourceUrl
+    }
+    const episodes = (col?.tikitaMeta as any)?.episodes
+    if (Array.isArray(episodes) && episodes.length > 0) {
+      tikitaPlotOutline = {
+        totalChapters: episodes.length,
+        mode: 'auto',
+        ending: '',
+        chapters: episodes,
+        source: 'tikita',
+      }
     }
   }
 
@@ -110,6 +121,7 @@ export async function POST(req: NextRequest) {
       suggestRepliesEnabled: body.suggestRepliesEnabled ?? false,
       autoChapterEnabled: body.autoChapterEnabled ?? false,
       sourceUrl: convSourceUrl,
+      ...(tikitaPlotOutline ? { plotOutline: tikitaPlotOutline, chapter: 1 } : {}),
       ...(characterIds.length > 0 ? {
         characters: {
           create: characterIds.map((id, idx) => ({ characterId: id, turnOrder: idx })),
@@ -168,7 +180,7 @@ export async function POST(req: NextRequest) {
   }
 
   const plotChapters = parseInt(body.plotChapters)
-  if (!isAssistant && plotChapters >= 2) {
+  if (!isAssistant && !tikitaPlotOutline && plotChapters >= 2) {
     const characterLines = conversation.characters
       .map(cc => `${cc.character.name}${cc.character.tags?.length ? ` (${cc.character.tags.join(', ')})` : ''}: ${(cc.character.additionalInfo ?? '').slice(0, 300)}`)
       .join('\n')
