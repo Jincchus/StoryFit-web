@@ -85,11 +85,13 @@ export default function CharactersPage() {
 
   const collections = useMemo(() => {
     const map = new Map<string, string>()
-    characters.filter(c => !c.completed).forEach(c => {
-      if (c.collection) map.set(c.collection.id, c.collection.title)
-    })
+    characters
+      .filter(c => !c.completed && (view === 'active' ? c.started : !c.started))
+      .forEach(c => {
+        if (c.collection) map.set(c.collection.id, c.collection.title)
+      })
     return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
-  }, [characters])
+  }, [characters, view])
 
   const completedRooms = useMemo(() => {
     const map = new Map<string, string>()
@@ -243,17 +245,17 @@ export default function CharactersPage() {
           <button
             className={`btn ${view === 'active' ? 'primary' : 'ghost'}`}
             style={{ fontSize: 11, padding: '3px 10px' }}
-            onClick={() => { setView('active'); setRoomFilter('all'); exitSelect() }}
+            onClick={() => { setView('active'); setRoomFilter('all'); setCollectionFilter('all'); exitSelect() }}
           >진행 중</button>
           <button
             className={`btn ${view === 'waiting' ? 'primary' : 'ghost'}`}
             style={{ fontSize: 11, padding: '3px 10px' }}
-            onClick={() => { setView('waiting'); setRoomFilter('all'); exitSelect() }}
+            onClick={() => { setView('waiting'); setRoomFilter('all'); setCollectionFilter('all'); exitSelect() }}
           >대기</button>
           <button
             className={`btn ${view === 'completed' ? 'primary' : 'ghost'}`}
             style={{ fontSize: 11, padding: '3px 10px' }}
-            onClick={() => { setView('completed'); setRoomFilter('all'); exitSelect() }}
+            onClick={() => { setView('completed'); setRoomFilter('all'); setCollectionFilter('all'); exitSelect() }}
           >완결 캐릭터</button>
         </div>
 

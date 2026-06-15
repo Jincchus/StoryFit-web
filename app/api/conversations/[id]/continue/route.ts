@@ -56,9 +56,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const matchedLorebook = matchLorebook(conv.lorebooks, conv.messages)
 
   const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const charNames = conv.characters.map((cc: any) => cc.character.name)
   const mappedMessages = conv.messages.map(m => ({
     ...m,
-    content: replacePlaceholders(m.content, personaName, character.name),
+    content: replacePlaceholders(m.content, personaName, charNames),
   }))
   const { recentMsgs, openingScene } = splitRecentAndOpening(mappedMessages)
 

@@ -64,6 +64,7 @@ export interface Conversation {
   currentAI: AIProvider
   personaCharacterId: string | null
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
+  user?: { displayName?: string | null } | null
   coreMemory: string
   statusTimeline: string
   scenarioDescription: string
@@ -86,6 +87,8 @@ export interface Opening {
   id: string
   title: string
   content: string
+  originalPreview?: string
+  isGenerated?: boolean
 }
 
 export interface LorebookEntry {

@@ -30,9 +30,9 @@ export default function SidePanel({
 }) {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
-  const personaName = conv.personaCharacter?.name ?? '나'
-  const mainCharName = conv.characters[0]?.character.name
-  const display = (text: string) => replaceDisplayPlaceholders(text, personaName, mainCharName)
+  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const charNames = conv.characters.map(cc => cc.character.name)
+  const display = (text: string) => replaceDisplayPlaceholders(text, personaName, charNames)
   const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false, style: false, persona: false })
   const [infoTip, setInfoTip] = useState<string | null>(null)
 
@@ -638,7 +638,9 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
   const [showOutline, setShowOutline] = useState(false)
   const outline = conv.plotOutline
 
-  const display = (text: string) => replaceDisplayPlaceholders(text, conv.personaCharacter?.name ?? '나', conv.characters[0]?.character.name)
+  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const charNames = conv.characters.map(cc => cc.character.name)
+  const display = (text: string) => replaceDisplayPlaceholders(text, personaName, charNames)
 
   const resolvedChapters = Math.min(30, Math.max(2, typeof chapterCount === 'number' ? chapterCount : 6))
   const isTikita = outline?.source === 'tikita'

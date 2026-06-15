@@ -24,6 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       title: true,
       scenarioDescription: true,
       createdAt: true,
+      user: { select: { displayName: true } },
       personaCharacter: { select: { name: true } },
       characters: { orderBy: { turnOrder: 'asc' }, select: { character: { select: { name: true } } } },
       messages: {
@@ -35,22 +36,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
   if (!conv || conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
-  const personaName = conv.personaCharacter?.name ?? '나'
-  const charName = conv.characters[0]?.character.name ?? ''
+  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const charNames = conv.characters.map(cc => cc.character.name).filter(Boolean)
 
   const parts: string[] = []
   parts.push(conv.title)
   parts.push('═'.repeat(Math.min(40, Math.max(10, conv.title.length * 2))))
   parts.push('')
   if (conv.scenarioDescription.trim()) {
-    parts.push(replacePlaceholders(conv.scenarioDescription, personaName, charName))
+    parts.push(replacePlaceholders(conv.scenarioDescription, personaName, charNames))
     parts.push('')
     parts.push('─'.repeat(30))
     parts.push('')
   }
 
   for (const m of conv.messages) {
-    const replaced = replacePlaceholders(m.content, personaName, charName)
+    const replaced = replacePlaceholders(m.content, personaName, charNames)
     if (m.role === 'user') {
       const text = toNovelText(replaced)
       if (text) parts.push(`▷ ${text}`)

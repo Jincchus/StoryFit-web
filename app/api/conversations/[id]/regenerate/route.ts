@@ -73,9 +73,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const charParam = buildCharParam(character)
 
   const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+  const charNames = conv.characters.map((cc: any) => cc.character.name)
   const mappedHistoryMsgs = historyMsgs.map(m => ({
     ...m,
-    content: replacePlaceholders(m.content, personaName, character.name)
+    content: replacePlaceholders(m.content, personaName, charNames)
   }))
 
   const { recentMsgs: recentHistoryMsgs, openingScene } = splitRecentAndOpening(mappedHistoryMsgs)

@@ -16,6 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       scenarioDescription: true,
       coreMemory: true,
       statusTimeline: true,
+      user: { select: { displayName: true } },
       characters: { orderBy: { turnOrder: 'asc' }, select: { character: { select: { name: true } } } },
       personaCharacter: { select: { name: true } },
       memories: { orderBy: { createdAt: 'asc' }, select: { summary: true } },
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!conv || conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
   const charNames = conv.characters.map(cc => cc.character.name).join(', ')
-  const personaName = conv.personaCharacter?.name ?? '나'
+  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
   const summaries = conv.memories.map((m, i) => `${i + 1}. ${m.summary}`).join('\n')
   const recentText = [...conv.messages].reverse()
     .map(m => `${m.role === 'user' ? personaName : '상대'}: ${m.content.slice(0, 300)}`)

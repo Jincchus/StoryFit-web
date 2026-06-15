@@ -43,28 +43,58 @@ export function fixJosa(text: string, names: (string | undefined | null)[]): str
   return result
 }
 
-export function applyPersonaPlaceholders(text: string, personaName: string, charName?: string): string {
+export function applyPersonaPlaceholders(text: string, personaName: string, charNameOrNames?: string | string[]): string {
   let result = text
-  if (charName) {
-    result = result
-      .replace(/\{\{char\}\}/gi, charName)
-      .replace(/\{char\}/gi, charName)
-      .replace(/\{캐릭터\}/g, charName)
+  if (charNameOrNames) {
+    const charNames = Array.isArray(charNameOrNames) ? charNameOrNames : [charNameOrNames]
+    
+    // First, replace index-specific character placeholders (e.g. {{char1}}, {char2}, etc.)
+    for (let i = 0; i < charNames.length; i++) {
+      const name = charNames[i]
+      const num = i + 1
+      const reDouble = new RegExp(`\\{\\{char${num}\\}\\}`, 'gi')
+      const reSingle = new RegExp(`\\{char${num}\\}`, 'gi')
+      result = result.replace(reDouble, name).replace(reSingle, name)
+    }
+    
+    // Then replace the general {{char}}, {char}, {캐릭터} using the first character
+    const firstChar = charNames[0]
+    if (firstChar) {
+      result = result
+        .replace(/\{\{char\}\}/gi, firstChar)
+        .replace(/\{char\}/gi, firstChar)
+        .replace(/\{캐릭터\}/g, firstChar)
+        .replace(/\{\{캐릭터\}\}/g, firstChar)
+    }
   }
+
   return result
     .replace(/\{\{user\}\}/gi, personaName)
     .replace(/\{user\}/gi, personaName)
+    .replace(/\[USER\]/gi, personaName)
+    .replace(/\buser\b/gi, personaName)
+    .replace(/\{\{유저\}\}/g, personaName)
     .replace(/\{유저\}/g, personaName)
     .replace(/\[유저\]/g, personaName)
-    .replace(/\[USER\]/gi, personaName)
+    .replace(/\{\{guest\}\}/gi, personaName)
+    .replace(/\{guest\}/gi, personaName)
     .replace(/\bguest\b/gi, personaName)
+    .replace(/\{\{persona\}\}/gi, personaName)
+    .replace(/\{persona\}/gi, personaName)
     .replace(/\bpersona\b/gi, personaName)
     .replace(/페르소나/g, personaName)
     .replace(/주인공/g, personaName)
-    .replace(/\buser\b/gi, personaName)
     .replace(/당신/g, personaName)
 }
 
-export function replaceDisplayPlaceholders(text: string, userName: string, charName?: string): string {
-  return fixJosa(applyPersonaPlaceholders(text, userName, charName), [userName, charName])
+export function replaceDisplayPlaceholders(text: string, userName: string, charNameOrNames?: string | string[]): string {
+  const names = [userName]
+  if (charNameOrNames) {
+    if (Array.isArray(charNameOrNames)) {
+      names.push(...charNameOrNames)
+    } else {
+      names.push(charNameOrNames)
+    }
+  }
+  return fixJosa(applyPersonaPlaceholders(text, userName, charNameOrNames), names)
 }

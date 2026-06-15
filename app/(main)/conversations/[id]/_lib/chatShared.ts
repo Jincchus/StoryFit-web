@@ -19,6 +19,7 @@ export interface Conv {
   plotOutline?: PlotOutlineData | null
   characters: ConvChar[]
   personaCharacter?: { id: string; name: string; avatarUrl?: string | null; tags: string[]; additionalInfo: string } | null
+  user?: { displayName?: string | null } | null
   messages: Msg[]
 }
 export interface LbEntry { id: string; keyword: string[]; content: string; priority: number; scanDepth: number }

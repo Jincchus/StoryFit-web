@@ -53,8 +53,9 @@ ${String(target.content || '').slice(0, 1500)}
   }
   if (!generated.trim()) return NextResponse.json({ error: '생성에 실패했습니다. 다시 시도해주세요.' }, { status: 502 })
 
+  const originalPreview = target.originalPreview || target.content
   const content = `${String(target.content || '').trim()}\n\n${generated.trim()}`
-  const updatedOpenings = openings.map(o => o?.id === openingId ? { ...o, content } : o)
+  const updatedOpenings = openings.map(o => o?.id === openingId ? { ...o, content, originalPreview, isGenerated: true } : o)
 
   await prisma.character.update({
     where: { id: params.id },

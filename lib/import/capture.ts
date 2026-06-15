@@ -710,14 +710,20 @@ export async function captureMelting(url: string): Promise<Captured> {
         .map((o: any) => {
           const mode = o?.recommendedMode === 'chat' ? 'chat' : 'novel'
           const preview = o?.previewByMode?.[mode]?.preview ?? o?.previewByMode?.novel?.preview ?? o?.previewByMode?.chat?.preview
-          return { ...o, opening: preview ?? o?.opening }
+          const hasPreview = !!preview
+          return { ...o, opening: preview ?? o?.opening, hasPreview }
         })
         .filter((o: any) => typeof o?.opening === 'string' && o.opening.trim().length > 0)
-        .map((o: any, idx: number) => ({
-          id: String(o.id || `opening_${idx}`),
-          title: String(o.title || (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
-          content: depersonalizeNickname(convertMeltingOpeningTags(String(o.opening || '')), nickname),
-        }))
+        .map((o: any, idx: number) => {
+          const content = depersonalizeNickname(convertMeltingOpeningTags(String(o.opening || '')), nickname)
+          return {
+            id: String(o.id || `opening_${idx}`),
+            title: String(o.title || (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
+            content,
+            originalPreview: o.hasPreview ? content : undefined,
+            isGenerated: o.hasPreview ? false : undefined,
+          }
+        })
 
       const isNsfw = apiData.nsfw || apiData.isNsfw || false
       const safetyLevel = isNsfw ? 'relaxed' : 'standard'

@@ -76,8 +76,10 @@ export default function MessageList({
         const msgChar = getMsgChar(m)
         const isLast = m.id === lastMsg?.id
         const isEditing = editingId === m.id
+        const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+        const charNames = conv.characters.map(cc => cc.character.name)
         const processedContent = !isYou
-          ? replaceDisplayPlaceholders(m.content, conv.personaCharacter?.name ?? '나', msgChar.name)
+          ? replaceDisplayPlaceholders(m.content, personaName, charNames)
           : m.content
         const storyParsed = isStoryOrMulti && !isYou ? parseStoryChoices(processedContent) : null
         const blocks = isYou ? [] : parseNovelBlocks(storyParsed ? storyParsed.body : processedContent)
@@ -110,7 +112,7 @@ export default function MessageList({
               /* ── 유저 메시지: 오른쪽 ── */
               <div className="seq-block seq-right">
                 <div className="seq-speaker" style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                  {conv.personaCharacter?.name ?? '당신'}
+                  {conv.personaCharacter?.name || conv.user?.displayName || '나'}
                   {conv.personaCharacter && (
                     <div className="thumb" style={{ width: 18, height: 18, flexShrink: 0 }}>
                       {conv.personaCharacter.avatarUrl
@@ -228,7 +230,8 @@ export default function MessageList({
                   }
                   const rawSpeaker = b.speaker || msgChar.name
                   const speaker = rawSpeaker.replace(/^\[|\]$/g, '').trim()
-                  const isPersona = !!conv.personaCharacter && isSamePerson(speaker, conv.personaCharacter.name)
+                  const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+                  const isPersona = isSamePerson(speaker, personaName)
                   const isConvChar = conv.characters.some(cc => isSamePerson(speaker, cc.character.name))
                   const speakerChar = isMulti ? conv.characters.find(cc => isSamePerson(speaker, cc.character.name))?.character : undefined
                   const thought = b.type === 'thought' ? ' thought-bubble' : ''
@@ -393,9 +396,11 @@ export default function MessageList({
             {streaming
               ? <>
                   {(() => {
-                    const ps = replaceDisplayPlaceholders(streaming, conv.personaCharacter?.name ?? '나', streamingChar.name)
+                    const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
+                    const charNames = conv.characters.map(cc => cc.character.name)
+                    const ps = replaceDisplayPlaceholders(streaming, personaName, charNames)
                     return isMulti
-                      ? <NovelScene text={ps} personaName={conv?.personaCharacter?.name ?? '주인공'} charName={streamingChar.name} />
+                      ? <NovelScene text={ps} personaName={personaName} charName={streamingChar.name} />
                       : <MessageBlocks text={ps} />
                   })()}
                   {typingDuration >= 8 && (

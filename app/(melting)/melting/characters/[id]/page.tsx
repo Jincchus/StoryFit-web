@@ -38,6 +38,8 @@ export default function MeltingCharDetailPage() {
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [isEditingOpening, setIsEditingOpening] = useState(false)
+  const [editContent, setEditContent] = useState('')
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -71,6 +73,48 @@ export default function MeltingCharDetailPage() {
     return match ? match[1].trim() : ''
   })()
 
+  const currentOpening = openings[openingIdx]
+
+  const handleSaveEdit = async () => {
+    if (!mainChar || !col) return
+    const target = openings[openingIdx]
+    if (!target) return
+    setError('')
+    try {
+      const updatedMessages = openings.map(o => o.id === target.id ? { ...o, content: editContent } : o) as Opening[]
+      await api.patch(`/api/characters/${mainChar.id}`, { openingMessages: updatedMessages })
+      setCol(prev => prev ? {
+        ...prev,
+        characters: prev.characters.map(c => c.id === mainChar.id ? { ...c, openingMessages: updatedMessages } : c),
+      } : prev)
+      setIsEditingOpening(false)
+    } catch (e: any) {
+      setError('도입부 수정 실패: ' + e.message)
+    }
+  }
+
+  const handleResetOpening = async () => {
+    if (!mainChar || !col) return
+    const target = openings[openingIdx]
+    if (!target || !target.originalPreview) return
+    if (!confirm('생성한 도입부를 지우고 원래 미리보기 상태로 되돌릴까요?')) return
+    setError('')
+    try {
+      const updatedMessages = openings.map(o =>
+        o.id === target.id
+          ? { ...o, content: target.originalPreview, isGenerated: false }
+          : o
+      ) as Opening[]
+      await api.patch(`/api/characters/${mainChar.id}`, { openingMessages: updatedMessages })
+      setCol(prev => prev ? {
+        ...prev,
+        characters: prev.characters.map(c => c.id === mainChar.id ? { ...c, openingMessages: updatedMessages } : c),
+      } : prev)
+    } catch (e: any) {
+      setError('도입부 초기화 실패: ' + e.message)
+    }
+  }
+
   const handleGenerateOpening = async () => {
     if (!mainChar) return
     const target = openings[openingIdx]
@@ -80,7 +124,7 @@ export default function MeltingCharDetailPage() {
       const { openingMessages } = await api.post(`/api/characters/${mainChar.id}/openings/generate`, { openingId: target.id })
       setCol(prev => prev ? {
         ...prev,
-        characters: prev.characters.map(c => c.id === mainChar.id ? { ...c, openingMessages } : c),
+        characters: prev.characters.map(c => c.id === mainChar.id ? { ...c, openingMessages: openingMessages as Opening[] } : c),
       } : prev)
     } catch (e: any) {
       setError('도입부 생성 실패: ' + e.message)
@@ -193,35 +237,64 @@ export default function MeltingCharDetailPage() {
             </div>
           )}
 
-          {openings.length > 0 && (
             <div className="melting-section" style={{ paddingTop: 0 }}>
               <h2 className="melting-section-title">첫 장면</h2>
-              {openings.length > 1 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
-                  {openings.map((op, i) => (
-                    <button key={op.id} className={`melting-chip ${i === openingIdx ? 'sel' : ''}`}
-                      style={{ border: 'none', cursor: 'pointer' }} onClick={() => setOpeningIdx(i)}>
-                      {op.title}
-                    </button>
-                  ))}
-                  {openingIdx !== 0 && (
-                    <button className="melting-chip" disabled={generatingOpening}
-                      style={{ border: 'none', cursor: generatingOpening ? 'default' : 'pointer', background: 'var(--m-accent)', color: '#fff', marginLeft: 'auto' }}
-                      onClick={handleGenerateOpening}>
-                      {generatingOpening ? '생성 중...' : '✨ AI로 이어쓰기'}
-                    </button>
-                  )}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+                {openings.map((op, i) => (
+                  <button key={op.id} className={`melting-chip ${i === openingIdx ? 'sel' : ''}`}
+                    style={{ border: 'none', cursor: 'pointer' }} onClick={() => { setOpeningIdx(i); setIsEditingOpening(false) }}>
+                    {op.title}
+                  </button>
+                ))}
+                
+                {currentOpening?.originalPreview && currentOpening?.isGenerated === false && (
+                  <button className="melting-chip" disabled={generatingOpening}
+                    style={{ border: 'none', cursor: generatingOpening ? 'default' : 'pointer', background: 'var(--m-accent)', color: '#fff', marginLeft: 'auto' }}
+                    onClick={handleGenerateOpening}>
+                    {generatingOpening ? '생성 중...' : '✨ AI로 이어쓰기'}
+                  </button>
+                )}
+
+                {currentOpening?.originalPreview && currentOpening?.isGenerated === true && (
+                  <button className="melting-chip" style={{ border: 'none', cursor: 'pointer', background: '#ff6b8a', color: '#fff', marginLeft: 'auto' }}
+                    onClick={handleResetOpening}>
+                    ✕ 지우고 다시 생성
+                  </button>
+                )}
+
+                {!isEditingOpening && (
+                  <button className="melting-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--m-surface-2)', marginLeft: (currentOpening?.originalPreview) ? '0' : 'auto' }}
+                    onClick={() => { setEditContent(opening); setIsEditingOpening(true) }}>
+                    ✏ 편집
+                  </button>
+                )}
+              </div>
+              
+              {isEditingOpening ? (
+                <div className="vstack" style={{ gap: 8 }}>
+                  <textarea
+                    className="field"
+                    style={{ fontSize: 13, background: 'var(--m-surface)', border: '1px solid var(--w-line)', color: 'var(--m-ink)', padding: 10, borderRadius: 10, width: '100%', resize: 'vertical' }}
+                    rows={8}
+                    value={editContent}
+                    onChange={e => setEditContent(e.target.value)}
+                  />
+                  <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
+                    <button className="btn primary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={handleSaveEdit}>저장</button>
+                    <button className="btn ghost" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => setIsEditingOpening(false)}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="melting-intro-box">
+                  <NovelText text={fixJosa(opening
+                    .replace(/\{\{user\}\}/gi, '나')
+                    .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')
+                    .replace(/\{유저\}/g, '나')
+                    .replace(/\{캐릭터\}/g, mainChar?.name ?? ''), ['나', mainChar?.name])} />
                 </div>
               )}
-              <div className="melting-intro-box">
-                <NovelText text={fixJosa(opening
-                  .replace(/\{\{user\}\}/gi, '나')
-                  .replace(/\{\{char\}\}/gi, mainChar?.name ?? '')
-                  .replace(/\{유저\}/g, '나')
-                  .replace(/\{캐릭터\}/g, mainChar?.name ?? ''), ['나', mainChar?.name])} />
-              </div>
             </div>
-          )}
+
 
           {existingConvs.length > 0 && (
             <div className="melting-section" style={{ paddingTop: 0 }}>

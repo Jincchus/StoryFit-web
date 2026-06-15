@@ -43,8 +43,12 @@ function buildStyleSection(s: StyleConfig): string {
 }
 
 // {{user}}, {user}, [유저], user, guest, persona, 페르소나, 주인공, 당신 등 유저 플레이스홀더를 페르소나 이름으로 치환
-export function replacePlaceholders(text: string, personaName: string, charName?: string): string {
-  return fixJosa(applyPersonaPlaceholders(text, personaName, charName), [personaName, charName])
+export function replacePlaceholders(text: string, personaName: string, charNameOrNames?: string | string[]): string {
+  const charNames = charNameOrNames
+    ? (Array.isArray(charNameOrNames) ? charNameOrNames : [charNameOrNames])
+    : []
+  const allNames = [personaName, ...charNames]
+  return fixJosa(applyPersonaPlaceholders(text, personaName, charNameOrNames), allNames)
 }
 
 function buildCharLines(character: Character, personaName?: string): string {
@@ -260,7 +264,7 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
   }
 
   if (scenarioDescription?.trim()) {
-    const sd = replacePlaceholders(scenarioDescription, personaName)
+    const sd = replacePlaceholders(scenarioDescription, personaName, characters.map(c => c.name))
     parts.push(`[시나리오 배경]\n${sd}`)
   }
   const openingSceneSection = buildOpeningSceneSection(openingScene)

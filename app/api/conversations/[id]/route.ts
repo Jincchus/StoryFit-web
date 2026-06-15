@@ -21,10 +21,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!conv) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
 
   const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
-  const charName = conv.characters[0]?.character?.name
+  const charNames = conv.characters.map((cc: any) => cc.character?.name).filter(Boolean)
   conv.messages = conv.messages.map(m =>
     m.role === 'assistant'
-      ? { ...m, content: replacePlaceholders(m.content, personaName, charName) }
+      ? { ...m, content: replacePlaceholders(m.content, personaName, charNames) }
       : m
   )
 

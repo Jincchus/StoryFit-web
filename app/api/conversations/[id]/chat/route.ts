@@ -188,10 +188,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const matchedLorebook = matchLorebook(conv.lorebooks, conv.messages)
 
   const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
-  const charName = character?.name || ''
+  const charNames = conv.characters.map((cc: any) => cc.character.name)
   const mappedMessages = conv.messages.map(m => ({
     ...m,
-    content: replacePlaceholders(m.content, personaName, charName)
+    content: replacePlaceholders(m.content, personaName, charNames)
   }))
 
   const { recentMsgs, openingScene } = splitRecentAndOpening(mappedMessages)
@@ -223,7 +223,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
 
   const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
-  const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charName)
+  const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charNames)
     + (diceResult ? diceInstruction(diceResult) : '')
   const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices)
 
