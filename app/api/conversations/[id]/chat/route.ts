@@ -222,7 +222,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
   })
 
-  const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
+  // 스토리 선택지(4지선다)는 추천 답변 칩으로 대체 — AI 본문에는 선택지를 생성하지 않는다
+  const allowChoices = false
   const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charNames)
     + (diceResult ? diceInstruction(diceResult) : '')
   const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices)
@@ -287,9 +288,9 @@ async function generateAsync({
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText)
 
     const revisionOptions = {
-      allowChoices: conv.mode === 'story',
-      forbiddenChoiceNames: conv.mode === 'story' ? [character.name] : [],
-      requiredBodyNames: conv.mode === 'story' ? [character.name] : [],
+      allowChoices: false,
+      forbiddenChoiceNames: [],
+      requiredBodyNames: [],
       personaName: conv.personaCharacter?.name || conv.user?.displayName || '나',
     }
 

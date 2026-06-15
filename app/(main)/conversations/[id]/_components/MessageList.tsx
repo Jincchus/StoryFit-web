@@ -35,6 +35,7 @@ export default function MessageList({
   send, fillComposer, saveEdit, saveEditOnly,
   onRequestDelete, onToggleBookmark, onRegenerate, onBranchSwitch, onOpenBranchModal, onStopStream,
   getMsgChar,
+  suggestions, suggestLoading, onRegenSuggestions,
 }: {
   messages: Msg[]
   conv: Conv
@@ -64,6 +65,9 @@ export default function MessageList({
   onOpenBranchModal: (msgId: string) => void
   onStopStream: () => void
   getMsgChar: (m: Msg) => ConvChar['character']
+  suggestions: string[]
+  suggestLoading: boolean
+  onRegenSuggestions: () => void
 }) {
   const router = useRouter()
   const lastMsg = messages[messages.length - 1]
@@ -278,38 +282,40 @@ export default function MessageList({
               </div>
             )}
 
-            {/* ── 스토리 선택지 ── */}
-            {isStoryOrMulti && !isYou && isLast && !typing && storyParsed && storyParsed.choices.length > 0 && (
+            {/* ── 추천 답변 칩 (스토리 선택지 대체, 채팅 스크롤 안에 표시) ── */}
+            {isStoryOrMulti && !isYou && isLast && !typing && (suggestions.length > 0 || suggestLoading) && (
               <div className="vstack" style={{ gap: 5, marginTop: 8, paddingLeft: 4 }}>
-                {storyParsed.choices.map((choice, i) => (
-                  <div key={i} className="hstack" style={{ gap: 4, alignItems: 'stretch' }}>
-                    <button
-                      className="btn ghost"
-                      style={{ flex: 1, textAlign: 'left', fontSize: 11, padding: '5px 10px', lineHeight: 1.5, whiteSpace: 'normal' }}
-                      onClick={() => send(choice)}
-                    >
-                      {i + 1}. {choice}
-                    </button>
-                    <button
-                      className="btn ghost"
-                      style={{ fontSize: 10, padding: '0 7px', flexShrink: 0 }}
-                      title="수정 후 전송"
-                      onClick={() => fillComposer(choice)}
-                    >✏</button>
-                  </div>
-                ))}
-                {/* 이어쓰기: 본문이 짧을 때만 표시 */}
-                {storyParsed.body.length < 350 && (
+                {suggestLoading && suggestions.length === 0 ? (
+                  <div className="tiny muted" style={{ padding: '2px 4px' }}>추천 답변 생성 중…</div>
+                ) : (
+                  suggestions.map((choice, i) => (
+                    <div key={i} className="hstack" style={{ gap: 4, alignItems: 'stretch' }}>
+                      <button
+                        className="btn ghost"
+                        style={{ flex: 1, textAlign: 'left', fontSize: 11, padding: '5px 10px', lineHeight: 1.5, whiteSpace: 'normal' }}
+                        onClick={() => send(choice)}
+                      >{choice}</button>
+                      <button
+                        className="btn ghost"
+                        style={{ fontSize: 10, padding: '0 7px', flexShrink: 0 }}
+                        title="수정 후 전송"
+                        onClick={() => fillComposer(choice)}
+                      >✏</button>
+                    </div>
+                  ))
+                )}
+                {suggestions.length > 0 && (
                   <button
                     className="btn ghost"
                     style={{ fontSize: 10, padding: '3px 10px', opacity: 0.7, alignSelf: 'flex-start' }}
-                    onClick={() => send('(계속 써줘)')}
-                  >계속 →</button>
+                    disabled={suggestLoading}
+                    onClick={onRegenSuggestions}
+                  >{suggestLoading ? '…' : '🔄 새로 생성'}</button>
                 )}
               </div>
             )}
-            {/* 이어쓰기 — 스토리 외 모드, 마지막 AI 응답이 짧을 때 */}
-            {!isStoryOrMulti && !isYou && isLast && !typing && m.content.length < 350 && (
+            {/* 이어쓰기 — 마지막 AI 응답이 짧을 때 (전 모드 공통) */}
+            {!isYou && isLast && !typing && m.content.length < 350 && (
               <div style={{ paddingLeft: 4, marginTop: 4 }}>
                 <button
                   className="btn ghost"

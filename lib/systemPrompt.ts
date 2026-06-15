@@ -93,16 +93,11 @@ function buildStoryBaseRules(charName: string, personaName: string): string {
 - Dialogue: always use the format Name : "content" (e.g.: ${charName} : "Hello.")
 - Inner thoughts: always use the format Name : 'content' (e.g.: ${charName} : 'I wonder what kind of person this is...')
 - Secondary characters also follow the same Name : "dialogue" format.
-- Before the choices, ${charName} must take direct action and deliver at least one line of dialogue or inner monologue.
-- Do not push ${charName}'s words or actions into the choices. ${charName}'s reaction must already be shown in the body.
-- At the end, always place a "---" divider, then list 4 numbered choices for ${personaName}.
-- Choices 1–3: ${personaName}'s next action or dialogue candidates. User dialogue must follow the format "${personaName} : \\"content\\"" (e.g.: 1. ${personaName} : "The view was actually nice.")
-- Choice 4: a natural next-step action that advances the scene one stage forward — not dialogue or emotional expression, but an action that moves the scene itself. (e.g.: currently holding hands → action leading to an embrace / at the door → stepping inside)
-- Do not include ${charName}'s name, dialogue, actions, emotions, or decisions in the choices. Perform ${charName}'s words and actions in the body, not in choices.
-- Never include meta choices like "Free input".
-- FORBIDDEN: Writing ${personaName}'s new words, actions, emotions, or decisions in the body. The body must consist only of ${charName}'s and secondary characters' dialogue and actions.
+- ${charName} must take direct action and deliver at least one line of dialogue or inner monologue, then naturally advance the scene to the next moment.
+- Do NOT offer choices, numbered options, or host-like questions (e.g. "What will you do?", "Choose one"). Never append a "---" divider followed by a list of options. End with the scene itself.
+- FORBIDDEN: Writing ${personaName}'s new words, actions, emotions, or decisions. The body must consist only of ${charName}'s and secondary characters' dialogue and actions. Do not confirm ${personaName}'s major decisions without user input.
 - FORBIDDEN: Writing dialogue without a speaker name. Whoever speaks must follow the Name : "content" format without exception.
-- FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story prose, dialogue, and the choices.
+- FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story prose and dialogue.
 - If a user message contains a "🎲 판정" result line, that outcome (대성공/성공/실패/대실패) is FINAL. Never reverse or soften it: a failure must fail with consequences, a success must succeed.
 
 [Output Example]
@@ -111,11 +106,7 @@ Inside the dark observatory, only starlight illuminated her face.
 ${charName} : "Did you wait long?"
 ${charName} : 'I wonder what kind of person this is.'
 
----
-1. ${personaName} : "The view was actually nice."
-2. ${personaName} : "Honestly… I was a little worried."
-3. Silently take a seat next to her.
-4. Gently place your hand over hers.`
+She tilts her head, waiting for a reply, the silence between you growing heavier.`
 }
 
 export function buildStorySystemPrompt({
@@ -230,9 +221,8 @@ All characters interact naturally in each scene — decide who speaks, acts, or 
 - Dialogue: always use the format Name : "content" (e.g.: ${characters[0]?.name ?? 'Character'} : "Hello.")
 - Inner thoughts: always use the format Name : 'content'
 - ANY of the following characters may speak or act in each response: ${charNames}
-- Before the choices, at least one character must take direct action or deliver dialogue.
-- At the end, always place a "---" divider, then list 4 numbered choices for ${personaName}.
-- Choices 1–3: ${personaName}'s next action or dialogue. Choice 4: an action advancing the scene.
+- At least one character must take direct action or deliver dialogue, then naturally advance the scene.
+- Do NOT offer choices, numbered options, or host-like questions. Never append a "---" divider followed by a list of options. End with the scene itself.
 - FORBIDDEN: Writing ${personaName}'s words or actions in the body. The body is for ${charNames} only.
 - FORBIDDEN: Writing dialogue without a speaker name.
 - FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story.
