@@ -18,6 +18,17 @@ function mapGender(g?: string): string {
   return ''
 }
 
+function stripHtml(html?: string | null): string {
+  return String(html || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 export async function captureTikita(url: string): Promise<Captured> {
   const shortId = url.match(/\/story\/([A-Za-z0-9_-]+)/)?.[1]
   if (!shortId) throw new Error('Tikita 스토리 URL이 아닙니다 (/story/{id} 형식 필요)')
@@ -72,7 +83,11 @@ export async function captureTikita(url: string): Promise<Captured> {
   const tags: string[] = Array.from(new Set(
     [...(story.tags ?? []), ...(story.categories ?? [])].map((t: any) => String(t).trim()).filter(Boolean)
   ))
-  const scenario = String(story.world || story.tagline || '').trim()
+  const introText = story.intro_mode === 'html'
+    ? stripHtml(story.intro_html)
+    : (String(story.intro_md || '').trim() || stripHtml(story.intro_html))
+  const scenario = [String(story.world || '').trim(), introText].filter(Boolean).join('\n\n')
+    || String(story.tagline || '').trim()
   const cover = storageUrl(story.thumbnail_url || story.story_thumbnail_url)
   const title = String(story.title || '').trim()
 
