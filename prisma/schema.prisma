@@ -238,10 +238,12 @@ model Message {
   inventoryDelta Json?
   statsDelta     Json?
   bookmarked     Boolean      @default(false)
+  chapter        Int          @default(1)
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])
   @@index([conversationId, isSelected, isStreaming])
+  @@index([conversationId, chapter])
 }
 
 model AdminLog {
