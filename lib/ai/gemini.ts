@@ -27,6 +27,14 @@ export interface GeminiChatParams {
 
 export interface StreamResult { text: string; inputTokens: number; outputTokens: number }
 
+// Gemini 2.5 Pro는 thinking을 끌 수 없다(0 설정 시 API 400). 0/미설정이면 동적(-1)으로 보정.
+// Flash는 0(off)을 그대로 허용한다.
+function resolveThinkingBudget(model: string, requested?: number): number {
+  const b = requested ?? 0
+  if (model.includes('pro')) return b > 0 ? b : -1
+  return b
+}
+
 // Gemini는 히스토리가 user 턴으로 시작해야 한다.
 // 오프닝 메시지(맨 앞 assistant 턴)를 잘라내면 대화 초반에 인트로가 통째로 사라지므로,
 // 자르는 대신 더미 user 턴을 앞에 붙여 보존한다.
@@ -46,7 +54,7 @@ async function streamViaApiKey(
     temperature: params.temperature ?? 0.9,
     frequencyPenalty: params.frequencyPenalty ?? 0.3,
     maxOutputTokens: params.maxOutputTokens ?? 8192,
-    thinkingConfig: { thinkingBudget: params.thinkingBudget ?? 0 },
+    thinkingConfig: { thinkingBudget: resolveThinkingBudget(GEMINI_CHAT_MODEL, params.thinkingBudget) },
   }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
@@ -109,7 +117,7 @@ async function streamViaVertex(
       temperature: params.temperature ?? 0.9,
       frequencyPenalty: params.frequencyPenalty ?? 0.3,
       maxOutputTokens: params.maxOutputTokens ?? 8192,
-      thinkingConfig: { thinkingBudget: params.thinkingBudget ?? 0 },
+      thinkingConfig: { thinkingBudget: resolveThinkingBudget(GEMINI_CHAT_MODEL, params.thinkingBudget) },
     },
   })
 

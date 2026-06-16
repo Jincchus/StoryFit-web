@@ -1,6 +1,9 @@
 import type { AIModel } from '@/types'
 
-export const GEMINI_CHAT_MODEL = 'gemini-2.5-flash'
+// 스토리/멀티스토리 채팅 = Pro(문체 품질↑). 무료 사용 기간 한정 — 유료 전환 시 flash로 되돌릴 것.
+// TODO(비용): 무료 기간 종료 후(2026-10 예정) 'gemini-2.5-flash'로 복귀.
+export const GEMINI_CHAT_MODEL = 'gemini-2.5-pro'
+// 요약·리캡·핵심메모리 압축 등 백그라운드 유틸은 비용/속도 위해 flash 유지.
 export const GEMINI_UTILITY_MODEL = 'gemini-2.5-flash'
 
 export const AI_MODELS: AIModel[] = [
