@@ -34,15 +34,8 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className={`shell-wrap${wideMode ? ' wide' : ''}`}>
       <div className="shell">
         <div className="shell-title">
-          <div className="hstack" style={{ gap: 6 }}>
-            <svg viewBox="0 0 16 16" width="14" height="14" shapeRendering="crispEdges">
-              <rect x="2" y="2" width="12" height="12" fill="#ff8fcf"/>
-              <rect x="3" y="3" width="10" height="10" fill="#ffe07a"/>
-              <rect x="6" y="5" width="1" height="1" fill="#1a1438"/>
-              <rect x="9" y="5" width="1" height="1" fill="#1a1438"/>
-              <rect x="6" y="8" width="4" height="1" fill="#1a1438"/>
-            </svg>
-            <span>StoryFit{label ? ` — ${label}` : ''}</span>
+          <div className="hstack" style={{ gridColumn: 1, justifyContent: 'flex-start' }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>📖</span>
           </div>
         </div>
 

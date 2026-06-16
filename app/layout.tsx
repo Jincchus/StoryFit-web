@@ -11,7 +11,7 @@ const PRE_PAINT_THEME = `
 try {
   var t = localStorage.getItem('sf-theme') || 'dark'
   document.body.setAttribute('data-art', t)
-  var ext = ['retro','modern','win95','pink','macos','modernwhite','maple','qplay','crazyarcade','block','cyworld','kakao','x','excel','retroexcel','whif']
+  var ext = ['retro','modern','win95','pink','macos','modernwhite','maple','qplay','crazyarcade','block','cyworld','kakao','x','excel','retroexcel','whif','claude-dark','gpt-dark','gemini-dark']
   if (ext.indexOf(t) !== -1) {
     var l = document.createElement('link')
     l.id = 'theme-extra-css'

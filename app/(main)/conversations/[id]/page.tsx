@@ -542,6 +542,7 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingConv])
   const [showTimelineFull, setShowTimelineFull] = useState(false)
+  const [headerCollapsed, setHeaderCollapsed] = useState(false)
   const [diceRolling, setDiceRolling] = useState<string | null>(null)
   const prevTypingRef = useRef(false)
   useEffect(() => {
@@ -708,82 +709,110 @@ export default function ChatPage() {
     )}
     <Win title={isMulti ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat} noTitle>
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
-        <div className="chat-header spread">
-          <div className="hstack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
-            <button className="btn ghost" onClick={() => router.push('/chatlist')} style={{ padding: '2px 6px', flexShrink: 0 }} aria-label="채팅 목록으로">←</button>
-            <div className="thumb" style={{ width: 34, height: 34, background: 'var(--lavender)', border: '1.5px solid var(--chrome-border)', display: 'grid', placeItems: 'center', imageRendering: 'pixelated', borderRadius: 'var(--radius)', flexShrink: 0 }}>
-              {char.avatarUrl
-                ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                : <PixelAvatar kind={char.kind as any} size={30} />
-              }
+        {headerCollapsed ? (
+          <div className="chat-header spread" style={{ padding: '4px 10px', minHeight: 0 }}>
+            <div className="hstack" style={{ gap: 6, minWidth: 0, flex: 1 }}>
+              <button className="btn ghost" onClick={() => router.push('/chatlist')} style={{ padding: '2px 6px', flexShrink: 0 }} aria-label="채팅 목록으로">←</button>
+              <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink-soft)' }}>
+                {isMulti ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
+              </span>
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="hstack" style={{ gap: 5, overflow: 'hidden' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {isMulti ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
-                  {conv.personaCharacter
-                    ? <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-soft)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 변경">· {conv.personaCharacter.name} ▾</button>
-                    : <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-faint)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 설정">+ 페르소나</button>
-                  }
-                </span>
-                <span className="mode-badge">{isMulti ? '👥 멀티' : '스토리'}</span>
-                {conv?.autoChapterEnabled && (conv.chapter ?? 1) > 1 && (
-                  <span className="melting-chapter-badge" style={{ marginLeft: 6 }}>{conv.chapter ?? 1}장</span>
-                )}
-              </div>
-              <div
-                className="tiny muted"
-                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: conv.statusTimeline ? 'pointer' : 'default' }}
-                onClick={() => conv.statusTimeline && setShowTimelineFull(p => !p)}
-                role={conv.statusTimeline ? 'button' : undefined}
-                aria-label="현재 상황 전체 보기"
-              >
-                턴 {Math.floor(messages.length / 2)}
-                {conv.statusTimeline && <span> · {conv.statusTimeline} {showTimelineFull ? '▴' : '▾'}</span>}
-              </div>
-            </div>
-          </div>
-          <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
-            {isStoryOrMulti && conv.inventoryEnabled && (
-              <button
-                className={`btn ${showInventory ? 'primary' : 'ghost'}`}
-                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
-                aria-label="인벤토리"
-                onClick={() => { setShowInventory(p => !p); setShowStats(false) }}
-              >🎒</button>
-            )}
-            {isStoryOrMulti && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
-              <button
-                className={`btn ${showStats ? 'primary' : 'ghost'}`}
-                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
-                aria-label="스탯"
-                onClick={() => { setShowStats(p => !p); setShowInventory(false) }}
-              >STAT</button>
-            )}
-            {isStoryOrMulti && (
-              <button
-                className={`btn ${showRecap ? 'primary' : 'ghost'}`}
-                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
-                aria-label="지금까지의 줄거리"
-                title="지금까지의 줄거리"
-                onClick={() => { setShowRecap(true); setShowStats(false); setShowInventory(false); loadRecap() }}
-              >📜</button>
-            )}
             <button
               className="btn ghost"
-              style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
-              aria-label="음성 통화"
-              title="실시간 음성 통화"
-              onClick={() => setShowVoiceCall(true)}
-            >📞</button>
-            <button
-              className={`btn ${showPanel ? 'primary' : 'ghost'}`}
-              style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
-              aria-label="대화 설정"
-              onClick={() => setShowPanel(p => !p)}
-            >⚙</button>
+              style={{ padding: '2px 8px', fontSize: 12, flexShrink: 0, color: 'var(--ink-soft)' }}
+              aria-label="헤더 펼치기"
+              onClick={() => setHeaderCollapsed(false)}
+            >▾</button>
           </div>
-        </div>
+        ) : (
+          <div className="chat-header spread">
+            <div className="hstack" style={{ gap: 8, minWidth: 0, flex: 1 }}>
+              <button className="btn ghost" onClick={() => router.push('/chatlist')} style={{ padding: '2px 6px', flexShrink: 0 }} aria-label="채팅 목록으로">←</button>
+              <div
+                className="thumb"
+                style={{ width: 34, height: 34, background: 'var(--lavender)', border: '1.5px solid var(--chrome-border)', display: 'grid', placeItems: 'center', imageRendering: 'pixelated', borderRadius: 'var(--radius)', flexShrink: 0, cursor: 'pointer' }}
+                onClick={() => setHeaderCollapsed(true)}
+                title="헤더 접기"
+              >
+                {char.avatarUrl
+                  ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                  : <PixelAvatar kind={char.kind as any} size={30} />
+                }
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="hstack" style={{ gap: 5, overflow: 'hidden' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isMulti ? conv.characters.map(cc => cc.character.name).join(' · ') : char.name}
+                    {conv.personaCharacter
+                      ? <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-soft)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 변경">· {conv.personaCharacter.name} ▾</button>
+                      : <button className="btn ghost" style={{ fontSize: 10, padding: '0 5px', fontWeight: 400, color: 'var(--ink-faint)' }} onClick={() => setShowPanel(true)} aria-label="페르소나 설정">+ 페르소나</button>
+                    }
+                  </span>
+                  <span className="mode-badge">{isMulti ? '👥 멀티' : '스토리'}</span>
+                  {conv?.autoChapterEnabled && (conv.chapter ?? 1) > 1 && (
+                    <span className="melting-chapter-badge" style={{ marginLeft: 6 }}>{conv.chapter ?? 1}장</span>
+                  )}
+                </div>
+                <div
+                  className="tiny muted"
+                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: conv.statusTimeline ? 'pointer' : 'default' }}
+                  onClick={() => conv.statusTimeline && setShowTimelineFull(p => !p)}
+                  role={conv.statusTimeline ? 'button' : undefined}
+                  aria-label="현재 상황 전체 보기"
+                >
+                  턴 {Math.floor(messages.length / 2)}
+                  {conv.statusTimeline && <span> · {conv.statusTimeline} {showTimelineFull ? '▴' : '▾'}</span>}
+                </div>
+              </div>
+            </div>
+            <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
+              {isStoryOrMulti && conv.inventoryEnabled && (
+                <button
+                  className={`btn ${showInventory ? 'primary' : 'ghost'}`}
+                  style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
+                  aria-label="인벤토리"
+                  onClick={() => { setShowInventory(p => !p); setShowStats(false) }}
+                >🎒</button>
+              )}
+              {isStoryOrMulti && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
+                <button
+                  className={`btn ${showStats ? 'primary' : 'ghost'}`}
+                  style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
+                  aria-label="스탯"
+                  onClick={() => { setShowStats(p => !p); setShowInventory(false) }}
+                >STAT</button>
+              )}
+              {isStoryOrMulti && (
+                <button
+                  className={`btn ${showRecap ? 'primary' : 'ghost'}`}
+                  style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
+                  aria-label="지금까지의 줄거리"
+                  title="지금까지의 줄거리"
+                  onClick={() => { setShowRecap(true); setShowStats(false); setShowInventory(false); loadRecap() }}
+                >📜</button>
+              )}
+              <button
+                className="btn ghost"
+                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
+                aria-label="음성 통화"
+                title="실시간 음성 통화"
+                onClick={() => setShowVoiceCall(true)}
+              >📞</button>
+              <button
+                className={`btn ${showPanel ? 'primary' : 'ghost'}`}
+                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
+                aria-label="대화 설정"
+                onClick={() => setShowPanel(p => !p)}
+              >⚙</button>
+              <button
+                className="btn ghost"
+                style={{ minWidth: 28, minHeight: 34, padding: '5px 4px', fontSize: 11, justifyContent: 'center', color: 'var(--ink-soft)' }}
+                aria-label="헤더 접기"
+                onClick={() => setHeaderCollapsed(true)}
+              >▴</button>
+            </div>
+          </div>
+        )}
 
         {showTimelineFull && conv.statusTimeline && (
           <div className="tiny" style={{ padding: '8px 12px', margin: '0 4px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)', lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--ink-soft)', flexShrink: 0 }}>

@@ -23,7 +23,7 @@ model User {
   defaultThinkingBudget   Int     @default(0)
   defaultSafetyLevel      String  @default("standard")
   defaultAI               String  @default("gemini")
-  theme                   String  @default("retro")
+  theme                   String  @default("whif")
   characters    Character[]
   conversations Conversation[]
   characterCollections CharacterCollection[]

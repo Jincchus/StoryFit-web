@@ -1,0 +1,621 @@
+/* ─── Gemini Dark Theme ─────────────────────────────────────────────────────
+   data-art="gemini-dark" 으로 활성화
+   컨셉: Google Gemini 다크 — Material Design 3, 멀티컬러 스파클 그라디언트
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="gemini-dark"] {
+
+  /* ── 배경 ── */
+  --bg-1: #131314;
+  --bg-2: #131314;
+  --bg-3: #1e1f20;
+
+  /* ── 텍스트 ── */
+  --ink:      #e3e3e3;
+  --ink-soft: #9aa0a6;
+
+  /* ── 콘텐츠 배경 ── */
+  --paper:   #1e1f20;
+  --paper-2: #282a2c;
+
+  /* ── 공통 표면/구분선 ── */
+  --bg:           #131314;
+  --pane:         #282a2c;
+  --bubble-other: #282a2c;
+  --line:         #3c4043;
+
+  /* ── 액센트 (Gemini 블루) ── */
+  --pink:      #a8c7fa;
+  --hot-pink:  #a8c7fa;
+  --purple:    #c4b5fd;
+  --lavender:  #bdc1ff;
+  --mint:      #34d399;
+  --lemon:     #f9c74f;
+  --sky:       #a8c7fa;
+  --accent:    #a8c7fa;
+
+  /* ── Gemini 그라디언트 ── */
+  --gemini-grad: linear-gradient(135deg, #4285f4 0%, #9b72cb 45%, #d96570 100%);
+
+  /* ── 창 프레임 ── */
+  --chrome-face:   #1e1f20;
+  --chrome-shadow: #000000;
+  --chrome-hi:     #3c4043;
+  --chrome-border: #3c4043;
+  --title-grad:    var(--gemini-grad);
+
+  /* ── 폰트 — Google Sans 계열 ── */
+  --font-pixel: 'Google Sans', -apple-system, BlinkMacSystemFont, Roboto, 'Segoe UI', sans-serif;
+  --font-title: 'Google Sans', -apple-system, BlinkMacSystemFont, Roboto, 'Segoe UI', sans-serif;
+  --font-body:  'Google Sans', -apple-system, BlinkMacSystemFont, Roboto, 'Segoe UI', sans-serif;
+  --font-mono:  'Google Sans Mono', 'SF Mono', 'Menlo', ui-monospace, monospace;
+
+  /* ── 레이아웃 — MD3 더 큰 radius ── */
+  --radius:      16px;
+  --shadow-step: 0px;
+  --hairline:    #3c4043;
+  --hairline-2:  #282a2c;
+}
+
+/* ─── 배경 ─────────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] {
+  background: #131314;
+  color: var(--ink);
+  font-size: 15px;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .shell {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4);
+}
+
+body[data-art="gemini-dark"] .shell-body {
+  background: #131314;
+  background-image: none;
+}
+
+/* ─── 셸 타이틀 — Gemini 스타일 ────────────────────────────────────────── */
+body[data-art="gemini-dark"] .shell-title {
+  background: #1e1f20;
+  border-bottom: 1px solid #2a2b2d;
+  font-family: 'Google Sans', Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  min-height: 52px;
+  padding: 12px 16px;
+}
+
+body[data-art="gemini-dark"] .shell-title > .hstack {
+  font-family: 'Google Sans', Roboto, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: #e3e3e3;
+  /* Gemini 스파클 이모티콘 옆에 그라디언트 텍스트 효과 */
+  background: var(--gemini-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── 채팅 헤더 ─────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .chat-header {
+  background: #131314;
+  border-bottom: 1px solid #2a2b2d;
+  color: #e3e3e3;
+  padding: 8px 14px;
+}
+
+/* ─── 채팅 메인 영역 ────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .chat-main {
+  background: #131314;
+  border-radius: 0;
+  overflow: visible;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .chatlog {
+  background: #131314;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #e3e3e3;
+  padding: 20px 16px;
+  gap: 20px;
+}
+
+/* ─── 메시지 너비 ────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .msg:not(.you):not(.system):not(.typing) {
+  max-width: 94%;
+}
+body[data-art="gemini-dark"] .msg.you {
+  max-width: 76%;
+}
+body[data-art="gemini-dark"] .seq-block {
+  max-width: 90%;
+}
+body[data-art="gemini-dark"] .seq-block.seq-right {
+  max-width: 72%;
+}
+
+/* ─── 아바타 — Gemini 스파클 ────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .msg .av {
+  background: var(--gemini-grad);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── AI 말풍선 — 배경 없이 텍스트만 ──────────────────────────────────── */
+body[data-art="gemini-dark"] .msg:not(.you) .bubble,
+body[data-art="gemini-dark"] .seq-block.seq-left .bubble {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 2px 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #e3e3e3;
+}
+
+/* ─── 유저 말풍선 — Material Design 둥근 컨테이너 ──────────────────────── */
+body[data-art="gemini-dark"] .msg.you .bubble,
+body[data-art="gemini-dark"] .seq-block.seq-right .bubble {
+  background: #282a2c;
+  color: #e3e3e3;
+  border: none;
+  border-radius: 20px 20px 4px 20px;
+  box-shadow: none;
+  padding: 12px 18px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* ─── 캐릭터/페르소나 버블 ──────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .bubble-char    { background: transparent !important; border: none !important; color: #a8c7fa !important; }
+body[data-art="gemini-dark"] .bubble-third   { background: transparent !important; border: none !important; color: #34d399 !important; }
+body[data-art="gemini-dark"] .bubble-persona { background: #282a2c !important; border: none !important; color: #e3e3e3 !important; border-radius: 20px 20px 4px 20px !important; }
+
+/* ─── 나레이션/액션 ─────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .narration-block,
+body[data-art="gemini-dark"] .seq-narration {
+  color: #72767a;
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.75;
+  text-align: left;
+  padding: 2px 0;
+}
+
+/* ─── 화자 이름 — Gemini 그라디언트 텍스트 ─────────────────────────────── */
+body[data-art="gemini-dark"] .msg .who { color: #9aa0a6; font-size: 12px; }
+body[data-art="gemini-dark"] .seq-speaker {
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--gemini-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── 타이핑 인디케이터 ─────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .msg.typing .bubble {
+  background: transparent;
+  border: none;
+  color: #9aa0a6;
+  font-size: 20px;
+  padding: 2px 0;
+}
+
+/* ─── 입력창 — Gemini 스타일 (MD3 둥근 직사각형) ───────────────────────── */
+body[data-art="gemini-dark"] .composer {
+  background: #131314;
+  border: none;
+  border-top: 1px solid #2a2b2d;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px 14px 14px;
+}
+
+body[data-art="gemini-dark"] .composer .field {
+  background: #282a2c;
+  border: 1px solid #3c4043;
+  border-radius: 24px;
+  color: #e3e3e3;
+  font-size: 15px;
+  padding: 12px 18px;
+  line-height: 1.5;
+  font-family: 'Google Sans', Roboto, sans-serif;
+}
+
+body[data-art="gemini-dark"] .composer .field::placeholder { color: #72767a; }
+
+body[data-art="gemini-dark"] .composer .field:focus {
+  border-color: #a8c7fa;
+  background: #1e1f20;
+  box-shadow: 0 0 0 2px rgba(168,199,250,0.15);
+  outline: none;
+}
+
+/* 전송 버튼 */
+body[data-art="gemini-dark"] .composer .btn.primary {
+  background: var(--gemini-grad);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 13px;
+}
+body[data-art="gemini-dark"] .composer .btn.primary:hover { opacity: 0.88; }
+body[data-art="gemini-dark"] .composer .btn.primary:disabled { background: #282a2c; color: #72767a; opacity: 1; }
+
+/* ─── msg-seq 간격 ──────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .msg-seq { gap: 8px; }
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .btn {
+  background: #282a2c;
+  color: #e3e3e3;
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+  transition: background 0.15s;
+  text-shadow: none;
+}
+
+body[data-art="gemini-dark"] .btn:hover { background: #35373a; border-color: #5f6368; }
+body[data-art="gemini-dark"] .btn:active { opacity: 0.8; transform: none; box-shadow: none; }
+
+body[data-art="gemini-dark"] .btn.primary {
+  background: var(--gemini-grad);
+  color: #ffffff;
+  border: none;
+}
+body[data-art="gemini-dark"] .btn.primary:hover { opacity: 0.88; }
+
+body[data-art="gemini-dark"] .btn.ghost {
+  background: transparent;
+  color: #9aa0a6;
+  border: none;
+}
+body[data-art="gemini-dark"] .btn.ghost:hover { background: rgba(255,255,255,0.06); color: #e3e3e3; }
+
+body[data-art="gemini-dark"] .btn.danger {
+  background: transparent;
+  color: #f28b82;
+  border: 1px solid #3a2326;
+}
+body[data-art="gemini-dark"] .btn.danger:hover { background: rgba(242,139,130,0.1); }
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .field {
+  background: #282a2c;
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+  font-size: 14px;
+  color: #e3e3e3;
+  padding: 12px 16px;
+}
+
+body[data-art="gemini-dark"] .field::placeholder { color: #72767a; }
+
+body[data-art="gemini-dark"] .field:focus {
+  border-color: #a8c7fa;
+  background: #1e1f20;
+  box-shadow: 0 0 0 2px rgba(168,199,250,0.15);
+  outline: none;
+}
+
+body[data-art="gemini-dark"] .label {
+  color: #e3e3e3;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .win {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+body[data-art="gemini-dark"] .win-title {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 16px;
+  color: #e3e3e3;
+  border-bottom: 1px solid #3c4043;
+  border-radius: 16px 16px 0 0;
+  background: #282a2c;
+}
+
+body[data-art="gemini-dark"] .win-controls button {
+  width: 12px; height: 12px;
+  border: none; border-radius: 50%;
+  box-shadow: none; font-size: 0;
+}
+body[data-art="gemini-dark"] .win-controls button:nth-child(1) { background: #ff5f57; }
+body[data-art="gemini-dark"] .win-controls button:nth-child(2) { background: #febc2e; }
+body[data-art="gemini-dark"] .win-controls button:nth-child(3) { background: #28c840; }
+
+body[data-art="gemini-dark"] .win-body {
+  background: #1e1f20;
+  border: none;
+  padding: 16px;
+  border-radius: 0 0 16px 16px;
+  color: var(--ink);
+}
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .dock {
+  background: rgba(30,31,32,0.95);
+  border-top: 1px solid #2a2b2d;
+  backdrop-filter: blur(20px);
+}
+
+body[data-art="gemini-dark"] .dock .start {
+  background: var(--gemini-grad);
+  color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  font-weight: 600;
+}
+
+body[data-art="gemini-dark"] .dock .clock {
+  background: #282a2c;
+  border: none;
+  border-radius: 12px;
+  color: #e3e3e3;
+  font-family: var(--font-mono);
+}
+
+body[data-art="gemini-dark"] .dock-tab {
+  background: transparent;
+  color: #9aa0a6;
+  border: none;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+body[data-art="gemini-dark"] .dock-tab.active {
+  background: var(--gemini-grad);
+  color: #ffffff;
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .start-menu {
+  background: rgba(30,31,32,0.98);
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  backdrop-filter: blur(24px);
+}
+
+body[data-art="gemini-dark"] .start-menu-item { color: #e3e3e3; font-size: 14px; border-radius: 10px; }
+body[data-art="gemini-dark"] .start-menu-item:hover { background: #282a2c; }
+body[data-art="gemini-dark"] .start-menu-item.danger { color: #f28b82; }
+body[data-art="gemini-dark"] .start-menu-item.danger:hover { background: rgba(242,139,130,0.1); }
+body[data-art="gemini-dark"] .start-menu-divider { background: #3c4043; }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .row {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+}
+body[data-art="gemini-dark"] .row:hover { background: #282a2c; }
+body[data-art="gemini-dark"] .row .thumb { border: 1px solid #3c4043; border-radius: 8px; }
+body[data-art="gemini-dark"] .row .meta h4 { color: #e3e3e3; font-size: 14px; font-weight: 500; }
+body[data-art="gemini-dark"] .row .meta p { color: #9aa0a6; }
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .char-card {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+body[data-art="gemini-dark"] .char-card h4 { color: #e3e3e3; font-weight: 500; }
+body[data-art="gemini-dark"] .char-card p { color: #9aa0a6; }
+body[data-art="gemini-dark"] .char-card:hover {
+  border-color: #a8c7fa;
+  box-shadow: 0 4px 20px rgba(168,199,250,0.12);
+  transform: translateY(-2px);
+}
+body[data-art="gemini-dark"] .char-card.selected {
+  outline: 2px solid #a8c7fa;
+  outline-offset: 0;
+  background: #1a1f2e;
+}
+body[data-art="gemini-dark"] .char-card .pic-wrap {
+  background: #282a2c;
+  border: 1px solid #3c4043;
+  border-radius: 50%;
+}
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .side-panel {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  color: var(--ink);
+}
+body[data-art="gemini-dark"] .side-panel-header { border-color: #3c4043; color: #e3e3e3; }
+body[data-art="gemini-dark"] .side-section { border-color: #3c4043; }
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .tag {
+  background: #282a2c;
+  color: #bdc1c6;
+  border: 1px solid #3c4043;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+body[data-art="gemini-dark"] .tag:hover,
+body[data-art="gemini-dark"] .tag.active,
+body[data-art="gemini-dark"] .tag-selected {
+  background: var(--gemini-grad);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .msg-action-btn {
+  background: #282a2c;
+  border: 1px solid #3c4043;
+  border-radius: 8px;
+  color: #9aa0a6;
+  font-size: 11px;
+}
+body[data-art="gemini-dark"] .msg-action-btn:hover {
+  color: #a8c7fa;
+  background: #35373a;
+  border-color: #a8c7fa;
+}
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .ai-pill {
+  background: #282a2c;
+  color: #e3e3e3;
+  border: 1px solid #3c4043;
+  border-radius: 999px;
+  font-weight: 500;
+}
+body[data-art="gemini-dark"] .ai-dropdown {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+body[data-art="gemini-dark"] .ai-dropdown-item { color: #e3e3e3; border-radius: 10px; font-size: 14px; }
+body[data-art="gemini-dark"] .ai-dropdown-item:hover { background: #282a2c; }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .form-section {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+  color: var(--ink);
+}
+body[data-art="gemini-dark"] .form-section-title { color: #9aa0a6; letter-spacing: 0.04em; }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .persona-option,
+body[data-art="gemini-dark"] .ai-model-option {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 16px;
+  color: var(--ink);
+}
+body[data-art="gemini-dark"] .persona-option:hover,
+body[data-art="gemini-dark"] .ai-model-option:hover:not(.disabled) { background: #282a2c; }
+body[data-art="gemini-dark"] .persona-option.selected,
+body[data-art="gemini-dark"] .ai-model-option.selected {
+  outline: 2px solid #a8c7fa;
+  outline-offset: 0;
+  background: #1a1f2e;
+}
+
+/* ─── 로그인 ────────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .login-title {
+  background: var(--gemini-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+body[data-art="gemini-dark"] .login-card {
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  padding: 24px;
+}
+
+/* ─── 홈 아이콘 ─────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .di {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; transition: opacity 0.15s, transform 0.15s;
+}
+body[data-art="gemini-dark"] .di:hover { transform: translateY(-2px); }
+body[data-art="gemini-dark"] .di-pic {
+  width: 52px; height: 52px;
+  background: #1e1f20;
+  border: 1px solid #3c4043;
+  border-radius: 14px;
+  display: grid; place-items: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+body[data-art="gemini-dark"] .di:hover .di-pic {
+  border-color: #a8c7fa;
+  box-shadow: 0 4px 16px rgba(168,199,250,0.2);
+}
+body[data-art="gemini-dark"] .di span {
+  font-size: 10px; font-weight: 500; color: #9aa0a6;
+  text-align: center; white-space: pre-line;
+}
+
+/* ─── 노벨/스토리 모드 ─────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .story-log .seq-block { max-width: 96%; }
+body[data-art="gemini-dark"] .story-log .bubble,
+body[data-art="gemini-dark"] .novel-scene .bubble {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 2px 0;
+  line-height: 1.8;
+  font-size: 15px;
+  color: #e3e3e3;
+}
+body[data-art="gemini-dark"] .story-log .bubble-persona,
+body[data-art="gemini-dark"] .novel-scene .bubble-persona {
+  background: transparent !important;
+  border: none !important;
+  color: transparent !important;
+  background-image: var(--gemini-grad) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+body[data-art="gemini-dark"] .story-log .narration-block,
+body[data-art="gemini-dark"] .novel-scene .narration-block,
+body[data-art="gemini-dark"] .story-log .seq-narration {
+  color: #72767a;
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* ─── AI 태그 ───────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] .msg .bubble .ai-tag {
+  background: rgba(168,199,250,0.1);
+  color: #a8c7fa;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="gemini-dark"] ::-webkit-scrollbar { width: 4px; height: 4px; }
+body[data-art="gemini-dark"] ::-webkit-scrollbar-track { background: transparent; }
+body[data-art="gemini-dark"] ::-webkit-scrollbar-thumb { background: #3c4043; border-radius: 4px; }
+body[data-art="gemini-dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #a8c7fa;
+}
+
+body[data-art="gemini-dark"] .tag-scroll { scrollbar-width: thin; scrollbar-color: #3c4043 transparent; }
+body[data-art="gemini-dark"] .tag-scroll::-webkit-scrollbar { height: 3px; }
+body[data-art="gemini-dark"] .tag-scroll::-webkit-scrollbar-track { background: transparent; }
+body[data-art="gemini-dark"] .tag-scroll::-webkit-scrollbar-thumb { background: #3c4043; border-radius: 4px; }

@@ -118,5 +118,29 @@ export async function condenseForCoreMemory(
   const systemPrompt = `당신은 롤플레이 대화의 '핵심 기억' 정리 전문가입니다.
 핵심 기억은 AI가 대화 내내 절대 잊으면 안 되는 '지속 사실·관계 상태'와 '현재 상황·미해결 줄거리'입니다.
 캐릭터 설정: ${characterContext}`
-  return generateText(systemPrompt, buildCoreMemoryPrompt(summaries, existingCoreMemory))
+  return generateText(systemPrompt, buildCoreMemoryPrompt(summaries, existingCoreMemory), 4096)
+}
+
+export async function compressCoreMemory(
+  coreMemory: string,
+  characterContext: string,
+): Promise<string> {
+  const systemPrompt = `당신은 롤플레이 대화의 '핵심 기억' 정리 전문가입니다.
+핵심 기억은 AI가 대화 내내 절대 잊으면 안 되는 '지속 사실·관계 상태'와 '현재 상황·미해결 줄거리'입니다.
+캐릭터 설정: ${characterContext}`
+
+  const userPrompt = `아래 '핵심 기억'을 중복 제거·통합·정리하여 더 간결하게 압축하세요.
+
+규칙:
+- 지금도 유효한 정보만 남기고, 이미 해결됐거나 덮어쓰인 사실은 제거한다.
+- 사실이 서로 모순되면 최신 정보를 우선한다.
+- 중복 항목은 하나로 합친다.
+- 구조(카테고리·불릿)는 유지하되, 내용을 최대한 압축한다.
+- 추측 금지 — 아래에 명시된 내용만 사용한다.
+- 반드시 한국어로 작성한다.
+
+핵심 기억:
+${coreMemory.trim()}`
+
+  return generateText(systemPrompt, userPrompt, 4096)
 }

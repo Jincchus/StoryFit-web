@@ -379,14 +379,32 @@ export default function SidePanel({
               <div className="label" style={{ marginBottom: 0 }}>핵심 메모리</div>
               <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'core' ? null : 'core')}>?</button>
             </div>
-            <button
-              className="btn ghost"
-              style={{ fontSize: 9, padding: '1px 5px' }}
-              onClick={async () => {
-                const fresh = await api.get(`/api/conversations/${convId}`).catch(() => null)
-                if (fresh) setConv(c => c ? { ...c, coreMemory: fresh.coreMemory, statusTimeline: fresh.statusTimeline } : c)
-              }}
-            >↺</button>
+            <div className="hstack" style={{ gap: 3 }}>
+              <button
+                className="btn ghost"
+                style={{ fontSize: 9, padding: '1px 5px' }}
+                onClick={async () => {
+                  if (!conv.coreMemory.trim()) return
+                  if (!confirm('AI로 핵심 메모리를 재압축합니다. 중복·만료된 내용이 제거됩니다. 계속할까요?')) return
+                  setToast('핵심 메모리 압축 중...')
+                  const result = await api.post(`/api/conversations/${convId}/core-memory`, {}).catch(() => null)
+                  if (result?.coreMemory != null) {
+                    setConv(c => c ? { ...c, coreMemory: result.coreMemory } : c)
+                    setToast('핵심 메모리가 압축되었습니다')
+                  } else {
+                    setToast('압축에 실패했습니다')
+                  }
+                }}
+              >✂ 정리</button>
+              <button
+                className="btn ghost"
+                style={{ fontSize: 9, padding: '1px 5px' }}
+                onClick={async () => {
+                  const fresh = await api.get(`/api/conversations/${convId}`).catch(() => null)
+                  if (fresh) setConv(c => c ? { ...c, coreMemory: fresh.coreMemory, statusTimeline: fresh.statusTimeline } : c)
+                }}
+              >↺</button>
+            </div>
           </div>
           {infoTip === 'core' && (
             <div className="info-tip">대화 내내 AI가 절대 잊으면 안 되는 사실을 저장합니다.{'\n\n'}예: "유저의 이름은 하루. 쌍둥이 동생 미래가 있다. 마법을 쓸 수 없다."</div>

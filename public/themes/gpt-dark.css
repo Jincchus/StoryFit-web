@@ -1,0 +1,638 @@
+/* ─── GPT Dark Theme ────────────────────────────────────────────────────────
+   data-art="gpt-dark" 으로 활성화
+   컨셉: ChatGPT 모바일 다크 — 대화창은 코드에디터/터미널 스타일
+──────────────────────────────────────────────────────────────────────────── */
+
+body[data-art="gpt-dark"] {
+
+  /* ── 배경 ── */
+  --bg-1: #212121;
+  --bg-2: #212121;
+  --bg-3: #2f2f2f;
+
+  /* ── 텍스트 ── */
+  --ink:      #ececec;
+  --ink-soft: #8e8ea0;
+
+  /* ── 콘텐츠 배경 ── */
+  --paper:   #212121;
+  --paper-2: #2f2f2f;
+
+  /* ── 공통 표면/구분선 ── */
+  --bg:           #212121;
+  --pane:         #2f2f2f;
+  --bubble-other: #2f2f2f;
+  --line:         #3a3a3a;
+
+  /* ── 액센트 컬러 (GPT 그린) ── */
+  --pink:      #10a37f;
+  --hot-pink:  #10a37f;
+  --purple:    #10a37f;
+  --lavender:  #5ec4a8;
+  --mint:      #10a37f;
+  --lemon:     #f9c74f;
+  --sky:       #38bdf8;
+  --accent:    #10a37f;
+
+  /* ── 창 프레임 ── */
+  --chrome-face:   #2f2f2f;
+  --chrome-shadow: #000000;
+  --chrome-hi:     #3a3a3a;
+  --chrome-border: #3a3a3a;
+  --title-grad:    linear-gradient(135deg, #10a37f 0%, #0d8a6a 100%);
+
+  /* ── 폰트 ── */
+  --font-pixel: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-title: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:  'SF Mono', 'Menlo', 'Monaco', ui-monospace, 'Courier New', monospace;
+
+  /* ── 레이아웃 ── */
+  --radius:      8px;
+  --shadow-step: 0px;
+  --hairline:    #2f2f2f;
+  --hairline-2:  #292929;
+}
+
+/* ─── 배경 ─────────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] {
+  background: #212121;
+  color: var(--ink);
+  font-size: 15px;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── 앱 셸 ─────────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .shell {
+  background: #212121;
+  border: 1px solid #2f2f2f;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4);
+}
+
+body[data-art="gpt-dark"] .shell-body {
+  background: #212121;
+  background-image: none;
+}
+
+/* ─── 셸 타이틀 — GPT "모델 선택" 바 스타일 ────────────────────────────── */
+body[data-art="gpt-dark"] .shell-title {
+  background: #212121;
+  color: #ececec;
+  border-bottom: 1px solid #2f2f2f;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+  min-height: 48px;
+  padding: 10px 14px;
+}
+
+body[data-art="gpt-dark"] .shell-title > .hstack {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ececec;
+}
+
+/* ─── 채팅 헤더 — GPT 모델 선택 바 ────────────────────────────────────── */
+body[data-art="gpt-dark"] .chat-header {
+  background: #212121;
+  border-bottom: none;
+  color: #ececec;
+  padding: 6px 12px;
+  min-height: 0;
+}
+
+/* ─── 채팅 메인 영역 — 코드에디터/터미널 창 ────────────────────────────── */
+body[data-art="gpt-dark"] .chat-main {
+  background: #0d0d0d;
+  border: 1px solid #333333;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0 4px 4px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 4px 24px rgba(0,0,0,0.5);
+}
+
+/* ─── 코드창 상단 bar (::before) ────────────────────────────────────────── */
+body[data-art="gpt-dark"] .chat-main::before {
+  content: '● ● ●';
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  background: #1e1e1e;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #555555;
+  flex-shrink: 0;
+}
+
+/* ─── 채팅 로그 ─────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .chatlog {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #ececec;
+  padding: 16px 14px;
+  gap: 14px;
+}
+
+/* ─── 메시지 너비 ────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .msg:not(.you):not(.system):not(.typing) {
+  max-width: 96%;
+}
+body[data-art="gpt-dark"] .msg.you {
+  max-width: 78%;
+}
+body[data-art="gpt-dark"] .seq-block {
+  max-width: 92%;
+}
+body[data-art="gpt-dark"] .seq-block.seq-right {
+  max-width: 75%;
+}
+
+/* ─── 아바타 ────────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .msg .av {
+  background: #10a37f;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+}
+
+/* ─── AI 말풍선 — 배경 없이 텍스트만 (GPT 스타일) ──────────────────────── */
+body[data-art="gpt-dark"] .msg:not(.you) .bubble,
+body[data-art="gpt-dark"] .seq-block.seq-left .bubble {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 2px 0;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #ececec;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ─── 유저 말풍선 — GPT 유저 메시지 스타일 ──────────────────────────────── */
+body[data-art="gpt-dark"] .msg.you .bubble,
+body[data-art="gpt-dark"] .seq-block.seq-right .bubble {
+  background: #2f2f2f;
+  color: #ececec;
+  border: none;
+  border-radius: 18px;
+  box-shadow: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* ─── 캐릭터/페르소나 버블 ──────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .bubble-char    { background: transparent !important; border: none !important; color: #c3f6e8 !important; }
+body[data-art="gpt-dark"] .bubble-third   { background: transparent !important; border: none !important; color: #a8d8c0 !important; }
+body[data-art="gpt-dark"] .bubble-persona { background: #2f2f2f !important; border: none !important; color: #ececec !important; border-radius: 18px !important; }
+
+/* ─── 나레이션/액션 ─────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .narration-block,
+body[data-art="gpt-dark"] .seq-narration {
+  color: #6b7280;
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: left;
+  padding: 2px 0;
+  font-family: var(--font-mono);
+}
+
+/* ─── 화자 이름 ─────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .msg .who { color: #8e8ea0; font-size: 11px; }
+body[data-art="gpt-dark"] .seq-speaker {
+  color: #10a37f;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* ─── 타이핑 인디케이터 ─────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .msg.typing .bubble {
+  background: transparent;
+  border: none;
+  color: #8e8ea0;
+  font-size: 18px;
+  padding: 2px 0;
+}
+
+/* ─── 입력창 — GPT 스타일 ───────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .composer {
+  background: #1e1e1e;
+  border: none;
+  border-top: 1px solid #2a2a2a;
+  border-radius: 0 0 10px 10px;
+  box-shadow: none;
+  padding: 10px 12px 12px;
+}
+
+body[data-art="gpt-dark"] .composer .field {
+  background: #2f2f2f;
+  border: 1px solid #444444;
+  border-radius: 12px;
+  color: #ececec;
+  font-size: 14px;
+  padding: 10px 14px;
+  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body[data-art="gpt-dark"] .composer .field::placeholder { color: #6b7280; }
+
+body[data-art="gpt-dark"] .composer .field:focus {
+  border-color: #10a37f;
+  box-shadow: 0 0 0 2px rgba(16,163,127,0.15);
+  outline: none;
+  background: #2a2a2a;
+}
+
+/* 전송 버튼 */
+body[data-art="gpt-dark"] .composer .btn.primary {
+  background: #10a37f;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+body[data-art="gpt-dark"] .composer .btn.primary:hover { background: #0d8a6a; }
+body[data-art="gpt-dark"] .composer .btn.primary:disabled { background: #2f2f2f; color: #6b7280; opacity: 1; }
+
+/* ─── msg-seq 간격 ──────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .msg-seq { gap: 6px; }
+
+/* ─── 버튼 ─────────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .btn {
+  background: #2f2f2f;
+  color: #ececec;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+  transition: background 0.15s;
+  text-shadow: none;
+}
+
+body[data-art="gpt-dark"] .btn:hover { background: #3a3a3a; border-color: #444444; }
+body[data-art="gpt-dark"] .btn:active { opacity: 0.8; transform: none; box-shadow: none; }
+
+body[data-art="gpt-dark"] .btn.primary {
+  background: #10a37f;
+  color: #ffffff;
+  border-color: #10a37f;
+}
+body[data-art="gpt-dark"] .btn.primary:hover { background: #0d8a6a; border-color: #0d8a6a; }
+
+body[data-art="gpt-dark"] .btn.ghost {
+  background: transparent;
+  color: #8e8ea0;
+  border: none;
+  box-shadow: none;
+}
+body[data-art="gpt-dark"] .btn.ghost:hover { background: rgba(255,255,255,0.06); color: #ececec; }
+
+body[data-art="gpt-dark"] .btn.danger {
+  background: transparent;
+  color: #f87171;
+  border: 1px solid #3a2326;
+}
+body[data-art="gpt-dark"] .btn.danger:hover { background: rgba(248,113,113,0.1); }
+
+/* ─── 입력 필드 ─────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .field {
+  background: #2f2f2f;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #ececec;
+  padding: 10px 14px;
+}
+
+body[data-art="gpt-dark"] .field::placeholder { color: #6b7280; }
+
+body[data-art="gpt-dark"] .field:focus {
+  border-color: #10a37f;
+  background: #2a2a2a;
+  box-shadow: 0 0 0 2px rgba(16,163,127,0.2);
+  outline: none;
+}
+
+body[data-art="gpt-dark"] .label {
+  color: #ececec;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ─── 창 프레임 ─────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .win {
+  background: #212121;
+  border: 1px solid #2f2f2f;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+body[data-art="gpt-dark"] .win-title {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 14px;
+  color: #ececec;
+  border-bottom: 1px solid #2f2f2f;
+  border-radius: 8px 8px 0 0;
+  background: #2f2f2f;
+}
+
+body[data-art="gpt-dark"] .win-controls button {
+  width: 12px; height: 12px;
+  border: none; border-radius: 50%;
+  box-shadow: none; font-size: 0;
+}
+body[data-art="gpt-dark"] .win-controls button:nth-child(1) { background: #ff5f57; }
+body[data-art="gpt-dark"] .win-controls button:nth-child(2) { background: #febc2e; }
+body[data-art="gpt-dark"] .win-controls button:nth-child(3) { background: #28c840; }
+
+body[data-art="gpt-dark"] .win-body {
+  background: #212121;
+  border: none;
+  box-shadow: none;
+  padding: 14px;
+  border-radius: 0 0 8px 8px;
+  color: var(--ink);
+}
+
+/* ─── 독(Dock) ──────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .dock {
+  background: rgba(33,33,33,0.95);
+  border-top: 1px solid #2f2f2f;
+  box-shadow: none;
+  backdrop-filter: blur(20px);
+}
+
+body[data-art="gpt-dark"] .dock .start {
+  background: #10a37f;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+body[data-art="gpt-dark"] .dock .clock {
+  background: #2f2f2f;
+  border: none;
+  border-radius: 8px;
+  color: #ececec;
+  font-family: var(--font-mono);
+}
+
+body[data-art="gpt-dark"] .dock-tab {
+  background: transparent;
+  color: #8e8ea0;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+body[data-art="gpt-dark"] .dock-tab.active {
+  background: #10a37f;
+  color: #ffffff;
+}
+
+/* ─── 시작 메뉴 ─────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .start-menu {
+  background: rgba(33,33,33,0.98);
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  backdrop-filter: blur(20px);
+}
+
+body[data-art="gpt-dark"] .start-menu-item { color: #ececec; font-size: 14px; border-radius: 6px; }
+body[data-art="gpt-dark"] .start-menu-item:hover { background: #2f2f2f; }
+body[data-art="gpt-dark"] .start-menu-item.danger { color: #f87171; }
+body[data-art="gpt-dark"] .start-menu-item.danger:hover { background: rgba(248,113,113,0.1); }
+body[data-art="gpt-dark"] .start-menu-divider { background: #2f2f2f; }
+
+/* ─── 목록 행(row) ──────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .row {
+  background: #2f2f2f;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  box-shadow: none;
+}
+body[data-art="gpt-dark"] .row:hover { background: #383838; }
+body[data-art="gpt-dark"] .row .thumb { border: 1px solid #3a3a3a; border-radius: 6px; }
+body[data-art="gpt-dark"] .row .meta h4 { color: #ececec; font-size: 14px; }
+body[data-art="gpt-dark"] .row .meta p { color: #8e8ea0; }
+
+/* ─── 캐릭터 카드 ───────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .char-card {
+  background: #2f2f2f;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  box-shadow: none;
+  transition: border-color 0.15s;
+}
+body[data-art="gpt-dark"] .char-card h4 { color: #ececec; }
+body[data-art="gpt-dark"] .char-card p { color: #8e8ea0; }
+body[data-art="gpt-dark"] .char-card:hover {
+  border-color: #10a37f;
+  box-shadow: 0 4px 16px rgba(16,163,127,0.15);
+  transform: translateY(-1px);
+}
+body[data-art="gpt-dark"] .char-card.selected {
+  outline: 2px solid #10a37f;
+  outline-offset: 0;
+  background: #1a2e29;
+}
+body[data-art="gpt-dark"] .char-card .pic-wrap {
+  background: #3a3a3a;
+  border: 1px solid #444444;
+  border-radius: 50%;
+}
+
+/* ─── 사이드 패널 ───────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .side-panel {
+  background: #212121;
+  border: 1px solid #2f2f2f;
+  color: var(--ink);
+}
+body[data-art="gpt-dark"] .side-panel-header { border-color: #2f2f2f; color: #ececec; }
+body[data-art="gpt-dark"] .side-section { border-color: #2f2f2f; }
+
+/* ─── 태그 ─────────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .tag {
+  background: #2f2f2f;
+  color: #c4c4d0;
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+body[data-art="gpt-dark"] .tag:hover,
+body[data-art="gpt-dark"] .tag.active,
+body[data-art="gpt-dark"] .tag-selected {
+  background: #10a37f;
+  color: #ffffff;
+  border-color: #10a37f;
+}
+
+/* ─── 메시지 액션 버튼 ──────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .msg-action-btn {
+  background: #2f2f2f;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  color: #8e8ea0;
+  font-size: 11px;
+}
+body[data-art="gpt-dark"] .msg-action-btn:hover {
+  color: #10a37f;
+  background: #383838;
+  border-color: #10a37f;
+}
+
+/* ─── AI 드롭다운 ───────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .ai-pill {
+  background: #2f2f2f;
+  color: #ececec;
+  border: 1px solid #3a3a3a;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 13px;
+}
+body[data-art="gpt-dark"] .ai-dropdown {
+  background: #212121;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+body[data-art="gpt-dark"] .ai-dropdown-item { color: #ececec; border-radius: 6px; font-size: 13px; }
+body[data-art="gpt-dark"] .ai-dropdown-item:hover { background: #2f2f2f; }
+
+/* ─── 폼 섹션 ───────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .form-section {
+  background: #2f2f2f;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  color: var(--ink);
+}
+body[data-art="gpt-dark"] .form-section-title { color: #8e8ea0; letter-spacing: 0.05em; }
+
+/* ─── 퍼소나·AI 모델 선택 ────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .persona-option,
+body[data-art="gpt-dark"] .ai-model-option {
+  background: #2f2f2f;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  color: var(--ink);
+}
+body[data-art="gpt-dark"] .persona-option:hover,
+body[data-art="gpt-dark"] .ai-model-option:hover:not(.disabled) { background: #383838; }
+body[data-art="gpt-dark"] .persona-option.selected,
+body[data-art="gpt-dark"] .ai-model-option.selected {
+  outline: 2px solid #10a37f;
+  outline-offset: 0;
+  background: #1a2e29;
+}
+
+/* ─── 로그인 ────────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .login-title {
+  background: linear-gradient(135deg, #5ec4a8, #10a37f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+body[data-art="gpt-dark"] .login-card {
+  background: #2f2f2f;
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  padding: 24px;
+}
+
+/* ─── 홈 아이콘 ─────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .di {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; transition: opacity 0.15s, transform 0.15s;
+}
+body[data-art="gpt-dark"] .di:hover { transform: translateY(-2px); }
+body[data-art="gpt-dark"] .di-pic {
+  width: 52px; height: 52px;
+  background: #2f2f2f;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  display: grid; place-items: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+body[data-art="gpt-dark"] .di:hover .di-pic {
+  border-color: #10a37f;
+  box-shadow: 0 4px 16px rgba(16,163,127,0.2);
+}
+body[data-art="gpt-dark"] .di span {
+  font-size: 10px; font-weight: 500; color: #8e8ea0;
+  text-align: center; white-space: pre-line;
+}
+
+/* ─── 노벨/스토리 모드 ─────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .story-log .seq-block { max-width: 96%; }
+body[data-art="gpt-dark"] .story-log .bubble,
+body[data-art="gpt-dark"] .novel-scene .bubble {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 2px 0;
+  line-height: 1.8;
+  font-size: 14px;
+  color: #ececec;
+}
+body[data-art="gpt-dark"] .story-log .bubble-persona,
+body[data-art="gpt-dark"] .novel-scene .bubble-persona {
+  background: transparent !important;
+  color: #5ec4a8 !important;
+  border: none !important;
+}
+body[data-art="gpt-dark"] .story-log .narration-block,
+body[data-art="gpt-dark"] .novel-scene .narration-block,
+body[data-art="gpt-dark"] .story-log .seq-narration {
+  color: #6b7280;
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.8;
+  font-family: var(--font-mono);
+}
+
+/* ─── AI 태그 ───────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] .msg .bubble .ai-tag {
+  background: rgba(16,163,127,0.12);
+  color: #10a37f;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+}
+
+/* ─── 스크롤바 ─────────────────────────────────────────────────────────── */
+body[data-art="gpt-dark"] ::-webkit-scrollbar { width: 4px; height: 4px; }
+body[data-art="gpt-dark"] ::-webkit-scrollbar-track { background: transparent; }
+body[data-art="gpt-dark"] ::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 4px; }
+body[data-art="gpt-dark"] ::-webkit-scrollbar-thumb:hover { background: #10a37f; }
+
+body[data-art="gpt-dark"] .tag-scroll { scrollbar-width: thin; scrollbar-color: #3a3a3a transparent; }
+body[data-art="gpt-dark"] .tag-scroll::-webkit-scrollbar { height: 3px; }
+body[data-art="gpt-dark"] .tag-scroll::-webkit-scrollbar-track { background: transparent; }
+body[data-art="gpt-dark"] .tag-scroll::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 4px; }
