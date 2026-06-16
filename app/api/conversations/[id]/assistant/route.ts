@@ -15,7 +15,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const conv = await prisma.conversation.findUnique({
     where: { id: params.id },
-    include: { messages: { where: { isSelected: true }, orderBy: { createdAt: 'asc' } } },
+    select: {
+      id: true,
+      userId: true,
+      mode: true,
+      currentAI: true,
+      temperature: true,
+      chapter: true,
+      messages: { where: { isSelected: true }, orderBy: { createdAt: 'asc' } },
+    },
   })
   if (!conv || conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
   if (conv.mode !== 'assistant') return NextResponse.json({ error: '잘못된 대화 모드입니다.' }, { status: 400 })
@@ -27,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       conversationId: params.id,
       role: 'user',
       content,
+      chapter: conv.chapter,
       isSelected: true,
       parentId: prevMsg?.id ?? null,
     },
@@ -71,6 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             role: 'assistant',
             content: fullText || '[응답 없음]',
             aiModel: conv.currentAI,
+            chapter: conv.chapter,
             isSelected: true,
             parentId: userMsg.id,
             inputTokens,

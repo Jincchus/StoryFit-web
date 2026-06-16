@@ -173,6 +173,7 @@ export async function POST(req: NextRequest) {
         role: 'assistant',
         content,
         characterId,
+        chapter: 1,
         isSelected: true,
         isStreaming: false,
       },

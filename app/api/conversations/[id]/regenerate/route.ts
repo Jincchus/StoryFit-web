@@ -119,6 +119,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       role: 'assistant',
       content: '',
       aiModel: conv.currentAI,
+      chapter: conv.chapter,
       isSelected: true,
       isStreaming: true,
       parentId: lastAssistant.parentId,
