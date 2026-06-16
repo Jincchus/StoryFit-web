@@ -67,6 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           isSelected: true,
           inputTokens: m.inputTokens,
           outputTokens: m.outputTokens,
+          chapter: m.chapter,
           createdAt: m.createdAt,
         })),
       },
