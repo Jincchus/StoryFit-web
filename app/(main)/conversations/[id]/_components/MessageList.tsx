@@ -7,6 +7,7 @@ import PixelAvatar from '@/components/ui/PixelAvatar'
 import MessageBlocks from '@/components/ui/MessageBlocks'
 import NovelScene from '@/components/ui/NovelScene'
 import { parseStoryChoices, isSamePerson, type Msg, type Conv, type ConvChar, type BranchInfo } from '../_lib/chatShared'
+import { chapterLabel, deriveChapterBoundaries } from '@/lib/chapters'
 
 const DICE_TAG_RE = /\n*🎲 판정 — (.+) → (대성공|성공|실패|대실패)\s*$/
 const DICE_OUTCOME_CLASS: Record<string, string> = {
@@ -72,6 +73,8 @@ export default function MessageList({
   const router = useRouter()
   const lastMsg = messages[messages.length - 1]
   const isLastAssistant = lastMsg?.role === 'assistant'
+  const chapterBoundaries = deriveChapterBoundaries(messages)
+  const plotForLabel = conv.plotOutline
 
   return (
     <>
@@ -91,6 +94,16 @@ export default function MessageList({
 
         return (
           <div key={m.id} id={`msg-${m.id}`}>
+            {chapterBoundaries.has(m.id) && (() => {
+              const ch = chapterBoundaries.get(m.id)!
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent, #b9a6ff)', fontSize: 11, margin: '10px 2px 6px' }}>
+                  <span style={{ flex: 1, height: 1, background: 'var(--border, #3a2d5a)' }} />
+                  <span>{chapterLabel(ch, plotForLabel)}{ch === conv.chapter ? ' ▶ 현재' : ''}</span>
+                  <span style={{ flex: 1, height: 1, background: 'var(--border, #3a2d5a)' }} />
+                </div>
+              )
+            })()}
             {branchesFromHere.length > 0 && (
               <div style={{ display: 'flex', gap: 4, padding: '2px 4px 4px', flexWrap: 'wrap' }}>
                 {branchesFromHere.map(b => (
