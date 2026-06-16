@@ -27,11 +27,13 @@ export interface GeminiChatParams {
 
 export interface StreamResult { text: string; inputTokens: number; outputTokens: number }
 
-// Gemini 2.5 Pro는 thinking을 끌 수 없다(0 설정 시 API 400). 0/미설정이면 동적(-1)으로 보정.
-// Flash는 0(off)을 그대로 허용한다.
+// Gemini 2.5 Pro는 thinking을 끌 수 없다(0 설정 시 API 400, 유효 범위 128~32768).
+// 속도-품질 절충: 0/미설정이면 동적(-1) 대신 최소값(128)으로 고정해 추론 지연을 최소화한다.
+// 명시값이 0보다 크되 128 미만이면 128로 클램프한다. Flash는 0(off)을 그대로 허용한다.
+const PRO_MIN_THINKING_BUDGET = 128
 function resolveThinkingBudget(model: string, requested?: number): number {
   const b = requested ?? 0
-  if (model.includes('pro')) return b > 0 ? b : -1
+  if (model.includes('pro')) return b > 0 ? Math.max(b, PRO_MIN_THINKING_BUDGET) : PRO_MIN_THINKING_BUDGET
   return b
 }
 
