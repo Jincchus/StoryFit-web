@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { rollbackInventoryDelta, rollbackStatsDelta } from '@/lib/storyEval'
 import type { InventoryItem, StatEntry } from '@/types'
+import { buildChapterMeta } from '@/lib/chapters'
 
 
 const PAGE_SIZE = 50
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const allMeta = await prisma.message.findMany({
     where: { conversationId: params.id },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, parentId: true, isSelected: true, isStreaming: true, createdAt: true },
+    select: { id: true, parentId: true, isSelected: true, isStreaming: true, createdAt: true, chapter: true },
   })
 
   const byParent = new Map<string, typeof allMeta>()
@@ -63,6 +64,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }),
     hasMore,
     oldestId: pageSlice[0]?.id ?? null,
+    chapterMeta: buildChapterMeta(selectedAll),
   })
 }
 
