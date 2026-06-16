@@ -20,6 +20,8 @@ import BranchModal from './_components/BranchModal'
 import CommandMenu from './_components/CommandMenu'
 import VoiceCallOverlay from './_components/VoiceCallOverlay'
 import { StatsPopover, InventoryPopover, RecapPopover } from './_components/HeaderPopovers'
+import ChapterNav from './_components/ChapterNav'
+import type { ChapterAnchor } from '@/lib/chapters'
 
 function ComposerCharCount({ composerRef }: { composerRef: React.RefObject<HTMLTextAreaElement> }) {
   const [len, setLen] = useState(0)
@@ -61,6 +63,7 @@ export default function ChatPage() {
     }
   }, [])
   const [messages, setMessages] = useState<Msg[]>([])
+  const [chapterMeta, setChapterMeta] = useState<ChapterAnchor[]>([])
   const [streaming, setStreaming] = useState('')
   const [typing, setTyping] = useState(false)
   const [streamingCharId, setStreamingCharId] = useState<string | null>(null)
@@ -181,7 +184,7 @@ export default function ChatPage() {
 
   const loadConv = useCallback(async () => {
     try {
-      const [data, msgRes]: [Conv, { messages: Msg[]; hasMore: boolean; oldestId: string | null }] = await Promise.all([
+      const [data, msgRes]: [Conv, { messages: Msg[]; hasMore: boolean; oldestId: string | null; chapterMeta: ChapterAnchor[] }] = await Promise.all([
         api.get(`/api/conversations/${params.id}`),
         api.get(`/api/conversations/${params.id}/messages`),
       ])
@@ -190,6 +193,7 @@ export default function ChatPage() {
         scrollSnapRef.current = { top: logRef.current.scrollTop, height: logRef.current.scrollHeight }
       }
       setMessages(msgRes.messages)
+      setChapterMeta(msgRes.chapterMeta ?? [])
       setHasMore(msgRes.hasMore)
       oldestIdRef.current = msgRes.oldestId
       convModeRef.current = data.mode
@@ -283,9 +287,10 @@ export default function ChatPage() {
     try {
       const el = logRef.current
       const prevHeight = el?.scrollHeight ?? 0
-      const res: { messages: Msg[]; hasMore: boolean; oldestId: string | null } =
+      const res: { messages: Msg[]; hasMore: boolean; oldestId: string | null; chapterMeta: ChapterAnchor[] } =
         await api.get(`/api/conversations/${params.id}/messages?cursor=${oldestIdRef.current}`)
       setMessages(prev => [...res.messages, ...prev])
+      setChapterMeta(res.chapterMeta ?? [])
       setHasMore(res.hasMore)
       oldestIdRef.current = res.oldestId
       // 스크롤 위치 유지
@@ -883,6 +888,12 @@ export default function ChatPage() {
                   </div>
                 </div>
               )}
+              <ChapterNav
+                chapterMeta={chapterMeta}
+                currentChapter={conv.chapter ?? 1}
+                plotOutline={conv.plotOutline as { chapters: { index: number; title: string }[] } | undefined}
+                onJump={jumpToMessage}
+              />
               {hasMore && (
                 <div style={{ textAlign: 'center', padding: '8px 0' }}>
                   <button
