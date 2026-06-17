@@ -516,6 +516,7 @@ export async function captureMelting(url: string): Promise<Captured> {
 
   const sessionCookie = await getGlobalConfigValue('melting_session_cookie')
   if (!sessionCookie) {
+    console.error(`[melting-import] 세션 쿠키 미설정 — id=${characterId}`)
     throw new Error('멜팅 세션 쿠키가 설정되어 있지 않습니다. 관리자 설정에서 쿠키를 입력해주세요.')
   }
   const nickname = await getGlobalConfigValue('melting_session_nickname')
@@ -529,19 +530,30 @@ export async function captureMelting(url: string): Promise<Captured> {
     },
   })
   if (res.status === 401 || res.status === 403) {
+    console.error(`[melting-import] 세션 만료(HTTP ${res.status}) — 쿠키 재입력 필요, id=${characterId}`)
     throw new Error('멜팅 세션(쿠키)이 만료되었습니다. 관리자 설정에서 쿠키를 다시 입력해주세요.')
   }
-  if (!res.ok) throw new Error(`멜팅 API 오류 (HTTP ${res.status})`)
+  if (!res.ok) {
+    console.error(`[melting-import] API 오류 HTTP ${res.status} — id=${characterId}`)
+    throw new Error(`멜팅 API 오류 (HTTP ${res.status})`)
+  }
 
   let payload: any
-  try { payload = await res.json() } catch { throw new Error('멜팅 응답을 해석할 수 없습니다.') }
+  try { payload = await res.json() } catch {
+    console.error(`[melting-import] 응답 JSON 파싱 실패 — id=${characterId}`)
+    throw new Error('멜팅 응답을 해석할 수 없습니다.')
+  }
   const data = payload?.json
   const bot = data?.bot
-  if (!bot?.id) throw new Error('멜팅 캐릭터 데이터를 찾을 수 없습니다.')
+  if (!bot?.id) {
+    console.error(`[melting-import] bot 데이터 없음 — id=${characterId}`)
+    throw new Error('멜팅 캐릭터 데이터를 찾을 수 없습니다.')
+  }
 
   // 세션 만료 판정: 쿠키를 보냈는데 인증 컨텍스트가 로그아웃 형태(null)면 만료로 간주한다.
   // (유효 세션이면 isOpeningUnlocked·isCreator가 boolean으로 내려온다 — 실측 확인.)
   if (data.isOpeningUnlocked === null && data.isCreator === null) {
+    console.error(`[melting-import] 세션 만료(인증 컨텍스트 null) — 쿠키 재입력 필요, id=${characterId}`)
     throw new Error('멜팅 세션(쿠키)이 만료되었습니다. 관리자 설정에서 쿠키를 다시 입력해주세요.')
   }
 
@@ -616,6 +628,8 @@ export async function captureMelting(url: string): Promise<Captured> {
     safetyLevel,
     coverImageUrl,
   }
+
+  console.log(`[melting-import] ok — id=${characterId} name=${name} tags=${tags.length} openings=${openingMessages.length} safety=${safetyLevel}`)
 
   return {
     sections: [],
