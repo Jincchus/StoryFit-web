@@ -70,3 +70,36 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   return NextResponse.json({ coreMemory: newCoreMemory, promotedIds })
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await authenticate(req)
+  if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+
+  const conv = await prisma.conversation.findUnique({
+    where: { id: params.id },
+    select: { userId: true },
+  })
+  if (!conv || conv.userId !== userId) {
+    return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
+  }
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: '잘못된 요청입니다.' }, { status: 400 })
+  }
+  const memoryIds = (body as { memoryIds?: unknown })?.memoryIds
+  if (!Array.isArray(memoryIds) || memoryIds.length === 0 || memoryIds.length > 20
+      || !memoryIds.every((id) => typeof id === 'string')) {
+    return NextResponse.json({ error: 'memoryIds가 필요합니다.' }, { status: 400 })
+  }
+
+  // 승격 해제: 원본 메모리 잠금만 푼다. coreMemory 텍스트는 건드리지 않는다.
+  await prisma.memory.updateMany({
+    where: { id: { in: memoryIds }, conversationId: params.id },
+    data: { promoted: false },
+  })
+
+  return NextResponse.json({ unpromotedIds: memoryIds })
+}

@@ -54,7 +54,7 @@ export default function SidePanel({
   const {
     memories, memoryError, promoting,
     selectedMemoryIds, expandedPromotedIds,
-    handleDeleteMemory, handlePromoteMemories,
+    handleDeleteMemory, handlePromoteMemories, handleUnpromoteMemory,
     toggleMemorySelect, toggleExpandPromoted,
   } = useMemoryPanel(convId, setToast, applyServerCoreMemory)
 
@@ -579,6 +579,14 @@ export default function SidePanel({
                   <div className="hstack" style={{ gap: 4 }}>
                     {isPromoted && (
                       <span style={{ fontSize: 9, color: 'var(--ink-soft)' }}>{isExpanded ? '▲' : '▼'}</span>
+                    )}
+                    {isPromoted && (
+                      <button
+                        className="msg-action-btn"
+                        style={{ fontSize: 9 }}
+                        title="핵심 메모리에서 내려 다시 선택 가능하게 합니다"
+                        onClick={e => { e.stopPropagation(); handleUnpromoteMemory(mem.id) }}
+                      >↩ 해제</button>
                     )}
                     <button
                       className="msg-action-btn danger"

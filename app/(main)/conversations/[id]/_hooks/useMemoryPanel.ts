@@ -44,6 +44,20 @@ export function useMemoryPanel(
     }
   }
 
+  const handleUnpromoteMemory = async (memoryId: string) => {
+    try {
+      await api.delete(`/api/conversations/${convId}/memories/promote`, { memoryIds: [memoryId] })
+      setMemories(prev => prev.map(m => m.id === memoryId ? { ...m, promoted: false } : m))
+      setExpandedPromotedIds(prev => {
+        const next = new Set(prev)
+        next.delete(memoryId)
+        return next
+      })
+    } catch {
+      setToast('핵심 메모리 해제에 실패했습니다')
+    }
+  }
+
   const toggleMemorySelect = (id: string) => {
     setSelectedMemoryIds(prev => {
       const next = new Set(prev)
@@ -63,7 +77,7 @@ export function useMemoryPanel(
   return {
     memories, memoryError, promoting,
     selectedMemoryIds, expandedPromotedIds,
-    handleDeleteMemory, handlePromoteMemories,
+    handleDeleteMemory, handlePromoteMemories, handleUnpromoteMemory,
     toggleMemorySelect, toggleExpandPromoted,
   }
 }
