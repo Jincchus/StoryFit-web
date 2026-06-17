@@ -1,10 +1,11 @@
 import puppeteer from 'puppeteer-core'
 import { prisma } from '@/lib/prisma'
-import { withMeltingPage } from '@/lib/meltingBrowser'
 import type { Captured } from './types'
 import { buildZetaCaptured, extractZetaLorebookEntries } from './zeta'
 
 const INPUT_CAP = 40000  // 분류 출력이 작아져 입력 캡을 크게 상향 (잘림 방지)
+
+const MELTING_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 
 // 언세이프(성인) 캐릭터는 비로그인 상태에서 "세이프 모드를 해제하고..." 안내 문구만 내려오고
 // 실제 캐릭터 소개는 전송되지 않는다. 이 문구로 게이트 상태를 판별한다.
@@ -315,136 +316,6 @@ function convertMeltingOpeningTags(text: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
-
-// 로그인 세션으로 캐릭터 페이지를 렌더링해 "상세 설명"/"첫 장면" 탭을 섹션으로 분리해 반환한다.
-// 세션이 없거나 만료된 경우 로그인 게이트 문구가 포함되어 '세션 게이트' 예외를 던진다 — 호출 측에서 OG 메타로 폴백한다.
-async function renderMeltingSections(url: string): Promise<{
-  sections: { tab: string | null; text: string }[]
-  apiData?: any
-}> {
-  return withMeltingPage(async (page) => {
-    const apiData: { bot?: any; openings?: any[] } = {}
-
-    await page.setRequestInterception(true)
-    page.on('request', (request) => {
-      request.continue()
-    })
-    page.on('response', async (response) => {
-      const respUrl = response.url()
-      if (respUrl.includes('/api/characters/')) {
-        try {
-          const text = await response.text()
-          const json = JSON.parse(text)
-          if (json.json?.bot) {
-            apiData.bot = json.json.bot
-          }
-          if (Array.isArray(json.json?.openings)) {
-            apiData.openings = json.json.openings
-          }
-        } catch {}
-      }
-    })
-
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
-
-    // 리다이렉트로 인해 검증된 호스트(melting.chat)를 벗어났다면 중단 (SSRF 방지 심층 방어)
-    if (!matchesHost(page.url(), 'melting.chat')) {
-      throw new Error('예상하지 못한 주소로 리다이렉트되었습니다.')
-    }
-
-    // 영속 프로필(브라우저가 디스크에 보관하는 로그인 세션)이 비어있거나 끊긴 경우를 감지해,
-    // 관리자 페이지에 저장해 둔 시드 쿠키로 즉석 재로그인을 시도한다 — 평소엔 영속 세션이
-    // 활동만으로 계속 연장되므로 이 분기를 탈 일이 거의 없고, 세션이 끊긴 드문 경우에만
-    // (그리고 시드 쿠키가 새로 입력돼 있을 때만) 자동 복구된다.
-    await new Promise(r => setTimeout(r, 1500))
-    const gatedAtStart = await page.evaluate(
-      (gate) => document.body.innerText?.includes(gate) ?? false,
-      MELTING_LOGIN_GATE_TEXT
-    )
-    if (gatedAtStart) {
-      const seedCookie = await getGlobalConfigValue('melting_session_cookie')
-      if (seedCookie) {
-        console.log('[melting-import] 영속 세션이 끊긴 것으로 보임 — 저장된 시드 쿠키로 재로그인 시도')
-        await page.setCookie(...parseSessionCookies(seedCookie, '.melting.chat'))
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
-        await new Promise(r => setTimeout(r, 1500))
-      }
-    }
-
-    // API 데이터 가로채기에 성공했다면 탭 대기/클릭 스크래핑 로직을 생략하고 즉시 반환
-    if (apiData.bot) {
-      return {
-        sections: [
-          { tab: '상세 설명', text: apiData.bot.publicDescription || '' },
-          { tab: '첫 장면', text: apiData.bot.opening || '' }
-        ],
-        apiData: { ...apiData.bot, openings: apiData.openings }
-      }
-    }
-
-    // 캐릭터 패널은 제작자 프로필 위에 모달로 늦게 렌더링되므로, 단순 텍스트 길이 조건은
-    // 모달이 뜨기 전(제작자 프로필만 있는 상태)에 만족돼버려 아래 grabPanelText가 패널을
-    // 못 찾고 노이즈 가득한 body 전체로 폴백하는 원인이 된다 — 탭 요소 등장을 직접 기다린다.
-    await page.waitForFunction(
-      () => Array.from(document.querySelectorAll('*')).some(
-        el => el.children.length === 0 && /^(첫\s*장면|상세\s*설명)$/.test(el.textContent?.trim() || '')
-      ),
-      { timeout: 20000 }
-    ).catch(() => {})
-
-    // 캐릭터 페이지는 제작자 프로필(다른 캐릭터 목록 등) 위에 모달로 캐릭터 패널이 뜨는 구조라
-    // body 전체를 긁으면 노이즈가 섞인다. "첫 장면"/"상세 설명" 탭에서 부모로 거슬러 올라가며
-    // innerText 길이가 더는 늘지 않는(=형제 요소가 섞이기 직전) 가장 작은 컨테이너를 패널로 본다.
-    const grabPanelText = () => page.evaluate(() => {
-      const all = Array.from(document.querySelectorAll('*'))
-      const tabEl: any = all.find(el => el.children.length === 0 && /^(첫\s*장면|상세\s*설명)$/.test(el.textContent?.trim() || ''))
-      if (!tabEl) return document.body.innerText
-      let cur: any = tabEl.parentElement
-      while (cur && cur.parentElement) {
-        const curLen = cur.innerText?.length || 0
-        const parentLen = cur.parentElement.innerText?.length || 0
-        if (curLen > 200 && parentLen > curLen * 1.5) return cur.innerText
-        cur = cur.parentElement
-      }
-      return document.body.innerText
-    })
-
-    const clickTab = (label: string) => page.evaluate((lbl: string) => {
-      const target = Array.from(document.querySelectorAll('button, [role="tab"], a, div, span'))
-        .find(el => el.children.length === 0 && el.textContent?.trim() === lbl)
-      if (target) { (target as HTMLElement).click(); return true }
-      return false
-    }, label)
-    const grabClean = async () => (await grabPanelText()).replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim()
-
-    // 패널의 "초기 활성 탭 = 상세 설명"이라고 가정하면 안 된다 — 캐릭터에 따라 페이지
-    // 로드 시 기본 활성 탭이 "첫 장면"인 경우가 있다(청도현 케이스 실측: 두 섹션이
-    // 전부 "첫 장면" 내용으로 중복 캡처되고 실제 "상세 설명"은 영영 못 가져옴, 첫
-    // 캡처를 무조건 '상세 설명'으로 라벨링했기 때문). 두 탭 모두 명시적으로 클릭한
-    // 뒤 캡처해야 라벨과 실제 내용이 어긋나지 않는다.
-    const sections: { tab: string | null; text: string }[] = []
-    for (const label of ['상세 설명']) {
-      if (await clickTab(label)) {
-        await new Promise(r => setTimeout(r, 1200))
-        sections.push({ tab: '상세 설명', text: await grabClean() })
-        break
-      }
-    }
-    for (const label of ['첫 장면', '첫장면']) {
-      if (await clickTab(label)) {
-        await new Promise(r => setTimeout(r, 1200))
-        sections.push({ tab: '첫 장면', text: await grabClean() })
-        break
-      }
-    }
-    // 둘 중 어느 탭 버튼도 못 찾았다면(탭 구조가 없는 페이지) 현재 보이는 패널을 그대로 사용
-    if (sections.length === 0) sections.push({ tab: '상세 설명', text: await grabClean() })
-
-    if (sections.some(s => s.text.includes(MELTING_LOGIN_GATE_TEXT))) throw new Error('세션 게이트')
-    return { sections }
-  })
-}
-
 export async function captureWhif(url: string): Promise<Captured> {
   const { rawText, apiData } = await renderWhifPageText(url)
 
@@ -621,160 +492,146 @@ export async function captureZeta(url: string): Promise<Captured> {
   return captured
 }
 
-export async function captureMelting(url: string): Promise<Captured> {
+// 멜팅 캐릭터 ID 추출: canonical(.../characters/{uuid}) 또는 단축(t.melting.chat/xxx) URL 모두 지원.
+async function resolveMeltingCharacterId(url: string): Promise<string> {
+  const direct = url.match(/\/characters\/([0-9a-f-]{36})/i)?.[1]
+  if (direct) return direct
+  // 단축 URL 등은 리다이렉트를 따라가 최종 URL에서 추출
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.6,en;q=0.5' },
+    headers: { 'User-Agent': MELTING_UA, 'Accept-Language': 'ko-KR,ko;q=0.9' },
+    redirect: 'follow',
   })
-  if (!res.ok) throw new Error(`페이지를 불러올 수 없습니다 (HTTP ${res.status})`)
-  const html = await res.text()
-  const title = cleanMeltingTitle(extractMetaContent(html, 'og:title'))
-  const imageUrl = extractMetaContent(html, 'og:image')
-  const ogDesc = extractMetaContent(html, 'og:description').slice(0, INPUT_CAP)
+  if (!matchesHost(res.url, 'melting.chat')) throw new Error('예상하지 못한 주소로 리다이렉트되었습니다.')
+  const id = res.url.match(/\/characters\/([0-9a-f-]{36})/i)?.[1]
+  if (!id) throw new Error('멜팅 캐릭터 URL이 아닙니다 (/characters/{id} 형식 필요)')
+  return id
+}
+
+// 멜팅은 공개 REST API가 없어 과거엔 헤드리스로 페이지의 내부 통신을 가로챘으나(레이스·세션
+// 문제로 자주 실패 → AI 분류기 폴백 → 비결정적), 캐릭터 API(`/api/characters/{id}`)를 세션
+// 쿠키와 함께 직접 호출하면 동일 구조의 JSON을 결정적으로 받을 수 있다(Zeta와 동일 방식).
+// 세션이 만료된 경우 폴백 없이 명확한 오류로 차단한다(쿠키 재입력 유도).
+export async function captureMelting(url: string): Promise<Captured> {
+  const characterId = await resolveMeltingCharacterId(url)
+
+  const sessionCookie = await getGlobalConfigValue('melting_session_cookie')
+  if (!sessionCookie) {
+    throw new Error('멜팅 세션 쿠키가 설정되어 있지 않습니다. 관리자 설정에서 쿠키를 입력해주세요.')
+  }
   const nickname = await getGlobalConfigValue('melting_session_nickname')
 
-  try {
-    const { sections, apiData } = await renderMeltingSections(url)
+  const res = await fetch(`https://melting.chat/api/characters/${characterId}`, {
+    headers: {
+      'User-Agent': MELTING_UA,
+      Accept: 'application/json',
+      'Accept-Language': 'ko-KR,ko;q=0.9',
+      Cookie: sessionCookie,
+    },
+  })
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('멜팅 세션(쿠키)이 만료되었습니다. 관리자 설정에서 쿠키를 다시 입력해주세요.')
+  }
+  if (!res.ok) throw new Error(`멜팅 API 오류 (HTTP ${res.status})`)
 
-    // API 데이터 가로채기에 성공한 경우 직접 AssembledResult 구성 (AI 분류기 패스)
-    if (apiData) {
-      const hashtags = (apiData.publicDescription || '').match(/#[^\s#]+/g) || []
-      const nativeTags = Array.isArray(apiData.tags)
-        ? apiData.tags
-        : Array.isArray(apiData.hashtagList)
-          ? apiData.hashtagList
-          : []
-      const tags = [...hashtags.map((t: string) => t.replace('#', '').trim()), ...nativeTags]
-        .filter(Boolean)
-        .slice(0, 15)
+  let payload: any
+  try { payload = await res.json() } catch { throw new Error('멜팅 응답을 해석할 수 없습니다.') }
+  const data = payload?.json
+  const bot = data?.bot
+  if (!bot?.id) throw new Error('멜팅 캐릭터 데이터를 찾을 수 없습니다.')
 
-      // Helper function to find property by candidate keys
-      const getValueByKeys = (obj: any, keys: string[]) => {
-        for (const k of keys) {
-          if (obj[k] && typeof obj[k] === 'string' && obj[k].trim()) {
-            return obj[k].trim()
-          }
-        }
-        return ''
-      }
-
-      const rawOpeningMessage = getValueByKeys(apiData, [
-        'opening', 'firstMessage', 'greeting', 'intro', 'introduction',
-        'firstScene', 'openingMessage', 'startMessage'
-      ]) || apiData.opening || ''
-
-      const profile = getValueByKeys(apiData, [
-        'profile', 'characterProfile', 'profileDescription', 'detailedDescription'
-      ])
-
-      const timeline = getValueByKeys(apiData, [
-        'timeline', 'characterTimeline', 'timelineDescription', 'timelineSetting'
-      ])
-
-      const userSettings = getValueByKeys(apiData, [
-        'userSetting', 'userSettings', 'userPersonaSetting', 'userPersonaSettings',
-        'userPersona', 'userDefaultSetting', 'userDefaultSettings', 'userPersonaDescription'
-      ])
-
-      // "## !요약" 같은 "!"로 시작하는 마크다운 제목은 멜팅 자체 봇 명령어 안내(플랫폼 UI
-      // 기능)로, 캐릭터 설정과 무관해 시스템 프롬프트에 넣을 필요가 없다 — 해당 제목부터
-      // 끝까지 잘라낸다.
-      let additionalInfo = (apiData.publicDescription || '').replace(/\n+#{1,6}[^\n!]*!\S[\s\S]*$/, '').trim()
-      if (profile) {
-        additionalInfo += `\n\n[캐릭터 프로필]\n${profile}`
-      }
-      if (timeline) {
-        additionalInfo += `\n\n[타임라인]\n${timeline}`
-      }
-      if (userSettings) {
-        additionalInfo += `\n\n[유저 기본 설정]\n${userSettings}`
-      }
-
-      // 멜팅 캐릭터 목소리(TTS) 정보가 있다면 상세설명에 보존
-      if (apiData.voiceId || apiData.voiceName) {
-        additionalInfo += `\n\n[음성 설정]\n- 목소리 이름: ${apiData.voiceName || '기본'}\n- 목소리 ID: ${apiData.voiceId || ''}`
-        if (apiData.voiceProvider) {
-          additionalInfo += `\n- 제공사: ${apiData.voiceProvider}`
-        }
-      }
-
-      const cleanAdditionalInfo = depersonalizeNickname(additionalInfo, nickname)
-      const cleanOpeningMessage = depersonalizeNickname(rawOpeningMessage, nickname)
-
-      // 멜팅은 캐릭터당 여러 "첫 장면"(도입부)을 등록할 수 있다 — 전부 가져와 선택 가능한
-      // 도입부 목록으로 저장한다 (WHIF의 openingMessages와 동일한 구조).
-      // 잠긴(미해금) 도입부의 opening 필드는 실제 본문 뒤에 마스킹(█✶▌ 등)된 더미 텍스트가
-      // 이어 붙어 있다 — previewByMode의 preview(마스킹 없는 앞부분)가 있으면 그걸 쓰고,
-      // 기본 도입부처럼 preview가 없는 경우에만 opening 원문을 그대로 쓴다.
-      const rawOpenings = Array.isArray(apiData.openings) ? apiData.openings : []
-      const openingMessages = rawOpenings
-        .map((o: any) => {
-          const mode = o?.recommendedMode === 'chat' ? 'chat' : 'novel'
-          const preview = o?.previewByMode?.[mode]?.preview ?? o?.previewByMode?.novel?.preview ?? o?.previewByMode?.chat?.preview
-          const hasPreview = !!preview
-          return { ...o, opening: preview ?? o?.opening, hasPreview }
-        })
-        .filter((o: any) => typeof o?.opening === 'string' && o.opening.trim().length > 0)
-        .map((o: any, idx: number) => {
-          const content = depersonalizeNickname(convertMeltingOpeningTags(String(o.opening || '')), nickname)
-          return {
-            id: String(o.id || `opening_${idx}`),
-            title: String(o.title || (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
-            content,
-            originalPreview: o.hasPreview ? content : undefined,
-            isGenerated: o.hasPreview ? false : undefined,
-          }
-        })
-
-      const isNsfw = apiData.nsfw || apiData.isNsfw || false
-      const safetyLevel = isNsfw ? 'relaxed' : 'standard'
-
-      const genderMap: Record<string, string> = { male: '남성', female: '여성' }
-
-      const assembledResult = {
-        characters: [
-          {
-            name: apiData.name || title || '캐릭터',
-            gender: genderMap[apiData.gender] || '',
-            additionalInfo: cleanAdditionalInfo,
-            openingMessage: cleanOpeningMessage,
-            openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
-            exampleDialogues: '',
-          }
-        ],
-        scenarioDescription: apiData.publicTagline || '',
-        tags,
-        title: apiData.name || title || '캐릭터',
-        safetyLevel,
-      }
-
-      return {
-        sections: [],
-        title: assembledResult.title,
-        imageUrl: apiData.profileImagePath
-          ? `https://image-gen.melting.chat/public_images/${apiData.profileImagePath}?s=lg`
-          : imageUrl,
-        assembledResult,
-        meltingMeta: {
-          ...apiData,
-          userSettings: userSettings ? depersonalizeNickname(userSettings, nickname) : '',
-          profile: profile ? depersonalizeNickname(profile, nickname) : '',
-          timeline: timeline ? depersonalizeNickname(timeline, nickname) : '',
-          openingMessage: cleanOpeningMessage,
-        },
-      }
-    }
-
-    const total = sections.reduce((n, s) => n + s.text.length, 0)
-    if (total >= 100) {
-      return {
-        sections: sections.map(s => ({ ...s, text: depersonalizeNickname(s.text, nickname) })),
-        title, imageUrl,
-      }
-    }
-  } catch (e: any) {
-    console.log('[melting-import] 헤드리스 실패, OG 메타로 폴백:', e?.message)
+  // 세션 만료 판정: 쿠키를 보냈는데 인증 컨텍스트가 로그아웃 형태(null)면 만료로 간주한다.
+  // (유효 세션이면 isOpeningUnlocked·isCreator가 boolean으로 내려온다 — 실측 확인.)
+  if (data.isOpeningUnlocked === null && data.isCreator === null) {
+    throw new Error('멜팅 세션(쿠키)이 만료되었습니다. 관리자 설정에서 쿠키를 다시 입력해주세요.')
   }
 
-  if (ogDesc.length < 100) throw new Error('멜팅 페이지에서 캐릭터 설정 텍스트를 찾을 수 없습니다')
-  return { sections: [{ tab: null, text: depersonalizeNickname(ogDesc, nickname) }], title, imageUrl }
+  // 태그: 실제 태그는 최상위 json.tags. 보강용으로 publicDescription의 #해시태그도 합친다.
+  const hashtags = (bot.publicDescription || '').match(/#[^\s#]+/g)?.map((t: string) => t.replace('#', '').trim()) ?? []
+  const nativeTags = Array.isArray(data.tags) ? data.tags.map((t: any) => String(t).trim()) : []
+  const tags = [...nativeTags, ...hashtags].filter(Boolean).filter((t: string, i: number, a: string[]) => a.indexOf(t) === i).slice(0, 15)
+
+  // 안전등급: isSensitive(민감/성인) → relaxed.
+  const safetyLevel = bot.isSensitive ? 'relaxed' : 'standard'
+
+  // 상세설명: publicDescription 본문 + 나이 + (음성) + 제작자 메모.
+  // "## !요약" 같은 "!"로 시작하는 마크다운 제목은 멜팅 봇 명령어 안내(플랫폼 UI)로 잘라낸다.
+  let additionalInfo = (bot.publicDescription || '').replace(/\n+#{1,6}[^\n!]*!\S[\s\S]*$/, '').trim()
+  if (bot.age) additionalInfo += `\n\n나이: ${String(bot.age).trim()}`
+  if (bot.voiceId || bot.voiceName) {
+    additionalInfo += `\n\n[음성 설정]\n- 목소리 이름: ${bot.voiceName || '기본'}\n- 목소리 ID: ${bot.voiceId || ''}`
+  }
+  if (bot.creatorComment) additionalInfo += `\n\n[제작자 메모]\n${String(bot.creatorComment).trim()}`
+  additionalInfo = depersonalizeNickname(additionalInfo, nickname)
+
+  const openingMessage = depersonalizeNickname(convertMeltingOpeningTags(String(bot.opening || '')), nickname)
+
+  // 도입부(다중): 잠긴 도입부는 previewByMode.preview(마스킹 없는 앞부분)를 우선 사용한다.
+  const rawOpenings = Array.isArray(data.openings) ? data.openings : []
+  const openingMessages = rawOpenings
+    .map((o: any) => {
+      const mode = o?.recommendedMode === 'chat' ? 'chat' : 'novel'
+      const preview = o?.previewByMode?.[mode]?.preview ?? o?.previewByMode?.novel?.preview ?? o?.previewByMode?.chat?.preview
+      const hasPreview = !!preview
+      return { ...o, opening: preview ?? o?.opening, hasPreview }
+    })
+    .filter((o: any) => typeof o?.opening === 'string' && o.opening.trim().length > 0)
+    .map((o: any, idx: number) => {
+      const content = depersonalizeNickname(convertMeltingOpeningTags(String(o.opening || '')), nickname)
+      return {
+        id: String(o.id || `opening_${idx}`),
+        title: String(o.title || (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
+        content,
+        originalPreview: o.hasPreview ? content : undefined,
+        isGenerated: o.hasPreview ? false : undefined,
+      }
+    })
+
+  const genderMap: Record<string, string> = { male: '남성', female: '여성' }
+  const name = bot.name || '캐릭터'
+
+  const profileImageUrl = bot.profileImagePath
+    ? `https://image-gen.melting.chat/public_images/${bot.profileImagePath}?s=lg`
+    : ''
+  const cover = Array.isArray(data.covers) ? data.covers.find((c: any) => c?.imagePath) : null
+  const coverImageUrl = cover?.imagePath
+    ? `https://image-gen.melting.chat/public_images/${cover.imagePath}?s=lg`
+    : profileImageUrl
+
+  const assembledResult = {
+    characters: [
+      {
+        name,
+        gender: genderMap[bot.gender] || '',
+        tags,
+        additionalInfo,
+        openingMessage,
+        openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
+        exampleDialogues: '',
+        avatarUrl: profileImageUrl || undefined,
+      },
+    ],
+    scenarioDescription: bot.publicTagline || '',
+    tags,
+    title: name,
+    safetyLevel,
+    coverImageUrl,
+  }
+
+  return {
+    sections: [],
+    title: name,
+    imageUrl: profileImageUrl,
+    assembledResult,
+    meltingMeta: {
+      ...bot,
+      tags: data.tags ?? null,
+      personas: data.personas ?? [],
+      covers: data.covers ?? [],
+      images: data.images ?? [],
+      creator: data.creator ?? null,
+      labels: data.labels ?? [],
+      openings: data.openings ?? [],
+      openingMessage,
+    },
+  }
 }
