@@ -1,5 +1,6 @@
 type BrokerEntry = {
   text: string
+  phase: string // 'generating' | 'revising'
   done: boolean
   errored: boolean
   listeners: Set<() => void>
@@ -19,7 +20,14 @@ function sweep() {
 
 export function brokerStart(msgId: string): void {
   sweep()
-  _streams.set(msgId, { text: '', done: false, errored: false, listeners: new Set(), expiresAt: Date.now() + 10 * 60 * 1000 })
+  _streams.set(msgId, { text: '', phase: 'generating', done: false, errored: false, listeners: new Set(), expiresAt: Date.now() + 10 * 60 * 1000 })
+}
+
+export function brokerSetPhase(msgId: string, phase: string): void {
+  const e = _streams.get(msgId)
+  if (!e) return
+  e.phase = phase
+  e.listeners.forEach(fn => fn())
 }
 
 export function brokerPublish(msgId: string, chunk: string): void {
@@ -38,9 +46,9 @@ export function brokerFinish(msgId: string, errored = false): void {
   e.listeners.forEach(fn => fn())
 }
 
-export function brokerGet(msgId: string): { text: string; done: boolean; errored: boolean } | null {
+export function brokerGet(msgId: string): { text: string; phase: string; done: boolean; errored: boolean } | null {
   const e = _streams.get(msgId)
-  return e ? { text: e.text, done: e.done, errored: e.errored } : null
+  return e ? { text: e.text, phase: e.phase, done: e.done, errored: e.errored } : null
 }
 
 export function brokerSubscribe(msgId: string, fn: () => void): () => void {

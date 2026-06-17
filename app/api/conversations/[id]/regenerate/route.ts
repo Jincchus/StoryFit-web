@@ -11,7 +11,7 @@ import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
 import { needsResponseRevision } from '@/lib/responseControl'
-import { brokerStart, brokerFinish } from '@/lib/streamBroker'
+import { brokerStart, brokerFinish, brokerSetPhase } from '@/lib/streamBroker'
 import {
   conversationContextInclude,
   buildCharParam,
@@ -179,6 +179,7 @@ async function regenerateAsync({
     }
 
     if (needsResponseRevision(cleanText, revisionOptions)) {
+      brokerSetPhase(msgId, 'revising')
       const revised = await streamRevision({
         gen,
         temperature: Math.min(Number(character.temperature ?? conv.temperature ?? 0.9), 0.75),

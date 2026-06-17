@@ -1,5 +1,6 @@
 export interface ConvStreamState {
   text: string
+  phase: string // 'generating' | 'revising'
   done: boolean
   msgId: string | null
   error: string
@@ -16,7 +17,7 @@ export function getConvStream(convId: string): ConvStreamState | null {
 }
 
 function _create(convId: string, abort: AbortController): ConvStreamState {
-  const s: ConvStreamState = { text: '', done: false, msgId: null, error: '', retryable: false, abort, pollId: null, listeners: new Set() }
+  const s: ConvStreamState = { text: '', phase: 'generating', done: false, msgId: null, error: '', retryable: false, abort, pollId: null, listeners: new Set() }
   _store.set(convId, s)
   return s
 }
@@ -92,6 +93,7 @@ async function startSse(convId: string, msgId: string): Promise<boolean> {
         if (!cur) return true
         if (typeof payload.snapshot === 'string') cur.text = payload.snapshot
         if (typeof payload.chunk === 'string') cur.text += payload.chunk
+        if (typeof payload.phase === 'string') cur.phase = payload.phase
         if (payload.done) {
           sawDone = true
           if (payload.error) {

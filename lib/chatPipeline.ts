@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { streamChat, stripAnalysisPreamble, sliceByTokenBudget, type StreamChatParams, type StreamResult } from '@/lib/ai'
+import { GEMINI_UTILITY_MODEL } from '@/lib/constants'
 import { buildStorySystemPrompt, buildMultiStorySystemPrompt } from '@/lib/systemPrompt'
 import { appendTurnControlInstruction, buildRevisionPrompt } from '@/lib/responseControl'
 import { brokerPublish } from '@/lib/streamBroker'
@@ -129,6 +130,10 @@ export async function streamRevision({
     {
       ...gen,
       temperature,
+      // 재작성은 '규칙 위반 수정' 작업이라 flash로 충분하며 지연을 크게 줄인다.
+      // 출력은 클라이언트로 스트리밍하지 않고 완성본으로 교체되므로 thinking도 끈다.
+      model: GEMINI_UTILITY_MODEL,
+      thinkingBudget: 0,
       systemPrompt,
       messages: [
         ...history,

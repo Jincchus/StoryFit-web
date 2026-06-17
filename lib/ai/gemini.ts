@@ -23,6 +23,7 @@ export interface GeminiChatParams {
   maxOutputTokens?: number
   thinkingBudget?: number
   safetyLevel?: SafetyLevel
+  model?: string // 기본 GEMINI_CHAT_MODEL. 재작성 등 보조 호출은 flash로 오버라이드
 }
 
 export interface StreamResult { text: string; inputTokens: number; outputTokens: number }
@@ -52,11 +53,12 @@ async function streamViaApiKey(
   signal?: AbortSignal,
 ): Promise<StreamResult> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const modelName = params.model ?? GEMINI_CHAT_MODEL
   const generationConfig = {
     temperature: params.temperature ?? 0.9,
     frequencyPenalty: params.frequencyPenalty ?? 0.3,
     maxOutputTokens: params.maxOutputTokens ?? 8192,
-    thinkingConfig: { thinkingBudget: resolveThinkingBudget(GEMINI_CHAT_MODEL, params.thinkingBudget) },
+    thinkingConfig: { thinkingBudget: resolveThinkingBudget(modelName, params.thinkingBudget) },
   }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
@@ -64,7 +66,7 @@ async function streamViaApiKey(
   }))
 
   const model = genAI.getGenerativeModel({
-    model: GEMINI_CHAT_MODEL,
+    model: modelName,
     systemInstruction: params.systemPrompt,
     generationConfig,
     safetySettings,
@@ -110,16 +112,17 @@ async function streamViaVertex(
   })
 
   const history = toGeminiHistory(params.messages)
+  const modelName = params.model ?? GEMINI_CHAT_MODEL
 
   const chat = ai.chats.create({
-    model: GEMINI_CHAT_MODEL,
+    model: modelName,
     history: history.map(m => ({ role: m.role, parts: m.parts })),
     config: {
       systemInstruction: params.systemPrompt,
       temperature: params.temperature ?? 0.9,
       frequencyPenalty: params.frequencyPenalty ?? 0.3,
       maxOutputTokens: params.maxOutputTokens ?? 8192,
-      thinkingConfig: { thinkingBudget: resolveThinkingBudget(GEMINI_CHAT_MODEL, params.thinkingBudget) },
+      thinkingConfig: { thinkingBudget: resolveThinkingBudget(modelName, params.thinkingBudget) },
     },
   })
 

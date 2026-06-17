@@ -66,6 +66,7 @@ export default function ChatPage() {
   const [chapterMeta, setChapterMeta] = useState<ChapterAnchor[]>([])
   const [streaming, setStreaming] = useState('')
   const [typing, setTyping] = useState(false)
+  const [revising, setRevising] = useState(false)
   const [streamingCharId, setStreamingCharId] = useState<string | null>(null)
   const [sendError, setSendError] = useState('')
   const [showPanel, setShowPanel] = useState(false)
@@ -228,9 +229,11 @@ export default function ChatPage() {
       const cs = getConvStream(params.id)
       if (!cs) return
       setStreaming(cs.text)
+      setRevising(cs.phase === 'revising')
       if (cs.error) { setSendError(cs.error); setSendErrorRetryable(cs.retryable) }
       if (cs.done) {
         setTyping(false)
+        setRevising(false)
         setStreamingCharId(null)
         clearConvStream(params.id)
         unsub()
@@ -383,10 +386,12 @@ export default function ChatPage() {
       const cs = getConvStream(convId)
       if (!cs) return
       setStreaming(cs.text)
+      setRevising(cs.phase === 'revising')
       if (cs.error) { setSendError(cs.error); setSendErrorRetryable(cs.retryable) }
       if (cs.done) {
         const hadError = !!cs.error
         setTyping(false)
+        setRevising(false)
         setStreamingCharId(null)
         clearConvStream(convId)
         streamUnsubRef.current = null
@@ -443,6 +448,7 @@ export default function ChatPage() {
     setMessages(prev => [...prev, { id: 'tmp-' + Date.now(), role: 'user', content: dice ? `${msg}\n\n🎲 판정 중...` : msg }])
     setTyping(true)
     setStreaming('')
+    setRevising(false)
     setSendError('')
     setSendErrorRetryable(false)
     runConvStream(params.id, msg, dice).catch(() => {})
@@ -457,6 +463,7 @@ export default function ChatPage() {
     clearConvStream(params.id)
     setTyping(false)
     setStreaming('')
+    setRevising(false)
     setStreamingCharId(null)
     setMessages(prev => prev.filter(m => !m.id.startsWith('tmp-')))
     loadConv().catch(() => {})
@@ -468,6 +475,7 @@ export default function ChatPage() {
     shouldScrollRef.current = true
     setTyping(true)
     setStreaming('')
+    setRevising(false)
     setSendError('')
     setSendErrorRetryable(false)
     runConvContinue(params.id).catch(() => {})
@@ -517,6 +525,7 @@ export default function ChatPage() {
     shouldScrollRef.current = true
     setTyping(true)
     setStreaming('')
+    setRevising(false)
     setSendError('')
     setSendErrorRetryable(false)
     runConvContinue(params.id, { elapsed }).catch(() => {})
@@ -622,6 +631,7 @@ export default function ChatPage() {
     setTypingDuration(0)
     setTyping(true)
     setStreaming('')
+    setRevising(false)
     setSendError('')
     setSendErrorRetryable(false)
     runConvRegenerate(params.id).catch(() => {})
@@ -915,6 +925,7 @@ export default function ChatPage() {
                 streaming={streaming}
                 streamingChar={streamingChar}
                 typingDuration={typingDuration}
+                revising={revising}
                 activeId={activeId}
                 setActiveId={setActiveId}
                 editingId={editingId}

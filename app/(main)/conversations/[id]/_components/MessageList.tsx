@@ -30,7 +30,7 @@ function ChatNarration({ text }: { text: string }) {
 
 export default function MessageList({
   messages, conv, branches, convId, isMulti, isStoryOrMulti,
-  typing, streaming, streamingChar, typingDuration,
+  typing, streaming, streamingChar, typingDuration, revising,
   activeId, setActiveId, editingId, setEditingId,
   speakingId, speak, stopSpeaking,
   send, fillComposer, saveEdit, saveEditOnly,
@@ -48,6 +48,7 @@ export default function MessageList({
   streaming: string
   streamingChar: ConvChar['character']
   typingDuration: number
+  revising: boolean
   activeId: string | null
   setActiveId: React.Dispatch<React.SetStateAction<string | null>>
   editingId: string | null
@@ -422,7 +423,7 @@ export default function MessageList({
                       ? <NovelScene text={ps} personaName={personaName} charName={streamingChar.name} />
                       : <MessageBlocks text={ps} />
                   })()}
-                  {typingDuration >= 8 && (
+                  {revising && (
                     <div className="tiny" style={{ opacity: 0.6, marginTop: 4, fontStyle: 'italic' }}>✦ 다듬는 중…</div>
                   )}
                 </>

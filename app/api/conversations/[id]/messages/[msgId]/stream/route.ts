@@ -22,6 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
   const stream = new ReadableStream({
     start(controller) {
       let lastLen = 0
+      let lastPhase = ''
       let closed = false
       let unsub = () => {}
       let heartbeat: ReturnType<typeof setInterval> | null = null
@@ -46,14 +47,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
           push({ chunk: cur.text.slice(lastLen) })
           lastLen = cur.text.length
         }
+        if (cur.phase !== lastPhase) {
+          push({ phase: cur.phase })
+          lastPhase = cur.phase
+        }
         if (cur.done) {
           push({ done: true, error: cur.errored })
           cleanup()
         }
       }
 
-      push({ snapshot: initial.text })
+      push({ snapshot: initial.text, phase: initial.phase })
       lastLen = initial.text.length
+      lastPhase = initial.phase
       if (initial.done) {
         push({ done: true, error: initial.errored })
         cleanup()

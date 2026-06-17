@@ -11,7 +11,7 @@ import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
 import { logAiError } from '@/lib/errorLog'
-import { brokerStart, brokerFinish } from '@/lib/streamBroker'
+import { brokerStart, brokerFinish, brokerSetPhase } from '@/lib/streamBroker'
 import { applyLightFixes, needsResponseRevision } from '@/lib/responseControl'
 import {
   conversationContextInclude,
@@ -161,7 +161,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   // ────────────────────────────────────────────────────────────────────────
 
-  const longTermMemory = await retrieveRelevantMemories(params.id, content, 6).catch(err => { console.error('[ragMemory] 메모리 검색 실패:', err); return [] })
+  // RAG 메모리 검색(임베딩 생성 + 벡터검색)을 먼저 시작해 아래 DB 작업과 병렬로 돌린다 → 첫 토큰까지 지연 단축
+  const longTermMemoryPromise = retrieveRelevantMemories(params.id, content, 6).catch(err => { console.error('[ragMemory] 메모리 검색 실패:', err); return [] })
 
   let diceResult: DiceResult | null = null
   if (dice && (conv.mode === 'story' || conv.mode === 'multiStory')) {
@@ -172,20 +173,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const prevMsg = conv.messages[conv.messages.length - 1] ?? null
-  const userMsg = await prisma.message.create({
-    data: {
-      conversationId: params.id,
-      role: 'user',
-      content: diceResult ? `${content}\n\n${diceTag(diceResult)}` : content,
-      chapter: conv.chapter,
-      isSelected: true,
-      parentId: prevMsg?.id ?? null,
-    },
-  })
-
-  const [{ globalRules, modeRules, closingRules }, personalRules] = await Promise.all([
+  const [userMsg, { globalRules, modeRules, closingRules }, personalRules, longTermMemory] = await Promise.all([
+    prisma.message.create({
+      data: {
+        conversationId: params.id,
+        role: 'user',
+        content: diceResult ? `${content}\n\n${diceTag(diceResult)}` : content,
+        chapter: conv.chapter,
+        isSelected: true,
+        parentId: prevMsg?.id ?? null,
+      },
+    }),
     loadGlobalRules(conv.mode),
     getPersonalRulesForConv(userId, conv.mode),
+    longTermMemoryPromise,
   ])
 
   const matchedLorebook = matchLorebook(conv.lorebooks, conv.messages)
@@ -301,6 +302,7 @@ async function generateAsync({
     cleanText = applyLightFixes(cleanText, revisionOptions)
 
     if (needsResponseRevision(cleanText, revisionOptions)) {
+      brokerSetPhase(msgId, 'revising')
       const revised = await streamRevision({
         gen,
         temperature: Math.min(Number(character.temperature ?? conv.temperature ?? 0.9), 0.75),
