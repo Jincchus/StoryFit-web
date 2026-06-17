@@ -157,8 +157,9 @@ export async function streamGeminiChat(
   return streamViaApiKey(params, onChunk, signal)
 }
 
-export async function generateText(systemPrompt: string, userPrompt: string, maxOutputTokens = 1024, safetyLevel?: SafetyLevel): Promise<string> {
-  const utilConfig = { maxOutputTokens, thinkingConfig: { thinkingBudget: 0 } }
+export async function generateText(systemPrompt: string, userPrompt: string, maxOutputTokens = 1024, safetyLevel?: SafetyLevel, thinkingBudget = 0): Promise<string> {
+  // thinkingBudget: 0=비활성(기본, 빠름) / -1=동적 추론(품질↑, 과삭제 방지용)
+  const utilConfig = { maxOutputTokens, thinkingConfig: { thinkingBudget } }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
     threshold: SAFETY_MAP[safetyLevel ?? 'standard'],
