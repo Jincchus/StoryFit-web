@@ -49,6 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       plotOutline: (source.plotOutline as any) ?? undefined,
       styleConfig: (source.styleConfig as any) ?? undefined,
       suggestRepliesEnabled: source.suggestRepliesEnabled,
+      enrichInputMode: source.enrichInputMode,
       maxOutputTokens: source.maxOutputTokens,
       thinkingBudget: source.thinkingBudget,
       rootConversationId: rootId,

@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
       inventory: body.inventoryEnabled ? ([] as any) : undefined,
       styleConfig: body.styleConfig ?? null,
       suggestRepliesEnabled: body.suggestRepliesEnabled ?? false,
+      enrichInputMode: body.enrichInputMode ?? false,
       autoChapterEnabled: body.autoChapterEnabled ?? false,
       sourceUrl: convSourceUrl,
       ...(tikitaPlotOutline ? { plotOutline: tikitaPlotOutline, chapter: 1 } : {}),

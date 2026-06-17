@@ -226,11 +226,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
   })
 
-  // 스토리 선택지(4지선다)는 추천 답변 칩으로 대체 — AI 본문에는 선택지를 생성하지 않는다
-  const allowChoices = false
+  const enrichMode = conv.enrichInputMode ?? false
+  // enrichMode+스토리 조합일 때만 선택지 형식 활성화; 그 외에는 OFF 유지
+  const allowChoices = enrichMode && (conv.mode === 'story' || conv.mode === 'multiStory')
   const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charNames)
     + (diceResult ? diceInstruction(diceResult) : '')
-  const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices)
+  const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices, enrichMode)
 
   // 스트리밍 플레이스홀더 메시지 생성
   const assistantMsg = await prisma.message.create({
@@ -292,11 +293,14 @@ async function generateAsync({
 
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText)
 
+    const enrichMode = conv.enrichInputMode ?? false
+    const allowChoices = enrichMode && (conv.mode === 'story' || conv.mode === 'multiStory')
     const revisionOptions = {
-      allowChoices: false,
+      allowChoices,
       forbiddenChoiceNames: [],
       requiredBodyNames: [],
       personaName: conv.personaCharacter?.name || conv.user?.displayName || '나',
+      enrichMode,
     }
 
     cleanText = applyLightFixes(cleanText, revisionOptions)

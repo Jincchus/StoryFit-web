@@ -313,6 +313,27 @@ export default function SidePanel({
       </div>
 
       <div className="side-section">
+        <div className="spread" style={{ alignItems: 'center' }}>
+          <div className="label" style={{ marginBottom: 0 }}>✍️ 입력 다듬어 확장</div>
+          <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={conv.enrichInputMode ?? false}
+              onChange={async e => {
+                const checked = e.target.checked
+                try {
+                  await api.patch(`/api/conversations/${convId}`, { enrichInputMode: checked })
+                  setConv(c => c ? { ...c, enrichInputMode: checked } : c)
+                } catch { setToast('설정 저장에 실패했습니다') }
+              }}
+            />
+            <span className="tiny">{conv.enrichInputMode ? 'ON' : 'OFF'}</span>
+          </label>
+        </div>
+        <div className="tiny muted" style={{ marginTop: 4 }}>ON이면 내 입력을 다듬어 소설체로 확장한 뒤 AI가 자연스럽게 이어갑니다.</div>
+      </div>
+
+      <div className="side-section">
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, bookmark: !o.bookmark }))}>
           <span>🔖 북마크</span>
           <span className={`acc-arrow ${panelOpen.bookmark ? 'open' : ''}`}>▼</span>

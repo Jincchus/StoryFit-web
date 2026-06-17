@@ -64,10 +64,11 @@ export function buildGeminiHistory(
   messages: { id: string; role: string; content: string }[],
   turnControlMsgId: string | undefined,
   allowChoices: boolean,
+  enrichMode = false,
 ): GeminiTurn[] {
   return messages.reduce<GeminiTurn[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
-    const contentForModel = m.id === turnControlMsgId ? appendTurnControlInstruction(m.content, allowChoices) : m.content
+    const contentForModel = m.id === turnControlMsgId ? appendTurnControlInstruction(m.content, allowChoices, enrichMode) : m.content
     const last = acc[acc.length - 1]
     if (last && last.role === role) {
       last.parts[0].text += '\n\n' + contentForModel

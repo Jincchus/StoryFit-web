@@ -53,6 +53,7 @@ export interface ResponseRevisionOptions {
   forbiddenChoiceNames?: string[]
   requiredBodyNames?: string[]
   personaName?: string
+  enrichMode?: boolean
 }
 
 function escapeRegExp(value: string): string {
@@ -123,8 +124,24 @@ function missesRequiredBodySpeaker(text: string, names: string[] = []): boolean 
   })
 }
 
-export function appendTurnControlInstruction(content: string, allowChoices = false): string {
-  return `${content.trim()}\n\n${getTurnControlInstruction(allowChoices)}`
+function getEnrichTurnInstruction(allowChoices = false): string {
+  const base = `[Turn writing guidelines — must be followed]
+The user's input above is a draft of the next scene beat. In your response:
+1. Incorporate and refine the user's input — keep its intent and events, rewrite into polished, vivid novel-style prose.
+2. Enrich with sensory detail, the persona's actions, inner state, and surroundings. Expand substantially; no short or plain restatement.
+3. Then continue naturally — let the AI character(s) react and advance the scene one step forward.
+You MAY write and elaborate the persona's (user's) actions and words for this turn. This overrides the default "do not write the user's actions" rule for this turn only.`
+  if (allowChoices) {
+    return base + `\nAfter the body, place a "---" divider and present 4 numbered choices for the user's next action or dialogue (following story mode rules).`
+  }
+  return base
+}
+
+export function appendTurnControlInstruction(content: string, allowChoices = false, enrichMode = false): string {
+  const instruction = enrichMode
+    ? getEnrichTurnInstruction(allowChoices)
+    : getTurnControlInstruction(allowChoices)
+  return `${content.trim()}\n\n${instruction}`
 }
 
 export function stripChoiceArtifacts(text: string): string {
@@ -164,24 +181,23 @@ export function needsResponseRevision(text: string, options: boolean | ResponseR
   const forbiddenChoiceNames = typeof options === 'boolean' ? [] : options.forbiddenChoiceNames ?? []
   const requiredBodyNames = typeof options === 'boolean' ? [] : options.requiredBodyNames ?? []
   const personaName = typeof options === 'boolean' ? undefined : options.personaName
+  const enrichMode = typeof options === 'boolean' ? false : !!options.enrichMode
 
   const trimmed = text.trim()
   if (!trimmed) return false
   if (allowChoices && hasForbiddenChoiceSpeaker(trimmed, forbiddenChoiceNames)) return true
   if (allowChoices && missesRequiredBodySpeaker(trimmed, requiredBodyNames)) return true
-  if (USER_CONTROL_PATTERNS.some(pattern => pattern.test(trimmed))) return true
 
-  if (personaName) {
-    const escapedPersona = escapeRegExp(personaName)
-    const bodyBlock = getBodyBlock(trimmed)
-    
-    // Check for "PersonaName : " in the body block
-    const personaDialoguePattern = new RegExp(`(?:^|\\n)\\s*${escapedPersona}\\s*:`, 'u')
-    if (personaDialoguePattern.test(bodyBlock)) return true
-
-    // Check for "PersonaName did X / felt Y" actions in the body block
-    const personaActionPattern = new RegExp(`${escapedPersona}(?:은|는|이|가)?\\s+[^.?!\\n]*(?:했다|하였다|말했다|느꼈다|생각했다|결심했다|고개를|손을|걸음을)`, 'u')
-    if (personaActionPattern.test(bodyBlock)) return true
+  if (!enrichMode) {
+    if (USER_CONTROL_PATTERNS.some(pattern => pattern.test(trimmed))) return true
+    if (personaName) {
+      const escapedPersona = escapeRegExp(personaName)
+      const bodyBlock = getBodyBlock(trimmed)
+      const personaDialoguePattern = new RegExp(`(?:^|\\n)\\s*${escapedPersona}\\s*:`, 'u')
+      if (personaDialoguePattern.test(bodyBlock)) return true
+      const personaActionPattern = new RegExp(`${escapedPersona}(?:은|는|이|가)?\\s+[^.?!\\n]*(?:했다|하였다|말했다|느꼈다|생각했다|결심했다|고개를|손을|걸음을)`, 'u')
+      if (personaActionPattern.test(bodyBlock)) return true
+    }
   }
 
   return false
@@ -191,8 +207,25 @@ export function buildRevisionPrompt(badResponse: string, options: boolean | Resp
   const allowChoices = typeof options === 'boolean' ? options : !!options.allowChoices
   const forbiddenChoiceNames = typeof options === 'boolean' ? [] : options.forbiddenChoiceNames ?? []
   const requiredBodyNames = typeof options === 'boolean' ? [] : options.requiredBodyNames ?? []
+  const enrichMode = typeof options === 'boolean' ? false : !!options.enrichMode
   const forbiddenNamesText = forbiddenChoiceNames.filter(Boolean).join(', ')
   const requiredNamesText = requiredBodyNames.filter(Boolean).join(', ')
+
+  if (enrichMode) {
+    return `[Response Rewrite Request]
+The previous response was missing or had incorrect story mode choices.
+
+${STORY_RESPONSE_CONTROL_RULES}
+
+Rewrite keeping the same body content, but fix the choices section:
+- ${forbiddenNamesText ? `Do not include ${forbiddenNamesText}'s name, dialogue, or actions in the choices.` : "Present choices only as the user's next action or dialogue candidates."}
+- ${requiredNamesText ? `The body before the choices must include ${requiredNamesText}'s actions and dialogue.` : 'The AI character must act and speak in the body.'}
+- Output only the rewritten body+choices without any explanation.
+
+[Incorrect Response]
+${badResponse}`
+  }
+
   return `[Response Rewrite Request]
 The previous response violated the app's response control rules or was too short.
 

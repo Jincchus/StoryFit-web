@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json()
   const { soloCharacterId, characterIds, ...rest } = body
-  const allowed = ['title', 'currentAI', 'personaCharacterId', 'coreMemory', 'statusTimeline', 'scenarioDescription', 'isPinned', 'isArchived', 'branchDescription', 'inventory', 'styleConfig', 'isAutoCreated', 'mode', 'tags', 'autoChapterEnabled']
+  const allowed = ['title', 'currentAI', 'personaCharacterId', 'coreMemory', 'statusTimeline', 'scenarioDescription', 'isPinned', 'isArchived', 'branchDescription', 'inventory', 'styleConfig', 'isAutoCreated', 'mode', 'tags', 'autoChapterEnabled', 'enrichInputMode']
   const data: Record<string, unknown> = Object.fromEntries(Object.entries(rest).filter(([k]) => allowed.includes(k)))
 
   const conv = await prisma.conversation.updateMany({ where: { id: params.id, userId }, data })

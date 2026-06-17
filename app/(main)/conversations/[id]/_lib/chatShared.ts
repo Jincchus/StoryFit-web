@@ -15,6 +15,7 @@ export interface Conv {
   styleConfig?: Record<string, string | null> | null
   sourceLorebookUrls?: { url: string; name: string }[] | null
   suggestRepliesEnabled?: boolean
+  enrichInputMode?: boolean
   autoChapterEnabled?: boolean
   chapter?: number
   plotOutline?: PlotOutlineData | null
