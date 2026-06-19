@@ -178,7 +178,7 @@ export default function LoveydoveyCharDetailPage() {
                 </div>
               </div>
             </div>
-            {tagline && <p className="lovey-desc" style={{ marginBottom: 10 }}>{tagline}</p>}
+            {tagline && <p className="lovey-desc" style={{ marginBottom: 10 }}>{replaceDisplayPlaceholders(tagline, userDisplayName, mainChar?.name ?? '')}</p>}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {col.tags.map(t => <span key={t} className="lovey-chip">#{t}</span>)}
