@@ -1,4 +1,4 @@
-// 러비더비(loveydovey.ai) 국내 센터 가져오기 — 메타데이터 한정.
+// loveydovey(loveydovey.ai) 국내 센터 가져오기 — 메타데이터 한정.
 // 캐릭터 데이터는 Firebase(reelso-prod) Firestore에 있고, Characters/{id} 문서는
 // 공개 읽기가 허용되어 비로그인으로 메타데이터(이름·한줄소개·직업·나이·장르·이미지)를 받는다.
 // ⚠️ persona·도입부(first_message)는 서버 보호(비공개 서브컬렉션)라 인증으로도 추출 불가.
@@ -24,7 +24,7 @@ const GENRE_MAP: Record<string, string> = {
 // URL에서 캐릭터 id 추출. 형식: loveydovey.ai/characters/{id}
 export function parseLoveydoveyUrl(url: string): string {
   const m = url.match(/\/characters\/([A-Za-z0-9_-]{6,})/)
-  if (!m) throw new Error('러비더비 캐릭터 URL이 아닙니다 (/characters/{id} 형식 필요)')
+  if (!m) throw new Error('loveydovey 캐릭터 URL이 아닙니다 (/characters/{id} 형식 필요)')
   return m[1]
 }
 
@@ -51,7 +51,7 @@ export function assembleLoveydovey(fields: any): AssembledResult {
   const tii = top.translatedInstructionInfos ?? {}
   const loc = tii[PREFERRED_LANG] ?? {}
   const name = (loc.name ?? top.name ?? '').trim()
-  if (!name) throw new Error('러비더비 캐릭터 정보를 찾을 수 없습니다.')
+  if (!name) throw new Error('loveydovey 캐릭터 정보를 찾을 수 없습니다.')
 
   const description = (loc.description ?? top.description ?? '').trim() // 한줄소개(태그라인)
   const job = (loc.job ?? top.job ?? '').trim()
@@ -66,7 +66,7 @@ export function assembleLoveydovey(fields: any): AssembledResult {
     job && `직업: ${job}`,
     age && `나이: ${age}`,
     genre && `장르: ${genre}`,
-    '\n(러비더비는 메타데이터만 가져옵니다. 상세 설정·첫 장면은 직접 입력하세요.)',
+    '\n(loveydovey는 메타데이터만 가져옵니다. 상세 설정·첫 장면은 직접 입력하세요.)',
   ]
     .filter(Boolean)
     .join('\n')
@@ -98,8 +98,8 @@ export async function captureLoveydovey(url: string): Promise<Captured> {
   const res = await fetch(`${FIRESTORE}/${encodeURIComponent(id)}?key=${FIREBASE_API_KEY}`, {
     headers: { Accept: 'application/json' },
   })
-  if (res.status === 404) throw new Error('러비더비 캐릭터를 찾을 수 없습니다.')
-  if (!res.ok) throw new Error(`러비더비 조회 오류 (HTTP ${res.status})`)
+  if (res.status === 404) throw new Error('loveydovey 캐릭터를 찾을 수 없습니다.')
+  if (!res.ok) throw new Error(`loveydovey 조회 오류 (HTTP ${res.status})`)
 
   const doc = await res.json()
   const assembledResult = assembleLoveydovey(doc?.fields)

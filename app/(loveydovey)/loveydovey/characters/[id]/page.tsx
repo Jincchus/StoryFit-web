@@ -230,7 +230,7 @@ export default function LoveydoveyCharDetailPage() {
               </div>
             ) : (
               <div className="lovey-intro-box" style={{ color: 'var(--l-ink-soft)' }}>
-                러비더비는 도입부를 제공하지 않습니다. ✏ 편집으로 첫 장면을 직접 작성하세요.
+                loveydovey는 도입부를 제공하지 않습니다. ✏ 편집으로 첫 장면을 직접 작성하세요.
               </div>
             )}
           </div>

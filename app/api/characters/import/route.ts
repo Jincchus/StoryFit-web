@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
   }
   if (matchesHost(url, 'loveydovey.ai')) {
     try { return NextResponse.json(await runImport(await captureLoveydovey(url.trim()), url.trim(), userId), { status: 201 }) }
-    catch (e: any) { return NextResponse.json({ error: e.message ?? '러비더비 가져오기 실패' }, { status: 400 }) }
+    catch (e: any) { return NextResponse.json({ error: e.message ?? 'loveydovey 가져오기 실패' }, { status: 400 }) }
   }
 
   let res: Response

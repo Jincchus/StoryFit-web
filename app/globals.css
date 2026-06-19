@@ -1327,7 +1327,7 @@ body[data-crt="on"]::after{
 .rofan-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
   background:linear-gradient(135deg,#e0529c,#f07ab8); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
 
-/* ─── LOVEYDOVEY (러비더비, 국내, dark, coral, scoped) ─────────────────── */
+/* ─── LOVEYDOVEY (loveydovey, 국내, dark, coral, scoped) ─────────────────── */
 .lovey-root{
   --l-bg:#120c0d; --l-surface:#211618; --l-surface-2:#2d2023; --l-line:#3e2d30;
   --l-ink:#f8f0f1; --l-ink-soft:#b29a9d; --l-accent:#ff5a5f; --l-radius:14px;

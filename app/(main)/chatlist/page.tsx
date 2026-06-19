@@ -78,7 +78,7 @@ const SOURCE_FILTERS = [
   { key: 'TIKITA', label: 'TIKITA' },
   { key: 'CHUB', label: 'CHUB' },
   { key: 'ROFANAI', label: 'rofanai' },
-  { key: 'LOVEYDOVEY', label: '러비더비' },
+  { key: 'LOVEYDOVEY', label: 'loveydovey' },
 ] as const
 
 type SourceFilter = typeof SOURCE_FILTERS[number]['key']

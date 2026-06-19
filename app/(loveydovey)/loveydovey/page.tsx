@@ -104,7 +104,7 @@ export default function LoveydoveyListPage() {
       <div className="lovey-header" style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button className="lovey-iconbtn" aria-label="홈으로" onClick={() => router.push('/')}>🏠</button>
-          <div className="lovey-logo">러비더비</div>
+          <div className="lovey-logo">loveydovey</div>
         </div>
         <button className="lovey-iconbtn" onClick={() => setMenuOpen(o => !o)}>⋮</button>
         {menuOpen && (

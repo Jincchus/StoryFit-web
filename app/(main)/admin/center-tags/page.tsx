@@ -106,7 +106,7 @@ export default function AdminCenterTagsPage() {
         <div className="scroll" style={{ flex: 1, minHeight: 0, padding: 4 }}>
           <div className="vstack" style={{ gap: 12 }}>
             <div className="tiny muted">
-              각 센터(WHIF·ZETA·melting·Tikita·Chub·rofanai·러비더비)에서 URL로 가져온 태그를 전역으로 모읍니다(센터 구분 없이 같은 이름은 한 번만). 카테고리를 지정하고 노출 여부를 끄면 센터 검색창에서 숨겨집니다.
+              각 센터(WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey)에서 URL로 가져온 태그를 전역으로 모읍니다(센터 구분 없이 같은 이름은 한 번만). 카테고리를 지정하고 노출 여부를 끄면 센터 검색창에서 숨겨집니다.
               {unsetCount > 0 && <> · <b style={{ color: 'var(--hot-pink)' }}>미설정 {unsetCount}개</b></>}
             </div>
 
