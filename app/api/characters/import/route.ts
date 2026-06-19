@@ -8,6 +8,7 @@ import { parsePngTavernCard, buildSystemPromptFromCard } from '@/lib/tavernCard'
 import { captureMelting, captureWhif, captureZeta, matchesHost } from '@/lib/import/capture'
 import { captureTikita } from '@/lib/import/tikita'
 import { captureChub } from '@/lib/import/chub'
+import { captureRofan } from '@/lib/import/rofan'
 import { splitIntoBlocks } from '@/lib/import/blocks'
 import { classifyBlocks } from '@/lib/import/classify'
 import { assemble, buildFallback } from '@/lib/import/assemble'
@@ -203,6 +204,10 @@ export async function POST(req: NextRequest) {
   if (matchesHost(url, 'chub.ai', 'characterhub.org')) {
     try { return NextResponse.json(await runImport(await captureChub(url.trim()), url.trim(), userId), { status: 201 }) }
     catch (e: any) { return NextResponse.json({ error: e.message ?? 'Chub 가져오기 실패' }, { status: 400 }) }
+  }
+  if (matchesHost(url, 'rofan.ai')) {
+    try { return NextResponse.json(await runImport(await captureRofan(url.trim()), url.trim(), userId), { status: 201 }) }
+    catch (e: any) { return NextResponse.json({ error: e.message ?? 'rofanai 가져오기 실패' }, { status: 400 }) }
   }
 
   let res: Response

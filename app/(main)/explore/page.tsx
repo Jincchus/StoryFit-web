@@ -27,6 +27,11 @@ const CENTERS = [
     desc: '외국 캐릭터 URL을 AI 번역으로 가져오기',
     grad: 'linear-gradient(135deg, #ff6a3d, #ff9a5a)',
   },
+  {
+    href: '/rofan', emoji: '💗', name: 'rofanai 센터',
+    desc: '로맨스 판타지 캐릭터 URL로 가져오기',
+    grad: 'linear-gradient(135deg, #e0529c, #f07ab8)',
+  },
 ]
 
 const SHORTCUTS = [

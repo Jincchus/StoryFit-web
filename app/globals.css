@@ -1277,6 +1277,56 @@ body[data-crt="on"]::after{
 .chub-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
   background:linear-gradient(135deg,#ff6a3d,#ff9a5a); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
 
+/* ─── ROFANAI (rofan.ai, 국내, dark, rose, scoped) ─────────────────────── */
+.rofan-root{
+  --r-bg:#120d10; --r-surface:#211820; --r-surface-2:#2d212a; --r-line:#3e2f3a;
+  --r-ink:#f8f1f5; --r-ink-soft:#b29aa6; --r-accent:#e0529c; --r-radius:14px;
+  /* WhifPersonaModal/공용 컴포넌트가 이 영역에서도 쓰이므로 --w-* 변수를 동일 톤으로 매핑 */
+  --w-bg:var(--r-bg); --w-surface:var(--r-surface); --w-surface-2:var(--r-surface-2);
+  --w-line:var(--r-line); --w-ink:var(--r-ink); --w-ink-soft:var(--r-ink-soft);
+  --w-accent:var(--r-accent); --w-accent-2:var(--r-accent);
+  display:flex; flex-direction:column; height:100%; min-height:0;
+  background:var(--r-bg); color:var(--r-ink);
+}
+.rofan-scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+.rofan-header{ flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--r-line);
+  background:linear-gradient(90deg,#e0529c,#f07ab8); }
+.rofan-logo{ font-size:18px; font-weight:900; letter-spacing:.04em; color:#fff; }
+.rofan-iconbtn{ background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 8px; }
+.rofan-menu{ position:absolute; top:52px; right:12px; z-index:60; background:var(--r-surface-2);
+  border:1px solid var(--r-line); border-radius:10px; overflow:hidden; min-width:220px; }
+.rofan-menu-item{ display:block; width:100%; text-align:left; background:none; border:none;
+  color:var(--r-ink); font-size:13px; padding:11px 14px; cursor:pointer; }
+.rofan-menu-item:hover{ background:var(--r-surface); }
+.rofan-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:16px; }
+.rofan-card{ background:var(--r-surface); border:1px solid var(--r-line); border-radius:var(--r-radius);
+  overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
+.rofan-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--r-surface-2); display:block; }
+.rofan-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.rofan-card-title{ font-size:13px; font-weight:800; color:var(--r-ink); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.rofan-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+.rofan-chip{ display:inline-block; background:var(--r-surface-2); color:var(--r-ink-soft);
+  font-size:10px; padding:2px 8px; border-radius:999px; }
+.rofan-chip.sel{ background:var(--r-accent); color:#fff; }
+.rofan-empty{ padding:48px 16px; text-align:center; color:var(--r-ink-soft); font-size:13px; line-height:1.7; }
+.rofan-cover{ width:100%; aspect-ratio:1; object-fit:cover; background:var(--r-surface-2); display:block; }
+.rofan-cover-wrap{ position:relative; }
+.rofan-back{ background:rgba(0,0,0,.4); border:none; color:#fff; font-size:20px; cursor:pointer;
+  padding:2px 10px; border-radius:999px; }
+.rofan-section{ padding:16px; }
+.rofan-section-title{ font-size:15px; font-weight:800; color:var(--r-ink); margin:0 0 10px; }
+.rofan-avatar{ width:72px; height:72px; border-radius:14px; object-fit:cover; flex-shrink:0; }
+.rofan-desc{ color:var(--r-ink-soft); line-height:1.7; font-size:14px; white-space:pre-wrap; }
+.rofan-intro-box{ background:var(--r-surface); border:1px solid var(--r-line); border-radius:12px;
+  padding:14px; color:var(--r-ink-soft); line-height:1.7; font-size:14px; }
+.rofan-cta{ position:sticky; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, transparent, var(--r-bg) 40%); }
+.rofan-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#e0529c,#f07ab8); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
+
 /* ─── TIKITA immersive (dark, teal, scoped) ─────────────────────── */
 .tikita-root{
   --t-bg:#0d1213; --t-surface:#161e1f; --t-surface-2:#1f2a2b; --t-line:#2c3a3b;
