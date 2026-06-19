@@ -126,6 +126,7 @@ model CharacterCollection {
   zetaMeta       Json?
   meltingMeta    Json?
   tikitaMeta     Json?
+  chubMeta       Json?         // 번역 토글용: { activeLang: 'en'|'ko', alt: 비활성 언어 스냅샷 }
   createdAt      DateTime      @default(now())
 }
 

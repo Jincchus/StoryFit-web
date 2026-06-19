@@ -5,7 +5,6 @@
 import { generateText } from '@/lib/ai/gemini'
 import { GEMINI_CHAT_MODEL } from '@/lib/constants'
 import type { AssembledCharacter } from './types'
-import { applyTagMap, finalizeTags } from './tagMap'
 
 const TRANSLATE_MODEL = GEMINI_CHAT_MODEL
 // const TRANSLATE_MODEL = GEMINI_UTILITY_MODEL  // TODO: flash로 변경 예정
@@ -57,26 +56,9 @@ async function translateLong(text: string): Promise<string> {
   }
 }
 
-// 태그 정규화: 로컬 매핑 우선 → 미정의분만 1콜 배치 번역 → dedup·상한.
-async function normalizeTags(tags: string[]): Promise<string[]> {
-  if (!tags?.length) return []
-  const { resolved, unresolved } = applyTagMap(tags)
-  let translated: string[] = []
-  if (unresolved.length) {
-    const userPrompt = `다음 영문 태그들을 각각 짧은 한국어 단어/구로 번역해, 같은 순서의 JSON 문자열 배열로만 출력해라. 음차가 통용되는 단어는 음차한다.\n\n${JSON.stringify(unresolved)}`
-    try {
-      const raw = await generateText(SYSTEM, userPrompt, 1024, TRANSLATE_SAFETY, 0, TRANSLATE_MODEL)
-      const parsed = JSON.parse(stripFence(raw))
-      if (Array.isArray(parsed)) translated = parsed.map((t) => String(t).trim()).filter(Boolean)
-    } catch {
-      translated = unresolved // 실패 시 원문 유지
-    }
-  }
-  return finalizeTags([...resolved, ...translated])
-}
-
-// 카드 전체 번역. 이름(name)·gender·avatarUrl은 비번역 통과.
-export async function translateCard(
+// 카드 본문 번역(태그 제외 — 태그는 가져올 때 tagMap으로 정규화됨).
+// 이름·gender·avatarUrl·tags는 그대로 통과. 차단/실패 필드는 원문 보존.
+export async function translateContent(
   raw: AssembledCharacter,
   scenarioRaw: string,
 ): Promise<{ character: AssembledCharacter; scenarioDescription: string }> {
@@ -88,21 +70,19 @@ export async function translateCard(
 
   // 2) 긴 서술 — 도입부 각 항목 + 예시대화 병렬 번역
   const openings = raw.openingMessages ?? []
-  const [translatedOpenings, exampleDialogues, tags] = await Promise.all([
+  const [translatedOpenings, exampleDialogues] = await Promise.all([
     Promise.all(openings.map(async (o) => ({ ...o, content: await translateLong(o.content) }))),
     translateLong(raw.exampleDialogues),
-    normalizeTags(raw.tags ?? []),
   ])
 
-  const openingMessage = translatedOpenings[0]?.content ?? raw.openingMessage
+  const openingMessage = translatedOpenings[0]?.content ?? (await translateLong(raw.openingMessage))
 
   const character: AssembledCharacter = {
     ...raw,
     additionalInfo: short.additionalInfo ?? raw.additionalInfo,
     openingMessage,
-    openingMessages: translatedOpenings.length > 1 ? translatedOpenings : undefined,
+    openingMessages: translatedOpenings.length ? translatedOpenings : raw.openingMessages,
     exampleDialogues,
-    tags,
   }
 
   return { character, scenarioDescription: short.scenario ?? scenarioRaw }

@@ -63,7 +63,7 @@ export default function ChubListPage() {
     setImporting(true); setMsg('')
     try {
       await api.post('/api/characters/import', { url: importUrl.trim() })
-      setImportUrl(''); setMsg('✓ 가져왔습니다 (자동 번역 완료)'); setMenuOpen(false)
+      setImportUrl(''); setMsg('✓ 가져왔습니다 (원문 — 상세에서 번역 버튼)'); setMenuOpen(false)
       await fetchData()
     } catch (e: any) { setMsg('⚠ ' + (e.message ?? '가져오기 실패')) }
     finally { setImporting(false) }
@@ -116,7 +116,7 @@ export default function ChubListPage() {
                 style={{ fontSize: 12 }} />
               <button className="chub-menu-item"
                 style={{ background: 'var(--c-accent)', borderRadius: 8, color: '#fff', textAlign: 'center' }}
-                disabled={importing} onClick={handleImport}>{importing ? '가져오는 중...' : '📥 가져오기 (자동 번역)'}</button>
+                disabled={importing} onClick={handleImport}>{importing ? '가져오는 중...' : '📥 가져오기 (원문)'}</button>
             </div>
             <button className="chub-menu-item" onClick={createCharacter}>+ 새 캐릭터 만들기</button>
             <button className="chub-menu-item" onClick={toggleEditMode}>

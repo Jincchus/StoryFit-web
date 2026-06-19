@@ -24,6 +24,7 @@ interface Char {
 interface Collection {
   id: string; title: string; coverImageUrl: string; description: string; tags: string[]
   characters: Char[]
+  chubMeta?: { activeLang?: 'en' | 'ko'; alt?: unknown } | null
 }
 
 export default function ChubCharDetailPage() {
@@ -40,6 +41,21 @@ export default function ChubCharDetailPage() {
   const [isEditingOpening, setIsEditingOpening] = useState(false)
   const [editContent, setEditContent] = useState('')
   const [userDisplayName, setUserDisplayName] = useState('나')
+  const [translating, setTranslating] = useState(false)
+
+  const handleTranslate = async () => {
+    if (translating) return
+    setTranslating(true); setError('')
+    try {
+      const updated = await api.post(`/api/collections/${id}/translate`, {})
+      setCol(updated)
+      setOpeningIdx(0); setIsEditingOpening(false)
+    } catch (e: any) {
+      setError('번역 실패: ' + (e.message ?? ''))
+    } finally {
+      setTranslating(false)
+    }
+  }
 
   useEffect(() => {
     api.get('/api/user/settings')
@@ -167,6 +183,11 @@ export default function ChubCharDetailPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: 'var(--c-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col.title}</h1>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button className="chub-chip" disabled={translating}
+                      style={{ border: 'none', cursor: translating ? 'default' : 'pointer', background: 'var(--c-accent)', color: '#fff', padding: '4px 8px', fontSize: 11 }}
+                      onClick={handleTranslate}>
+                      {translating ? '번역 중...' : (col.chubMeta?.activeLang === 'ko' ? '🔤 원문' : '🌐 한국어로 번역')}
+                    </button>
                     <button className="chub-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--c-surface-2)', padding: '4px 8px', fontSize: 11 }}
                       onClick={() => setShowEdit(true)}>✏ 정보</button>
                     {mainChar && (

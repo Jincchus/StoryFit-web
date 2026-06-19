@@ -1,9 +1,10 @@
 // Chub.ai(=CharacterHub) 외국 센터 가져오기.
-// chara_card_v2 카드를 받아 매핑표대로 조립 → AI 번역 → Captured 반환.
-// 국내 센터처럼 assembledResult를 직접 채워 classify 단계를 건너뛴다(필드가 이미 구조화됨).
+// chara_card_v2 카드를 받아 매핑표대로 조립 → 원문 그대로 Captured 반환(즉시·결정적).
+// 번역은 가져온 뒤 상세 화면의 "번역" 버튼으로 별도 수행(POST /api/collections/[id]/translate).
+// 태그만 가져올 때 tagMap으로 로컬 정규화(Gemini 미사용).
 import { parsePngTavernCard, type TavernCard } from '@/lib/tavernCard'
 import type { Captured, AssembledCharacter } from './types'
-import { translateCard } from './translate'
+import { applyTagMap, finalizeTags } from './tagMap'
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 
@@ -74,14 +75,18 @@ export async function captureChub(url: string): Promise<Captured> {
 
   // 태그: 카드 내장 tags + 노드 topics 합치기(노드 쪽이 실제 태그인 경우가 많음).
   const nodeTopics: string[] = Array.isArray(node?.topics) ? node.topics.map((t: any) => String(t)) : []
-  const tags = [...(card.tags ?? []), ...nodeTopics]
+  // 태그: 카드 tags + 노드 topics → 로컬 tagMap 정규화(Gemini 미사용, 즉시).
+  const tags = finalizeTags(((): string[] => {
+    const { resolved, unresolved } = applyTagMap([...(card.tags ?? []), ...nodeTopics])
+    return [...resolved, ...unresolved] // 미정의 태그는 원문 유지(번역 버튼이 다루지 않음)
+  })())
 
   // 아바타: v1은 외부 URL만 → Chub 공개 아바타 CDN 사용.
   const avatarUrl: string =
     node?.avatar_url || node?.max_res_url || `https://avatars.charhub.io/avatars/${author}/${slug}/avatar.webp`
 
-  // 번역 전 조립(원문 그대로). name/gender/avatar는 비번역.
-  const raw: AssembledCharacter = {
+  // 조립(원문 그대로). 번역은 가져온 뒤 버튼으로 수행.
+  const character: AssembledCharacter = {
     name: card.name.trim(),
     gender: '', // chara_card_v2엔 성별 필드 없음 → 사용자가 edit에서 채움
     tags,
@@ -101,13 +106,12 @@ export async function captureChub(url: string): Promise<Captured> {
     avatarUrl,
   }
 
-  if (!raw.additionalInfo.trim()) throw new Error('Chub 카드에 캐릭터 설명이 없습니다.')
+  if (!character.additionalInfo.trim()) throw new Error('Chub 카드에 캐릭터 설명이 없습니다.')
 
-  // 번역 + 태그 정규화
-  const { character, scenarioDescription } = await translateCard(raw, card.scenario?.trim() ?? '')
+  const scenarioDescription = card.scenario?.trim() ?? ''
 
   console.log(
-    `[chub-import] ok — name=${character.name} tags=${character.tags?.length ?? 0} openings=${character.openingMessages?.length ?? 1}`,
+    `[chub-import] ok (원문) — name=${character.name} tags=${character.tags?.length ?? 0} openings=${character.openingMessages?.length ?? 1}`,
   )
 
   return {
