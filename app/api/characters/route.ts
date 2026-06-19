@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     : searchParams.get('isChub') === 'true' ? 'chub'
     : searchParams.get('isRofan') === 'true' ? 'rofan'
     : searchParams.get('isLoveydovey') === 'true' ? 'loveydovey'
+    : searchParams.get('isBabechat') === 'true' ? 'babechat'
     : 'regular'
 
   const whereClause =
@@ -32,6 +33,8 @@ export async function GET(req: NextRequest) {
       ? { creatorId: userId, collection: { sourceUrl: { contains: 'rofan.ai' } } }
     : source === 'loveydovey'
       ? { creatorId: userId, collection: { sourceUrl: { contains: 'loveydovey.ai' } } }
+    : source === 'babechat'
+      ? { creatorId: userId, collection: { sourceUrl: { contains: 'babechat.' } } }
       : {
           OR: [
             { isPreset: true },

@@ -18,6 +18,7 @@ function CharacterEditContent() {
   const isChub = searchParams.get('isChub') === 'true'
   const isRofan = searchParams.get('isRofan') === 'true'
   const isLoveydovey = searchParams.get('isLoveydovey') === 'true'
+  const isBabechat = searchParams.get('isBabechat') === 'true'
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
@@ -33,6 +34,7 @@ function CharacterEditContent() {
     else if (isChub) colsUrl += '?isChub=true'
     else if (isRofan) colsUrl += '?isRofan=true'
     else if (isLoveydovey) colsUrl += '?isLoveydovey=true'
+    else if (isBabechat) colsUrl += '?isBabechat=true'
 
     Promise.all([
       api.get(`/api/characters/${id}`),
@@ -56,7 +58,7 @@ function CharacterEditContent() {
           : colList
       )
     }).catch((e: any) => setFetchError(e.message))
-  }, [id, isWhif, isZeta, isMelting, isTikita, isChub, isRofan, isLoveydovey])
+  }, [id, isWhif, isZeta, isMelting, isTikita, isChub, isRofan, isLoveydovey, isBabechat])
 
   if (fetchError) return (
     <Win title="캐릭터 수정" icon={PixelIcons.user}>
@@ -92,6 +94,8 @@ function CharacterEditContent() {
         router.push(form.collectionId ? `/rofan/characters/${form.collectionId}` : '/rofan')
       } else if (isLoveydovey) {
         router.push(form.collectionId ? `/loveydovey/characters/${form.collectionId}` : '/loveydovey')
+      } else if (isBabechat) {
+        router.push(form.collectionId ? `/babechat/characters/${form.collectionId}` : '/babechat')
       } else {
         router.push('/characters')
       }
@@ -101,7 +105,7 @@ function CharacterEditContent() {
     }
   }
 
-  const collectionLabel = isWhif ? '세계관' : isZeta ? '플롯' : isMelting ? '캐릭터' : isTikita ? '스토리' : isChub ? '캐릭터' : isRofan ? '캐릭터' : isLoveydovey ? '캐릭터' : '컬렉션'
+  const collectionLabel = isWhif ? '세계관' : isZeta ? '플롯' : isMelting ? '캐릭터' : isTikita ? '스토리' : isChub ? '캐릭터' : isRofan ? '캐릭터' : isLoveydovey ? '캐릭터' : isBabechat ? '캐릭터' : '컬렉션'
 
   return (
     <Win title="캐릭터 수정 (Edit Character)" icon={PixelIcons.user}>

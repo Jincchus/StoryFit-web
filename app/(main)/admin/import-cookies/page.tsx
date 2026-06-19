@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -73,6 +73,10 @@ export default function AdminImportCookiesPage() {
   const [meltingUpdatedAt, setMeltingUpdatedAt] = useState<string | null>(null)
   const [meltingNickname, setMeltingNickname] = useState('')
   const [meltingNicknameUpdatedAt, setMeltingNicknameUpdatedAt] = useState<string | null>(null)
+  const [babechatAccess, setBabechatAccess] = useState('')
+  const [babechatAccessUpdatedAt, setBabechatAccessUpdatedAt] = useState<string | null>(null)
+  const [babechatRefresh, setBabechatRefresh] = useState('')
+  const [babechatRefreshUpdatedAt, setBabechatRefreshUpdatedAt] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -84,6 +88,10 @@ export default function AdminImportCookiesPage() {
       setMeltingUpdatedAt(data.melting_session_cookie?.updatedAt ?? null)
       setMeltingNickname(data.melting_session_nickname?.value ?? '')
       setMeltingNicknameUpdatedAt(data.melting_session_nickname?.updatedAt ?? null)
+      setBabechatAccess(data.babechat_access_token?.value ?? '')
+      setBabechatAccessUpdatedAt(data.babechat_access_token?.updatedAt ?? null)
+      setBabechatRefresh(data.babechat_refresh_token?.value ?? '')
+      setBabechatRefreshUpdatedAt(data.babechat_refresh_token?.updatedAt ?? null)
     }).catch(() => {})
   }
 
@@ -97,6 +105,8 @@ export default function AdminImportCookiesPage() {
         whif_session_cookie: whifCookie,
         melting_session_cookie: meltingCookie,
         melting_session_nickname: meltingNickname,
+        babechat_access_token: babechatAccess,
+        babechat_refresh_token: babechatRefresh,
       })
       setSaved(true)
       load()
@@ -116,7 +126,7 @@ export default function AdminImportCookiesPage() {
             <div style={{ padding: '10px 12px', background: 'rgba(139,92,246,.06)', border: '1px solid rgba(139,92,246,.2)' }}>
               <div className="tiny" style={{ color: 'var(--purple)', fontWeight: 700, marginBottom: 4 }}>이게 뭔가요?</div>
               <div className="tiny muted" style={{ lineHeight: 1.7 }}>
-                WHIF·멜팅(melting.chat)에서 로그인이 필요한 캐릭터를 가져올 때 사용하는 인증 정보입니다.
+                WHIF·멜팅(melting.chat)·babechat에서 로그인이 필요한 캐릭터를 가져올 때 사용하는 인증 정보입니다.
                 여기서 값을 저장하면 <b>재배포 없이 즉시</b> 다음 가져오기 요청부터 반영됩니다.
                 값을 비워두면 비로그인 상태의 미리보기 텍스트만 사용합니다 (정상 동작).
               </div>
@@ -147,6 +157,24 @@ export default function AdminImportCookiesPage() {
               value={meltingNickname}
               onChange={setMeltingNickname}
               updatedAt={meltingNicknameUpdatedAt}
+            />
+
+            <CookieField
+              label="babechat 액세스 토큰 (babechat.ai)"
+              hint={'브라우저에서 babechat.ai에 로그인한 뒤, 개발자도구 → Network 탭 → api.babechatapi.com 요청 클릭 → Headers → Authorization 헤더의 "Bearer " 뒤 토큰을 복사해 붙여넣으세요.\n⚠️ 액세스 토큰은 약 3일 만료됩니다. 아래 refresh 토큰을 함께 저장하면 만료 시 서버가 자동 갱신합니다.'}
+              placeholder="eyJhbGciOiJIUzI1NiIsImtpZCI6ImJhYmVjaGF0LWF1dGgi..."
+              value={babechatAccess}
+              onChange={setBabechatAccess}
+              updatedAt={babechatAccessUpdatedAt}
+            />
+
+            <CookieField
+              label="babechat refresh 토큰 (자동 갱신용)"
+              hint={'개발자도구 → Application/저장소 → Cookies 또는 Local Storage에서 refresh token(또는 토큰 갱신 요청의 refresh_token 파라미터)을 복사해 붙여넣으세요.\n저장해두면 액세스 토큰 만료 시 서버가 자동으로 새 토큰을 발급받습니다. 비워두면 만료 때마다 위 액세스 토큰을 직접 교체해야 합니다.'}
+              placeholder="refresh token"
+              value={babechatRefresh}
+              onChange={setBabechatRefresh}
+              updatedAt={babechatRefreshUpdatedAt}
             />
 
             <div className="hstack" style={{ gap: 6 }}>

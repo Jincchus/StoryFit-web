@@ -24,7 +24,7 @@ interface ConvItem {
   chapter?: number
 }
 
-function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'WHIF' | 'TIKITA' | 'CHUB' | 'ROFANAI' | 'LOVEYDOVEY' | 'STORYFIT' {
+function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'WHIF' | 'TIKITA' | 'CHUB' | 'ROFANAI' | 'LOVEYDOVEY' | 'BABECHAT' | 'STORYFIT' {
   if (sourceUrl?.includes('zeta-ai.io')) return 'ZETA'
   if (sourceUrl?.includes('melting.chat')) return 'MELTING'
   if (sourceUrl?.includes('whif.')) return 'WHIF'
@@ -32,6 +32,7 @@ function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'WHIF' | 'TIKITA' | 
   if (sourceUrl?.includes('chub.ai')) return 'CHUB'
   if (sourceUrl?.includes('rofan.ai')) return 'ROFANAI'
   if (sourceUrl?.includes('loveydovey.ai')) return 'LOVEYDOVEY'
+  if (sourceUrl?.includes('babechat.')) return 'BABECHAT'
   return 'STORYFIT'
 }
 
@@ -79,6 +80,7 @@ const SOURCE_FILTERS = [
   { key: 'CHUB', label: 'CHUB' },
   { key: 'ROFANAI', label: 'rofanai' },
   { key: 'LOVEYDOVEY', label: 'loveydovey' },
+  { key: 'BABECHAT', label: 'babechat' },
 ] as const
 
 type SourceFilter = typeof SOURCE_FILTERS[number]['key']
@@ -103,6 +105,7 @@ const SOURCE_BADGE_COLOR: Record<string, string> = {
   CHUB: '#ff6a3d',
   ROFANAI: '#e0529c',
   LOVEYDOVEY: '#ff5a5f',
+  BABECHAT: '#5b8cff',
 }
 
 export default function ChatListPage() {

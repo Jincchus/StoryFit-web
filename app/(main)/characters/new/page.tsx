@@ -17,6 +17,7 @@ function CharacterNewContent() {
   const isChubParam = searchParams.get('isChub') === 'true'
   const isRofanParam = searchParams.get('isRofan') === 'true'
   const isLoveydoveyParam = searchParams.get('isLoveydovey') === 'true'
+  const isBabechatParam = searchParams.get('isBabechat') === 'true'
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -36,13 +37,14 @@ function CharacterNewContent() {
     else if (isChubParam) url += '?isChub=true'
     else if (isRofanParam) url += '?isRofan=true'
     else if (isLoveydoveyParam) url += '?isLoveydovey=true'
+    else if (isBabechatParam) url += '?isBabechat=true'
 
     api.get(url)
       .then(cols => {
         setCollections(Array.isArray(cols) ? cols : [])
       })
       .catch(() => {})
-  }, [isWhifParam, isZetaParam, isMeltingParam, isTikitaParam, isChubParam, isRofanParam, isLoveydoveyParam])
+  }, [isWhifParam, isZetaParam, isMeltingParam, isTikitaParam, isChubParam, isRofanParam, isLoveydoveyParam, isBabechatParam])
 
   const onChange = <K extends keyof CharFormData>(key: K, val: CharFormData[K]) =>
     setForm(f => ({ ...f, [key]: val }))
@@ -67,6 +69,8 @@ function CharacterNewContent() {
         router.push(form.collectionId ? `/rofan/characters/${form.collectionId}` : '/rofan')
       } else if (isLoveydoveyParam) {
         router.push(form.collectionId ? `/loveydovey/characters/${form.collectionId}` : '/loveydovey')
+      } else if (isBabechatParam) {
+        router.push(form.collectionId ? `/babechat/characters/${form.collectionId}` : '/babechat')
       } else {
         router.push('/characters')
       }
@@ -76,7 +80,7 @@ function CharacterNewContent() {
     }
   }
 
-  const collectionLabel = isWhifParam ? '세계관' : isZetaParam ? '플롯' : isMeltingParam ? '캐릭터' : isTikitaParam ? '스토리' : isChubParam ? '캐릭터' : isRofanParam ? '캐릭터' : isLoveydoveyParam ? '캐릭터' : '컬렉션'
+  const collectionLabel = isWhifParam ? '세계관' : isZetaParam ? '플롯' : isMeltingParam ? '캐릭터' : isTikitaParam ? '스토리' : isChubParam ? '캐릭터' : isRofanParam ? '캐릭터' : isLoveydoveyParam ? '캐릭터' : isBabechatParam ? '캐릭터' : '컬렉션'
 
   return (
     <Win title="캐릭터 만들기 (Create Character)" icon={PixelIcons.user}>

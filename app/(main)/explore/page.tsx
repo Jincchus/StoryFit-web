@@ -37,6 +37,11 @@ const CENTERS = [
     desc: '캐릭터 메타데이터 가져오기',
     grad: 'linear-gradient(135deg, #ff5a5f, #ff8a8d)',
   },
+  {
+    href: '/babechat', emoji: '🩵', name: 'babechat 센터',
+    desc: '캐릭터 설정·도입부 가져오기',
+    grad: 'linear-gradient(135deg, #5b8cff, #8a6cff)',
+  },
 ]
 
 const SHORTCUTS = [

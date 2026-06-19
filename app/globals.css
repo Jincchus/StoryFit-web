@@ -1376,6 +1376,55 @@ body[data-crt="on"]::after{
 .lovey-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
   background:linear-gradient(135deg,#ff5a5f,#ff8a8d); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
 
+/* ─── BABECHAT (베이비챗, 국내, dark, indigo, scoped) ─────────────────── */
+.bc-root{
+  --b-bg:#0c0e16; --b-surface:#171a26; --b-surface-2:#212536; --b-line:#313650;
+  --b-ink:#f1f3fa; --b-ink-soft:#9aa0bb; --b-accent:#5b8cff; --b-radius:14px;
+  --w-bg:var(--b-bg); --w-surface:var(--b-surface); --w-surface-2:var(--b-surface-2);
+  --w-line:var(--b-line); --w-ink:var(--b-ink); --w-ink-soft:var(--b-ink-soft);
+  --w-accent:var(--b-accent); --w-accent-2:var(--b-accent);
+  display:flex; flex-direction:column; height:100%; min-height:0;
+  background:var(--b-bg); color:var(--b-ink);
+}
+.bc-scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+.bc-header{ flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--b-line);
+  background:linear-gradient(90deg,#5b8cff,#8a6cff); }
+.bc-logo{ font-size:18px; font-weight:900; letter-spacing:.04em; color:#fff; }
+.bc-iconbtn{ background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 8px; }
+.bc-menu{ position:absolute; top:52px; right:12px; z-index:60; background:var(--b-surface-2);
+  border:1px solid var(--b-line); border-radius:10px; overflow:hidden; min-width:220px; }
+.bc-menu-item{ display:block; width:100%; text-align:left; background:none; border:none;
+  color:var(--b-ink); font-size:13px; padding:11px 14px; cursor:pointer; }
+.bc-menu-item:hover{ background:var(--b-surface); }
+.bc-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:16px; }
+.bc-card{ background:var(--b-surface); border:1px solid var(--b-line); border-radius:var(--b-radius);
+  overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
+.bc-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--b-surface-2); display:block; }
+.bc-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.bc-card-title{ font-size:13px; font-weight:800; color:var(--b-ink); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.bc-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+.bc-chip{ display:inline-block; background:var(--b-surface-2); color:var(--b-ink-soft);
+  font-size:10px; padding:2px 8px; border-radius:999px; }
+.bc-chip.sel{ background:var(--b-accent); color:#fff; }
+.bc-empty{ padding:48px 16px; text-align:center; color:var(--b-ink-soft); font-size:13px; line-height:1.7; }
+.bc-cover{ width:100%; aspect-ratio:1; object-fit:cover; background:var(--b-surface-2); display:block; }
+.bc-cover-wrap{ position:relative; }
+.bc-back{ background:rgba(0,0,0,.4); border:none; color:#fff; font-size:20px; cursor:pointer;
+  padding:2px 10px; border-radius:999px; }
+.bc-section{ padding:16px; }
+.bc-section-title{ font-size:15px; font-weight:800; color:var(--b-ink); margin:0 0 10px; }
+.bc-avatar{ width:72px; height:72px; border-radius:14px; object-fit:cover; flex-shrink:0; }
+.bc-desc{ color:var(--b-ink-soft); line-height:1.7; font-size:14px; white-space:pre-wrap; }
+.bc-intro-box{ background:var(--b-surface); border:1px solid var(--b-line); border-radius:12px;
+  padding:14px; color:var(--b-ink-soft); line-height:1.7; font-size:14px; }
+.bc-cta{ position:sticky; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, transparent, var(--b-bg) 40%); }
+.bc-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#5b8cff,#8a6cff); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
+
 /* ─── TIKITA immersive (dark, teal, scoped) ─────────────────────── */
 .tikita-root{
   --t-bg:#0d1213; --t-surface:#161e1f; --t-surface-2:#1f2a2b; --t-line:#2c3a3b;
