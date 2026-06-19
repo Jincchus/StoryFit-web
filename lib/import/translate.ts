@@ -10,6 +10,11 @@ import { applyTagMap, finalizeTags } from './tagMap'
 const TRANSLATE_MODEL = GEMINI_CHAT_MODEL
 // const TRANSLATE_MODEL = GEMINI_UTILITY_MODEL  // TODO: flash로 변경 예정
 
+// 번역 한정 안전 임계: relaxed(BLOCK_NONE).
+// 이 앱은 NSFW 롤플레이를 지원하므로, 카드 단어가 안전 필터에 막혀 가져오기 자체가
+// 실패하는 일을 막는다. 그래도 막히는 필드는 아래 try/catch로 '원문 보존' 폴백.
+const TRANSLATE_SAFETY = 'relaxed' as const
+
 const SYSTEM = `너는 영문 롤플레이 캐릭터 카드를 자연스러운 한국어로 번역한다.
 규칙:
 - {{char}}, {{user}}, {{char1}}, <START>, <END> 등 중괄호 매크로와 꺾쇠 마커는 절대 번역·삭제하지 말고 원문 그대로 둔다.
@@ -29,13 +34,13 @@ async function translateShortBatch(fields: Record<string, string>): Promise<Reco
   if (entries.length === 0) return {}
   const input = Object.fromEntries(entries)
   const userPrompt = `다음 JSON의 키는 그대로 두고 값만 한국어로 번역해, 동일한 JSON 구조로만 출력해라.\n\n${JSON.stringify(input, null, 2)}`
-  const raw = await generateText(SYSTEM, userPrompt, 4096, undefined, 0, TRANSLATE_MODEL)
   try {
+    const raw = await generateText(SYSTEM, userPrompt, 4096, TRANSLATE_SAFETY, 0, TRANSLATE_MODEL)
     const parsed = JSON.parse(stripFence(raw)) as Record<string, string>
     // 누락 키는 원문으로 메운다(부분 실패 방어).
     return Object.fromEntries(entries.map(([k, v]) => [k, parsed[k]?.trim() || v]))
   } catch {
-    // 파싱 실패 시 원문 유지(번역 누락이 데이터 손실보다 낫다).
+    // 안전 필터 차단·파싱 실패 시 원문 유지(번역 누락이 가져오기 실패보다 낫다).
     return Object.fromEntries(entries)
   }
 }
@@ -43,8 +48,13 @@ async function translateShortBatch(fields: Record<string, string>): Promise<Reco
 // 긴 서술문(도입부·예시대화)을 단건 번역(트렁케이션·JSON 깨짐 방지).
 async function translateLong(text: string): Promise<string> {
   if (!text?.trim()) return text
-  const out = await generateText(SYSTEM, text, 8192, undefined, 0, TRANSLATE_MODEL)
-  return out.trim() || text
+  try {
+    const out = await generateText(SYSTEM, text, 8192, TRANSLATE_SAFETY, 0, TRANSLATE_MODEL)
+    return out.trim() || text
+  } catch {
+    // 안전 필터 차단·오류 시 원문(영문) 유지 — 사용자가 edit에서 다듬을 수 있다.
+    return text
+  }
 }
 
 // 태그 정규화: 로컬 매핑 우선 → 미정의분만 1콜 배치 번역 → dedup·상한.
@@ -55,7 +65,7 @@ async function normalizeTags(tags: string[]): Promise<string[]> {
   if (unresolved.length) {
     const userPrompt = `다음 영문 태그들을 각각 짧은 한국어 단어/구로 번역해, 같은 순서의 JSON 문자열 배열로만 출력해라. 음차가 통용되는 단어는 음차한다.\n\n${JSON.stringify(unresolved)}`
     try {
-      const raw = await generateText(SYSTEM, userPrompt, 1024, undefined, 0, TRANSLATE_MODEL)
+      const raw = await generateText(SYSTEM, userPrompt, 1024, TRANSLATE_SAFETY, 0, TRANSLATE_MODEL)
       const parsed = JSON.parse(stripFence(raw))
       if (Array.isArray(parsed)) translated = parsed.map((t) => String(t).trim()).filter(Boolean)
     } catch {
