@@ -67,6 +67,29 @@ async function fetchChubCard(author: string, slug: string, node: any | null): Pr
   throw new Error('Chub 카드를 가져올 수 없습니다.')
 }
 
+// Chub description에 흔히 섞인 '작가 메모'(모델 추천·인트로 개수 안내·blacklist 경고·
+// SNS/후원·구분선 등)를 줄 단위로 걸러낸다. 실제 캐릭터 설정은 보존하도록 보수적으로.
+const AUTHOR_NOTE_PATTERNS: RegExp[] = [
+  /\b(works?|recommend(ed)?|use|tested|best)\b.*\b(gpt-?4?|claude|sonnet|opus|gemini|mistral|deepseek|model|preset|jailbreak)\b/i,
+  /\b(gpt-?4?|claude|sonnet|opus|gemini)\b.*\b(recommend|preset|setting|works|jailbreak|model)\b/i,
+  /\b\d+\s*(intros?|greetings?|scenarios?)\b/i,
+  /\b(intros?|greetings?)\b.{0,20}\b(includ|inside|added|provided|available)/i,
+  /\b(blacklist|bully|bullying|do\s*not\s*steal|don'?t\s*steal|steal\s+my|all\s*rights?\s*reserved)\b/i,
+  /\b(patreon|ko-?fi|kofi|discord\.gg|join\s+my|follow\s+me|my\s+(patreon|discord|twitter|server))\b/i,
+  /^\s*\*?\s*(note|disclaimer|update|changelog|p\.?s\.?)\s*[:：]/i,
+]
+
+export function stripChubAuthorNotes(text: string): string {
+  if (!text?.trim()) return ''
+  const kept = text.split('\n').filter((line) => {
+    const t = line.trim()
+    if (!t) return true // 빈 줄은 문단 구조 보존용으로 유지
+    if (/^[-=_*~–—\s]{3,}$/.test(t)) return false // 구분선만 있는 줄
+    return !AUTHOR_NOTE_PATTERNS.some((re) => re.test(t))
+  })
+  return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
 export async function captureChub(url: string): Promise<Captured> {
   const { author, slug } = parseChubUrl(url)
   const node = await fetchChubNode(author, slug)
@@ -91,7 +114,7 @@ export async function captureChub(url: string): Promise<Captured> {
     gender: '', // chara_card_v2엔 성별 필드 없음 → 사용자가 edit에서 채움
     tags,
     additionalInfo: [
-      card.description?.trim(),
+      stripChubAuthorNotes(card.description ?? ''),
       card.personality?.trim() && `[성격]\n${card.personality.trim()}`,
       card.creator_notes?.trim() && `[제작자 메모]\n${card.creator_notes.trim()}`,
     ]

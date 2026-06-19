@@ -1,6 +1,37 @@
 import { describe, it, expect } from 'vitest'
-import { parseChubUrl } from './chub'
+import { parseChubUrl, stripChubAuthorNotes } from './chub'
 import { applyTagMap, finalizeTags } from './tagMap'
+
+describe('stripChubAuthorNotes', () => {
+  it('모델 추천·인트로 개수·NOTE/blacklist·구분선을 제거한다', () => {
+    const src = [
+      '------',
+      'Works flawlessly with regular GPT-4, Claude Sonnet/Opus seem alright too!',
+      '',
+      'Four whole intros are included!',
+      '',
+      '*NOTE: If I catch you bullying any of my bots I WILL blacklist you*',
+      '--------------',
+    ].join('\n')
+    expect(stripChubAuthorNotes(src)).toBe('')
+  })
+
+  it('실제 캐릭터 설정 본문은 보존한다', () => {
+    const src = [
+      'Aria is a clumsy guardian angel who loves snacks.',
+      'She wears a light brown hoodie and has white wings.',
+      'Follow me on patreon for more!',
+    ].join('\n')
+    const out = stripChubAuthorNotes(src)
+    expect(out).toContain('guardian angel who loves snacks')
+    expect(out).toContain('white wings')
+    expect(out).not.toMatch(/patreon/i)
+  })
+
+  it('빈 입력은 빈 문자열', () => {
+    expect(stripChubAuthorNotes('')).toBe('')
+  })
+})
 
 describe('parseChubUrl', () => {
   it('chub.ai 표준 URL에서 author/slug 추출', () => {
