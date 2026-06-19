@@ -9,6 +9,10 @@ interface CardData {
   mes_example: string
   system_prompt?: string
   creator_notes?: string
+  // chara_card_v2 확장 필드 (Chub full API 등에서 내려옴)
+  tags?: string[]
+  alternate_greetings?: string[]
+  character_book?: { entries?: { keys?: string[]; content?: string; insertion_order?: number }[] }
 }
 
 interface CardV2 {

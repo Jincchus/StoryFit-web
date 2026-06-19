@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     : searchParams.get('isZeta') === 'true' ? 'zeta'
     : searchParams.get('isMelting') === 'true' ? 'melting'
     : searchParams.get('isTikita') === 'true' ? 'tikita'
+    : searchParams.get('isChub') === 'true' ? 'chub'
     : 'regular'
 
   const whereClause: any = { userId }
@@ -24,12 +25,15 @@ export async function GET(req: NextRequest) {
     whereClause.sourceUrl = { contains: 'melting.chat' }
   } else if (source === 'tikita') {
     whereClause.sourceUrl = { contains: 'tikita.ai' }
+  } else if (source === 'chub') {
+    whereClause.sourceUrl = { contains: 'chub.ai' }
   } else {
     whereClause.AND = [
       { NOT: { sourceUrl: { contains: 'whif.' } } },
       { NOT: { sourceUrl: { contains: 'zeta-ai.io' } } },
       { NOT: { sourceUrl: { contains: 'melting.chat' } } },
       { NOT: { sourceUrl: { contains: 'tikita.ai' } } },
+      { NOT: { sourceUrl: { contains: 'chub.ai' } } },
     ]
   }
 

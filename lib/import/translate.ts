@@ -1,0 +1,99 @@
+// 외국 센터(Chub 등) 카드 필드를 자연스러운 한국어로 번역한다.
+// 모델: gemini-2.5-pro(GEMINI_CHAT_MODEL) — 번역 품질 우선.
+//   // TODO: flash로 변경 예정 — 비용/속도 이슈 시 GEMINI_UTILITY_MODEL로 교체.
+//   // import { GEMINI_UTILITY_MODEL } from '@/lib/constants'  // flash 폴백용
+import { generateText } from '@/lib/ai/gemini'
+import { GEMINI_CHAT_MODEL } from '@/lib/constants'
+import type { AssembledCharacter } from './types'
+import { applyTagMap, finalizeTags } from './tagMap'
+
+const TRANSLATE_MODEL = GEMINI_CHAT_MODEL
+// const TRANSLATE_MODEL = GEMINI_UTILITY_MODEL  // TODO: flash로 변경 예정
+
+const SYSTEM = `너는 영문 롤플레이 캐릭터 카드를 자연스러운 한국어로 번역한다.
+규칙:
+- {{char}}, {{user}}, {{char1}}, <START>, <END> 등 중괄호 매크로와 꺾쇠 마커는 절대 번역·삭제하지 말고 원문 그대로 둔다.
+- 고유명사(인명·지명·작품명)는 원문(영문) 그대로 유지한다.
+- 의미와 뉘앙스를 보존하되, 직역투가 아닌 자연스러운 한국어 번역체로 옮긴다.
+- 줄바꿈·문단 구조·서식 기호(*, ", 목록 등)는 그대로 유지한다.
+- 설명·주석·사족을 덧붙이지 말고 번역 결과만 출력한다.`
+
+// 마크다운 코드펜스(```json ... ```)를 벗겨 순수 JSON 문자열을 얻는다.
+function stripFence(s: string): string {
+  return s.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+}
+
+// 짧은 필드 묶음을 JSON in → JSON out 1콜로 번역(키 유지, 값만 번역). 톤 일관성↑.
+async function translateShortBatch(fields: Record<string, string>): Promise<Record<string, string>> {
+  const entries = Object.entries(fields).filter(([, v]) => v?.trim())
+  if (entries.length === 0) return {}
+  const input = Object.fromEntries(entries)
+  const userPrompt = `다음 JSON의 키는 그대로 두고 값만 한국어로 번역해, 동일한 JSON 구조로만 출력해라.\n\n${JSON.stringify(input, null, 2)}`
+  const raw = await generateText(SYSTEM, userPrompt, 4096, undefined, 0, TRANSLATE_MODEL)
+  try {
+    const parsed = JSON.parse(stripFence(raw)) as Record<string, string>
+    // 누락 키는 원문으로 메운다(부분 실패 방어).
+    return Object.fromEntries(entries.map(([k, v]) => [k, parsed[k]?.trim() || v]))
+  } catch {
+    // 파싱 실패 시 원문 유지(번역 누락이 데이터 손실보다 낫다).
+    return Object.fromEntries(entries)
+  }
+}
+
+// 긴 서술문(도입부·예시대화)을 단건 번역(트렁케이션·JSON 깨짐 방지).
+async function translateLong(text: string): Promise<string> {
+  if (!text?.trim()) return text
+  const out = await generateText(SYSTEM, text, 8192, undefined, 0, TRANSLATE_MODEL)
+  return out.trim() || text
+}
+
+// 태그 정규화: 로컬 매핑 우선 → 미정의분만 1콜 배치 번역 → dedup·상한.
+async function normalizeTags(tags: string[]): Promise<string[]> {
+  if (!tags?.length) return []
+  const { resolved, unresolved } = applyTagMap(tags)
+  let translated: string[] = []
+  if (unresolved.length) {
+    const userPrompt = `다음 영문 태그들을 각각 짧은 한국어 단어/구로 번역해, 같은 순서의 JSON 문자열 배열로만 출력해라. 음차가 통용되는 단어는 음차한다.\n\n${JSON.stringify(unresolved)}`
+    try {
+      const raw = await generateText(SYSTEM, userPrompt, 1024, undefined, 0, TRANSLATE_MODEL)
+      const parsed = JSON.parse(stripFence(raw))
+      if (Array.isArray(parsed)) translated = parsed.map((t) => String(t).trim()).filter(Boolean)
+    } catch {
+      translated = unresolved // 실패 시 원문 유지
+    }
+  }
+  return finalizeTags([...resolved, ...translated])
+}
+
+// 카드 전체 번역. 이름(name)·gender·avatarUrl은 비번역 통과.
+export async function translateCard(
+  raw: AssembledCharacter,
+  scenarioRaw: string,
+): Promise<{ character: AssembledCharacter; scenarioDescription: string }> {
+  // 1) 짧은 필드 + 시나리오 배치 번역
+  const short = await translateShortBatch({
+    additionalInfo: raw.additionalInfo,
+    scenario: scenarioRaw,
+  })
+
+  // 2) 긴 서술 — 도입부 각 항목 + 예시대화 병렬 번역
+  const openings = raw.openingMessages ?? []
+  const [translatedOpenings, exampleDialogues, tags] = await Promise.all([
+    Promise.all(openings.map(async (o) => ({ ...o, content: await translateLong(o.content) }))),
+    translateLong(raw.exampleDialogues),
+    normalizeTags(raw.tags ?? []),
+  ])
+
+  const openingMessage = translatedOpenings[0]?.content ?? raw.openingMessage
+
+  const character: AssembledCharacter = {
+    ...raw,
+    additionalInfo: short.additionalInfo ?? raw.additionalInfo,
+    openingMessage,
+    openingMessages: translatedOpenings.length > 1 ? translatedOpenings : undefined,
+    exampleDialogues,
+    tags,
+  }
+
+  return { character, scenarioDescription: short.scenario ?? scenarioRaw }
+}

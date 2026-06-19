@@ -31,6 +31,7 @@ const GUIDE_SECTIONS: { title: string; items: GuideItem[] }[] = [
       { emoji: '🔥', label: 'Melting (melting.chat)', desc: '캐릭터 페이지 URL로 대화 상대를 바로 불러올 수 있습니다.', href: '/melting' },
       { emoji: '🪐', label: 'WHIF (whif.io)', desc: 'WHIF 센터에서 세계관 단위로 캐릭터를 관리하고 가져올 수 있습니다.', href: '/whif' },
       { emoji: '🎫', label: 'Tikita (tikita.ai)', desc: '스토리 URL을 붙여넣으면 캐릭터·첫 장면·설정을 자동으로 가져옵니다.', href: '/tikita' },
+      { emoji: '🧩', label: 'Chub (chub.ai)', desc: '외국 센터. 캐릭터 URL을 붙여넣으면 AI가 한국어로 번역해 자동으로 가져옵니다.', href: '/chub' },
     ],
   },
   {

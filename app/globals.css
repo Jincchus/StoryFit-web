@@ -1227,6 +1227,56 @@ body[data-crt="on"]::after{
 .melting-chapter-badge{ display:inline-flex; align-items:center; gap:3px; background:var(--m-accent,#ff2e93);
   color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; }
 
+/* ─── CHUB (외국 센터, dark, orange, scoped) ─────────────────────── */
+.chub-root{
+  --c-bg:#0f0d0b; --c-surface:#1d1a16; --c-surface-2:#28241f; --c-line:#3a352d;
+  --c-ink:#f7f4ef; --c-ink-soft:#a89f92; --c-accent:#ff6a3d; --c-radius:14px;
+  /* WhifPersonaModal/공용 컴포넌트가 이 영역에서도 쓰이므로 --w-* 변수를 동일 톤으로 매핑 */
+  --w-bg:var(--c-bg); --w-surface:var(--c-surface); --w-surface-2:var(--c-surface-2);
+  --w-line:var(--c-line); --w-ink:var(--c-ink); --w-ink-soft:var(--c-ink-soft);
+  --w-accent:var(--c-accent); --w-accent-2:var(--c-accent);
+  display:flex; flex-direction:column; height:100%; min-height:0;
+  background:var(--c-bg); color:var(--c-ink);
+}
+.chub-scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+.chub-header{ flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--c-line);
+  background:linear-gradient(90deg,#ff6a3d,#ff9a5a); }
+.chub-logo{ font-size:18px; font-weight:900; letter-spacing:.04em; color:#fff; }
+.chub-iconbtn{ background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 8px; }
+.chub-menu{ position:absolute; top:52px; right:12px; z-index:60; background:var(--c-surface-2);
+  border:1px solid var(--c-line); border-radius:10px; overflow:hidden; min-width:220px; }
+.chub-menu-item{ display:block; width:100%; text-align:left; background:none; border:none;
+  color:var(--c-ink); font-size:13px; padding:11px 14px; cursor:pointer; }
+.chub-menu-item:hover{ background:var(--c-surface); }
+.chub-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:16px; }
+.chub-card{ background:var(--c-surface); border:1px solid var(--c-line); border-radius:var(--c-radius);
+  overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
+.chub-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--c-surface-2); display:block; }
+.chub-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.chub-card-title{ font-size:13px; font-weight:800; color:var(--c-ink); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.chub-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+.chub-chip{ display:inline-block; background:var(--c-surface-2); color:var(--c-ink-soft);
+  font-size:10px; padding:2px 8px; border-radius:999px; }
+.chub-chip.sel{ background:var(--c-accent); color:#fff; }
+.chub-empty{ padding:48px 16px; text-align:center; color:var(--c-ink-soft); font-size:13px; line-height:1.7; }
+.chub-cover{ width:100%; aspect-ratio:1; object-fit:cover; background:var(--c-surface-2); display:block; }
+.chub-cover-wrap{ position:relative; }
+.chub-back{ background:rgba(0,0,0,.4); border:none; color:#fff; font-size:20px; cursor:pointer;
+  padding:2px 10px; border-radius:999px; }
+.chub-section{ padding:16px; }
+.chub-section-title{ font-size:15px; font-weight:800; color:var(--c-ink); margin:0 0 10px; }
+.chub-avatar{ width:72px; height:72px; border-radius:14px; object-fit:cover; flex-shrink:0; }
+.chub-desc{ color:var(--c-ink-soft); line-height:1.7; font-size:14px; white-space:pre-wrap; }
+.chub-intro-box{ background:var(--c-surface); border:1px solid var(--c-line); border-radius:12px;
+  padding:14px; color:var(--c-ink-soft); line-height:1.7; font-size:14px; }
+.chub-cta{ position:sticky; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, transparent, var(--c-bg) 40%); }
+.chub-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#ff6a3d,#ff9a5a); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
+
 /* ─── TIKITA immersive (dark, teal, scoped) ─────────────────────── */
 .tikita-root{
   --t-bg:#0d1213; --t-surface:#161e1f; --t-surface-2:#1f2a2b; --t-line:#2c3a3b;

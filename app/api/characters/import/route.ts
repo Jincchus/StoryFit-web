@@ -7,6 +7,7 @@ import { authenticate } from '@/lib/apiAuth'
 import { parsePngTavernCard, buildSystemPromptFromCard } from '@/lib/tavernCard'
 import { captureMelting, captureWhif, captureZeta, matchesHost } from '@/lib/import/capture'
 import { captureTikita } from '@/lib/import/tikita'
+import { captureChub } from '@/lib/import/chub'
 import { splitIntoBlocks } from '@/lib/import/blocks'
 import { classifyBlocks } from '@/lib/import/classify'
 import { assemble, buildFallback } from '@/lib/import/assemble'
@@ -198,6 +199,10 @@ export async function POST(req: NextRequest) {
   if (matchesHost(url, 'tikita.ai')) {
     try { return NextResponse.json(await runImport(await captureTikita(url.trim()), url.trim(), userId), { status: 201 }) }
     catch (e: any) { return NextResponse.json({ error: e.message ?? 'Tikita 가져오기 실패' }, { status: 400 }) }
+  }
+  if (matchesHost(url, 'chub.ai', 'characterhub.org')) {
+    try { return NextResponse.json(await runImport(await captureChub(url.trim()), url.trim(), userId), { status: 201 }) }
+    catch (e: any) { return NextResponse.json({ error: e.message ?? 'Chub 가져오기 실패' }, { status: 400 }) }
   }
 
   let res: Response

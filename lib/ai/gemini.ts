@@ -160,9 +160,11 @@ export async function streamGeminiChat(
   return streamViaApiKey(params, onChunk, signal)
 }
 
-export async function generateText(systemPrompt: string, userPrompt: string, maxOutputTokens = 1024, safetyLevel?: SafetyLevel, thinkingBudget = 0): Promise<string> {
+export async function generateText(systemPrompt: string, userPrompt: string, maxOutputTokens = 1024, safetyLevel?: SafetyLevel, thinkingBudget = 0, modelName: string = GEMINI_UTILITY_MODEL): Promise<string> {
   // thinkingBudget: 0=비활성(기본, 빠름) / -1=동적 추론(품질↑, 과삭제 방지용)
-  const utilConfig = { maxOutputTokens, thinkingConfig: { thinkingBudget } }
+  // modelName: 기본 flash(유틸). 번역 등 품질이 필요한 보조 호출은 GEMINI_CHAT_MODEL(pro) 오버라이드
+  // pro는 thinking을 끌 수 없어 0/미설정 시 동적 최소치로 보정(streaming과 동일)
+  const utilConfig = { maxOutputTokens, thinkingConfig: { thinkingBudget: resolveThinkingBudget(modelName, thinkingBudget) } }
   const safetySettings = HARM_CATEGORIES.map(category => ({
     category,
     threshold: SAFETY_MAP[safetyLevel ?? 'standard'],
@@ -173,12 +175,12 @@ export async function generateText(systemPrompt: string, userPrompt: string, max
       project: process.env.GOOGLE_CLOUD_PROJECT!,
       location: process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1',
     })
-    const model = vertexAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL, systemInstruction: systemPrompt, generationConfig: utilConfig, safetySettings: safetySettings as any })
+    const model = vertexAI.getGenerativeModel({ model: modelName, systemInstruction: systemPrompt, generationConfig: utilConfig, safetySettings: safetySettings as any })
     const result = await model.generateContent(userPrompt)
     return (result.response.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
   }
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-  const model = genAI.getGenerativeModel({ model: GEMINI_UTILITY_MODEL, systemInstruction: systemPrompt, generationConfig: utilConfig, safetySettings, tools: [] })
+  const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: systemPrompt, generationConfig: utilConfig, safetySettings, tools: [] })
   const result = await model.generateContent(userPrompt)
   return result.response.text().trim()
 }

@@ -22,6 +22,11 @@ const CENTERS = [
     desc: '스토리 URL로 캐릭터·첫 장면 가져오기',
     grad: 'linear-gradient(135deg, #16b8a6, #27d3bf)',
   },
+  {
+    href: '/chub', emoji: '🧩', name: 'CHUB 센터',
+    desc: '외국 캐릭터 URL을 AI 번역으로 가져오기',
+    grad: 'linear-gradient(135deg, #ff6a3d, #ff9a5a)',
+  },
 ]
 
 const SHORTCUTS = [

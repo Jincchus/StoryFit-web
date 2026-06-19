@@ -12,7 +12,7 @@ const TABS = [
   },
   {
     href: '/explore', icon: '🧭', label: '탐색',
-    isActive: (p: string) => p === '/explore' || p.startsWith('/whif') || p.startsWith('/zeta') || p.startsWith('/melting') || p.startsWith('/tikita') || p.startsWith('/characters'),
+    isActive: (p: string) => p === '/explore' || p.startsWith('/whif') || p.startsWith('/zeta') || p.startsWith('/melting') || p.startsWith('/tikita') || p.startsWith('/chub') || p.startsWith('/characters'),
   },
   {
     href: '/library', icon: '📚', label: '서재',
