@@ -1327,6 +1327,55 @@ body[data-crt="on"]::after{
 .rofan-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
   background:linear-gradient(135deg,#e0529c,#f07ab8); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
 
+/* ─── LOVEYDOVEY (러비더비, 국내, dark, coral, scoped) ─────────────────── */
+.lovey-root{
+  --l-bg:#120c0d; --l-surface:#211618; --l-surface-2:#2d2023; --l-line:#3e2d30;
+  --l-ink:#f8f0f1; --l-ink-soft:#b29a9d; --l-accent:#ff5a5f; --l-radius:14px;
+  --w-bg:var(--l-bg); --w-surface:var(--l-surface); --w-surface-2:var(--l-surface-2);
+  --w-line:var(--l-line); --w-ink:var(--l-ink); --w-ink-soft:var(--l-ink-soft);
+  --w-accent:var(--l-accent); --w-accent-2:var(--l-accent);
+  display:flex; flex-direction:column; height:100%; min-height:0;
+  background:var(--l-bg); color:var(--l-ink);
+}
+.lovey-scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+.lovey-header{ flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--l-line);
+  background:linear-gradient(90deg,#ff5a5f,#ff8a8d); }
+.lovey-logo{ font-size:18px; font-weight:900; letter-spacing:.04em; color:#fff; }
+.lovey-iconbtn{ background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 8px; }
+.lovey-menu{ position:absolute; top:52px; right:12px; z-index:60; background:var(--l-surface-2);
+  border:1px solid var(--l-line); border-radius:10px; overflow:hidden; min-width:220px; }
+.lovey-menu-item{ display:block; width:100%; text-align:left; background:none; border:none;
+  color:var(--l-ink); font-size:13px; padding:11px 14px; cursor:pointer; }
+.lovey-menu-item:hover{ background:var(--l-surface); }
+.lovey-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:16px; }
+.lovey-card{ background:var(--l-surface); border:1px solid var(--l-line); border-radius:var(--l-radius);
+  overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
+.lovey-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--l-surface-2); display:block; }
+.lovey-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.lovey-card-title{ font-size:13px; font-weight:800; color:var(--l-ink); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.lovey-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+.lovey-chip{ display:inline-block; background:var(--l-surface-2); color:var(--l-ink-soft);
+  font-size:10px; padding:2px 8px; border-radius:999px; }
+.lovey-chip.sel{ background:var(--l-accent); color:#fff; }
+.lovey-empty{ padding:48px 16px; text-align:center; color:var(--l-ink-soft); font-size:13px; line-height:1.7; }
+.lovey-cover{ width:100%; aspect-ratio:1; object-fit:cover; background:var(--l-surface-2); display:block; }
+.lovey-cover-wrap{ position:relative; }
+.lovey-back{ background:rgba(0,0,0,.4); border:none; color:#fff; font-size:20px; cursor:pointer;
+  padding:2px 10px; border-radius:999px; }
+.lovey-section{ padding:16px; }
+.lovey-section-title{ font-size:15px; font-weight:800; color:var(--l-ink); margin:0 0 10px; }
+.lovey-avatar{ width:72px; height:72px; border-radius:14px; object-fit:cover; flex-shrink:0; }
+.lovey-desc{ color:var(--l-ink-soft); line-height:1.7; font-size:14px; white-space:pre-wrap; }
+.lovey-intro-box{ background:var(--l-surface); border:1px solid var(--l-line); border-radius:12px;
+  padding:14px; color:var(--l-ink-soft); line-height:1.7; font-size:14px; }
+.lovey-cta{ position:sticky; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, transparent, var(--l-bg) 40%); }
+.lovey-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#ff5a5f,#ff8a8d); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
+
 /* ─── TIKITA immersive (dark, teal, scoped) ─────────────────────── */
 .tikita-root{
   --t-bg:#0d1213; --t-surface:#161e1f; --t-surface-2:#1f2a2b; --t-line:#2c3a3b;

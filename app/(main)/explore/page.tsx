@@ -32,6 +32,11 @@ const CENTERS = [
     desc: '로맨스 판타지 캐릭터 URL로 가져오기',
     grad: 'linear-gradient(135deg, #e0529c, #f07ab8)',
   },
+  {
+    href: '/loveydovey', emoji: '💞', name: '러비더비 센터',
+    desc: '캐릭터 메타데이터 가져오기',
+    grad: 'linear-gradient(135deg, #ff5a5f, #ff8a8d)',
+  },
 ]
 
 const SHORTCUTS = [

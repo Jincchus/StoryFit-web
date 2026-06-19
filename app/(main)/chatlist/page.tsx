@@ -24,13 +24,14 @@ interface ConvItem {
   chapter?: number
 }
 
-function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'WHIF' | 'TIKITA' | 'CHUB' | 'ROFANAI' | 'STORYFIT' {
+function getSource(sourceUrl: string): 'ZETA' | 'MELTING' | 'WHIF' | 'TIKITA' | 'CHUB' | 'ROFANAI' | 'LOVEYDOVEY' | 'STORYFIT' {
   if (sourceUrl?.includes('zeta-ai.io')) return 'ZETA'
   if (sourceUrl?.includes('melting.chat')) return 'MELTING'
   if (sourceUrl?.includes('whif.')) return 'WHIF'
   if (sourceUrl?.includes('tikita.ai')) return 'TIKITA'
   if (sourceUrl?.includes('chub.ai')) return 'CHUB'
   if (sourceUrl?.includes('rofan.ai')) return 'ROFANAI'
+  if (sourceUrl?.includes('loveydovey.ai')) return 'LOVEYDOVEY'
   return 'STORYFIT'
 }
 
@@ -77,6 +78,7 @@ const SOURCE_FILTERS = [
   { key: 'TIKITA', label: 'TIKITA' },
   { key: 'CHUB', label: 'CHUB' },
   { key: 'ROFANAI', label: 'rofanai' },
+  { key: 'LOVEYDOVEY', label: '러비더비' },
 ] as const
 
 type SourceFilter = typeof SOURCE_FILTERS[number]['key']
@@ -100,6 +102,7 @@ const SOURCE_BADGE_COLOR: Record<string, string> = {
   TIKITA: '#16b8a6',
   CHUB: '#ff6a3d',
   ROFANAI: '#e0529c',
+  LOVEYDOVEY: '#ff5a5f',
 }
 
 export default function ChatListPage() {

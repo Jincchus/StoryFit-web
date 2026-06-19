@@ -33,6 +33,7 @@ const GUIDE_SECTIONS: { title: string; items: GuideItem[] }[] = [
       { emoji: '🎫', label: 'Tikita (tikita.ai)', desc: '스토리 URL을 붙여넣으면 캐릭터·첫 장면·설정을 자동으로 가져옵니다.', href: '/tikita' },
       { emoji: '🧩', label: 'Chub (chub.ai)', desc: '외국 센터. 캐릭터 URL을 붙여넣으면 AI가 한국어로 번역해 자동으로 가져옵니다.', href: '/chub' },
       { emoji: '💗', label: 'rofanai (rofan.ai)', desc: '로맨스 판타지 캐릭터 URL을 붙여넣으면 설정·첫 장면을 자동으로 가져옵니다.', href: '/rofan' },
+      { emoji: '💞', label: '러비더비 (loveydovey.ai)', desc: '캐릭터 URL을 붙여넣으면 메타데이터(이름·소개·장르·이미지)를 가져옵니다.', href: '/loveydovey' },
     ],
   },
   {

@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     : searchParams.get('isTikita') === 'true' ? 'tikita'
     : searchParams.get('isChub') === 'true' ? 'chub'
     : searchParams.get('isRofan') === 'true' ? 'rofan'
+    : searchParams.get('isLoveydovey') === 'true' ? 'loveydovey'
     : 'regular'
 
   const whereClause: any = { userId }
@@ -30,6 +31,8 @@ export async function GET(req: NextRequest) {
     whereClause.sourceUrl = { contains: 'chub.ai' }
   } else if (source === 'rofan') {
     whereClause.sourceUrl = { contains: 'rofan.ai' }
+  } else if (source === 'loveydovey') {
+    whereClause.sourceUrl = { contains: 'loveydovey.ai' }
   } else {
     whereClause.AND = [
       { NOT: { sourceUrl: { contains: 'whif.' } } },
@@ -38,6 +41,7 @@ export async function GET(req: NextRequest) {
       { NOT: { sourceUrl: { contains: 'tikita.ai' } } },
       { NOT: { sourceUrl: { contains: 'chub.ai' } } },
       { NOT: { sourceUrl: { contains: 'rofan.ai' } } },
+      { NOT: { sourceUrl: { contains: 'loveydovey.ai' } } },
     ]
   }
 

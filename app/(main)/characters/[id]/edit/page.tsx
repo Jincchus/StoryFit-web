@@ -17,6 +17,7 @@ function CharacterEditContent() {
   const isTikita = searchParams.get('isTikita') === 'true'
   const isChub = searchParams.get('isChub') === 'true'
   const isRofan = searchParams.get('isRofan') === 'true'
+  const isLoveydovey = searchParams.get('isLoveydovey') === 'true'
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
@@ -31,6 +32,7 @@ function CharacterEditContent() {
     else if (isTikita) colsUrl += '?isTikita=true'
     else if (isChub) colsUrl += '?isChub=true'
     else if (isRofan) colsUrl += '?isRofan=true'
+    else if (isLoveydovey) colsUrl += '?isLoveydovey=true'
 
     Promise.all([
       api.get(`/api/characters/${id}`),
@@ -54,7 +56,7 @@ function CharacterEditContent() {
           : colList
       )
     }).catch((e: any) => setFetchError(e.message))
-  }, [id, isWhif, isZeta, isMelting, isTikita, isChub, isRofan])
+  }, [id, isWhif, isZeta, isMelting, isTikita, isChub, isRofan, isLoveydovey])
 
   if (fetchError) return (
     <Win title="캐릭터 수정" icon={PixelIcons.user}>
@@ -88,6 +90,8 @@ function CharacterEditContent() {
         router.push(form.collectionId ? `/chub/characters/${form.collectionId}` : '/chub')
       } else if (isRofan) {
         router.push(form.collectionId ? `/rofan/characters/${form.collectionId}` : '/rofan')
+      } else if (isLoveydovey) {
+        router.push(form.collectionId ? `/loveydovey/characters/${form.collectionId}` : '/loveydovey')
       } else {
         router.push('/characters')
       }
@@ -97,7 +101,7 @@ function CharacterEditContent() {
     }
   }
 
-  const collectionLabel = isWhif ? '세계관' : isZeta ? '플롯' : isMelting ? '캐릭터' : isTikita ? '스토리' : isChub ? '캐릭터' : isRofan ? '캐릭터' : '컬렉션'
+  const collectionLabel = isWhif ? '세계관' : isZeta ? '플롯' : isMelting ? '캐릭터' : isTikita ? '스토리' : isChub ? '캐릭터' : isRofan ? '캐릭터' : isLoveydovey ? '캐릭터' : '컬렉션'
 
   return (
     <Win title="캐릭터 수정 (Edit Character)" icon={PixelIcons.user}>

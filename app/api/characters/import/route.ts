@@ -9,6 +9,7 @@ import { captureMelting, captureWhif, captureZeta, matchesHost } from '@/lib/imp
 import { captureTikita } from '@/lib/import/tikita'
 import { captureChub } from '@/lib/import/chub'
 import { captureRofan } from '@/lib/import/rofan'
+import { captureLoveydovey } from '@/lib/import/loveydovey'
 import { splitIntoBlocks } from '@/lib/import/blocks'
 import { classifyBlocks } from '@/lib/import/classify'
 import { assemble, buildFallback } from '@/lib/import/assemble'
@@ -208,6 +209,10 @@ export async function POST(req: NextRequest) {
   if (matchesHost(url, 'rofan.ai')) {
     try { return NextResponse.json(await runImport(await captureRofan(url.trim()), url.trim(), userId), { status: 201 }) }
     catch (e: any) { return NextResponse.json({ error: e.message ?? 'rofanai 가져오기 실패' }, { status: 400 }) }
+  }
+  if (matchesHost(url, 'loveydovey.ai')) {
+    try { return NextResponse.json(await runImport(await captureLoveydovey(url.trim()), url.trim(), userId), { status: 201 }) }
+    catch (e: any) { return NextResponse.json({ error: e.message ?? '러비더비 가져오기 실패' }, { status: 400 }) }
   }
 
   let res: Response
