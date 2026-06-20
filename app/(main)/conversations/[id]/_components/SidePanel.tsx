@@ -120,27 +120,28 @@ export default function SidePanel({
       onClick={onClose}
     />
     <div className="side-panel">
-      <div className="side-panel-header spread">
-        <span style={{ fontWeight: 700, fontSize: 11 }}>대화 설정</span>
-        <button className="btn ghost" style={{ padding: '1px 5px', fontSize: 11 }} aria-label="닫기" onClick={onClose}>×</button>
-      </div>
+      {/* 고정 헤더: 제목 + 🤖 모델 + 4탭 — 스크롤해도 항상 보임 */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--paper)', margin: '-10px -10px 0', padding: '10px 10px 0' }}>
+        <div className="side-panel-header spread">
+          <span style={{ fontWeight: 700, fontSize: 11 }}>대화 설정</span>
+          <button className="btn ghost" style={{ padding: '1px 5px', fontSize: 11 }} aria-label="닫기" onClick={onClose}>×</button>
+        </div>
 
-      {/* 🤖 모델 선택 — 패널 최상단 고정 */}
-      <div className="hstack" style={{ gap: 6, alignItems: 'center', padding: '8px 10px 2px' }}>
-        <span className="tiny muted" style={{ flexShrink: 0 }}>🤖 모델</span>
-        <ModelPill value={conv.chatModel} onChange={onChangeModel} />
-      </div>
+        <div className="hstack" style={{ gap: 6, alignItems: 'center', padding: '8px 0 2px' }}>
+          <span className="tiny muted" style={{ flexShrink: 0 }}>🤖 모델</span>
+          <ModelPill value={conv.chatModel} onChange={onChangeModel} />
+        </div>
 
-      {/* 4탭: 기본 / AI응답 / 기억 / 세계관 */}
-      <div className="hstack" style={{ gap: 2, padding: '6px 8px 8px', borderBottom: '1px solid var(--hairline)', position: 'sticky', top: 0, background: 'var(--chrome-face)', zIndex: 1 }}>
-        {([['basic', '기본'], ['ai', 'AI응답'], ['memory', '기억'], ['world', '세계관']] as const).map(([k, lbl]) => (
-          <button
-            key={k}
-            className={`btn ${tab === k ? 'primary' : 'ghost'}`}
-            style={{ flex: 1, fontSize: 11, padding: '5px 0', justifyContent: 'center' }}
-            onClick={() => setTab(k)}
-          >{lbl}</button>
-        ))}
+        <div className="hstack" style={{ gap: 2, padding: '6px 0 8px', borderBottom: '1px solid var(--hairline)' }}>
+          {([['basic', '기본'], ['ai', 'AI응답'], ['memory', '기억'], ['world', '세계관']] as const).map(([k, lbl]) => (
+            <button
+              key={k}
+              className={`btn ${tab === k ? 'primary' : 'ghost'}`}
+              style={{ flex: 1, fontSize: 11, padding: '5px 0', justifyContent: 'center' }}
+              onClick={() => setTab(k)}
+            >{lbl}</button>
+          ))}
+        </div>
       </div>
 
       {branches.length > 1 && (
@@ -177,6 +178,33 @@ export default function SidePanel({
             <button className="msg-action-btn" style={{ fontSize: 9 }} onClick={() => { setTitleInput(conv.title); setEditingTitle(true) }}>✏</button>
           </div>
         )}
+      </div>
+
+      <div className="side-section" hidden={tab !== 'basic'}>
+        <div className="label">대화방 배경 이미지 (URL)</div>
+        <div className="hstack" style={{ gap: 4 }}>
+          <input
+            className="field"
+            style={{ fontSize: 11, flex: 1 }}
+            placeholder="https://example.com/image.jpg"
+            value={customBg}
+            onChange={e => {
+              const val = e.target.value
+              setCustomBg(val)
+              localStorage.setItem('sf_bg_' + convId, val)
+            }}
+          />
+          {customBg && (
+            <button
+              className="btn ghost"
+              style={{ fontSize: 11, padding: '2px 6px' }}
+              onClick={() => {
+                setCustomBg('')
+                localStorage.removeItem('sf_bg_' + convId)
+              }}
+            >✕</button>
+          )}
+        </div>
       </div>
 
       <div className="side-section" hidden={tab !== 'basic'}>
