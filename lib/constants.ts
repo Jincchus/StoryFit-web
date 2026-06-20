@@ -6,6 +6,12 @@ export const GEMINI_CHAT_MODEL = 'gemini-2.5-pro'
 // 요약·리캡·핵심메모리 압축 등 백그라운드 유틸은 비용/속도 위해 flash 유지.
 export const GEMINI_UTILITY_MODEL = 'gemini-2.5-flash'
 
+// 대화별로 선택 가능한 채팅 모델(채팅 헤더 드롭다운). null/미설정 시 GEMINI_CHAT_MODEL 사용.
+export const CHAT_MODEL_OPTIONS: { id: string; label: string; short: string }[] = [
+  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', short: '2.5 Pro' },
+  { id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro', short: '3.1 Pro' },
+]
+
 export const AI_MODELS: AIModel[] = [
   { id: 'gemini', name: 'Gemini 2.5 Flash', short: 'Gemini', tag: 'GEM', className: 'gemini', disabled: false },
 ]

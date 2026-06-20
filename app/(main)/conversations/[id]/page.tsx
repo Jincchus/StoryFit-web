@@ -4,6 +4,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
+import ModelPill from '@/components/ui/ModelPill'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 import CharacterCardModal from '@/components/ui/CharacterCardModal'
@@ -532,6 +533,11 @@ export default function ChatPage() {
     subscribeStream(params.id)
   }
 
+  const updateChatModel = (id: string) => {
+    setConv(c => c ? { ...c, chatModel: id } : c)
+    api.patch(`/api/conversations/${params.id}`, { chatModel: id }).catch(() => {})
+  }
+
   const handleToggleBookmark = (msgId: string, next: boolean) => {
     haptic('light')
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, bookmarked: next } : m))
@@ -781,6 +787,7 @@ export default function ChatPage() {
               </div>
             </div>
             <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
+              <ModelPill value={conv.chatModel} onChange={updateChatModel} />
               {isStoryOrMulti && conv.inventoryEnabled && (
                 <button
                   className={`btn ${showInventory ? 'primary' : 'ghost'}`}

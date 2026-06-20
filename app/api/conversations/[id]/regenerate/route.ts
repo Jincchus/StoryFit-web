@@ -156,6 +156,7 @@ async function regenerateAsync({
   const prevAssistantText = [...history].reverse().find(m => m.role === 'model')?.parts[0].text ?? ''
   const gen: GenConfig = {
     provider: conv.currentAI as AIProvider,
+    model: conv.chatModel || undefined,
     temperature: conv.temperature,
     frequencyPenalty: conv.frequencyPenalty,
     maxOutputTokens: conv.maxOutputTokens,

@@ -9,7 +9,7 @@ export interface PlotOutlineData {
 }
 export interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string; gender?: string; tags: string[]; additionalInfo: string; exampleDialogues: string; openingMessage?: string; isPreset: boolean } }
 export interface Conv {
-  id: string; title: string; mode: string; currentAI: string; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
+  id: string; title: string; mode: string; currentAI: string; chatModel?: string | null; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
   inventoryEnabled: boolean; inventory: { name: string; qty: number; description?: string }[] | null
   styleConfig?: Record<string, string | null> | null

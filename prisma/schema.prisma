@@ -172,6 +172,7 @@ model Conversation {
   user            User?                   @relation(fields: [userId], references: [id])
   title           String
   currentAI       String                  @default("gemini")
+  chatModel       String?                 // 대화별 Gemini 모델 선택(null = 기본 GEMINI_CHAT_MODEL)
   personaCharacterId String?
   personaCharacter   Character?           @relation(fields: [personaCharacterId], references: [id])
   coreMemory          String                  @default("")
