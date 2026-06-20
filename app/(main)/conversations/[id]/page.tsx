@@ -563,6 +563,14 @@ export default function ChatPage() {
   }, [loadingConv])
   const [showTimelineFull, setShowTimelineFull] = useState(false)
   const [headerCollapsed, setHeaderCollapsed] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!moreOpen) return
+    const h = (e: MouseEvent) => { if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [moreOpen])
   const [diceRolling, setDiceRolling] = useState<string | null>(null)
   const prevTypingRef = useRef(false)
   useEffect(() => {
@@ -786,12 +794,12 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-            <div className="hstack" style={{ flexShrink: 0, gap: 4 }}>
+            <div className="hstack" style={{ flexShrink: 0, gap: 3, alignItems: 'center' }}>
               <ModelPill value={conv.chatModel} onChange={updateChatModel} />
               {isStoryOrMulti && conv.inventoryEnabled && (
                 <button
                   className={`btn ${showInventory ? 'primary' : 'ghost'}`}
-                  style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
+                  style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 14, justifyContent: 'center' }}
                   aria-label="인벤토리"
                   onClick={() => { setShowInventory(p => !p); setShowStats(false) }}
                 >🎒</button>
@@ -799,36 +807,40 @@ export default function ChatPage() {
               {isStoryOrMulti && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
                 <button
                   className={`btn ${showStats ? 'primary' : 'ghost'}`}
-                  style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
+                  style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 12, justifyContent: 'center' }}
                   aria-label="스탯"
                   onClick={() => { setShowStats(p => !p); setShowInventory(false) }}
                 >STAT</button>
               )}
-              {isStoryOrMulti && (
-                <button
-                  className={`btn ${showRecap ? 'primary' : 'ghost'}`}
-                  style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
-                  aria-label="지금까지의 줄거리"
-                  title="지금까지의 줄거리"
-                  onClick={() => { setShowRecap(true); setShowStats(false); setShowInventory(false); loadRecap() }}
-                >📜</button>
-              )}
-              <button
-                className="btn ghost"
-                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
-                aria-label="음성 통화"
-                title="실시간 음성 통화"
-                onClick={() => setShowVoiceCall(true)}
-              >📞</button>
               <button
                 className={`btn ${showPanel ? 'primary' : 'ghost'}`}
-                style={{ minWidth: 34, minHeight: 34, padding: '5px 8px', fontSize: 14, justifyContent: 'center' }}
+                style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 14, justifyContent: 'center' }}
                 aria-label="대화 설정"
                 onClick={() => setShowPanel(p => !p)}
               >⚙</button>
+              <div style={{ position: 'relative' }} ref={moreRef}>
+                <button
+                  className="btn ghost"
+                  style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 16, justifyContent: 'center', lineHeight: 1 }}
+                  aria-label="더보기"
+                  onClick={() => setMoreOpen(o => !o)}
+                >⋯</button>
+                {moreOpen && (
+                  <div className="ai-dropdown" style={{ minWidth: 180 }}>
+                    {isStoryOrMulti && (
+                      <div className="ai-dropdown-item" onClick={() => { setMoreOpen(false); setShowRecap(true); setShowStats(false); setShowInventory(false); loadRecap() }}>
+                        <span>📜 지금까지의 줄거리</span>
+                      </div>
+                    )}
+                    <div className="ai-dropdown-item" onClick={() => { setMoreOpen(false); setShowVoiceCall(true) }}>
+                      <span>📞 실시간 음성 통화</span>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 className="btn ghost"
-                style={{ minWidth: 28, minHeight: 34, padding: '5px 4px', fontSize: 11, justifyContent: 'center', color: 'var(--ink-soft)' }}
+                style={{ minWidth: 26, height: 32, padding: '0 4px', fontSize: 11, justifyContent: 'center', color: 'var(--ink-soft)' }}
                 aria-label="헤더 접기"
                 onClick={() => setHeaderCollapsed(true)}
               >▴</button>

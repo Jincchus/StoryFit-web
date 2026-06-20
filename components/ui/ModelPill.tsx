@@ -20,7 +20,8 @@ export default function ModelPill({ value, onChange }: { value?: string | null; 
 
   return (
     <div style={{ position: 'relative' }} ref={ref}>
-      <button className="ai-pill" onClick={() => setOpen(o => !o)} title="채팅 모델 선택">
+      <button className="ai-pill" onClick={() => setOpen(o => !o)} title="채팅 모델 선택"
+        style={{ height: 32, fontSize: 11, padding: '0 10px' }}>
         ✨ {m.short} ▾
       </button>
       {open && (
