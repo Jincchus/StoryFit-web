@@ -30,6 +30,19 @@ function Shell({ children }: { children: React.ReactNode }) {
     registerPushTokenIfAvailable()
   }, [])
 
+  // 채팅방은 몰입형 — 전역 상단바/Dock을 숨기고 채팅 UI만 전체화면으로 노출.
+  if (isChatPage) {
+    return (
+      <div className={`shell-wrap${wideMode ? ' wide' : ''}`}>
+        <div className="shell chat-immersive">
+          <div className="shell-body">
+            <div className="workwin">{children}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`shell-wrap${wideMode ? ' wide' : ''}`}>
       <div className="shell">

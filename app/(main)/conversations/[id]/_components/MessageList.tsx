@@ -34,7 +34,7 @@ export default function MessageList({
   activeId, setActiveId, editingId, setEditingId,
   speakingId, speak, stopSpeaking,
   send, fillComposer, saveEdit, saveEditOnly,
-  onRequestDelete, onToggleBookmark, onRegenerate, onBranchSwitch, onOpenBranchModal, onStopStream,
+  onRequestDelete, onToggleBookmark, onRegenerate, onSpectate, onBranchSwitch, onOpenBranchModal, onStopStream,
   getMsgChar,
   suggestions, suggestLoading, onRegenSuggestions,
 }: {
@@ -63,6 +63,7 @@ export default function MessageList({
   onRequestDelete: (msgId: string) => void
   onToggleBookmark: (msgId: string, next: boolean) => void
   onRegenerate: () => void
+  onSpectate: () => void
   onBranchSwitch: (targetMessageId: string) => Promise<void>
   onOpenBranchModal: (msgId: string) => void
   onStopStream: () => void
@@ -366,6 +367,13 @@ export default function MessageList({
                 <div className="msg-actions-row">
                   {isLast && isLastAssistant && !isYou && (
                     <button className="msg-action-btn" aria-label="재생성" onClick={onRegenerate}>↺ 재생성</button>
+                  )}
+                  {isLast && isLastAssistant && !isYou && isStoryOrMulti && (
+                    <button className="msg-action-btn" aria-label="관전 — 입력 없이 자동 진행" title="입력 없이 자동 진행" onClick={onSpectate}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-2px' }}>
+                        <polyline points="5 4 13 12 5 20" /><polyline points="13 4 21 12 13 20" />
+                      </svg> 관전
+                    </button>
                   )}
                   {!isYou && (
                     <button

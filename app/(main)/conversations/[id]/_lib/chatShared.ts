@@ -17,6 +17,11 @@ export interface Conv {
   suggestRepliesEnabled?: boolean
   enrichInputMode?: boolean
   autoChapterEnabled?: boolean
+  temperature?: number
+  frequencyPenalty?: number
+  maxOutputTokens?: number
+  thinkingBudget?: number
+  safetyLevel?: string
   chapter?: number
   plotOutline?: PlotOutlineData | null
   characters: ConvChar[]

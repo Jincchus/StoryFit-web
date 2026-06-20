@@ -4,7 +4,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
-import ModelPill from '@/components/ui/ModelPill'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 import CharacterCardModal from '@/components/ui/CharacterCardModal'
@@ -571,6 +570,14 @@ export default function ChatPage() {
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [moreOpen])
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false)
+  const branchRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!branchMenuOpen) return
+    const h = (e: MouseEvent) => { if (branchRef.current && !branchRef.current.contains(e.target as Node)) setBranchMenuOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [branchMenuOpen])
   const [diceRolling, setDiceRolling] = useState<string | null>(null)
   const prevTypingRef = useRef(false)
   useEffect(() => {
@@ -678,9 +685,9 @@ export default function ChatPage() {
     } catch { setToast('인벤토리 저장에 실패했습니다') }
   }
 
-  const pendingPatchRef = useRef<Record<string, string>>({})
+  const pendingPatchRef = useRef<Record<string, string | number>>({})
 
-  const debouncedPatch = (field: string, value: string) => {
+  const debouncedPatch = (field: string, value: string | number) => {
     pendingPatchRef.current[field] = value
     if (patchDebounceRef.current[field]) clearTimeout(patchDebounceRef.current[field]!)
     patchDebounceRef.current[field] = setTimeout(() => {
@@ -736,6 +743,28 @@ export default function ChatPage() {
     {showBranchModal && (
       <BranchModal onCreate={handleCreateBranch} onClose={() => setShowBranchModal(false)} />
     )}
+    {showAutoPicker && (
+      <>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,.4)' }} onClick={() => setShowAutoPicker(false)} />
+        <div className="card" style={{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', zIndex: 61, padding: 16, minWidth: 220, background: 'var(--chrome-face)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius-lg)', boxShadow: '0 8px 30px rgba(0,0,0,.4)' }}>
+          <div className="hstack" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
+            <strong style={{ fontSize: 13 }}>관전 — 자동 진행</strong>
+            <button className="btn ghost" style={{ padding: '2px 6px', fontSize: 13 }} onClick={() => setShowAutoPicker(false)}>✕</button>
+          </div>
+          <div className="tiny muted" style={{ marginBottom: 10 }}>입력 없이 AI가 이어서 진행할 턴 수를 고르세요.</div>
+          <div className="hstack" style={{ gap: 6 }}>
+            {[1, 3, 5, 10].map(n => (
+              <button
+                key={n}
+                className="btn primary"
+                style={{ flex: 1, fontSize: 13, padding: '8px 0', justifyContent: 'center' }}
+                onClick={() => { setShowAutoPicker(false); startAutoPlay(n) }}
+              >{n}턴</button>
+            ))}
+          </div>
+        </div>
+      </>
+    )}
     <Win title={isMulti ? `채팅 — ${conv.characters.map(cc => cc.character.name).join(', ')}` : `채팅 — ${char.name}`} icon={PixelIcons.chat} noTitle>
       <div className="vstack" style={{ gap: 8, flex: 1, minHeight: 0 }}>
         {headerCollapsed ? (
@@ -782,51 +811,78 @@ export default function ChatPage() {
                     <span className="melting-chapter-badge" style={{ marginLeft: 6 }}>{conv.chapter ?? 1}장</span>
                   )}
                 </div>
-                <div
-                  className="tiny muted"
-                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: conv.statusTimeline ? 'pointer' : 'default' }}
-                  onClick={() => conv.statusTimeline && setShowTimelineFull(p => !p)}
-                  role={conv.statusTimeline ? 'button' : undefined}
-                  aria-label="현재 상황 전체 보기"
-                >
-                  턴 {Math.floor(messages.length / 2)}
-                  {conv.statusTimeline && <span> · {conv.statusTimeline} {showTimelineFull ? '▴' : '▾'}</span>}
+                <div className="hstack tiny muted" style={{ gap: 7, alignItems: 'center' }}>
+                  <span style={{ flexShrink: 0 }}>턴 {Math.floor(messages.length / 2)}</span>
+                  {branches.length > 1 && (
+                    <div style={{ position: 'relative', flexShrink: 0 }} ref={branchRef}>
+                      <button
+                        className="btn ghost"
+                        style={{ fontSize: 10, padding: '0 6px', fontWeight: 600, color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 2 }}
+                        aria-label="분기 전환"
+                        onClick={() => setBranchMenuOpen(o => !o)}
+                      >⑂ v{branches.find(b => b.id === params.id)?.version ?? 1} ▾</button>
+                      {branchMenuOpen && (
+                        <div className="ai-dropdown" style={{ left: 0, right: 'auto', minWidth: 200, maxWidth: 'calc(100vw - 28px)', maxHeight: 280, overflowY: 'auto' }}>
+                          {branches.map(b => {
+                            const isCurrent = b.id === params.id
+                            return (
+                              <div
+                                key={b.id}
+                                className={`ai-dropdown-item ${isCurrent ? 'active' : ''}`}
+                                style={{ gap: 6 }}
+                                onClick={() => { if (!isCurrent) { setBranchMenuOpen(false); router.push(`/conversations/${b.id}`) } }}
+                              >
+                                <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}
+                                </span>
+                                {isCurrent && <span style={{ fontSize: 10, color: 'var(--accent)' }}>✓</span>}
+                                <span
+                                  role="button"
+                                  aria-label={`v${b.version} 분기 삭제`}
+                                  onClick={e => { e.stopPropagation(); setBranchMenuOpen(false); handleDeleteBranch(b) }}
+                                  style={{ opacity: 0.55, padding: '2px 5px', flexShrink: 0, cursor: 'pointer' }}
+                                >✕</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {conv.statusTimeline && (
+                    <button
+                      className={`btn ${showTimelineFull ? 'primary' : 'ghost'}`}
+                      style={{ fontSize: 10, padding: '0 6px', display: 'inline-flex', alignItems: 'center', gap: 3, minWidth: 0, maxWidth: 170 }}
+                      onClick={() => setShowTimelineFull(p => !p)}
+                      aria-label="현재 상황"
+                      title={conv.statusTimeline}
+                    >
+                      🎬 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.statusTimeline}</span> {showTimelineFull ? '▴' : '▾'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
             <div className="hstack" style={{ flexShrink: 0, gap: 3, alignItems: 'center' }}>
-              <ModelPill value={conv.chatModel} onChange={updateChatModel} />
-              {isStoryOrMulti && conv.inventoryEnabled && (
-                <button
-                  className={`btn ${showInventory ? 'primary' : 'ghost'}`}
-                  style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 14, justifyContent: 'center' }}
-                  aria-label="인벤토리"
-                  onClick={() => { setShowInventory(p => !p); setShowStats(false) }}
-                >🎒</button>
-              )}
-              {isStoryOrMulti && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
-                <button
-                  className={`btn ${showStats ? 'primary' : 'ghost'}`}
-                  style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 12, justifyContent: 'center' }}
-                  aria-label="스탯"
-                  onClick={() => { setShowStats(p => !p); setShowInventory(false) }}
-                >STAT</button>
-              )}
-              <button
-                className={`btn ${showPanel ? 'primary' : 'ghost'}`}
-                style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 14, justifyContent: 'center' }}
-                aria-label="대화 설정"
-                onClick={() => setShowPanel(p => !p)}
-              >⚙</button>
               <div style={{ position: 'relative' }} ref={moreRef}>
                 <button
                   className="btn ghost"
                   style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 16, justifyContent: 'center', lineHeight: 1 }}
-                  aria-label="더보기"
+                  aria-label="메뉴"
                   onClick={() => setMoreOpen(o => !o)}
-                >⋯</button>
+                >☰</button>
                 {moreOpen && (
-                  <div className="ai-dropdown" style={{ minWidth: 180 }}>
+                  <div className="ai-dropdown" style={{ minWidth: 200 }}>
+                    {isStoryOrMulti && conv.statsEnabled && conv.statsConfig && conv.statsConfig.length > 0 && (
+                      <div className="ai-dropdown-item" onClick={() => { setMoreOpen(false); setShowStats(p => !p); setShowInventory(false) }}>
+                        <span>📊 스탯</span>{showStats && <span>✓</span>}
+                      </div>
+                    )}
+                    {isStoryOrMulti && conv.inventoryEnabled && (
+                      <div className="ai-dropdown-item" onClick={() => { setMoreOpen(false); setShowInventory(p => !p); setShowStats(false) }}>
+                        <span>🎒 인벤토리</span>{showInventory && <span>✓</span>}
+                      </div>
+                    )}
                     {isStoryOrMulti && (
                       <div className="ai-dropdown-item" onClick={() => { setMoreOpen(false); setShowRecap(true); setShowStats(false); setShowInventory(false); loadRecap() }}>
                         <span>📜 지금까지의 줄거리</span>
@@ -835,9 +891,28 @@ export default function ChatPage() {
                     <div className="ai-dropdown-item" onClick={() => { setMoreOpen(false); setShowVoiceCall(true) }}>
                       <span>📞 실시간 음성 통화</span>
                     </div>
+                    <div style={{ height: 1, background: 'var(--hairline)', margin: '4px 0' }} />
+                    <div className="hstack" style={{ gap: 4, padding: '4px 10px 6px', alignItems: 'center' }}>
+                      <span className="tiny muted" style={{ flexShrink: 0 }}>글자 크기</span>
+                      {[13, 14, 15, 16].map(size => (
+                        <button
+                          key={size}
+                          className={`btn ${chatFontSize === size ? 'primary' : 'ghost'}`}
+                          style={{ fontSize: size - 2, padding: '3px 7px', minWidth: 28, justifyContent: 'center' }}
+                          aria-label={`글자 크기 ${size}`}
+                          onClick={() => changeChatFontSize(size)}
+                        >가</button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
+              <button
+                className={`btn ${showPanel ? 'primary' : 'ghost'}`}
+                style={{ minWidth: 32, height: 32, padding: '0 7px', fontSize: 14, justifyContent: 'center' }}
+                aria-label="대화 설정"
+                onClick={() => setShowPanel(p => !p)}
+              >⚙</button>
               <button
                 className="btn ghost"
                 style={{ minWidth: 26, height: 32, padding: '0 4px', fontSize: 11, justifyContent: 'center', color: 'var(--ink-soft)' }}
@@ -851,33 +926,6 @@ export default function ChatPage() {
         {showTimelineFull && conv.statusTimeline && (
           <div className="tiny" style={{ padding: '8px 12px', margin: '0 4px', background: 'var(--pane)', border: '1px solid var(--chrome-border)', borderRadius: 'var(--radius)', lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--ink-soft)', flexShrink: 0 }}>
             🎬 {conv.statusTimeline}
-          </div>
-        )}
-
-        {branches.length > 1 && (
-          <div className="hstack" style={{ gap: 4, paddingBottom: 2, overflowX: 'auto', flexShrink: 0 }}>
-            {branches.map(b => {
-              const isCurrent = b.id === params.id
-              return (
-                <div
-                  key={b.id}
-                  className={`btn ${isCurrent ? 'primary' : 'ghost'}`}
-                  style={{ fontSize: 10, padding: '2px 4px 2px 8px', flexShrink: 0, whiteSpace: 'nowrap',
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    cursor: isCurrent ? 'default' : 'pointer' }}
-                  title={b.branchDescription || undefined}
-                  onClick={() => !isCurrent && router.push(`/conversations/${b.id}`)}
-                >
-                  <span>v{b.version}{b.branchDescription ? ` · ${b.branchDescription}` : ''}</span>
-                  <span
-                    role="button"
-                    aria-label={`v${b.version} 분기 삭제`}
-                    onClick={e => { e.stopPropagation(); handleDeleteBranch(b) }}
-                    style={{ opacity: 0.55, padding: '4px 7px', margin: '-4px -2px', cursor: 'pointer' }}
-                  >✕</span>
-                </div>
-              )
-            })}
           </div>
         )}
 
@@ -959,6 +1007,7 @@ export default function ChatPage() {
                 onRequestDelete={setConfirmDeleteId}
                 onToggleBookmark={handleToggleBookmark}
                 onRegenerate={handleRegenerate}
+                onSpectate={() => setShowAutoPicker(true)}
                 onBranchSwitch={handleBranchSwitch}
                 onOpenBranchModal={msgId => { setBranchTargetMsgId(msgId); setShowBranchModal(true) }}
                 onStopStream={stopStream}
@@ -1075,43 +1124,8 @@ export default function ChatPage() {
                                 >일반 판정 (50%)</button>
                               </div>
                             )}
-                            <button
-                              className="btn ghost"
-                              style={{ fontSize: 13, padding: '9px 10px', width: '100%', justifyContent: 'space-between', gap: 8 }}
-                              onClick={() => { setShowAutoPicker(p => !p); setShowDicePicker(false) }}
-                            ><span>⏩ 관전 모드</span><span className="muted">{showAutoPicker ? '▾' : '▸'}</span></button>
-                            {showAutoPicker && (
-                              <div className="vstack" style={{ gap: 2, padding: '2px 0 6px 22px' }}>
-                                {[1, 3, 5, 10].map(n => (
-                                  <button
-                                    key={n}
-                                    className="btn ghost"
-                                    style={{ fontSize: 12, padding: '6px 10px', justifyContent: 'flex-start' }}
-                                    onClick={() => { setShowPlusMenu(false); setShowAutoPicker(false); startAutoPlay(n) }}
-                                  >{n}턴 자동 진행</button>
-                                ))}
-                              </div>
-                            )}
-                            <button
-                              className="btn ghost"
-                              style={{ fontSize: 13, padding: '9px 10px', width: '100%', justifyContent: 'flex-start', gap: 8 }}
-                              onClick={() => { setShowPlusMenu(false); setShowRecap(true); loadRecap() }}
-                            >📜 줄거리 요약</button>
                           </>
                         )}
-                        <div style={{ height: 1, background: 'var(--hairline)', margin: '4px 0' }} />
-                        <div className="hstack" style={{ gap: 4, padding: '4px 10px 6px', alignItems: 'center' }}>
-                          <span className="tiny muted" style={{ flexShrink: 0 }}>글자 크기</span>
-                          {[13, 14, 15, 16].map(size => (
-                            <button
-                              key={size}
-                              className={`btn ${chatFontSize === size ? 'primary' : 'ghost'}`}
-                              style={{ fontSize: size - 2, padding: '3px 7px', minWidth: 28, justifyContent: 'center' }}
-                              aria-label={`글자 크기 ${size}`}
-                              onClick={() => changeChatFontSize(size)}
-                            >가</button>
-                          ))}
-                        </div>
                       </div>
                     </>
                   )}
@@ -1199,6 +1213,7 @@ export default function ChatPage() {
               onShowCharCard={setCardChar}
               onJumpToMessage={jumpToMessage}
               onClose={() => setShowPanel(false)}
+              onChangeModel={updateChatModel}
             />
           )}
 

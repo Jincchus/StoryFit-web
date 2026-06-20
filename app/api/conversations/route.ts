@@ -99,6 +99,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 전역 개인 기본값 — body에 명시 안 되면 항상 이 값이 새 방의 기본으로 주입됨(생성 후엔 방별 독립).
+  const settings = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { defaultTemperature: true, defaultFrequencyPenalty: true, defaultMaxOutputTokens: true, defaultThinkingBudget: true, defaultSafetyLevel: true },
+  })
+
   const conversation = await prisma.conversation.create({
     data: {
       userId,
@@ -108,11 +114,11 @@ export async function POST(req: NextRequest) {
       personaCharacterId: body.personaCharacterId ?? null,
       scenarioDescription: body.scenarioDescription ?? '',
       tags: body.tags ?? [],
-      temperature: body.temperature ?? 0.9,
-      frequencyPenalty: body.frequencyPenalty ?? 0.3,
-      maxOutputTokens: body.maxOutputTokens ?? 8192,
-      thinkingBudget: body.thinkingBudget ?? 0,
-      safetyLevel: body.safetyLevel ?? 'standard',
+      temperature: body.temperature ?? settings?.defaultTemperature ?? 0.9,
+      frequencyPenalty: body.frequencyPenalty ?? settings?.defaultFrequencyPenalty ?? 0.3,
+      maxOutputTokens: body.maxOutputTokens ?? settings?.defaultMaxOutputTokens ?? 8192,
+      thinkingBudget: body.thinkingBudget ?? settings?.defaultThinkingBudget ?? 0,
+      safetyLevel: body.safetyLevel ?? settings?.defaultSafetyLevel ?? 'standard',
       statsEnabled: body.statsEnabled ?? false,
       statsConfig: body.statsConfig ?? null,
       inventoryEnabled: body.inventoryEnabled ?? false,

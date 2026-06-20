@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import PixelAvatar from '@/components/ui/PixelAvatar'
-import { applyTheme, THEMES } from '@/lib/theme'
+import ModelPill from '@/components/ui/ModelPill'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import type { Character } from '@/types'
 import { useLorebook } from '../_hooks/useLorebook'
@@ -11,7 +11,7 @@ import type { Conv, ConvChar, LbEntry, BranchInfo } from '../_lib/chatShared'
 
 export default function SidePanel({
   convId, conv, setConv, allChars, branches, customBg, setCustomBg, currentTheme, setCurrentTheme,
-  debouncedPatch, setToast, onShowCharCard, onJumpToMessage, onClose,
+  debouncedPatch, setToast, onShowCharCard, onJumpToMessage, onClose, onChangeModel,
 }: {
   convId: string
   conv: Conv
@@ -22,12 +22,14 @@ export default function SidePanel({
   setCustomBg: (v: string) => void
   currentTheme: string
   setCurrentTheme: (v: string) => void
-  debouncedPatch: (field: string, value: string) => void
+  debouncedPatch: (field: string, value: string | number) => void
   setToast: (msg: string) => void
   onShowCharCard: (c: ConvChar['character']) => void
   onJumpToMessage: (msgId: string) => void
   onClose: () => void
+  onChangeModel: (id: string) => void
 }) {
+  const [tab, setTab] = useState<'basic' | 'ai' | 'memory' | 'world'>('basic')
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
   const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
@@ -81,6 +83,16 @@ export default function SidePanel({
     api.patch(`/api/conversations/${convId}`, { styleConfig: next }).catch(() => setToast('스타일 저장에 실패했습니다'))
   }
 
+  const handleParam = (field: 'temperature' | 'frequencyPenalty' | 'maxOutputTokens' | 'thinkingBudget', value: number) => {
+    setConv(c => c ? { ...c, [field]: value } : c)
+    debouncedPatch(field, value)
+  }
+
+  const handleSafety = (value: string) => {
+    setConv(c => c ? { ...c, safetyLevel: value } : c)
+    api.patch(`/api/conversations/${convId}`, { safetyLevel: value }).catch(() => setToast('설정 저장에 실패했습니다'))
+  }
+
   const handleCoreMemory = (value: string) => {
     setConv(c => c ? { ...c, coreMemory: value } : c)
     debouncedPatch('coreMemory', value)
@@ -113,8 +125,26 @@ export default function SidePanel({
         <button className="btn ghost" style={{ padding: '1px 5px', fontSize: 11 }} aria-label="닫기" onClick={onClose}>×</button>
       </div>
 
+      {/* 🤖 모델 선택 — 패널 최상단 고정 */}
+      <div className="hstack" style={{ gap: 6, alignItems: 'center', padding: '8px 10px 2px' }}>
+        <span className="tiny muted" style={{ flexShrink: 0 }}>🤖 모델</span>
+        <ModelPill value={conv.chatModel} onChange={onChangeModel} />
+      </div>
+
+      {/* 4탭: 기본 / AI응답 / 기억 / 세계관 */}
+      <div className="hstack" style={{ gap: 2, padding: '6px 8px 8px', borderBottom: '1px solid var(--hairline)', position: 'sticky', top: 0, background: 'var(--chrome-face)', zIndex: 1 }}>
+        {([['basic', '기본'], ['ai', 'AI응답'], ['memory', '기억'], ['world', '세계관']] as const).map(([k, lbl]) => (
+          <button
+            key={k}
+            className={`btn ${tab === k ? 'primary' : 'ghost'}`}
+            style={{ flex: 1, fontSize: 11, padding: '5px 0', justifyContent: 'center' }}
+            onClick={() => setTab(k)}
+          >{lbl}</button>
+        ))}
+      </div>
+
       {branches.length > 1 && (
-        <div className="side-section">
+        <div className="side-section" hidden={tab !== 'basic'}>
           <div className="label">분기 설명 <span className="tiny muted">(현재 버전: v{branches.find(b => b.id === convId)?.version ?? 1})</span></div>
           <input
             className="field"
@@ -127,7 +157,7 @@ export default function SidePanel({
         </div>
       )}
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'basic'}>
         <div className="label">대화 제목</div>
         {editingTitle ? (
           <div className="hstack" style={{ gap: 4 }}>
@@ -149,54 +179,7 @@ export default function SidePanel({
         )}
       </div>
 
-      {/* 화면 테마 및 배경 설정 */}
-      <div className="side-section">
-        <div className="label">화면 테마 설정</div>
-        <select
-          className="field"
-          style={{ fontSize: 11 }}
-          value={currentTheme}
-          onChange={async e => {
-            const val = e.target.value
-            setCurrentTheme(val)
-            applyTheme(val)
-            await api.patch('/api/user/settings', { theme: val }).catch(() => setToast('테마 저장에 실패했습니다'))
-          }}
-        >
-          {THEMES.map(t => (
-            <option key={t.id} value={t.id}>{t.label} ({t.desc})</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="side-section">
-        <div className="label">대화방 배경 이미지 (URL)</div>
-        <div className="hstack" style={{ gap: 4 }}>
-          <input
-            className="field"
-            style={{ fontSize: 11, flex: 1 }}
-            placeholder="https://example.com/image.jpg"
-            value={customBg}
-            onChange={e => {
-              const val = e.target.value
-              setCustomBg(val)
-              localStorage.setItem('sf_bg_' + convId, val)
-            }}
-          />
-          {customBg && (
-            <button
-              className="btn ghost"
-              style={{ fontSize: 11, padding: '2px 6px' }}
-              onClick={() => {
-                setCustomBg('')
-                localStorage.removeItem('sf_bg_' + convId)
-              }}
-            >✕</button>
-          )}
-        </div>
-      </div>
-
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'basic'}>
         <div className="label">대화 참여자</div>
         <div className="vstack" style={{ gap: 4 }}>
           {conv.characters.map(cc => (
@@ -218,7 +201,7 @@ export default function SidePanel({
         </div>
       </div>
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'basic'}>
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, persona: !o.persona }))}>
           <span>내 역할</span>
           <span className={`acc-arrow ${panelOpen.persona ? 'open' : ''}`}>▼</span>
@@ -275,7 +258,7 @@ export default function SidePanel({
         )}
       </div>
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'world'}>
         <div className="spread" style={{ marginBottom: 4 }}>
           <div className="label" style={{ marginBottom: 0 }}>시나리오 배경</div>
           <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} onClick={() => setInfoTip(t => t === 'scenario' ? null : 'scenario')}>?</button>
@@ -291,7 +274,7 @@ export default function SidePanel({
         />
       </div>
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'world'}>
         <div className="spread" style={{ alignItems: 'center' }}>
           <div className="label" style={{ marginBottom: 0 }}>🔖 AI 자동 챕터 구분</div>
           <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
@@ -312,7 +295,7 @@ export default function SidePanel({
         <div className="tiny muted" style={{ marginTop: 4 }}>장면이나 시간대가 크게 전환될 때 AI가 자동으로 새 챕터로 구분합니다.</div>
       </div>
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'ai'}>
         <div className="spread" style={{ alignItems: 'center' }}>
           <div className="label" style={{ marginBottom: 0 }}>✍️ 입력 다듬어 확장</div>
           <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
@@ -333,7 +316,7 @@ export default function SidePanel({
         <div className="tiny muted" style={{ marginTop: 4 }}>ON이면 내 입력을 다듬어 소설체로 확장한 뒤 AI가 자연스럽게 이어갑니다.</div>
       </div>
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'memory'}>
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, bookmark: !o.bookmark }))}>
           <span>🔖 북마크</span>
           <span className={`acc-arrow ${panelOpen.bookmark ? 'open' : ''}`}>▼</span>
@@ -344,7 +327,7 @@ export default function SidePanel({
       </div>
 
       {(conv.mode === 'story' || conv.mode === 'multiStory') && (
-        <div className="side-section">
+        <div className="side-section" hidden={tab !== 'world'}>
           <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, plot: !o.plot }))}>
             <span>{conv.plotOutline?.source === 'tikita' ? '📖 에피소드' : '🗺 스토리 설계도'}{conv.plotOutline ? <span className="tiny muted" style={{ fontWeight: 400 }}> ({conv.chapter ?? 1}/{conv.plotOutline.totalChapters}{conv.plotOutline.source === 'tikita' ? '화' : '챕터'})</span> : null}</span>
             <span className={`acc-arrow ${panelOpen.plot ? 'open' : ''}`}>▼</span>
@@ -355,7 +338,7 @@ export default function SidePanel({
         </div>
       )}
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'ai'}>
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, style: !o.style }))}>
           <span>🎨 스타일 설정</span>
           <span className={`acc-arrow ${panelOpen.style ? 'open' : ''}`}>▼</span>
@@ -389,7 +372,38 @@ export default function SidePanel({
         )}
       </div>
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'ai'}>
+        <div className="label">🎛 파라미터</div>
+        <div className="vstack" style={{ gap: 11 }}>
+          <div>
+            <div className="tiny muted" style={{ marginBottom: 3 }}>🛡 안전 수준</div>
+            <select className="field" style={{ fontSize: 11 }} value={conv.safetyLevel ?? 'standard'} onChange={e => handleSafety(e.target.value)}>
+              <option value="strict">엄격 (Strict)</option>
+              <option value="standard">표준 (Standard)</option>
+              <option value="relaxed">완화 (Relaxed)</option>
+            </select>
+          </div>
+          <div>
+            <div className="spread"><span className="tiny muted">창의성 (temperature)</span><span className="tiny" style={{ color: 'var(--accent)', fontWeight: 700 }}>{(conv.temperature ?? 0.9).toFixed(1)}</span></div>
+            <input type="range" className="param-slider" min={0} max={2} step={0.1} value={conv.temperature ?? 0.9} onChange={e => handleParam('temperature', parseFloat(e.target.value))} />
+          </div>
+          <div>
+            <div className="spread"><span className="tiny muted">반복 억제</span><span className="tiny" style={{ color: 'var(--accent)', fontWeight: 700 }}>{(conv.frequencyPenalty ?? 0.3).toFixed(2)}</span></div>
+            <input type="range" className="param-slider" min={0} max={2} step={0.05} value={conv.frequencyPenalty ?? 0.3} onChange={e => handleParam('frequencyPenalty', parseFloat(e.target.value))} />
+          </div>
+          <div>
+            <div className="spread"><span className="tiny muted">응답 최대 길이</span><span className="tiny" style={{ color: 'var(--accent)', fontWeight: 700 }}>{((conv.maxOutputTokens ?? 8192) / 1024).toFixed(0)}K</span></div>
+            <input type="range" className="param-slider" min={4096} max={32768} step={4096} value={conv.maxOutputTokens ?? 8192} onChange={e => handleParam('maxOutputTokens', parseInt(e.target.value))} />
+          </div>
+          <div>
+            <div className="spread"><span className="tiny muted">깊이감 (사고 예산)</span><span className="tiny" style={{ color: 'var(--accent)', fontWeight: 700 }}>{(conv.thinkingBudget ?? 0) === 0 ? '끄기(빠름)' : `${((conv.thinkingBudget ?? 0) / 1024).toFixed(1)}K`}</span></div>
+            <input type="range" className="param-slider" min={0} max={8192} step={512} value={conv.thinkingBudget ?? 0} onChange={e => handleParam('thinkingBudget', parseInt(e.target.value))} />
+          </div>
+          <div className="tiny muted" style={{ fontSize: 9, lineHeight: 1.5 }}>변경 즉시 이 대화에 저장됩니다. (Gemini Pro는 사고 예산 0이어도 동적으로 보정)</div>
+        </div>
+      </div>
+
+      <div className="side-section" hidden={tab !== 'memory'}>
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, memory: !o.memory }))}>
           <span>📌 기억 · 상태</span>
           <span className={`acc-arrow ${panelOpen.memory ? 'open' : ''}`}>▼</span>
@@ -446,7 +460,7 @@ export default function SidePanel({
         </>}
       </div>
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'world'}>
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, lorebook: !o.lorebook }))}>
           <span>📖 로어북 <span className="tiny muted" style={{ fontWeight: 400 }}>({lorebooks.length})</span></span>
           <span className={`acc-arrow ${panelOpen.lorebook ? 'open' : ''}`}>▼</span>
@@ -549,7 +563,7 @@ export default function SidePanel({
         </>}
       </div>
 
-      <div className="side-section">
+      <div className="side-section" hidden={tab !== 'memory'}>
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, longmem: !o.longmem }))}>
           <span>🧠 장기 메모리 <span className="tiny muted" style={{ fontWeight: 400 }}>({memories.length})</span></span>
           <span className={`acc-arrow ${panelOpen.longmem ? 'open' : ''}`}>▼</span>
