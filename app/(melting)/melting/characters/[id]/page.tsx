@@ -9,6 +9,7 @@ import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { getOpenings } from '@/lib/openings'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import type { Opening } from '@/types'
 
 function formatDate(s?: string) {
@@ -54,6 +55,13 @@ export default function MeltingCharDetailPage() {
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
   }, [id])
+
+  // 백그라운드 복귀 시: 서버에서 생성·저장된 도입부를 반영하고 멈춘 스피너를 정리한다.
+  useRefetchOnForeground(() => {
+    if (isEditingOpening) return
+    api.get(`/api/collections/${id}`).then((fresh) => { if (fresh) setCol(fresh) }).catch(() => {})
+    setGeneratingOpening(false)
+  })
 
   useEffect(() => {
     const charId = col?.characters?.[0]?.id

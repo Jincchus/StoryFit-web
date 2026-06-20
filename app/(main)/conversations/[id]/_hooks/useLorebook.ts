@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 
 interface LbEntry { id: string; keyword: string[]; content: string; priority: number; scanDepth: number }
 
@@ -14,9 +15,14 @@ export function useLorebook(convId: string, setToast: (msg: string) => void) {
   const [showLorebookImport, setShowLorebookImport] = useState(false)
   const [lorebookImportText, setLorebookImportText] = useState('')
 
-  useEffect(() => {
+  const loadLorebooks = useCallback(() => {
     api.get(`/api/lorebooks?conversationId=${convId}`).then(setLorebooks).catch(() => setLorebookError(true))
   }, [convId])
+
+  useEffect(() => { loadLorebooks() }, [loadLorebooks])
+
+  // 백그라운드 복귀 시: 서버에서 생성·저장된 로어북(AI 가져오기 포함)을 반영하고 멈춘 스피너를 정리.
+  useRefetchOnForeground(() => { loadLorebooks(); setLorebookImporting(false) })
 
   const handleAddLorebook = async () => {
     const keyword = lbForm.keywords.split(',').map(k => k.trim()).filter(Boolean)

@@ -9,6 +9,7 @@ import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { getOpenings } from '@/lib/openings'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import type { Opening } from '@/types'
 
 function formatDate(s?: string) {
@@ -45,17 +46,35 @@ export default function ChubCharDetailPage() {
 
   const handleTranslate = async () => {
     if (translating) return
+    const before = col?.chubMeta?.activeLang ?? 'en'
     setTranslating(true); setError('')
     try {
       const updated = await api.post(`/api/collections/${id}/translate`, {})
       setCol(updated)
       setOpeningIdx(0); setIsEditingOpening(false)
-    } catch (e: any) {
-      setError('번역 실패: ' + (e.message ?? ''))
+    } catch {
+      // 백그라운드 등으로 응답을 못 받았어도 서버는 번역을 끝내고 저장했을 수 있다 → 재조회로 복구
+      try {
+        const fresh = await api.get(`/api/collections/${id}`)
+        if ((fresh?.chubMeta?.activeLang ?? 'en') !== before) {
+          setCol(fresh); setOpeningIdx(0); setIsEditingOpening(false)
+        } else {
+          setError('번역 실패: 잠시 후 다시 시도해주세요.')
+        }
+      } catch {
+        setError('번역 실패: 잠시 후 다시 시도해주세요.')
+      }
     } finally {
       setTranslating(false)
     }
   }
+
+  // 백그라운드 복귀 시: 저장된 번역 결과를 반영하고 멈춘 스피너를 정리한다.
+  useRefetchOnForeground(() => {
+    if (isEditingOpening) return // 도입부 편집 중이면 사용자 입력 보존
+    api.get(`/api/collections/${id}`).then((fresh) => { if (fresh) setCol(fresh) }).catch(() => {})
+    setTranslating(false)
+  })
 
   useEffect(() => {
     api.get('/api/user/settings')
