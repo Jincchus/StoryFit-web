@@ -64,14 +64,21 @@ export default function BabechatListPage() {
   }
 
   const handleImport = async () => {
-    if (!importUrl.trim() || importing) return
-    setImporting(true); setMsg('')
-    try {
-      await api.post('/api/characters/import', { url: importUrl.trim() })
-      setImportUrl(''); setMsg('✓ 가져왔습니다'); setMenuOpen(false)
-      await fetchData()
-    } catch (e: any) { setMsg('⚠ ' + (e.message ?? '가져오기 실패')) }
-    finally { setImporting(false) }
+    const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
+    if (urls.length === 0 || importing) return
+    setImporting(true)
+    let ok = 0
+    const failed: string[] = []
+    for (let i = 0; i < urls.length; i++) {
+      setMsg(`가져오는 중... (${i + 1}/${urls.length})`)
+      try { await api.post('/api/characters/import', { url: urls[i] }); ok++ }
+      catch { failed.push(urls[i]) }
+    }
+    setImportUrl(failed.join(String.fromCharCode(10)))
+    setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.length}개 실패 — 다시 가져오기로 재시도` : `✓ ${ok}개 가져왔습니다`)
+    if (failed.length === 0) setMenuOpen(false)
+    await fetchData()
+    setImporting(false)
   }
 
   const toggleEditMode = () => {
@@ -117,10 +124,7 @@ export default function BabechatListPage() {
         {menuOpen && (
           <div className="bc-menu">
             <div style={{ padding: '10px 10px 4px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <input className="field" placeholder="https://babechat.ai/characters/..." value={importUrl}
-                onChange={e => setImportUrl(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleImport() }}
-                style={{ fontSize: 12 }} />
+              <textarea className="field" placeholder="URL을 한 줄에 하나씩 붙여넣기 (여러 개 가능)" value={importUrl} onChange={e => setImportUrl(e.target.value)} rows={3} style={{ fontSize: 12, resize: 'vertical' }} />
               <button className="bc-menu-item"
                 style={{ background: 'var(--b-accent)', borderRadius: 8, color: '#fff', textAlign: 'center' }}
                 disabled={importing} onClick={handleImport}>{importing ? '가져오는 중...' : '📥 가져오기'}</button>
