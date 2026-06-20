@@ -48,24 +48,28 @@ export async function triggerMemorySummarization(
       where: { conversationId, isSelected: true },
     })
 
-    // 마지막으로 요약된 지점(메모리의 messageRangeEnd) 다음부터 SUMMARIZE_EVERY개를 요약한다.
-    // 메모리 개수×10(skip) 방식은 메모리가 중간에서 삭제되면 이미 요약한 구간을 중복 생성하므로,
-    // 실제 진행 위치 기준으로 계산한다(빈 메모리 정리·사용자 삭제에도 안전).
-    const lastMem = await prisma.memory.findFirst({
+    // 이미 요약된 경계 = 메모리들의 messageRangeEnd 중 "이 대화에 실제로 존재하는" 가장 늦은 메시지.
+    // ⚠️ 과거 버그: 마지막 메모리의 end 메시지가 재생성/편집으로 삭제되면 findUnique가 null →
+    //    summarizedCount=0 → skip 0부터 처음 10개를 다시 요약 → lastMem이 그 중복으로 바뀌며
+    //    대화 전체를 처음부터 재요약(중복 폭증). 단일 last가 아니라 "유효한 end들 중 최신"으로 계산해 방지.
+    const memEnds = await prisma.memory.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'desc' },
       select: { messageRangeEnd: true },
     })
     let summarizedCount = 0
-    if (lastMem?.messageRangeEnd) {
-      const endMsg = await prisma.message.findUnique({
-        where: { id: lastMem.messageRangeEnd },
+    if (memEnds.length > 0) {
+      const lastValidEnd = await prisma.message.findFirst({
+        where: { id: { in: memEnds.map(m => m.messageRangeEnd) }, conversationId },
+        orderBy: { createdAt: 'desc' },
         select: { createdAt: true },
       })
-      if (endMsg) {
+      if (lastValidEnd) {
         summarizedCount = await prisma.message.count({
-          where: { conversationId, isSelected: true, createdAt: { lte: endMsg.createdAt } },
+          where: { conversationId, isSelected: true, createdAt: { lte: lastValidEnd.createdAt } },
         })
+      } else {
+        // 모든 end 메시지가 사라진 극단 케이스 — 메모리 개수로 근사(최소한 처음부터 재요약은 막는다).
+        summarizedCount = memEnds.length * SUMMARIZE_EVERY
       }
     }
     if (totalMessages - summarizedCount < SUMMARIZE_EVERY) return
