@@ -7,6 +7,7 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
+import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface CChar {
@@ -90,6 +91,8 @@ export default function ChubListPage() {
   const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   const tagGroups = buildTagGroups(chars.flatMap(c => c.tags ?? []), tagConfig)
+  const counts = viewCounts(chars)
+  const tCounts = tagCounts(chars)
   const visibleChars = sortByOption(
     chars.filter(c =>
       (view === 'favorites' ? isFav('collection', c.id)
@@ -131,9 +134,9 @@ export default function ChubListPage() {
 
       <div style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="chub-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--c-accent)' : 'var(--c-surface-2)', color: view === 'active' ? '#fff' : 'var(--c-ink-soft)' }} onClick={() => handleView('active')}>진행 중</button>
-          <button className="chub-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--c-accent)' : 'var(--c-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--c-ink-soft)' }} onClick={() => handleView('waiting')}>대기</button>
-          <button className="chub-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--c-accent)' : 'var(--c-surface-2)', color: view === 'completed' ? '#fff' : 'var(--c-ink-soft)' }} onClick={() => handleView('completed')}>완결</button>
+          <button className="chub-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--c-accent)' : 'var(--c-surface-2)', color: view === 'active' ? '#fff' : 'var(--c-ink-soft)' }} onClick={() => handleView('active')}>진행 중 <span style={{ opacity: 0.55 }}>{counts.active}</span></button>
+          <button className="chub-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--c-accent)' : 'var(--c-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--c-ink-soft)' }} onClick={() => handleView('waiting')}>대기 <span style={{ opacity: 0.55 }}>{counts.waiting}</span></button>
+          <button className="chub-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--c-accent)' : 'var(--c-surface-2)', color: view === 'completed' ? '#fff' : 'var(--c-ink-soft)' }} onClick={() => handleView('completed')}>완결 <span style={{ opacity: 0.55 }}>{counts.completed}</span></button>
           <button className="chub-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--c-accent)' : 'var(--c-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--c-ink-soft)' }} onClick={() => handleView('favorites')}>★ 즐겨찾기</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -162,7 +165,7 @@ export default function ChubListPage() {
               autoFocus
             />
           </div>
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="chub-chip" accentVar="--c-accent" />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="chub-chip" accentVar="--c-accent" counts={tCounts} />
         </>
       )}
 

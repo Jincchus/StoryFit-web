@@ -2,13 +2,14 @@
 
 export interface TagGroup { category: string; tags: string[] }
 
-export default function TagFilterBar({ groups, selected, onToggle, onClear, chipClass, accentVar }: {
+export default function TagFilterBar({ groups, selected, onToggle, onClear, chipClass, accentVar, counts }: {
   groups: TagGroup[]
   selected: string[]
   onToggle: (tag: string) => void
   onClear: () => void
   chipClass: string
   accentVar: string
+  counts?: Record<string, number>
 }) {
   if (groups.length === 0) return null
   return (
@@ -30,7 +31,7 @@ export default function TagFilterBar({ groups, selected, onToggle, onClear, chip
                   className={chipClass}
                   style={{ cursor: 'pointer', border: 'none', background: active ? `var(${accentVar})` : undefined, color: active ? '#fff' : undefined }}
                   onClick={() => onToggle(tag)}
-                >#{tag}</button>
+                >#{tag}{counts?.[tag] ? <span style={{ marginLeft: 4, opacity: active ? 0.8 : 0.5 }}>{counts[tag]}</span> : null}</button>
               )
             })}
           </div>
