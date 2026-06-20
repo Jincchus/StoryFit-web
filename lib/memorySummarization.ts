@@ -28,7 +28,8 @@ async function summarizeMessages(
 
 대화:\n${transcript}`
 
-  return generateText(systemPrompt, userPrompt)
+  // relaxed(BLOCK_NONE): NSFW 롤플레이 대화도 요약할 수 있게(차단 시 빈 요약 → 빈 메모리 방지)
+  return generateText(systemPrompt, userPrompt, 1024, 'relaxed')
 }
 
 export async function triggerMemorySummarization(
@@ -46,22 +47,44 @@ export async function triggerMemorySummarization(
     const totalMessages = await prisma.message.count({
       where: { conversationId, isSelected: true },
     })
-    const expectedCount = Math.floor(totalMessages / SUMMARIZE_EVERY)
-    if (expectedCount === 0) return
 
-    const existingMemoryCount = await prisma.memory.count({ where: { conversationId } })
-    if (existingMemoryCount >= expectedCount) return
+    // 마지막으로 요약된 지점(메모리의 messageRangeEnd) 다음부터 SUMMARIZE_EVERY개를 요약한다.
+    // 메모리 개수×10(skip) 방식은 메모리가 중간에서 삭제되면 이미 요약한 구간을 중복 생성하므로,
+    // 실제 진행 위치 기준으로 계산한다(빈 메모리 정리·사용자 삭제에도 안전).
+    const lastMem = await prisma.memory.findFirst({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      select: { messageRangeEnd: true },
+    })
+    let summarizedCount = 0
+    if (lastMem?.messageRangeEnd) {
+      const endMsg = await prisma.message.findUnique({
+        where: { id: lastMem.messageRangeEnd },
+        select: { createdAt: true },
+      })
+      if (endMsg) {
+        summarizedCount = await prisma.message.count({
+          where: { conversationId, isSelected: true, createdAt: { lte: endMsg.createdAt } },
+        })
+      }
+    }
+    if (totalMessages - summarizedCount < SUMMARIZE_EVERY) return
 
-    const skipCount = existingMemoryCount * SUMMARIZE_EVERY
     const messages = await prisma.message.findMany({
       where: { conversationId, isSelected: true },
       orderBy: { createdAt: 'asc' },
-      skip: skipCount,
+      skip: summarizedCount,
       take: SUMMARIZE_EVERY,
     })
     if (messages.length < SUMMARIZE_EVERY) return
 
     const summary = await summarizeMessages(messages, characterSystemPrompt)
+    // 빈 요약(안전 차단·일시 오류 등)은 저장하지 않는다 — 다음 트리거에 재시도.
+    // (저장하면 빈 장기 메모리가 생기고, 카운트에 잡혀 그 구간이 영구 누락됨)
+    if (!summary.trim()) {
+      console.warn(`[memorySummarization] 빈 요약 — 저장 건너뜀 (conv=${conversationId})`)
+      return
+    }
     const memory = await prisma.memory.create({
       data: {
         conversationId,
@@ -118,7 +141,7 @@ export async function condenseForCoreMemory(
   const systemPrompt = `당신은 롤플레이 대화의 '핵심 기억' 정리 전문가입니다.
 핵심 기억은 AI가 대화 내내 절대 잊으면 안 되는 '지속 사실·관계 상태'와 '현재 상황·미해결 줄거리'입니다.
 캐릭터 설정: ${characterContext}`
-  return generateText(systemPrompt, buildCoreMemoryPrompt(summaries, existingCoreMemory), 4096)
+  return generateText(systemPrompt, buildCoreMemoryPrompt(summaries, existingCoreMemory), 4096, 'relaxed')
 }
 
 export async function compressCoreMemory(
@@ -156,5 +179,5 @@ export async function compressCoreMemory(
 ${coreMemory.trim()}`
 
   // 무손실 정리를 위해 동적 thinking(-1) 활성화 + 출력 토큰 상향(길이 압박으로 인한 절삭 방지)
-  return generateText(systemPrompt, userPrompt, 8192, undefined, -1)
+  return generateText(systemPrompt, userPrompt, 8192, 'relaxed', -1)
 }
