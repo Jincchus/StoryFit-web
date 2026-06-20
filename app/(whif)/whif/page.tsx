@@ -30,6 +30,7 @@ export default function WhifExplorePage() {
   const [msg, setMsg] = useState('')
   const [sortUniverses, setSortUniverses] = useState<SortOption>('latest')
   const [sortCharacters, setSortCharacters] = useState<SortOption>('latest')
+  const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -48,9 +49,11 @@ export default function WhifExplorePage() {
 
   const handleSortUniverses = (v: SortOption) => {
     setSortUniverses(v); localStorage.setItem('whif_sort_universes', v)
+    if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
   }
   const handleSortCharacters = (v: SortOption) => {
     setSortCharacters(v); localStorage.setItem('whif_sort_characters', v)
+    if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
   }
   const handleTab = (v: typeof tab) => {
     setTab(v); setSelectedTags([]); sessionStorage.setItem('whif_tab', v)
@@ -119,7 +122,7 @@ export default function WhifExplorePage() {
       : view === 'waiting' ? !u.started
       : !u.completed && !!u.started) && matchesTag(u.tags) && matchesQuery(u.title, u.tags)
     ),
-    sortUniverses, u => u.title, u => u.createdAt ?? '', u => u.lastActivityAt ?? u.createdAt ?? ''
+    sortUniverses, u => u.title, u => u.createdAt ?? '', u => u.lastActivityAt ?? u.createdAt ?? '', randomSeed
   )
   const visibleCharacters = sortByOption(
     characters.filter(c =>
@@ -128,7 +131,7 @@ export default function WhifExplorePage() {
       : view === 'waiting' ? !c.started
       : !isCharCompleted(c) && !!c.started) && matchesTag(c.tags) && matchesQuery(c.name, c.tags)
     ),
-    sortCharacters, c => c.name, c => c.createdAt ?? ''
+    sortCharacters, c => c.name, c => c.createdAt ?? '', undefined, randomSeed
   )
 
   return (
@@ -184,6 +187,7 @@ export default function WhifExplorePage() {
             <option value="oldest">오래된순</option>
             <option value="alpha">가나다순</option>
             <option value="active">최근 대화순</option>
+            <option value="random">🔀 랜덤</option>
           </select>
         </div>
       </div>

@@ -32,6 +32,7 @@ export default function TikitaListPage() {
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
   const [sort, setSort] = useState<SortOption>('latest')
+  const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -48,6 +49,7 @@ export default function TikitaListPage() {
 
   const handleSort = (v: SortOption) => {
     setSort(v); localStorage.setItem('tikita_sort', v)
+    if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
   }
 
   const handleView = (v: typeof view) => {
@@ -102,7 +104,7 @@ export default function TikitaListPage() {
       : view === 'waiting' ? !s.started
       : !s.completed && !!s.started) && matchesTag(s.tags) && matchesQuery(s.title, s.tags)
     ),
-    sort, s => s.title, s => s.createdAt ?? '', s => s.lastActivityAt ?? s.createdAt ?? ''
+    sort, s => s.title, s => s.createdAt ?? '', s => s.lastActivityAt ?? s.createdAt ?? '', randomSeed
   )
 
   return (
@@ -153,6 +155,7 @@ export default function TikitaListPage() {
             <option value="oldest">오래된순</option>
             <option value="alpha">가나다순</option>
             <option value="active">최근 대화순</option>
+            <option value="random">🔀 랜덤</option>
           </select>
         </div>
       </div>
