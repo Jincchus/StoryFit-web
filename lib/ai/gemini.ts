@@ -38,6 +38,13 @@ function resolveThinkingBudget(model: string, requested?: number): number {
   return b
 }
 
+// Gemini 3.x(프리뷰 포함)는 Vertex의 global 엔드포인트에서만 제공된다.
+// 리전 엔드포인트(us-central1 등)로 호출하면 404 Publisher Model NOT_FOUND.
+function vertexLocation(model: string): string {
+  if (/gemini-3/.test(model)) return 'global'
+  return process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1'
+}
+
 // Gemini는 히스토리가 user 턴으로 시작해야 한다.
 // 오프닝 메시지(맨 앞 assistant 턴)를 잘라내면 대화 초반에 인트로가 통째로 사라지므로,
 // 자르는 대신 더미 user 턴을 앞에 붙여 보존한다.
@@ -105,14 +112,14 @@ async function streamViaVertex(
 ): Promise<StreamResult> {
   const { GoogleGenAI } = await import('@google/genai')
 
+  const modelName = params.model ?? GEMINI_CHAT_MODEL
   const ai = new GoogleGenAI({
     vertexai: true,
     project: process.env.GOOGLE_CLOUD_PROJECT!,
-    location: process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1',
+    location: vertexLocation(modelName),
   })
 
   const history = toGeminiHistory(params.messages)
-  const modelName = params.model ?? GEMINI_CHAT_MODEL
 
   const chat = ai.chats.create({
     model: modelName,
@@ -173,7 +180,7 @@ export async function generateText(systemPrompt: string, userPrompt: string, max
     const { VertexAI } = await import('@google-cloud/vertexai')
     const vertexAI = new VertexAI({
       project: process.env.GOOGLE_CLOUD_PROJECT!,
-      location: process.env.GOOGLE_CLOUD_LOCATION ?? 'us-central1',
+      location: vertexLocation(modelName),
     })
     const model = vertexAI.getGenerativeModel({ model: modelName, systemInstruction: systemPrompt, generationConfig: utilConfig, safetySettings: safetySettings as any })
     const result = await model.generateContent(userPrompt)
