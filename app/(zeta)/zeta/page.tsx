@@ -21,6 +21,7 @@ interface Plot {
   completed?: boolean
   started?: boolean
   createdAt?: string
+  lastActivityAt?: string
 }
 
 export default function ZetaListPage() {
@@ -145,7 +146,9 @@ export default function ZetaListPage() {
             onChange={e => handleSort(e.target.value as SortOption)}
           >
             <option value="latest">최신순</option>
+            <option value="oldest">오래된순</option>
             <option value="alpha">가나다순</option>
+            <option value="active">최근 대화순</option>
           </select>
         </div>
       </div>
@@ -175,7 +178,7 @@ export default function ZetaListPage() {
               : view === 'waiting' ? !p.started
               : !p.completed && !!p.started) && matchesTag(p.tags) && matchesQuery(p.title, p.tags)
             ),
-            sort, p => p.title, p => p.createdAt ?? ''
+            sort, p => p.title, p => p.createdAt ?? '', p => p.lastActivityAt ?? p.createdAt ?? ''
           )
           return loading ? (
           <div className="zeta-grid">

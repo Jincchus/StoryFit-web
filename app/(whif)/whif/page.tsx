@@ -12,7 +12,7 @@ import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { useDisplayName } from '@/lib/useDisplayName'
 
 interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
-interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string }
+interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string; lastActivityAt?: string }
 
 export default function WhifExplorePage() {
   const router = useRouter()
@@ -119,7 +119,7 @@ export default function WhifExplorePage() {
       : view === 'waiting' ? !u.started
       : !u.completed && !!u.started) && matchesTag(u.tags) && matchesQuery(u.title, u.tags)
     ),
-    sortUniverses, u => u.title, u => u.createdAt ?? ''
+    sortUniverses, u => u.title, u => u.createdAt ?? '', u => u.lastActivityAt ?? u.createdAt ?? ''
   )
   const visibleCharacters = sortByOption(
     characters.filter(c =>
@@ -181,7 +181,9 @@ export default function WhifExplorePage() {
             onChange={e => tab === 'universes' ? handleSortUniverses(e.target.value as SortOption) : handleSortCharacters(e.target.value as SortOption)}
           >
             <option value="latest">최신순</option>
+            <option value="oldest">오래된순</option>
             <option value="alpha">가나다순</option>
+            <option value="active">최근 대화순</option>
           </select>
         </div>
       </div>

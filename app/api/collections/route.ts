@@ -90,12 +90,13 @@ export async function GET(req: NextRequest) {
         select: {
           characterId: true,
           character: { select: { collectionId: true } },
-          conversation: { select: { id: true, isArchived: true, rootConversationId: true, mode: true } },
+          conversation: { select: { id: true, isArchived: true, rootConversationId: true, mode: true, updatedAt: true } },
         },
       })
     : []
 
   const convsByCollection = new Map<string, Map<string, CountableConversation>>()
+  const lastActivityByCollection = new Map<string, string>()
   const archivedCharIds = new Set<string>()
   for (const link of collectionConvLinks) {
     const colId = link.character.collectionId
@@ -104,6 +105,10 @@ export async function GET(req: NextRequest) {
     map.set(link.conversation.id, link.conversation)
     convsByCollection.set(colId, map)
     const cv = link.conversation
+    // 마지막 대화 활동시각 추적 (최근 대화순 정렬용)
+    const ua = cv.updatedAt instanceof Date ? cv.updatedAt.toISOString() : String(cv.updatedAt)
+    const prev = lastActivityByCollection.get(colId)
+    if (!prev || ua > prev) lastActivityByCollection.set(colId, ua)
     if (cv.isArchived && cv.rootConversationId === null && cv.mode !== 'assistant') {
       archivedCharIds.add(link.characterId)
     }
@@ -117,6 +122,7 @@ export async function GET(req: NextRequest) {
       lorebookTitles: lorebookTitlesByCollection.get(c.id) ?? [],
       completed: isCompleted(counts),
       started: counts.activeCount + counts.archivedCount > 0,
+      lastActivityAt: lastActivityByCollection.get(c.id) ?? c.createdAt,
       characters: c.characters.map(ch => ({ ...ch, hasArchived: archivedCharIds.has(ch.id) })),
     }
   })

@@ -16,6 +16,7 @@ interface MChar {
   completed?: boolean
   started?: boolean
   createdAt?: string
+  lastActivityAt?: string
 }
 
 export default function MeltingListPage() {
@@ -100,7 +101,7 @@ export default function MeltingListPage() {
       : view === 'waiting' ? !c.started
       : !c.completed && !!c.started) && matchesTag(c.tags) && matchesQuery(c.title, c.tags)
     ),
-    sort, c => c.title, c => c.createdAt ?? ''
+    sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? ''
   )
 
   return (
@@ -148,7 +149,9 @@ export default function MeltingListPage() {
             onChange={e => handleSort(e.target.value as SortOption)}
           >
             <option value="latest">최신순</option>
+            <option value="oldest">오래된순</option>
             <option value="alpha">가나다순</option>
+            <option value="active">최근 대화순</option>
           </select>
         </div>
       </div>

@@ -17,6 +17,7 @@ interface TStory {
   completed?: boolean
   started?: boolean
   createdAt?: string
+  lastActivityAt?: string
 }
 
 export default function TikitaListPage() {
@@ -101,7 +102,7 @@ export default function TikitaListPage() {
       : view === 'waiting' ? !s.started
       : !s.completed && !!s.started) && matchesTag(s.tags) && matchesQuery(s.title, s.tags)
     ),
-    sort, s => s.title, s => s.createdAt ?? ''
+    sort, s => s.title, s => s.createdAt ?? '', s => s.lastActivityAt ?? s.createdAt ?? ''
   )
 
   return (
@@ -149,7 +150,9 @@ export default function TikitaListPage() {
             onChange={e => handleSort(e.target.value as SortOption)}
           >
             <option value="latest">최신순</option>
+            <option value="oldest">오래된순</option>
             <option value="alpha">가나다순</option>
+            <option value="active">최근 대화순</option>
           </select>
         </div>
       </div>
