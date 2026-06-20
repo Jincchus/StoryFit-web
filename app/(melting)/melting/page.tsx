@@ -7,9 +7,10 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface MChar {
-  id: string; title: string; coverImageUrl: string; tags: string[]
+  id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
   characters: { id: string; name: string; avatarUrl: string | null }[]
   completed?: boolean
   started?: boolean
@@ -201,6 +202,11 @@ export default function MeltingListPage() {
                   {thumb ? <img className="melting-card-img" src={thumb} alt="" /> : <div className="melting-card-img" />}
                   <div className="melting-card-body">
                     <div className="melting-card-title">{c.title}</div>
+                    {c.description?.trim() && (
+                      <div style={{ fontSize: 11, color: 'var(--m-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
+                      </div>
+                    )}
                     {c.tags?.length > 0 && (
                       <div className="melting-card-tags">
                         {c.tags.slice(0, 3).map(t => <span key={t} className="melting-chip">#{t}</span>)}

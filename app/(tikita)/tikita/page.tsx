@@ -7,9 +7,10 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface TStory {
-  id: string; title: string; coverImageUrl: string; tags: string[]
+  id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
   characters: { id: string; name: string; avatarUrl: string | null }[]
   tikitaMeta?: any
   completed?: boolean
@@ -202,6 +203,11 @@ export default function TikitaListPage() {
                   {thumb ? <img className="tikita-card-img" src={thumb} alt="" /> : <div className="tikita-card-img" />}
                   <div className="tikita-card-body">
                     <div className="tikita-card-title">{s.title}</div>
+                    {s.description?.trim() && (
+                      <div style={{ fontSize: 11, color: 'var(--t-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {replaceDisplayPlaceholders(s.description, '나', s.characters?.[0]?.name ?? '')}
+                      </div>
+                    )}
                     {s.tags?.length > 0 && (
                       <div className="tikita-card-tags">
                         {s.tags.slice(0, 3).map(t => <span key={t} className="tikita-chip">#{t}</span>)}

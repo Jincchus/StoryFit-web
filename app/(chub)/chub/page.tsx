@@ -7,9 +7,10 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface CChar {
-  id: string; title: string; coverImageUrl: string; tags: string[]
+  id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
   characters: { id: string; name: string; avatarUrl: string | null }[]
   completed?: boolean
   started?: boolean
@@ -201,6 +202,11 @@ export default function ChubListPage() {
                   {thumb ? <img className="chub-card-img" src={thumb} alt="" /> : <div className="chub-card-img" />}
                   <div className="chub-card-body">
                     <div className="chub-card-title">{c.title}</div>
+                    {c.description?.trim() && (
+                      <div style={{ fontSize: 11, color: 'var(--c-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
+                      </div>
+                    )}
                     {c.tags?.length > 0 && (
                       <div className="chub-card-tags">
                         {c.tags.slice(0, 3).map(t => <span key={t} className="chub-chip">#{t}</span>)}

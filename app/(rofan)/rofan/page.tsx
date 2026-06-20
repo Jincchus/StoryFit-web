@@ -7,9 +7,10 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
+import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface RChar {
-  id: string; title: string; coverImageUrl: string; tags: string[]
+  id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
   characters: { id: string; name: string; avatarUrl: string | null }[]
   completed?: boolean
   started?: boolean
@@ -201,6 +202,11 @@ export default function RofanListPage() {
                   {thumb ? <img className="rofan-card-img" src={thumb} alt="" /> : <div className="rofan-card-img" />}
                   <div className="rofan-card-body">
                     <div className="rofan-card-title">{c.title}</div>
+                    {c.description?.trim() && (
+                      <div style={{ fontSize: 11, color: 'var(--r-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
+                      </div>
+                    )}
                     {c.tags?.length > 0 && (
                       <div className="rofan-card-tags">
                         {c.tags.slice(0, 3).map(t => <span key={t} className="rofan-chip">#{t}</span>)}
