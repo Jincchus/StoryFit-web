@@ -274,14 +274,38 @@ export default function TikitaStoryDetailPage() {
             </div>
           )}
 
-          {audit.introHtmlText?.trim() && (
-            <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">소개글</h2>
-              <div className="tikita-intro-box" style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7 }}>
-                {audit.introHtmlText.trim()}
+          {(() => {
+            const sections: Record<string, string> = meta.introSections ?? {}
+            const entries = Object.entries(sections).filter(([, v]) => v?.trim())
+            if (entries.length === 0 && audit.introHtmlText?.trim()) {
+              // fallback: no sections parsed → show plain text blob
+              return (
+                <div className="tikita-section" style={{ paddingTop: 0 }}>
+                  <h2 className="tikita-section-title">소개글</h2>
+                  <div className="tikita-intro-box" style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7 }}>
+                    {audit.introHtmlText.trim()}
+                  </div>
+                </div>
+              )
+            }
+            return entries.length > 0 ? (
+              <div className="tikita-section" style={{ paddingTop: 0 }}>
+                <h2 className="tikita-section-title">소개글 섹션 ({entries.length})</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {entries.map(([name, text]) => (
+                    <div key={name} style={{ border: '1px solid var(--t-line)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700, letterSpacing: 1, color: 'var(--t-accent)', background: 'var(--t-surface-2)', borderBottom: '1px solid var(--t-line)' }}>
+                        {name}
+                      </div>
+                      <div style={{ padding: '8px 10px', fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--t-ink)', maxHeight: 200, overflow: 'auto' }}>
+                        {text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            ) : null
+          })()}
 
           {audit.detailMd?.trim() && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>

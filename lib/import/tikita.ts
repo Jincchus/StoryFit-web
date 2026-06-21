@@ -29,6 +29,29 @@ function stripHtml(html?: string | null): string {
     .trim()
 }
 
+// intro_html을 <!-- SECTION NAME --> 주석 기준으로 섹션별로 파싱한다.
+// 텍스트가 없는 구조용 주석(이미지 레이어 설명 등)은 값이 빈 문자열이 돼 자동 제외된다.
+function parseIntroSections(html: string | null | undefined): Record<string, string> {
+  if (!html?.trim()) return {}
+  const sections: Record<string, string> = {}
+  // split with capture group → [before, name1, after1, name2, after2, ...]
+  const parts = html.split(/<!--([\s\S]*?)-->/)
+  let prevName: string | null = null
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      // content chunk
+      if (prevName !== null) {
+        const text = stripHtml(parts[i]).trim()
+        if (text) sections[prevName] = (sections[prevName] ? sections[prevName] + '\n' + text : text)
+      }
+    } else {
+      // comment text → new section name
+      prevName = parts[i].trim()
+    }
+  }
+  return sections
+}
+
 // intro_html에 박힌 인라인 일러(<img>)를 추출한다 — stripHtml이 태그째 지우기 전에 따로 건진다.
 function extractImgUrls(html?: string | null): string[] {
   const urls: string[] = []
@@ -144,6 +167,7 @@ export async function captureTikita(url: string): Promise<Captured> {
   }
 
   const canonical = `https://tikita.ai/ko/story/${shortId}`
+  const introSections = parseIntroSections(story.intro_html)
 
   return {
     sections: [],
@@ -167,6 +191,7 @@ export async function captureTikita(url: string): Promise<Captured> {
       creatorNotes: story.creator_notes ?? '',
       introHtml: story.intro_html ?? null,
       introMode: story.intro_mode ?? null,
+      introSections,
       episodes,
       gallery,
       inlineIllustrations,
