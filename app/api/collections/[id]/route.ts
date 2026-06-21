@@ -44,6 +44,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
   if (typeof body.description === 'string') data.description = body.description.slice(0, 10000)
   if (typeof body.coverImageUrl === 'string') data.coverImageUrl = body.coverImageUrl.slice(0, 2000)
+  if (body.tikitaMeta && typeof body.tikitaMeta === 'object') {
+    const existing = (collection.tikitaMeta ?? {}) as Record<string, unknown>
+    ;(data as any).tikitaMeta = { ...existing, ...body.tikitaMeta }
+  }
 
   if (Object.keys(data).length === 0) return NextResponse.json({ error: '수정할 내용이 없습니다.' }, { status: 400 })
 

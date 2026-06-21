@@ -24,6 +24,8 @@ interface Collection {
   characters: Char[]; tikitaMeta?: any
 }
 
+const WORLD_DEFAULTS = new Set(['ORGANIZATION', 'RULE', '세계관', 'STORY INTRO'])
+
 export default function TikitaStoryDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
@@ -39,6 +41,14 @@ export default function TikitaStoryDetailPage() {
   const [expandedCharId, setExpandedCharId] = useState<string | null>(null)
   const userName = useDisplayName()
 
+  // 세계관 편집 상태
+  const [worldKeys, setWorldKeys] = useState<Set<string>>(new Set())
+  const [editedSections, setEditedSections] = useState<Record<string, string>>({})
+  const [worldKeysReady, setWorldKeysReady] = useState(false)
+  const [editingKey, setEditingKey] = useState<string | null>(null)
+  const [editingText, setEditingText] = useState('')
+  const [worldSaving, setWorldSaving] = useState(false)
+
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
   }, [id])
@@ -50,20 +60,64 @@ export default function TikitaStoryDetailPage() {
     }
   }, [col])
 
+  // col 로드 후 세계관 키 초기화 (한 번만)
+  useEffect(() => {
+    if (!col || worldKeysReady) return
+    const m = col.tikitaMeta ?? {}
+    const sections: Record<string, string> = m.introSections ?? {}
+    if (Array.isArray(m.worldSectionKeys)) {
+      setWorldKeys(new Set(m.worldSectionKeys as string[]))
+    } else {
+      setWorldKeys(new Set(Object.keys(sections).filter(k => WORLD_DEFAULTS.has(k))))
+    }
+    if (m.editedSections && typeof m.editedSections === 'object') {
+      setEditedSections(m.editedSections as Record<string, string>)
+    }
+    setWorldKeysReady(true)
+  }, [col, worldKeysReady])
+
   const startChat = () => {
     if (!col) return
-    if (col.characters.length > 1) {
-      setChatModeOpen(true)
-    } else {
-      setPendingAiCharIds(col.characters[0] ? [col.characters[0].id] : null)
-      setPersonaOpen(true)
-    }
+    if (col.characters.length > 1) setChatModeOpen(true)
+    else { setPendingAiCharIds(col.characters[0] ? [col.characters[0].id] : null); setPersonaOpen(true) }
   }
 
   const handleCtaClick = () => {
     if (existingConvs.length > 0) setShowNewChatConfirm(true)
     else startChat()
   }
+
+  const saveWorldSettings = async () => {
+    if (!col) return
+    setWorldSaving(true)
+    try {
+      const updated = await api.patch(`/api/collections/${col.id}`, {
+        tikitaMeta: {
+          ...(col.tikitaMeta ?? {}),
+          worldSectionKeys: Array.from(worldKeys),
+          editedSections,
+        },
+      })
+      setCol(prev => prev ? { ...prev, tikitaMeta: updated.tikitaMeta } : prev)
+    } catch (e: any) {
+      setError('저장 실패: ' + e.message)
+    } finally {
+      setWorldSaving(false)
+    }
+  }
+
+  const startEditSection = (key: string, fallback: string) => {
+    setEditingKey(key)
+    setEditingText(editedSections[key] ?? fallback)
+  }
+
+  const confirmEditSection = () => {
+    if (!editingKey) return
+    setEditedSections(prev => ({ ...prev, [editingKey]: editingText }))
+    setEditingKey(null)
+  }
+
+  const cancelEditSection = () => setEditingKey(null)
 
   if (!col) return <div className="tikita-empty">불러오는 중...</div>
 
@@ -78,21 +132,25 @@ export default function TikitaStoryDetailPage() {
   const gallery: { url: string; description?: string }[] =
     (Array.isArray(meta.gallery) ? meta.gallery : []).filter((g: any) => !g.locked)
   const chatStarters: string[] = Array.isArray(meta.chatStarters) ? meta.chatStarters : []
-
   const audit = meta.audit ?? {}
-  const auditRows: { f: string; label: string; desc: string; value: any }[] = [
-    { f: 'intro_html', label: '소개글', desc: '프로필 소개·배경', value: audit.introHtmlText || col.description },
-    { f: 'detail_md', label: '상세 안내', desc: '명령어/상태창 출력 형식', value: audit.detailMd },
-    { f: 'chat_starters', label: '추천 첫 대사', desc: '유저 시작 대사 후보', value: chatStarters.join('\n') },
-    { f: 'categories', label: '분류', desc: '대분류', value: (meta.categories || []).join(', ') },
-    { f: 'tags', label: '태그', desc: '세부 태그', value: (col.tags || []).join(', ') },
-    { f: 'original_work_title', label: '원작 제목', desc: '', value: meta.originalWorkTitle },
-    { f: 'chat_image_mode', label: '배경 이미지 모드', desc: 'background 등', value: meta.chatImageMode },
-    { f: 'world', label: '세계관(world)', desc: '별도 세계관 필드', value: audit.world },
-  ].filter(r => r.value != null && String(r.value).trim() !== '')
   const episodeTitles: string[] = (Array.isArray(meta.episodes) ? meta.episodes : [])
     .map((e: any, i: number) => `${i + 1}. ${e.title || ''}`)
   const charsMeta: any[] = Array.isArray(audit.charactersMeta) ? audit.charactersMeta : []
+
+  const sectionEntries = Object.entries(introSections).filter(([, v]) => v?.trim())
+  const hasSections = sectionEntries.length > 0
+  const hasIntroText = !!audit.introHtmlText?.trim()
+
+  // 세계관에 포함될 텍스트 계산 (대화 생성 시 사용)
+  const buildScenarioText = () => {
+    return Array.from(worldKeys)
+      .map(k => {
+        if (k === '__intro__') return editedSections['__intro__'] ?? audit.introHtmlText ?? ''
+        return editedSections[k] ?? introSections[k] ?? ''
+      })
+      .filter(Boolean)
+      .join('\n\n')
+  }
 
   const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
     if (!mainChar) return
@@ -106,13 +164,14 @@ export default function TikitaStoryDetailPage() {
         })
         personaId = p.id
       }
+      const scenarioText = buildScenarioText()
       const resp = await api.post('/api/conversations', {
         title: col.title,
         characterIds: aiCharIds,
         mode: aiCharIds.length > 1 ? 'multiStory' : 'story',
         personaCharacterId: personaId,
         suggestRepliesEnabled: true,
-        ...(col.description ? { scenarioDescription: col.description } : {}),
+        ...(scenarioText ? { scenarioDescription: scenarioText } : col.description ? { scenarioDescription: col.description } : {}),
         ...(opening.trim() ? { openingMessage: opening } : {}),
       })
       const startersParam = chatStarters.length > 0
@@ -134,7 +193,6 @@ export default function TikitaStoryDetailPage() {
           onSaved={u => setCol(prev => prev ? { ...prev, ...u } : prev)}
         />
       )}
-
       {showNewChatConfirm && (
         <ConfirmDialog
           message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
@@ -144,7 +202,6 @@ export default function TikitaStoryDetailPage() {
           onCancel={() => setShowNewChatConfirm(false)}
         />
       )}
-
       {chatModeOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setChatModeOpen(false)}>
@@ -169,7 +226,6 @@ export default function TikitaStoryDetailPage() {
           </div>
         </div>
       )}
-
       {personaOpen && (
         <WhifPersonaModal
           candidates={[]}
@@ -214,7 +270,7 @@ export default function TikitaStoryDetailPage() {
             )}
           </div>
 
-          {/* 등장인물 — 순서가 {{char1}} {{char2}} 순서와 일치 */}
+          {/* 등장인물 */}
           {col.characters.length > 0 && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">등장인물 ({col.characters.length})</h2>
@@ -277,38 +333,112 @@ export default function TikitaStoryDetailPage() {
             </div>
           )}
 
-          {(() => {
-            const sections: Record<string, string> = meta.introSections ?? {}
-            const entries = Object.entries(sections).filter(([, v]) => v?.trim())
-            if (entries.length === 0 && audit.introHtmlText?.trim()) {
-              // fallback: no sections parsed → show plain text blob
-              return (
-                <div className="tikita-section" style={{ paddingTop: 0 }}>
-                  <h2 className="tikita-section-title">소개글</h2>
-                  <div className="tikita-intro-box" style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7 }}>
-                    {audit.introHtmlText.trim()}
-                  </div>
-                </div>
-              )
-            }
-            return entries.length > 0 ? (
-              <div className="tikita-section" style={{ paddingTop: 0 }}>
-                <h2 className="tikita-section-title">소개글 섹션 ({entries.length})</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {entries.map(([name, text]) => (
-                    <div key={name} style={{ border: '1px solid var(--t-line)', borderRadius: 8, overflow: 'hidden' }}>
-                      <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700, letterSpacing: 1, color: 'var(--t-accent)', background: 'var(--t-surface-2)', borderBottom: '1px solid var(--t-line)' }}>
-                        {name}
-                      </div>
-                      <div style={{ padding: '8px 10px', fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--t-ink)', maxHeight: 200, overflow: 'auto' }}>
-                        {text}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* 소개글 / 세계관 편집 */}
+          {(hasSections || hasIntroText) && (
+            <div className="tikita-section" style={{ paddingTop: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <h2 className="tikita-section-title" style={{ margin: 0 }}>
+                  소개글{hasSections ? ` (${sectionEntries.length}개 섹션)` : ''}
+                </h2>
+                <button className="btn primary" style={{ fontSize: 11, padding: '3px 10px' }}
+                  onClick={saveWorldSettings} disabled={worldSaving}>
+                  {worldSaving ? '저장 중...' : '저장'}
+                </button>
               </div>
-            ) : null
-          })()}
+
+              {/* 섹션 없음 경고 */}
+              {!hasSections && (
+                <div style={{ padding: '8px 10px', background: 'rgba(255,200,0,.08)', border: '1px solid rgba(255,200,0,.25)', borderRadius: 8, fontSize: 12, color: 'var(--t-ink-soft)', marginBottom: 8 }}>
+                  ⚠️ 세계관 섹션 구분이 없습니다. 아래 내용을 편집 후 체크하면 세계관으로 사용됩니다.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {hasSections ? (
+                  sectionEntries.map(([name, text]) => {
+                    const isEditing = editingKey === name
+                    const displayText = editedSections[name] ?? text
+                    const isWorld = worldKeys.has(name)
+                    return (
+                      <div key={name} style={{ border: `1px solid ${isWorld ? 'var(--t-accent)' : 'var(--t-line)'}`, borderRadius: 8, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: isWorld ? 'rgba(var(--t-accent-rgb, 180,100,255),.08)' : 'var(--t-surface-2)', borderBottom: '1px solid var(--t-line)' }}>
+                          <input type="checkbox" checked={isWorld} onChange={e => {
+                            setWorldKeys(prev => { const n = new Set(prev); e.target.checked ? n.add(name) : n.delete(name); return n })
+                          }} style={{ cursor: 'pointer', flexShrink: 0 }} />
+                          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: isWorld ? 'var(--t-accent)' : 'var(--t-ink-soft)', flex: 1 }}>{name}</span>
+                          {isWorld && <span style={{ fontSize: 9, color: 'var(--t-accent)', opacity: 0.8 }}>세계관</span>}
+                          {editedSections[name] && <span style={{ fontSize: 9, color: 'var(--t-ink-soft)' }}>수정됨</span>}
+                          {!isEditing ? (
+                            <button className="btn ghost" style={{ fontSize: 10, padding: '1px 7px' }} onClick={() => startEditSection(name, text)}>✏</button>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button className="btn primary" style={{ fontSize: 10, padding: '1px 7px' }} onClick={confirmEditSection}>완료</button>
+                              <button className="btn ghost" style={{ fontSize: 10, padding: '1px 7px' }} onClick={cancelEditSection}>취소</button>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ padding: '8px 10px' }}>
+                          {isEditing ? (
+                            <textarea
+                              value={editingText}
+                              onChange={e => setEditingText(e.target.value)}
+                              style={{ width: '100%', minHeight: 100, fontSize: 12, lineHeight: 1.6, background: 'var(--t-surface)', border: '1px solid var(--t-line)', borderRadius: 6, padding: 8, color: 'var(--t-ink)', resize: 'vertical', boxSizing: 'border-box' }}
+                            />
+                          ) : (
+                            <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--t-ink)', maxHeight: 200, overflow: 'auto' }}>
+                              {displayText}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  /* 비섹션: 전체 intro 텍스트 */
+                  (() => {
+                    const key = '__intro__'
+                    const fallback = audit.introHtmlText ?? ''
+                    const isEditing = editingKey === key
+                    const displayText = editedSections[key] ?? fallback
+                    const isWorld = worldKeys.has(key)
+                    return (
+                      <div style={{ border: `1px solid ${isWorld ? 'var(--t-accent)' : 'var(--t-line)'}`, borderRadius: 8, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: isWorld ? 'rgba(var(--t-accent-rgb, 180,100,255),.08)' : 'var(--t-surface-2)', borderBottom: '1px solid var(--t-line)' }}>
+                          <input type="checkbox" checked={isWorld} onChange={e => {
+                            setWorldKeys(prev => { const n = new Set(prev); e.target.checked ? n.add(key) : n.delete(key); return n })
+                          }} style={{ cursor: 'pointer', flexShrink: 0 }} />
+                          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--t-ink-soft)', flex: 1 }}>전체 소개글</span>
+                          {isWorld && <span style={{ fontSize: 9, color: 'var(--t-accent)', opacity: 0.8 }}>세계관</span>}
+                          {editedSections[key] && <span style={{ fontSize: 9, color: 'var(--t-ink-soft)' }}>수정됨</span>}
+                          {!isEditing ? (
+                            <button className="btn ghost" style={{ fontSize: 10, padding: '1px 7px' }} onClick={() => startEditSection(key, fallback)}>✏</button>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button className="btn primary" style={{ fontSize: 10, padding: '1px 7px' }} onClick={confirmEditSection}>완료</button>
+                              <button className="btn ghost" style={{ fontSize: 10, padding: '1px 7px' }} onClick={cancelEditSection}>취소</button>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ padding: '8px 10px' }}>
+                          {isEditing ? (
+                            <textarea
+                              value={editingText}
+                              onChange={e => setEditingText(e.target.value)}
+                              style={{ width: '100%', minHeight: 120, fontSize: 12, lineHeight: 1.6, background: 'var(--t-surface)', border: '1px solid var(--t-line)', borderRadius: 6, padding: 8, color: 'var(--t-ink)', resize: 'vertical', boxSizing: 'border-box' }}
+                            />
+                          ) : (
+                            <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--t-ink)', maxHeight: 200, overflow: 'auto' }}>
+                              {displayText}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()
+                )}
+              </div>
+            </div>
+          )}
 
           {audit.detailMd?.trim() && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
@@ -330,15 +460,6 @@ export default function TikitaStoryDetailPage() {
             </div>
           )}
 
-          {mainChar?.additionalInfo?.trim() && (
-            <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">메인 캐릭터 설정</h2>
-              <div className="tikita-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(mainChar.additionalInfo, userName, mainChar.name)} />
-              </div>
-            </div>
-          )}
-
           {opening.trim() && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">첫 장면</h2>
@@ -348,29 +469,12 @@ export default function TikitaStoryDetailPage() {
             </div>
           )}
 
-          {/* ── 검토용: 원본 전체 필드 (배치 확정 후 제거) ── */}
-          {auditRows.length > 0 && (
+          {/* 검토용 메타 */}
+          {charsMeta.length > 0 && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">📋 원본 필드 (검토용)</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {auditRows.map(r => (
-                  <div key={r.f} style={{ border: '1px solid var(--t-line)', borderRadius: 8, padding: '8px 10px', background: 'var(--t-surface)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-accent)' }}>
-                      {r.label} <span style={{ fontWeight: 400, color: 'var(--t-ink-soft)', fontSize: 10 }}>· {r.f}{r.desc ? ` · ${r.desc}` : ''}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--t-ink)', marginTop: 3, whiteSpace: 'pre-wrap', maxHeight: 180, overflow: 'auto' }}>{String(r.value)}</div>
-                  </div>
-                ))}
-                {charsMeta.length > 0 && (
-                  <div style={{ border: '1px solid var(--t-line)', borderRadius: 8, padding: '8px 10px', background: 'var(--t-surface)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-accent)' }}>
-                      캐릭터 메타 <span style={{ fontWeight: 400, color: 'var(--t-ink-soft)', fontSize: 10 }}>· characters · 나이/보이스/크롭</span>
-                    </div>
-                    <div style={{ fontSize: 12, marginTop: 3, whiteSpace: 'pre-wrap' }}>
-                      {charsMeta.map((c: any) => `${c.name}(${c.gender || '-'}) · 나이 ${c.age ?? '-'} · 보이스 ${c.voiceUrl ? '있음' : '없음'} · 아바타크롭 ${c.avatarCrop ? '있음' : '없음'}`).join('\n')}
-                    </div>
-                  </div>
-                )}
+              <h2 className="tikita-section-title">📋 캐릭터 메타 (검토용)</h2>
+              <div style={{ fontSize: 12, whiteSpace: 'pre-wrap', color: 'var(--t-ink-soft)' }}>
+                {charsMeta.map((c: any) => `${c.name}(${c.gender || '-'}) · 나이 ${c.age ?? '-'} · 보이스 ${c.voiceUrl ? '있음' : '없음'}`).join('\n')}
               </div>
             </div>
           )}

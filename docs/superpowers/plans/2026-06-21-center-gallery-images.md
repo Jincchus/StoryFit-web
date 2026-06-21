@@ -95,7 +95,45 @@ rofan·melting 풀이미지는 공개라 제대로 고치면 **원본 그대로 
 
 ---
 
-## 6. tikita 필드 검증 — 수정 대기 체크리스트 (사용자 지정, 일괄 구현 대기)
+## 6. tikita 필드 검증 — 체크리스트 (2026-06-21 업데이트)
 
-- [ ] **1. 제작자 라인 완전 제거** — 우리 프로젝트에서 "제작 은별eunstar02" 같은 크레딧 라인을 화면에서 완전히 제외(`app/(tikita)/tikita/story/[id]/page.tsx`의 `creditLine` 표시 삭제). creatorNickname 표시 안 함.
-- [ ] **2. intro_html 소개글을 상세 페이지에 표시** — 현재 `tagline`에 가려 안 보이는 `description`(intro_html 텍스트)을 tikita 상세 페이지에 **독립 섹션**으로 노출. 위치는 **잠금이라 숨긴 갤러리 자리**(`gallery.filter(!locked)`로 비는 영역)에 넣는다. (참고: intro_html엔 인라인 일러 2장이 박혀 있음 — 일러스트 섹션과 중복/배치 정리 필요. 텍스트는 제작자 안내문 위주라 그대로 보일지 검토)
+- [x] **1. 제작자 라인 완전 제거** — creditLine / creatorNickname 화면에서 제거 완료.
+- [x] **2. intro_html 소개글을 상세 페이지에 표시** — `introSections` 섹션별 카드로 표시. 섹션 없으면 텍스트 폴백.
+- [x] **3a. PERSONA/페르소나 → 페르소나 기본값** — WhifPersonaModal defaultSettings 연결 완료.
+- [ ] **3b. ORGANIZATION + RULE + 세계관 섹션 → scenarioDescription** — ⚠️ **현재 문제**: `story.world`는 전 스토리 null. `stripHtml(intro_html)` 전체(공지·패치노트·미션 등 잡탕)가 scenarioDescription으로 들어가고 있음. introSections에서 해당 키 값만 추출해 교체 필요.
+- [ ] **3c. HEADQUARTERS → 이미지 섹션** — introSections['HEADQUARTERS'] 에서 이미지 URL 재추출해 표시.
+- [ ] **4. detail_md 처리** — 현재 character_intro와 함께 additionalInfo에 합산. AI 지시문 성격이라 분리 여부 재검토 필요.
+- [x] **5. 표시 제거 항목** — is_adult 배지, creator_notes, creator_nickname, is_cinema, like_count, chat_count, monetization_mode 제거 완료.
+- [ ] **6. 인라인 일러 → 첫 번째 캐릭터 수정** — 현재 나주환(2번째)에 붙어 있음. import 수정 + 백필 필요.
+- [x] **7. 분류·태그 현행 유지**.
+- [x] **8. 에피소드 제목 표시** — 상세 페이지 에피소드 섹션 추가 완료.
+- [x] **9. 모든 캐릭터 설정 표시** — 등장인물 아코디언으로 캐릭터별 설정 보기 구현 완료.
+
+### introSections 파싱 결과 (2026-06-21 백필 완료)
+| 스토리 | 주요 섹션 | PERSONA | 세계관 키 |
+|--------|-----------|---------|-----------|
+| 서재혁·진태성 | PERSONA, ORGANIZATION, RULE, HEADQUARTERS, MISSION, 기본정보, 외모, 성격 | PERSONA | ORGANIZATION+RULE |
+| 몸 오면 맘도 오겠지 | 페르소나, 세계관, 서대웅 등 캐릭터명, 경고, 난이도 | 페르소나 | 세계관 |
+| 닥치고 이건 게임이야 | 서인혁 등 캐릭터명, 세계관, 프롤로그, 수록곡 | ❌ | 세계관 |
+| 소꿉친구 사용설명서 | STORY INTRO, OPENING, 차유준 등 캐릭터명 | ❌ | STORY INTRO? |
+| 사제 타락기·부태훈 | 섹션 없음 | ❌ | ❌ |
+
+> **세계관 추출 우선순위**: ORGANIZATION → RULE → 세계관 → STORY INTRO → (없으면 tagline만)
+
+## 7. 남은 작업 목록 (2026-06-21 기준)
+
+### 즉시 필요
+- [ ] **tikita 3b**: introSections에서 세계관 섹션 추출 → `scenarioDescription` 교체 (import 수정 + 백필)
+- [ ] **tikita 3c**: HEADQUARTERS 섹션 이미지 재추출 표시
+- [ ] **tikita 6**: 인라인 일러 첫 번째 캐릭터로 수정 + 백필
+
+### 이미지 백필 (미진행)
+- [ ] rofan 기존 카드 relatedImages 백필
+- [ ] melting 기존 카드 relatedImages 백필
+
+### 배포
+- [ ] 서버 rebuild (커밋 다수 누적 — tikita 섹션 파싱, 다중캐릭터, chatStarters 등)
+
+### 후순위
+- [ ] chub 갤러리 수집 (F)
+- [ ] 홈화면 디자인 brainstorming (중단됨)
