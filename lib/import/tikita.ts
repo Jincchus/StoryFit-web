@@ -52,6 +52,19 @@ function parseIntroSections(html: string | null | undefined): Record<string, str
   return sections
 }
 
+// intro_html의 <!-- --> 주석 순서대로 섹션 이름 목록을 반환한다.
+// jsonb는 object key를 알파벳 정렬하므로 순서 정보는 별도 배열로 보존해야 한다.
+function parseIntroSectionOrder(html: string | null | undefined): string[] {
+  if (!html?.trim()) return []
+  const order: string[] = []
+  const parts = html.split(/<!--([\s\S]*?)-->/)
+  for (let i = 1; i < parts.length; i += 2) {
+    const name = parts[i].trim()
+    if (name && !order.includes(name)) order.push(name)
+  }
+  return order
+}
+
 // intro_html에 박힌 인라인 일러(<img>)를 추출한다 — stripHtml이 태그째 지우기 전에 따로 건진다.
 function extractImgUrls(html?: string | null): string[] {
   const urls: string[] = []
@@ -188,6 +201,7 @@ export async function captureTikita(url: string): Promise<Captured> {
 
   const canonical = `https://tikita.ai/ko/story/${shortId}`
   const introSections = parseIntroSections(story.intro_html)
+  const introSectionOrder = parseIntroSectionOrder(story.intro_html)
   const introSectionImages = parseIntroSectionImages(story.intro_html)
 
   return {
@@ -214,6 +228,7 @@ export async function captureTikita(url: string): Promise<Captured> {
       introMode: story.intro_mode ?? null,
       introHtmlText: stripHtml(story.intro_html),
       introSections,
+      introSectionOrder,
       introSectionImages,
       detailMd: String(story.detail_md || '').trim(),
       episodes,

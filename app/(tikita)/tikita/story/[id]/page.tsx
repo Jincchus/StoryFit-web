@@ -44,10 +44,12 @@ export default function TikitaStoryDetailPage() {
   // 세계관 편집 상태
   const [worldKeys, setWorldKeys] = useState<Set<string>>(new Set())
   const [editedSections, setEditedSections] = useState<Record<string, string>>({})
+  const [hiddenSections, setHiddenSections] = useState<Set<string>>(new Set())
   const [worldKeysReady, setWorldKeysReady] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editingText, setEditingText] = useState('')
   const [worldSaving, setWorldSaving] = useState(false)
+  const [showHidden, setShowHidden] = useState(false)
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -73,6 +75,9 @@ export default function TikitaStoryDetailPage() {
     if (m.editedSections && typeof m.editedSections === 'object') {
       setEditedSections(m.editedSections as Record<string, string>)
     }
+    if (Array.isArray(m.hiddenSections)) {
+      setHiddenSections(new Set(m.hiddenSections as string[]))
+    }
     setWorldKeysReady(true)
   }, [col, worldKeysReady])
 
@@ -96,6 +101,7 @@ export default function TikitaStoryDetailPage() {
           ...(col.tikitaMeta ?? {}),
           worldSectionKeys: Array.from(worldKeys),
           editedSections,
+          hiddenSections: Array.from(hiddenSections),
         },
       })
       setCol(prev => prev ? { ...prev, tikitaMeta: updated.tikitaMeta } : prev)
@@ -138,9 +144,21 @@ export default function TikitaStoryDetailPage() {
     .map((e: any, i: number) => `${i + 1}. ${e.title || ''}`)
 
   const introSectionImages: Record<string, string[]> = meta.introSectionImages ?? {}
-  const sectionEntries = Object.entries(introSections).filter(([, v]) => v?.trim())
+  const introSectionOrder: string[] = Array.isArray(meta.introSectionOrder) ? meta.introSectionOrder : []
+  const charNames = col.characters.map(c => c.name)
+  // 순서 배열 기준으로 정렬, 텍스트 없는 섹션 제외 (이미지만 있는 섹션은 카드 내 인라인 표시로 충분)
+  const orderedKeys = introSectionOrder.length > 0
+    ? introSectionOrder
+    : Object.keys(introSections)
+  const sectionEntries = orderedKeys
+    .filter(k => introSections[k]?.trim())
+    .map(k => [k, introSections[k]] as [string, string])
+  const visibleSectionEntries = sectionEntries.filter(([k]) => !hiddenSections.has(k))
+  const hiddenSectionEntries = sectionEntries.filter(([k]) => hiddenSections.has(k))
   const hasSections = sectionEntries.length > 0
   const hasIntroText = !!introHtmlText.trim()
+  // 이미 섹션 카드 내에 인라인 표시되므로 별도 일러스트 섹션은 섹션 없는 스토리에만 표시
+  const showTopIllustrations = illustrations.length > 0 && !hasSections
 
   // 세계관에 포함될 텍스트 계산 (대화 생성 시 사용)
   const buildScenarioText = () => {
@@ -303,7 +321,7 @@ export default function TikitaStoryDetailPage() {
             </div>
           )}
 
-          {illustrations.length > 0 && (
+          {showTopIllustrations && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">일러스트</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -356,60 +374,86 @@ export default function TikitaStoryDetailPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {hasSections ? (
-                  sectionEntries.map(([name, text]) => {
-                    const isEditing = editingKey === name
-                    const displayText = editedSections[name] ?? text
-                    const isWorld = worldKeys.has(name)
-                    return (
-                      <div key={name} style={{ border: `1px solid ${isWorld ? 'var(--t-accent)' : 'var(--t-line)'}`, borderRadius: 8, overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: isWorld ? 'rgba(var(--t-accent-rgb, 180,100,255),.08)' : 'var(--t-surface-2)', borderBottom: '1px solid var(--t-line)' }}>
-                          <input type="checkbox" checked={isWorld} onChange={e => {
-                            setWorldKeys(prev => { const n = new Set(prev); e.target.checked ? n.add(name) : n.delete(name); return n })
-                          }} style={{ cursor: 'pointer', flexShrink: 0 }} />
-                          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: isWorld ? 'var(--t-accent)' : 'var(--t-ink-soft)', flex: 1 }}>{name}</span>
-                          {isWorld && <span style={{ fontSize: 9, color: 'var(--t-accent)', opacity: 0.8 }}>세계관</span>}
-                          {editedSections[name] && <span style={{ fontSize: 9, color: 'var(--t-ink-soft)' }}>수정됨</span>}
-                          {!isEditing ? (
-                            <button className="btn ghost" style={{ fontSize: 10, padding: '1px 7px' }} onClick={() => startEditSection(name, text)}>✏</button>
-                          ) : (
-                            <div style={{ display: 'flex', gap: 4 }}>
-                              <button className="btn primary" style={{ fontSize: 10, padding: '1px 7px' }} onClick={confirmEditSection}>완료</button>
-                              <button className="btn ghost" style={{ fontSize: 10, padding: '1px 7px' }} onClick={cancelEditSection}>취소</button>
-                            </div>
-                          )}
+                  <>
+                    {visibleSectionEntries.map(([name, text]) => {
+                      const rawText = editedSections[name] ?? text
+                      const isEditing = editingKey === name
+                      const isWorld = worldKeys.has(name)
+                      const sectionImgs = introSectionImages[name] ?? []
+                      return (
+                        <div key={name} style={{ border: `1px solid ${isWorld ? 'var(--t-accent)' : 'var(--t-line)'}`, borderRadius: 8, overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: isWorld ? 'rgba(var(--t-accent-rgb, 180,100,255),.08)' : 'var(--t-surface-2)', borderBottom: '1px solid var(--t-line)' }}>
+                            <input type="checkbox" checked={isWorld} onChange={e => {
+                              setWorldKeys(prev => { const n = new Set(prev); e.target.checked ? n.add(name) : n.delete(name); return n })
+                            }} style={{ cursor: 'pointer', flexShrink: 0 }} />
+                            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: isWorld ? 'var(--t-accent)' : 'var(--t-ink-soft)', flex: 1 }}>{name}</span>
+                            {isWorld && <span style={{ fontSize: 9, color: 'var(--t-accent)', opacity: 0.8 }}>세계관</span>}
+                            {editedSections[name] && <span style={{ fontSize: 9, color: 'var(--t-ink-soft)' }}>수정됨</span>}
+                            {!isEditing ? (
+                              <>
+                                <button className="btn ghost" style={{ fontSize: 10, padding: '1px 6px' }} onClick={() => startEditSection(name, text)}>✏</button>
+                                <button className="btn ghost" style={{ fontSize: 10, padding: '1px 6px', color: 'var(--t-ink-soft)' }}
+                                  onClick={() => setHiddenSections(prev => { const n = new Set(prev); n.add(name); return n })}>숨김</button>
+                              </>
+                            ) : (
+                              <div style={{ display: 'flex', gap: 4 }}>
+                                <button className="btn primary" style={{ fontSize: 10, padding: '1px 7px' }} onClick={confirmEditSection}>완료</button>
+                                <button className="btn ghost" style={{ fontSize: 10, padding: '1px 7px' }} onClick={cancelEditSection}>취소</button>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ padding: '8px 10px' }}>
+                            {isEditing ? (
+                              <textarea
+                                value={editingText}
+                                onChange={e => setEditingText(e.target.value)}
+                                style={{ width: '100%', minHeight: 100, fontSize: 12, lineHeight: 1.6, background: 'var(--t-surface)', border: '1px solid var(--t-line)', borderRadius: 6, padding: 8, color: 'var(--t-ink)', resize: 'vertical', boxSizing: 'border-box' }}
+                              />
+                            ) : (
+                              <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--t-ink)', maxHeight: 200, overflow: 'auto' }}>
+                                {replaceDisplayPlaceholders(rawText, userName, charNames)}
+                              </div>
+                            )}
+                            {!isEditing && sectionImgs.length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                                {sectionImgs.map((src, idx) => (
+                                  <img key={idx} src={src} alt="" loading="lazy"
+                                    style={{ width: '100%', borderRadius: 6, display: 'block' }} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div style={{ padding: '8px 10px' }}>
-                          {isEditing ? (
-                            <textarea
-                              value={editingText}
-                              onChange={e => setEditingText(e.target.value)}
-                              style={{ width: '100%', minHeight: 100, fontSize: 12, lineHeight: 1.6, background: 'var(--t-surface)', border: '1px solid var(--t-line)', borderRadius: 6, padding: 8, color: 'var(--t-ink)', resize: 'vertical', boxSizing: 'border-box' }}
-                            />
-                          ) : (
-                            <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--t-ink)', maxHeight: 200, overflow: 'auto' }}>
-                              {displayText}
-                            </div>
-                          )}
-                          {/* 섹션 내 이미지 */}
-                          {!isEditing && (introSectionImages[name] ?? []).length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                              {(introSectionImages[name] ?? []).map((src, idx) => (
-                                <img key={idx} src={src} alt="" loading="lazy"
-                                  style={{ width: '100%', borderRadius: 6, display: 'block' }} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                      )
+                    })}
+                    {/* 숨겨진 섹션 */}
+                    {hiddenSectionEntries.length > 0 && (
+                      <div>
+                        <button className="btn ghost" style={{ fontSize: 11, padding: '3px 10px', width: '100%' }}
+                          onClick={() => setShowHidden(p => !p)}>
+                          {showHidden ? '▲' : '▼'} 숨겨진 섹션 ({hiddenSectionEntries.length}개)
+                        </button>
+                        {showHidden && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                            {hiddenSectionEntries.map(([name]) => (
+                              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', background: 'var(--t-surface-2)', borderRadius: 6, border: '1px solid var(--t-line)' }}>
+                                <span style={{ fontSize: 11, color: 'var(--t-ink-soft)', flex: 1 }}>{name}</span>
+                                <button className="btn ghost" style={{ fontSize: 10, padding: '1px 7px' }}
+                                  onClick={() => setHiddenSections(prev => { const n = new Set(prev); n.delete(name); return n })}>보이기</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )
-                  })
+                    )}
+                  </>
                 ) : (
                   /* 비섹션: 전체 intro 텍스트 */
                   (() => {
                     const key = '__intro__'
                     const fallback = introHtmlText
                     const isEditing = editingKey === key
-                    const displayText = editedSections[key] ?? fallback
+                    const rawText = editedSections[key] ?? fallback
                     const isWorld = worldKeys.has(key)
                     return (
                       <div style={{ border: `1px solid ${isWorld ? 'var(--t-accent)' : 'var(--t-line)'}`, borderRadius: 8, overflow: 'hidden' }}>
@@ -438,7 +482,7 @@ export default function TikitaStoryDetailPage() {
                             />
                           ) : (
                             <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--t-ink)', maxHeight: 200, overflow: 'auto' }}>
-                              {displayText}
+                              {replaceDisplayPlaceholders(rawText, userName, charNames)}
                             </div>
                           )}
                         </div>
