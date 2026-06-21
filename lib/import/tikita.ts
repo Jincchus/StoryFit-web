@@ -29,6 +29,15 @@ function stripHtml(html?: string | null): string {
     .trim()
 }
 
+// intro_html에 박힌 인라인 일러(<img>)를 추출한다 — stripHtml이 태그째 지우기 전에 따로 건진다.
+function extractImgUrls(html?: string | null): string[] {
+  const urls: string[] = []
+  const re = /<img[^>]+src=["']([^"']+)["']/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(String(html || '')))) urls.push(m[1])
+  return Array.from(new Set(urls))
+}
+
 export async function captureTikita(url: string): Promise<Captured> {
   const shortId = url.match(/\/story\/([A-Za-z0-9_-]+)/)?.[1]
   if (!shortId) throw new Error('Tikita 스토리 URL이 아닙니다 (/story/{id} 형식 필요)')
@@ -46,6 +55,8 @@ export async function captureTikita(url: string): Promise<Captured> {
   if (!story?.id) throw new Error('Tikita 스토리를 찾을 수 없습니다')
 
   let detailChars: any[] = []
+  let detailImages: any[] = []
+  let creatorNickname = ''
   try {
     const dRes = await fetch(`${TIKITA_BASE}/rest/v1/rpc/get_story_detail`, {
       method: 'POST',
@@ -56,6 +67,8 @@ export async function captureTikita(url: string): Promise<Captured> {
       const detail = await dRes.json()
       const d = Array.isArray(detail) ? detail[0] : detail
       detailChars = Array.isArray(d?.characters) ? d.characters : []
+      detailImages = Array.isArray(d?.images) ? d.images : []
+      creatorNickname = String(d?.creator_nickname || '').trim()
     }
   } catch { /* 상세 실패 시 스토리 단일 캐릭터로 폴백 */ }
 
@@ -91,6 +104,21 @@ export async function captureTikita(url: string): Promise<Captured> {
   const cover = storageUrl(story.thumbnail_url || story.story_thumbnail_url)
   const title = String(story.title || '').trim()
 
+  // 인라인 일러(도입부 본문 <img>) — stripHtml로 사라지기 전에 따로 보존.
+  const inlineIllustrations = extractImgUrls(story.intro_html).map(u => storageUrl(u)).filter(Boolean)
+  // 이미지 갤러리 — 대부분 Tik 결제/턴 잠금이라 image_url이 null. preview/locked 썸네일까지 건진다.
+  const gallery = [...detailImages]
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+    .map((im: any) => ({
+      url: storageUrl(im.image_url || im.preview_url || im.locked_image_url),
+      description: String(im.description || '').trim(),
+      locked: !im.is_unlocked,
+      tikCost: im.unlock_tik_cost ?? 0,
+      requiredTurns: im.required_turns ?? 0,
+      order: im.display_order ?? 0,
+    }))
+    .filter(g => g.url)
+
   const sorted = [...detailChars].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
   const characters: AssembledCharacter[] = sorted.map((c, i) => ({
     name: String(c.name || title || '캐릭터').slice(0, 100),
@@ -100,6 +128,7 @@ export async function captureTikita(url: string): Promise<Captured> {
     openingMessage: i === 0 ? String(story.first_message || '') : '',
     exampleDialogues: '',
     avatarUrl: storageUrl(c.avatar_url) || (i === 0 ? cover : ''),
+    relatedImages: i === 0 && inlineIllustrations.length > 0 ? inlineIllustrations : undefined,
   }))
 
   if (characters.length === 0) {
@@ -139,6 +168,12 @@ export async function captureTikita(url: string): Promise<Captured> {
       introHtml: story.intro_html ?? null,
       introMode: story.intro_mode ?? null,
       episodes,
+      gallery,
+      inlineIllustrations,
+      creatorNickname,
+      originalWorkTitle: String(story.original_work_title || '').trim(),
+      chatImageMode: story.chat_image_mode ?? null,
+      isCinema: !!story.is_cinema,
     },
   }
 }

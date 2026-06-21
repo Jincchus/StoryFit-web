@@ -17,7 +17,7 @@ function formatDate(s?: string) {
 
 interface Char {
   id: string; name: string; avatarUrl: string | null; additionalInfo: string
-  openingMessage: string; tags: string[]
+  openingMessage: string; tags: string[]; relatedImages?: string[]
 }
 interface Collection {
   id: string; title: string; coverImageUrl: string; description: string; tags: string[]
@@ -58,6 +58,11 @@ export default function TikitaStoryDetailPage() {
   const mainChar = col.characters[0]
   const tagline = meta.tagline ?? col.description ?? ''
   const opening = mainChar?.openingMessage ?? ''
+  const illustrations: string[] = Array.isArray(mainChar?.relatedImages) ? mainChar.relatedImages : []
+  const gallery: { url: string; description?: string; locked?: boolean; tikCost?: number; requiredTurns?: number }[] =
+    Array.isArray(meta.gallery) ? meta.gallery : []
+  const creditLine = [meta.creatorNickname && `제작 ${meta.creatorNickname}`, meta.originalWorkTitle && `원작 《${meta.originalWorkTitle}》`]
+    .filter(Boolean).join(' · ')
 
   const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
     if (!mainChar) return
@@ -144,12 +149,55 @@ export default function TikitaStoryDetailPage() {
               </div>
             </div>
             {tagline && <p className="tikita-desc" style={{ marginBottom: 10 }}>{tagline}</p>}
+            {creditLine && <p className="tikita-desc" style={{ marginBottom: 10, fontSize: 11, color: 'var(--t-ink-soft)' }}>{creditLine}</p>}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {col.tags.map(t => <span key={t} className="tikita-chip">#{t}</span>)}
               </div>
             )}
           </div>
+
+          {illustrations.length > 0 && (
+            <div className="tikita-section" style={{ paddingTop: 0 }}>
+              <h2 className="tikita-section-title">일러스트</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {illustrations.map((src, i) => (
+                  <img key={i} src={src} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {gallery.length > 0 && (
+            <div className="tikita-section" style={{ paddingTop: 0 }}>
+              <h2 className="tikita-section-title">이미지 갤러리 ({gallery.length})</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                {gallery.map((g, i) => (
+                  <div key={i} style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden', background: 'var(--t-surface-2)' }}>
+                    <img src={g.url} alt={g.description ?? ''} loading="lazy"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: g.locked ? 'blur(6px) brightness(0.7)' : 'none' }} />
+                    {g.locked && (
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, color: '#fff' }}>
+                        <span style={{ fontSize: 16 }}>🔒</span>
+                        <span style={{ fontSize: 9, fontWeight: 700 }}>
+                          {g.requiredTurns ? `${g.requiredTurns}턴` : `${g.tikCost ?? 0} Tik`}
+                        </span>
+                      </div>
+                    )}
+                    {g.description && (
+                      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '3px 5px', fontSize: 9, lineHeight: 1.3,
+                        color: '#fff', background: 'linear-gradient(transparent, rgba(0,0,0,0.75))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {g.description}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="tikita-desc" style={{ fontSize: 10, color: 'var(--t-ink-soft)', marginTop: 6 }}>
+                🔒 이미지는 Tikita 원본에서 잠금 해제(Tik·턴)가 필요해 미리보기만 제공됩니다.
+              </p>
+            </div>
+          )}
 
           {mainChar?.additionalInfo?.trim() && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
