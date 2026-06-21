@@ -20,7 +20,7 @@ function formatDate(s?: string) {
 
 interface Char {
   id: string; name: string; avatarUrl: string | null; additionalInfo: string
-  openingMessage: string; openingMessages?: Opening[]; tags: string[]
+  openingMessage: string; openingMessages?: Opening[]; tags: string[]; relatedImages?: string[]
 }
 interface Collection {
   id: string; title: string; coverImageUrl: string; description: string; tags: string[]
@@ -248,6 +248,18 @@ export default function MeltingCharDetailPage() {
             <div className="melting-section" style={{ paddingTop: 0 }}>
               <h2 className="melting-section-title">상세 설정</h2>
               <MeltingMarkdown text={replaceDisplayPlaceholders(mainChar.additionalInfo, userDisplayName, mainChar.name)} />
+            </div>
+          )}
+
+          {Array.isArray(mainChar?.relatedImages) && mainChar.relatedImages.length > 0 && (
+            <div className="melting-section" style={{ paddingTop: 0 }}>
+              <h2 className="melting-section-title">이미지 ({mainChar.relatedImages.length})</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                {mainChar.relatedImages.map((src, i) => (
+                  <img key={i} src={src} alt="" loading="lazy"
+                    style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: 8, display: 'block' }} />
+                ))}
+              </div>
             </div>
           )}
 

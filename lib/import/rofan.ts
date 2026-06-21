@@ -53,6 +53,17 @@ export function assembleRofan(pageProps: any): AssembledResult {
     .filter(Boolean)
     .join('\n\n')
 
+  // 갤러리(botAssets): status='public'인 공개 이미지만 수집. 'secret'(=대화중 해금, /blur/ 미리보기)은
+  // 우리 쪽에서 원본을 볼 수 없으므로 제외한다. 대표 이미지(char_image)는 중복 제거.
+  const publicAssets: string[] = Array.isArray(pageProps?.botAssets)
+    ? (pageProps.botAssets as any[])
+        .filter((a) => a?.status === 'public' && a?.image && !String(a.image).includes('/blur/'))
+        .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0))
+        .map((a) => String(a.image).trim())
+        .filter(Boolean)
+    : []
+  const relatedImages = publicAssets.filter((u) => u !== bot.char_image)
+
   const character: AssembledCharacter = {
     name: bot.char.trim(),
     gender: GENDER_MAP[String(bot.gender)] ?? '',
@@ -60,7 +71,8 @@ export function assembleRofan(pageProps: any): AssembledResult {
     additionalInfo,
     openingMessage: bot.first_message?.trim() ?? '',
     exampleDialogues: '',
-    avatarUrl: bot.char_image || undefined,
+    avatarUrl: bot.char_image || publicAssets[0] || undefined,
+    relatedImages: relatedImages.length > 0 ? relatedImages : undefined,
   }
 
   return {

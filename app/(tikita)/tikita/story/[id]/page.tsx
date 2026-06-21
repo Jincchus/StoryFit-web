@@ -59,10 +59,34 @@ export default function TikitaStoryDetailPage() {
   const tagline = meta.tagline ?? col.description ?? ''
   const opening = mainChar?.openingMessage ?? ''
   const illustrations: string[] = Array.isArray(mainChar?.relatedImages) ? mainChar.relatedImages : []
-  const gallery: { url: string; description?: string; locked?: boolean; tikCost?: number; requiredTurns?: number }[] =
-    Array.isArray(meta.gallery) ? meta.gallery : []
+  // 잠금 이미지는 우리 쪽에서 원본을 볼 수 없어 블러만 노출돼 무의미하므로 화면에서 숨긴다.
+  const gallery: { url: string; description?: string }[] =
+    (Array.isArray(meta.gallery) ? meta.gallery : []).filter((g: any) => !g.locked)
   const creditLine = [meta.creatorNickname && `제작 ${meta.creatorNickname}`, meta.originalWorkTitle && `원작 《${meta.originalWorkTitle}》`]
     .filter(Boolean).join(' · ')
+
+  // ── 검토용: 원본 전체 필드 노출 (1 title·2 tagline·5 first_message 제외). 배치 확정 후 제거 예정. ──
+  const audit = meta.audit ?? {}
+  const auditRows: { f: string; label: string; desc: string; value: any }[] = [
+    { f: 'intro_html', label: '소개글', desc: '프로필 소개·배경(일러 포함)', value: audit.introHtmlText || col.description },
+    { f: 'detail_md', label: '상태창 안내', desc: '명령어/상태창 출력 형식', value: audit.detailMd },
+    { f: 'chat_starters', label: '추천 첫 대사', desc: '유저 시작 대사 후보', value: (meta.chatStarters || []).join('\n') },
+    { f: 'categories', label: '분류', desc: '대분류', value: (meta.categories || []).join(', ') },
+    { f: 'tags', label: '태그', desc: '세부 태그', value: (col.tags || []).join(', ') },
+    { f: 'is_adult', label: '성인 여부', desc: '19금', value: meta.isAdult ? '성인' : '일반' },
+    { f: 'creator_notes', label: '제작자 메모', desc: '크리에이터 노트', value: meta.creatorNotes },
+    { f: 'creator_nickname', label: '제작자명', desc: '닉네임(제거 예정)', value: meta.creatorNickname },
+    { f: 'original_work_title', label: '원작 제목', desc: '', value: meta.originalWorkTitle },
+    { f: 'chat_image_mode', label: '배경 이미지 모드', desc: 'background 등', value: meta.chatImageMode },
+    { f: 'is_cinema', label: '시네마 모드', desc: '', value: meta.isCinema ? '예' : '아니오' },
+    { f: 'like_count', label: '좋아요 수', desc: '인기지표', value: audit.likeCount },
+    { f: 'chat_count', label: '대화 수', desc: '인기지표', value: audit.chatCount },
+    { f: 'monetization_mode', label: '수익화 모드', desc: '', value: audit.monetizationMode },
+    { f: 'world', label: '세계관(world)', desc: '별도 세계관 필드', value: audit.world },
+  ].filter(r => r.value != null && String(r.value).trim() !== '')
+  const episodeTitles: string[] = (Array.isArray(meta.episodes) ? meta.episodes : [])
+    .map((e: any, i: number) => `${i + 1}. ${e.title || ''}`)
+  const charsMeta: any[] = Array.isArray(audit.charactersMeta) ? audit.charactersMeta : []
 
   const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
     if (!mainChar) return
@@ -157,6 +181,39 @@ export default function TikitaStoryDetailPage() {
             )}
           </div>
 
+          {/* ── 검토용: 원본 전체 필드 (배치 확정 후 제거) ── */}
+          <div className="tikita-section" style={{ paddingTop: 0 }}>
+            <h2 className="tikita-section-title">📋 원본 필드 (검토용 · 배치 결정)</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {auditRows.map(r => (
+                <div key={r.f} style={{ border: '1px solid var(--t-line)', borderRadius: 8, padding: '8px 10px', background: 'var(--t-surface)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-accent)' }}>
+                    {r.label} <span style={{ fontWeight: 400, color: 'var(--t-ink-soft)', fontSize: 10 }}>· {r.f}{r.desc ? ` · ${r.desc}` : ''}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--t-ink)', marginTop: 3, whiteSpace: 'pre-wrap', maxHeight: 180, overflow: 'auto' }}>{String(r.value)}</div>
+                </div>
+              ))}
+              {episodeTitles.length > 0 && (
+                <div style={{ border: '1px solid var(--t-line)', borderRadius: 8, padding: '8px 10px', background: 'var(--t-surface)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-accent)' }}>
+                    에피소드 제목 <span style={{ fontWeight: 400, color: 'var(--t-ink-soft)', fontSize: 10 }}>· episodes · 챕터로 사용중(데이터 유지)</span>
+                  </div>
+                  <div style={{ fontSize: 12, marginTop: 3, whiteSpace: 'pre-wrap', maxHeight: 180, overflow: 'auto' }}>{episodeTitles.join('\n')}</div>
+                </div>
+              )}
+              {charsMeta.length > 0 && (
+                <div style={{ border: '1px solid var(--t-line)', borderRadius: 8, padding: '8px 10px', background: 'var(--t-surface)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t-accent)' }}>
+                    캐릭터 메타 <span style={{ fontWeight: 400, color: 'var(--t-ink-soft)', fontSize: 10 }}>· characters · 나이/보이스/크롭</span>
+                  </div>
+                  <div style={{ fontSize: 12, marginTop: 3, whiteSpace: 'pre-wrap' }}>
+                    {charsMeta.map((c: any) => `${c.name}(${c.gender || '-'}) · 나이 ${c.age ?? '-'} · 보이스 ${c.voiceUrl ? '있음' : '없음'} · 아바타크롭 ${c.avatarCrop ? '있음' : '없음'}`).join('\n')}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {illustrations.length > 0 && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">일러스트</h2>
@@ -175,15 +232,7 @@ export default function TikitaStoryDetailPage() {
                 {gallery.map((g, i) => (
                   <div key={i} style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden', background: 'var(--t-surface-2)' }}>
                     <img src={g.url} alt={g.description ?? ''} loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', filter: g.locked ? 'blur(6px) brightness(0.7)' : 'none' }} />
-                    {g.locked && (
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, color: '#fff' }}>
-                        <span style={{ fontSize: 16 }}>🔒</span>
-                        <span style={{ fontSize: 9, fontWeight: 700 }}>
-                          {g.requiredTurns ? `${g.requiredTurns}턴` : `${g.tikCost ?? 0} Tik`}
-                        </span>
-                      </div>
-                    )}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     {g.description && (
                       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '3px 5px', fontSize: 9, lineHeight: 1.3,
                         color: '#fff', background: 'linear-gradient(transparent, rgba(0,0,0,0.75))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -193,9 +242,6 @@ export default function TikitaStoryDetailPage() {
                   </div>
                 ))}
               </div>
-              <p className="tikita-desc" style={{ fontSize: 10, color: 'var(--t-ink-soft)', marginTop: 6 }}>
-                🔒 이미지는 Tikita 원본에서 잠금 해제(Tik·턴)가 필요해 미리보기만 제공됩니다.
-              </p>
             </div>
           )}
 

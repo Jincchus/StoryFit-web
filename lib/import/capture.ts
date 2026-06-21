@@ -609,6 +609,13 @@ export async function captureMelting(url: string): Promise<Captured> {
     ? `https://image-gen.melting.chat/public_images/${cover.imagePath}?s=lg`
     : profileImageUrl
 
+  // 갤러리(data.images): isPublic인 공개 이미지만 수집. 대표/커버 이미지는 중복 제거.
+  const galleryImages: string[] = (Array.isArray(data.images) ? data.images : [])
+    .filter((im: any) => im?.imagePath && im?.isPublic !== false)
+    .sort((a: any, b: any) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
+    .map((im: any) => `https://image-gen.melting.chat/public_images/${im.imagePath}?s=lg`)
+  const relatedImages = galleryImages.filter(u => u !== profileImageUrl && u !== coverImageUrl)
+
   const assembledResult = {
     characters: [
       {
@@ -620,6 +627,7 @@ export async function captureMelting(url: string): Promise<Captured> {
         openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
         exampleDialogues: '',
         avatarUrl: profileImageUrl || undefined,
+        relatedImages: relatedImages.length > 0 ? relatedImages : undefined,
       },
     ],
     scenarioDescription: bot.publicTagline || '',
