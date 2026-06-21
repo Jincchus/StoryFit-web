@@ -216,9 +216,9 @@ export default function TikitaListPage() {
                   {thumb ? <img className="tikita-card-img" src={thumb} alt="" /> : <div className="tikita-card-img" />}
                   <div className="tikita-card-body">
                     <div className="tikita-card-title">{s.title}</div>
-                    {s.description?.trim() && (
+                    {(s.tikitaMeta?.tagline || s.description)?.trim() && (
                       <div style={{ fontSize: 11, color: 'var(--t-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {replaceDisplayPlaceholders(s.description, '나', s.characters?.[0]?.name ?? '')}
+                        {replaceDisplayPlaceholders(s.tikitaMeta?.tagline || s.description || '', '나', s.characters?.[0]?.name ?? '')}
                       </div>
                     )}
                     {s.tags?.length > 0 && (
