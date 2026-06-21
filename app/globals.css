@@ -545,6 +545,9 @@ select.field{
 }
 .workwin > .win > .win-title .win-controls{ display: none }
 .workwin > .win > .win-body{ padding: 12px 14px; }
+/* 몰입형 채팅: win-body 중복 여백 제거 — 헤더·로그·컴포저가 각자 여백을 가지므로
+   여기서 또 padding을 주면 좌우 28px씩 이중 들여쓰기되어 채팅 폭이 좁아진다. */
+.chat-immersive .workwin > .win > .win-body{ padding: 0; }
 
 /* ─── Desktop icons ─────────────────────────────────────────────────────── */
 .desktop-icons{
