@@ -61,6 +61,26 @@ function extractImgUrls(html?: string | null): string[] {
   return Array.from(new Set(urls))
 }
 
+// 섹션별로 포함된 <img> URL을 추출한다 — parseIntroSections와 동일한 분할 로직,
+// stripHtml 대신 extractImgUrls를 적용해 각 섹션의 이미지 목록을 반환한다.
+function parseIntroSectionImages(html: string | null | undefined): Record<string, string[]> {
+  if (!html?.trim()) return {}
+  const result: Record<string, string[]> = {}
+  const parts = html.split(/<!--([\s\S]*?)-->/)
+  let prevName: string | null = null
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      if (prevName !== null) {
+        const imgs = extractImgUrls(parts[i])
+        if (imgs.length > 0) result[prevName] = [...(result[prevName] ?? []), ...imgs]
+      }
+    } else {
+      prevName = parts[i].trim()
+    }
+  }
+  return result
+}
+
 export async function captureTikita(url: string): Promise<Captured> {
   const shortId = url.match(/\/story\/([A-Za-z0-9_-]+)/)?.[1]
   if (!shortId) throw new Error('Tikita 스토리 URL이 아닙니다 (/story/{id} 형식 필요)')
@@ -168,6 +188,7 @@ export async function captureTikita(url: string): Promise<Captured> {
 
   const canonical = `https://tikita.ai/ko/story/${shortId}`
   const introSections = parseIntroSections(story.intro_html)
+  const introSectionImages = parseIntroSectionImages(story.intro_html)
 
   return {
     sections: [],
@@ -193,6 +214,7 @@ export async function captureTikita(url: string): Promise<Captured> {
       introMode: story.intro_mode ?? null,
       introHtmlText: stripHtml(story.intro_html),
       introSections,
+      introSectionImages,
       detailMd: String(story.detail_md || '').trim(),
       episodes,
       gallery,

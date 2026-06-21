@@ -128,7 +128,7 @@ export default function TikitaStoryDetailPage() {
   const personaDefault = introSections['PERSONA'] ?? introSections['페르소나'] ?? ''
   const tagline = meta.tagline ?? col.description ?? ''
   const opening = mainChar?.openingMessage ?? ''
-  const illustrations: string[] = Array.isArray(mainChar?.relatedImages) ? mainChar.relatedImages : []
+  const illustrations: string[] = Array.isArray(meta.inlineIllustrations) ? meta.inlineIllustrations : (Array.isArray(mainChar?.relatedImages) ? mainChar.relatedImages : [])
   const gallery: { url: string; description?: string }[] =
     (Array.isArray(meta.gallery) ? meta.gallery : []).filter((g: any) => !g.locked)
   const chatStarters: string[] = Array.isArray(meta.chatStarters) ? meta.chatStarters : []
@@ -137,6 +137,7 @@ export default function TikitaStoryDetailPage() {
   const episodeTitles: string[] = (Array.isArray(meta.episodes) ? meta.episodes : [])
     .map((e: any, i: number) => `${i + 1}. ${e.title || ''}`)
 
+  const introSectionImages: Record<string, string[]> = meta.introSectionImages ?? {}
   const sectionEntries = Object.entries(introSections).filter(([, v]) => v?.trim())
   const hasSections = sectionEntries.length > 0
   const hasIntroText = !!introHtmlText.trim()
@@ -387,6 +388,15 @@ export default function TikitaStoryDetailPage() {
                           ) : (
                             <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--t-ink)', maxHeight: 200, overflow: 'auto' }}>
                               {displayText}
+                            </div>
+                          )}
+                          {/* 섹션 내 이미지 */}
+                          {!isEditing && (introSectionImages[name] ?? []).length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                              {(introSectionImages[name] ?? []).map((src, idx) => (
+                                <img key={idx} src={src} alt="" loading="lazy"
+                                  style={{ width: '100%', borderRadius: 6, display: 'block' }} />
+                              ))}
                             </div>
                           )}
                         </div>
