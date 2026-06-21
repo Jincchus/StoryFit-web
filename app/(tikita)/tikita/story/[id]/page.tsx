@@ -70,6 +70,8 @@ export default function TikitaStoryDetailPage() {
   const meta = col.tikitaMeta ?? {}
   const mainChar = col.characters[0]
   const aiCharIds = pendingAiCharIds ?? (mainChar ? [mainChar.id] : [])
+  const introSections: Record<string, string> = meta.introSections ?? {}
+  const personaDefault = introSections['PERSONA'] ?? introSections['페르소나'] ?? ''
   const tagline = meta.tagline ?? col.description ?? ''
   const opening = mainChar?.openingMessage ?? ''
   const illustrations: string[] = Array.isArray(mainChar?.relatedImages) ? mainChar.relatedImages : []
@@ -172,6 +174,7 @@ export default function TikitaStoryDetailPage() {
         <WhifPersonaModal
           candidates={[]}
           loading={creating}
+          defaultSettings={personaDefault}
           onCancel={() => { setPersonaOpen(false); setCreating(false) }}
           onSelect={(charId, newPersona) => handlePersonaSelect(charId, newPersona)}
         />
