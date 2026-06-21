@@ -91,7 +91,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           content: m.content,
           aiModel: m.aiModel,
           characterId: m.characterId,
-          parentId: null,
+          // 원본 parentId를 새 id로 리매핑한다. 진짜 오프닝(원래 parentId=null)만 null로 남고
+          // 나머지는 트리 체인을 유지한다. null로 뭉개면 splitRecentAndOpening이 모든 응답을
+          // openingScene으로 오인해 매 턴 수십만 토큰을 전송하게 된다.
+          parentId: m.parentId ? (msgIdMap.get(m.parentId) ?? null) : null,
           isSelected: true,
           inputTokens: m.inputTokens,
           outputTokens: m.outputTokens,
