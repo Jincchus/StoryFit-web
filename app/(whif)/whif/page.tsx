@@ -251,6 +251,11 @@ export default function WhifExplorePage() {
                     <div className="whif-card-body">
                       <div className="whif-card-title">{u.title}</div>
                       <div className="whif-card-sub">{u.characters.length}명 소속</div>
+                      {u.tags?.length > 0 && (
+                        <div className="whif-card-tags">
+                          {u.tags.slice(0, 3).map(t => <span key={t} className="whif-chip">#{t}</span>)}
+                        </div>
+                      )}
                     </div>
                     {editMode ? (
                       <button onClick={e => { e.stopPropagation(); deleteUniverse(u.id) }}
@@ -294,6 +299,11 @@ export default function WhifExplorePage() {
                     <div className="whif-card-title">{c.name}</div>
                     {c.additionalInfo?.trim() && (
                       <div className="whif-card-desc">{replaceDisplayPlaceholders(c.additionalInfo, userName, c.name)}</div>
+                    )}
+                    {c.tags?.length > 0 && (
+                      <div className="whif-card-tags">
+                        {c.tags.slice(0, 3).map(t => <span key={t} className="whif-chip">#{t}</span>)}
+                      </div>
                     )}
                   </div>
                   {editMode ? (
