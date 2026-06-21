@@ -132,20 +132,20 @@ export default function TikitaStoryDetailPage() {
   const gallery: { url: string; description?: string }[] =
     (Array.isArray(meta.gallery) ? meta.gallery : []).filter((g: any) => !g.locked)
   const chatStarters: string[] = Array.isArray(meta.chatStarters) ? meta.chatStarters : []
-  const audit = meta.audit ?? {}
+  const detailMd: string = meta.detailMd ?? ''
+  const introHtmlText: string = meta.introHtmlText ?? ''
   const episodeTitles: string[] = (Array.isArray(meta.episodes) ? meta.episodes : [])
     .map((e: any, i: number) => `${i + 1}. ${e.title || ''}`)
-  const charsMeta: any[] = Array.isArray(audit.charactersMeta) ? audit.charactersMeta : []
 
   const sectionEntries = Object.entries(introSections).filter(([, v]) => v?.trim())
   const hasSections = sectionEntries.length > 0
-  const hasIntroText = !!audit.introHtmlText?.trim()
+  const hasIntroText = !!introHtmlText.trim()
 
   // 세계관에 포함될 텍스트 계산 (대화 생성 시 사용)
   const buildScenarioText = () => {
     return Array.from(worldKeys)
       .map(k => {
-        if (k === '__intro__') return editedSections['__intro__'] ?? audit.introHtmlText ?? ''
+        if (k === '__intro__') return editedSections['__intro__'] ?? introHtmlText
         return editedSections[k] ?? introSections[k] ?? ''
       })
       .filter(Boolean)
@@ -397,7 +397,7 @@ export default function TikitaStoryDetailPage() {
                   /* 비섹션: 전체 intro 텍스트 */
                   (() => {
                     const key = '__intro__'
-                    const fallback = audit.introHtmlText ?? ''
+                    const fallback = introHtmlText
                     const isEditing = editingKey === key
                     const displayText = editedSections[key] ?? fallback
                     const isWorld = worldKeys.has(key)
@@ -440,11 +440,11 @@ export default function TikitaStoryDetailPage() {
             </div>
           )}
 
-          {audit.detailMd?.trim() && (
+          {detailMd && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">상세 안내</h2>
               <div className="tikita-intro-box" style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7 }}>
-                {audit.detailMd.trim()}
+                {detailMd}
               </div>
             </div>
           )}
@@ -469,15 +469,6 @@ export default function TikitaStoryDetailPage() {
             </div>
           )}
 
-          {/* 검토용 메타 */}
-          {charsMeta.length > 0 && (
-            <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">📋 캐릭터 메타 (검토용)</h2>
-              <div style={{ fontSize: 12, whiteSpace: 'pre-wrap', color: 'var(--t-ink-soft)' }}>
-                {charsMeta.map((c: any) => `${c.name}(${c.gender || '-'}) · 나이 ${c.age ?? '-'} · 보이스 ${c.voiceUrl ? '있음' : '없음'}`).join('\n')}
-              </div>
-            </div>
-          )}
 
           {existingConvs.length > 0 && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
