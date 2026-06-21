@@ -47,9 +47,8 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className={`shell-wrap${wideMode ? ' wide' : ''}`}>
       <div className="shell">
         <div className="shell-title">
-          <div className="hstack" style={{ gridColumn: 1, justifyContent: 'flex-start' }}>
-            <span style={{ fontSize: 18, lineHeight: 1 }}>📖</span>
-          </div>
+          <span className="shell-wordmark">StoryFit</span>
+          <button className="shell-new" aria-label="새 대화" onClick={() => router.push('/conversations/new')}>＋</button>
         </div>
 
         <div className="shell-body">
