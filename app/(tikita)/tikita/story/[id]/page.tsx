@@ -498,7 +498,7 @@ export default function TikitaStoryDetailPage() {
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">상세 안내</h2>
               <div className="tikita-intro-box" style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7 }}>
-                {detailMd}
+                {replaceDisplayPlaceholders(detailMd, userName, charNames)}
               </div>
             </div>
           )}
