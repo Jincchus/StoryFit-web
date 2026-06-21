@@ -98,11 +98,11 @@ rofan·melting 풀이미지는 공개라 제대로 고치면 **원본 그대로 
 ## 6. tikita 필드 검증 — 체크리스트 (2026-06-21 업데이트)
 
 - [x] **1. 제작자 라인 완전 제거** — creditLine / creatorNickname 화면에서 제거 완료.
-- [x] **2. intro_html 소개글을 상세 페이지에 표시** — `introSections` 섹션별 카드로 표시. 섹션 없으면 텍스트 폴백.
+- [x] **2. intro_html 소개글을 상세 페이지에 표시** — 섹션별 체크박스·편집·저장 UI 구현. 섹션 없으면 전체 텍스트 + 체크박스.
 - [x] **3a. PERSONA/페르소나 → 페르소나 기본값** — WhifPersonaModal defaultSettings 연결 완료.
-- [ ] **3b. ORGANIZATION + RULE + 세계관 섹션 → scenarioDescription** — ⚠️ **현재 문제**: `story.world`는 전 스토리 null. `stripHtml(intro_html)` 전체(공지·패치노트·미션 등 잡탕)가 scenarioDescription으로 들어가고 있음. introSections에서 해당 키 값만 추출해 교체 필요.
+- [x] **3b. 세계관 → scenarioDescription 교체** — 상세 페이지에서 섹션별 체크박스로 선택, 저장 후 대화 생성 시 체크된 섹션만 조합. `worldSectionKeys`·`editedSections` tikitaMeta에 저장.
 - [ ] **3c. HEADQUARTERS → 이미지 섹션** — introSections['HEADQUARTERS'] 에서 이미지 URL 재추출해 표시.
-- [ ] **4. detail_md 처리** — 현재 character_intro와 함께 additionalInfo에 합산. AI 지시문 성격이라 분리 여부 재검토 필요.
+- [x] **4. detail_md 표시** — tikitaMeta.detailMd로 분리 저장, 상세 페이지 "상세 안내" 섹션에 별도 표시. 15개 카드 백필 완료.
 - [x] **5. 표시 제거 항목** — is_adult 배지, creator_notes, creator_nickname, is_cinema, like_count, chat_count, monetization_mode 제거 완료.
 - [ ] **6. 인라인 일러 → 첫 번째 캐릭터 수정** — 현재 나주환(2번째)에 붙어 있음. import 수정 + 백필 필요.
 - [x] **7. 분류·태그 현행 유지**.
@@ -120,19 +120,19 @@ rofan·melting 풀이미지는 공개라 제대로 고치면 **원본 그대로 
 
 > **세계관 추출 우선순위**: ORGANIZATION → RULE → 세계관 → STORY INTRO → (없으면 tagline만)
 
-## 7. 남은 작업 목록 (2026-06-21 기준)
+## 7. 남은 작업 목록 (2026-06-21 업데이트)
 
 ### 즉시 필요
-- [ ] **tikita 3b**: introSections에서 세계관 섹션 추출 → `scenarioDescription` 교체 (import 수정 + 백필)
-- [ ] **tikita 3c**: HEADQUARTERS 섹션 이미지 재추출 표시
-- [ ] **tikita 6**: 인라인 일러 첫 번째 캐릭터로 수정 + 백필
+- [ ] **tikita 3c**: HEADQUARTERS 섹션 이미지 URL 재추출 표시
+- [ ] **tikita 6**: 인라인 일러 첫 번째 캐릭터로 수정 + 백필 (현재 나주환에 붙어 있음)
 
 ### 이미지 백필 (미진행)
 - [ ] rofan 기존 카드 relatedImages 백필
 - [ ] melting 기존 카드 relatedImages 백필
 
 ### 배포
-- [ ] 서버 rebuild (커밋 다수 누적 — tikita 섹션 파싱, 다중캐릭터, chatStarters 등)
+- [ ] 서버 rebuild (커밋 다수 누적 — 세계관 편집기, detailMd, chatStarters, 다중캐릭터 등)
+  - DB 변경 없음 (tikitaMeta는 JSON 컬럼)
 
 ### 후순위
 - [ ] chub 갤러리 수집 (F)
