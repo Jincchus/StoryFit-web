@@ -43,18 +43,6 @@ export default function ChatPage() {
   const targetMsgId = searchParams.get('msg')
   const [cardChar, setCardChar] = useState<ConvChar['character'] | null>(null)
   const [conv, setConv] = useState<Conv | null>(null)
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [suggestLoading, setSuggestLoading] = useState(false)
-
-  const loadSuggestions = async () => {
-    if (suggestLoading) return
-    setSuggestLoading(true)
-    try {
-      const r = await api.post(`/api/conversations/${params.id}/suggestions`, {})
-      setSuggestions(Array.isArray(r.suggestions) ? r.suggestions : [])
-    } catch { setSuggestions([]) }
-    finally { setSuggestLoading(false) }
-  }
   const [loadingConv, setLoadingConv] = useState(true)
   const [ttsRate, setTtsRate] = useState(1.0)
   useEffect(() => {
@@ -430,14 +418,6 @@ export default function ChatPage() {
       streamUnsubRef.current = null
     }
   }, [params.id])
-
-  useEffect(() => {
-    if (conv?.mode !== 'story' && conv?.mode !== 'multiStory') return
-    if (typing) return
-    const last = messages[messages.length - 1]
-    if (last && last.role === 'assistant') loadSuggestions()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conv?.mode, typing, messages.length])
 
   const fillComposer = (content: string) => {
     if (composerRef.current) {
@@ -1024,9 +1004,6 @@ export default function ChatPage() {
                 onOpenBranchModal={msgId => { setBranchTargetMsgId(msgId); setShowBranchModal(true) }}
                 onStopStream={stopStream}
                 getMsgChar={getMsgChar}
-                suggestions={suggestions}
-                suggestLoading={suggestLoading}
-                onRegenSuggestions={loadSuggestions}
               />
             </div>
 

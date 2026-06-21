@@ -227,8 +227,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
 
   const enrichMode = conv.enrichInputMode ?? false
-  // enrichMode+스토리 조합일 때만 선택지 형식 활성화; 그 외에는 OFF 유지
-  const allowChoices = enrichMode && (conv.mode === 'story' || conv.mode === 'multiStory')
+  // 스토리/멀티스토리 모드면 항상 본문에 4지선다 포함 — 단일 호출로 본문+선택지를 함께 생성
+  // (별도 /suggestions API 호출 없이 클라이언트가 본문에서 파싱해 버튼으로 렌더)
+  const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
   const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charNames)
     + (diceResult ? diceInstruction(diceResult) : '')
   const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices, enrichMode)
@@ -295,7 +296,7 @@ async function generateAsync({
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText)
 
     const enrichMode = conv.enrichInputMode ?? false
-    const allowChoices = enrichMode && (conv.mode === 'story' || conv.mode === 'multiStory')
+    const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
     const revisionOptions = {
       allowChoices,
       forbiddenChoiceNames: [],

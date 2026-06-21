@@ -111,7 +111,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const latestUserId = [...mappedHistoryMsgs].reverse().find(m => m.role === 'user')?.id
   const enrichMode = conv.enrichInputMode ?? false
-  const allowChoices = enrichMode && (conv.mode === 'story' || conv.mode === 'multiStory')
+  const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
   const history = buildGeminiHistory(recentHistoryMsgs, latestUserId, allowChoices, enrichMode)
 
   const newMsg = await prisma.message.create({
@@ -174,7 +174,7 @@ async function regenerateAsync({
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText) || '[응답 없음]'
 
     const enrichMode = conv.enrichInputMode ?? false
-    const allowChoices = enrichMode && (conv.mode === 'story' || conv.mode === 'multiStory')
+    const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
     const revisionOptions = {
       allowChoices,
       forbiddenChoiceNames: [],
