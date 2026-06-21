@@ -25,11 +25,16 @@ async function summarizeMessages(
 - 추측하지 말고 대화에 명시된 내용만 작성
 - 각 항목은 "•" 로 시작
 - 반드시 한국어로 작성
+- 머리말·맺음말 금지: "다음은 …요약입니다" 같은 안내 문장 없이 불릿만 출력
 
 대화:\n${transcript}`
 
   // relaxed(BLOCK_NONE): NSFW 롤플레이 대화도 요약할 수 있게(차단 시 빈 요약 → 빈 메모리 방지)
-  return generateText(systemPrompt, userPrompt, 1024, 'relaxed')
+  const raw = await generateText(systemPrompt, userPrompt, 1024, 'relaxed')
+  // 모델이 붙이는 머리말("다음은 … 요약입니다.")을 제거 — 한정된 메모리 주입 칸을 잡음으로 낭비하지 않게.
+  return raw
+    .replace(/^\s*(?:다음은|아래는)[^\n]*?(?:요약|정리)[^\n]*(?::|입니다\.?|\.)?\s*\n+/, '')
+    .trim()
 }
 
 export async function triggerMemorySummarization(

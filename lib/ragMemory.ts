@@ -9,9 +9,11 @@ export async function retrieveRelevantMemories(
   const totalMemories = await prisma.memory.count({ where: { conversationId } })
   if (totalMemories === 0) return []
 
+  // 승격(promoted) 메모리는 핵심 메모리에 전문이 이미 들어가므로 RAG에선 제외 —
+  // 한정된 6칸을 중복으로 낭비하지 않고 다른 관련 기억에 배정한다.
   // 1. Fetch the 2 most recent memories chronologically to maintain transition context
   const recentMemories = await prisma.memory.findMany({
-    where: { conversationId },
+    where: { conversationId, promoted: false },
     orderBy: { createdAt: 'desc' },
     take: 2,
   })
@@ -30,7 +32,7 @@ export async function retrieveRelevantMemories(
     // Query similar memories (fetch extra to account for potential duplicates with recentMemories)
     relevantMemories = await prisma.$queryRawUnsafe<{ id: string; summary: string; createdAt: Date }[]>(
       `SELECT id, summary, "createdAt" FROM "Memory"
-       WHERE "conversationId" = $1 AND embedding IS NOT NULL
+       WHERE "conversationId" = $1 AND embedding IS NOT NULL AND promoted = false
        ORDER BY embedding <=> $2::vector
        LIMIT $3`,
       conversationId,
@@ -44,7 +46,7 @@ export async function retrieveRelevantMemories(
   // Fallback to recent-only if pgvector failed or returned nothing
   if (relevantMemories.length === 0) {
     const memories = await prisma.memory.findMany({
-      where: { conversationId },
+      where: { conversationId, promoted: false },
       orderBy: { createdAt: 'desc' },
       take: topK,
     })
