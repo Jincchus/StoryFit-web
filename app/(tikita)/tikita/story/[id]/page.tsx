@@ -518,7 +518,7 @@ export default function TikitaStoryDetailPage() {
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">첫 장면</h2>
               <div className="tikita-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(opening, userName, mainChar?.name ?? '')} />
+                <NovelText text={replaceDisplayPlaceholders(opening, userName, charNames)} />
               </div>
             </div>
           )}
