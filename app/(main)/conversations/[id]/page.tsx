@@ -41,6 +41,12 @@ export default function ChatPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const targetMsgId = searchParams.get('msg')
+  const [chatStarters] = useState<string[]>(() => {
+    try {
+      const raw = searchParams.get('starters')
+      return raw ? (JSON.parse(decodeURIComponent(raw)) as string[]) : []
+    } catch { return [] }
+  })
   const [cardChar, setCardChar] = useState<ConvChar['character'] | null>(null)
   const [conv, setConv] = useState<Conv | null>(null)
   const [loadingConv, setLoadingConv] = useState(true)
@@ -947,14 +953,26 @@ export default function ChatPage() {
                 }} />
               )}
               {messages.length === 0 && !streaming && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.45, padding: '40px 20px' }}>
-                  <div style={{ fontSize: 24 }}>📖</div>
-                  <div className="tiny muted" style={{ textAlign: 'center', lineHeight: 1.6 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '40px 20px' }}>
+                  <div style={{ fontSize: 24, opacity: 0.45 }}>📖</div>
+                  <div className="tiny muted" style={{ textAlign: 'center', lineHeight: 1.6, opacity: 0.45 }}>
                     {isMulti
                       ? <>멀티스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
                       : <>스토리를 시작해보세요.<br />첫 메시지를 보내면 장면과 선택지가 나타납니다.</>
                     }
                   </div>
+                  {chatStarters.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%', maxWidth: 320, marginTop: 4 }}>
+                      <div className="tiny muted" style={{ textAlign: 'center', opacity: 0.6 }}>추천 첫 대사</div>
+                      {chatStarters.map((s, i) => (
+                        <button key={i} className="btn ghost"
+                          style={{ textAlign: 'left', fontSize: 12, padding: '7px 12px', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                          onClick={() => fillComposer(s)}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               <ChapterNav
