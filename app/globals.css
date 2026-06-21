@@ -30,6 +30,7 @@
                   "Apple SD Gothic Neo", system-ui, sans-serif;
   --font-mono:   ui-monospace, "SF Mono", Menlo, monospace;
   --font-script: "Brush Script MT", "Lucida Handwriting", cursive;
+  --font-serif:  "Nanum Myeongjo", "Apple SD Gothic Neo", Georgia, serif;
 
   --radius-sm: 6px;
   --radius:    8px;
@@ -881,13 +882,15 @@ body[data-crt="on"]::after{
 .seq-block.seq-right { align-self: flex-end; align-items: flex-end; }
 .seq-block.seq-center { align-self: stretch; align-items: center; max-width: 100%; }
 .seq-speaker { font-size: 11px; font-weight: 600; color: var(--ink-soft); margin-bottom: 2px; padding: 0 3px; display: flex; align-items: center; gap: 4px; }
-.seq-narration { color: var(--ink-soft); font-style: italic; font-size: 13px; line-height: 1.65; text-align: center; padding: 1px 16px; }
+.seq-narration { font-family: var(--font-serif); color: var(--ink-soft); font-style: normal; font-size: 15px; line-height: 1.85; text-align: center; max-width: 32em; margin: 0 auto; padding: 2px 16px; letter-spacing: .003em; }
+/* 평문 지문은 또렷하게(위 normal), *행동*만 이탤릭+연한 회색으로 구분 (소설 표기 규칙) */
+.seq-narration em { font-style: italic; color: var(--ink-faint); }
 .seq-block.seq-right .bubble { background: var(--bubble-you); color: #fff; border-color: transparent; }
 
 /* ─── Side panel (항상 fixed 슬라이드오버 — in-flow 채팅 찌그러짐 방지) ──── */
 .side-panel {
   position: fixed; top: 0; right: 0; bottom: 0;
-  width: min(280px, 88vw);
+  width: min(330px, 92vw);
   z-index: 200;
   display: flex; flex-direction: column; gap: 8px;
   overflow-y: auto;
