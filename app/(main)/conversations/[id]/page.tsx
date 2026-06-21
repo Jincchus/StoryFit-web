@@ -101,6 +101,8 @@ export default function ChatPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const oldestIdRef = useRef<string | null>(null)
   const shouldScrollRef = useRef(false)
+  // 스트리밍 중 맨 아래에 붙어 따라 내려갈지 여부. 사용자가 위로 스크롤하면 false가 되어 따라가기를 멈춘다.
+  const autoFollowRef = useRef(true)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
@@ -305,7 +307,7 @@ export default function ChatPage() {
   }
 
   const scrollToBottom = () => {
-    if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setHasNew(false) }
+    if (logRef.current) { logRef.current.scrollTop = logRef.current.scrollHeight; setHasNew(false); autoFollowRef.current = true }
   }
 
   // 본문 검색/북마크에서 진입 시 해당 메시지 위치로 이동 (없으면 이전 페이지를 추가 로드하며 탐색)
@@ -346,7 +348,8 @@ export default function ChatPage() {
     if (!el) return
     const onScroll = () => {
       const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-      if (isBottom) setHasNew(false)
+      autoFollowRef.current = isBottom
+      setHasNew(!isBottom)
     }
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
@@ -371,14 +374,30 @@ export default function ChatPage() {
         requestAnimationFrame(() => {
           el.scrollTop = el.scrollHeight
           setHasNew(false)
+          autoFollowRef.current = true
         })
         shouldScrollRef.current = false
       }
       return
     }
-    const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-    if (!isBottom) setHasNew(true)
+    // 따라가는 중이면 새 메시지가 와도 맨 아래 유지(점프 아님). 위로 스크롤했으면 점프 없이 버튼만 표시.
+    if (autoFollowRef.current) {
+      requestAnimationFrame(() => { el.scrollTop = el.scrollHeight })
+      setHasNew(false)
+    } else {
+      const isBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+      if (!isBottom) setHasNew(true)
+    }
   }, [messages.length])
+
+  // 스트리밍(AI 응답 생성) 중에는 생성되는 텍스트를 따라 맨 아래로 내려간다(따라가는 중일 때만).
+  // 사용자가 위로 스크롤하면 autoFollowRef=false가 되어 따라가기를 멈추고 '맨 아래로' 버튼이 뜬다.
+  useEffect(() => {
+    if (!streaming) return
+    const el = logRef.current
+    if (!el) return
+    if (autoFollowRef.current) el.scrollTop = el.scrollHeight
+  }, [streaming])
 
   const subscribeStream = useCallback((convId: string) => {
     streamUnsubRef.current?.()
@@ -1030,7 +1049,7 @@ export default function ChatPage() {
                     boxShadow: '0 2px 6px rgba(0,0,0,.2)', whiteSpace: 'nowrap',
                     color: 'var(--hot-pink)',
                   }}
-                >새 답변 ↓</button>
+                >맨 아래로 ↓</button>
               </div>
             )}
 
