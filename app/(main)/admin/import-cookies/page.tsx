@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -79,6 +79,10 @@ export default function AdminImportCookiesPage() {
   const [babechatRefreshUpdatedAt, setBabechatRefreshUpdatedAt] = useState<string | null>(null)
   const [tingleToken, setTingleToken] = useState('')
   const [tingleTokenUpdatedAt, setTingleTokenUpdatedAt] = useState<string | null>(null)
+  const [tingleRefresh, setTingleRefresh] = useState('')
+  const [tingleRefreshUpdatedAt, setTingleRefreshUpdatedAt] = useState<string | null>(null)
+  const [tingleApiKey, setTingleApiKey] = useState('')
+  const [tingleApiKeyUpdatedAt, setTingleApiKeyUpdatedAt] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -96,6 +100,10 @@ export default function AdminImportCookiesPage() {
       setBabechatRefreshUpdatedAt(data.babechat_refresh_token?.updatedAt ?? null)
       setTingleToken(data.tingle_auth_token?.value ?? '')
       setTingleTokenUpdatedAt(data.tingle_auth_token?.updatedAt ?? null)
+      setTingleRefresh(data.tingle_refresh_token?.value ?? '')
+      setTingleRefreshUpdatedAt(data.tingle_refresh_token?.updatedAt ?? null)
+      setTingleApiKey(data.tingle_firebase_api_key?.value ?? '')
+      setTingleApiKeyUpdatedAt(data.tingle_firebase_api_key?.updatedAt ?? null)
     }).catch(() => {})
   }
 
@@ -112,6 +120,8 @@ export default function AdminImportCookiesPage() {
         babechat_access_token: babechatAccess,
         babechat_refresh_token: babechatRefresh,
         tingle_auth_token: tingleToken,
+        tingle_refresh_token: tingleRefresh,
+        tingle_firebase_api_key: tingleApiKey,
       })
       setSaved(true)
       load()
@@ -183,12 +193,30 @@ export default function AdminImportCookiesPage() {
             />
 
             <CookieField
-              label="팅글 인증 토큰 (tingle.chat) — Firebase JWT"
-              hint={'브라우저에서 tingle.chat에 로그인한 뒤 개발자도구 → Network 탭 → api.tingle.chat 요청 클릭 → Headers → Authorization 헤더의 "Bearer " 뒤 토큰을 복사해 붙여넣으세요.\n⚠️ Firebase JWT라 발급 후 1시간 만료됩니다 — 만료 시 이 화면에서 토큰을 교체해야 합니다.'}
+              label="팅글 인증 토큰 (tingle.chat) — Firebase ID 토큰"
+              hint={'브라우저에서 tingle.chat에 로그인한 뒤 개발자도구 → Network 탭 → api.tingle.chat 요청 클릭 → Headers → Authorization 헤더의 "Bearer " 뒤 토큰을 복사해 붙여넣으세요.\n\n아래 refresh 토큰 + Firebase API 키를 함께 저장하면 만료(1시간)마다 서버가 자동 갱신합니다.'}
               placeholder="eyJhbGciOiJSUzI1NiIsImtpZCI6..."
               value={tingleToken}
               onChange={setTingleToken}
               updatedAt={tingleTokenUpdatedAt}
+            />
+
+            <CookieField
+              label="팅글 refresh 토큰 (자동 갱신용)"
+              hint={'개발자도구 → Application(저장소) → Local Storage → https://tingle.chat → firebase:authUser:... 로 시작하는 항목 클릭 → JSON 값에서 stsTokenManager.refreshToken 값을 복사해 붙여넣으세요.\n\nrefresh 토큰은 사용자가 직접 로그아웃하거나 Firebase에서 세션을 강제 종료하지 않는 한 만료되지 않습니다.'}
+              placeholder="AMf-vBx..."
+              value={tingleRefresh}
+              onChange={setTingleRefresh}
+              updatedAt={tingleRefreshUpdatedAt}
+            />
+
+            <NicknameField
+              label="팅글 Firebase API 키 (자동 갱신용)"
+              hint={'개발자도구 → Application(저장소) → Local Storage → https://tingle.chat → firebase:authUser: 로 시작하는 항목의 키(key) 이름을 보면 firebase:authUser:{API_KEY}:{appName} 형식입니다. 중간의 AIzaSy... 부분이 Firebase API 키입니다.\n\n또는 Network 탭에서 securetoken.googleapis.com 요청의 URL ?key= 파라미터를 확인하세요.'}
+              placeholder="AIzaSy..."
+              value={tingleApiKey}
+              onChange={setTingleApiKey}
+              updatedAt={tingleApiKeyUpdatedAt}
             />
 
             <div className="hstack" style={{ gap: 6 }}>

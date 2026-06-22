@@ -57,10 +57,34 @@ function cleanWhifText(text: string): string {
 // 환경변수 방식은 컨테이너 재배포가 있어야 반영되는데, 멜팅 세션은 약 30분마다 만료되어
 // 사실상 갱신이 불가능했다 — DB 조회로 바꿔 재배포 없이 바로 반영되도록 한다.
 async function getGlobalConfigValue(
-  key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token'
+  key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key'
 ): Promise<string> {
   const config = await prisma.globalConfig.findUnique({ where: { key } })
   return config?.value?.trim() ?? ''
+}
+async function setGlobalConfigValue(key: string, value: string): Promise<void> {
+  await prisma.globalConfig.upsert({ where: { key }, update: { value }, create: { key, value } })
+}
+
+// Firebase refresh token으로 새 ID 토큰을 발급받아 DB에 저장 후 반환.
+async function refreshTingleToken(): Promise<string> {
+  const [refreshToken, apiKey] = await Promise.all([
+    getGlobalConfigValue('tingle_refresh_token'),
+    getGlobalConfigValue('tingle_firebase_api_key'),
+  ])
+  if (!refreshToken || !apiKey) throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
+  const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`,
+  })
+  if (!res.ok) throw new Error('팅글 토큰 갱신 실패 — 관리자 설정에서 토큰을 다시 입력해주세요.')
+  const data = await res.json().catch(() => ({}))
+  const newToken: string = data.id_token ?? ''
+  if (!newToken) throw new Error('팅글 토큰 갱신 응답에 ID 토큰이 없습니다.')
+  await setGlobalConfigValue('tingle_auth_token', newToken)
+  if (data.refresh_token) await setGlobalConfigValue('tingle_refresh_token', data.refresh_token)
+  return newToken
 }
 
 function parseSessionCookies(cookieHeader: string, domain: string): {
@@ -849,32 +873,48 @@ export async function captureTingle(url: string): Promise<Captured> {
   }
 }
 
+function isTingleTokenExpired(token: string): boolean {
+  try {
+    const payloadB64 = token.split('.')[1]
+    if (!payloadB64) return false
+    const { exp } = JSON.parse(Buffer.from(payloadB64, 'base64url').toString())
+    return typeof exp === 'number' && exp * 1000 < Date.now()
+  } catch {
+    return false
+  }
+}
+
 async function fetchTingleData(url: string): Promise<{ type: string; id: string; data: any; coverImageUrl: string; tags: string[]; safetyLevel: 'standard' | 'relaxed'; authToken: string }> {
   const m = url.match(/tingle\.chat\/chat\/(universes|scenes|characters)\/(\d+)/)
   if (!m) throw new Error('올바른 팅글 URL이 아닙니다. /chat/universes/, /chat/scenes/, /chat/characters/ 형식이어야 합니다.')
   const [, type, id] = m
 
-  const authToken = await getGlobalConfigValue('tingle_auth_token')
+  let authToken = await getGlobalConfigValue('tingle_auth_token')
   if (!authToken) throw new Error('팅글 인증 토큰이 설정되어 있지 않습니다. 관리자 설정에서 Firebase JWT 토큰을 입력해주세요.')
 
-  try {
-    const payloadB64 = authToken.split('.')[1]
-    if (payloadB64) {
-      const { exp } = JSON.parse(Buffer.from(payloadB64, 'base64url').toString())
-      if (typeof exp === 'number' && exp * 1000 < Date.now()) {
-        throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
-      }
-    }
-  } catch (e: any) {
-    if (e.message?.includes('만료')) throw e
+  // 만료 시 refresh token으로 자동 갱신 시도
+  if (isTingleTokenExpired(authToken)) {
+    authToken = await refreshTingleToken()
   }
 
   const apiPath = type === 'characters' ? 'personas' : type
-  const res = await fetch(`https://api.tingle.chat/${apiPath}/${id}`, {
+  let res = await fetch(`https://api.tingle.chat/${apiPath}/${id}`, {
     headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' },
   })
 
-  if (res.status === 401 || res.status === 403) throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
+  // 401/403이면 refresh 한 번 더 시도 (클럭 차이 등으로 만료 감지 못한 경우)
+  if (res.status === 401 || res.status === 403) {
+    try {
+      authToken = await refreshTingleToken()
+      res = await fetch(`https://api.tingle.chat/${apiPath}/${id}`, {
+        headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' },
+      })
+    } catch {
+      throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
+    }
+    if (res.status === 401 || res.status === 403) throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
+  }
+
   if (res.status === 404) {
     const label = type === 'universes' ? '서사' : type === 'scenes' ? '테마' : '캐릭터'
     throw new Error(`팅글 ${label}를 찾을 수 없습니다. (ID: ${id})`)

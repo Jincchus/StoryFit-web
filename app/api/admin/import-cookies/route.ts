@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/adminAuth'
 import { logAdminAction } from '@/lib/adminLog'
 
-const KEYS = ['whif_session_cookie', 'melting_session_cookie', 'melting_session_nickname', 'babechat_access_token', 'babechat_refresh_token', 'tingle_auth_token'] as const
+const KEYS = ['whif_session_cookie', 'melting_session_cookie', 'melting_session_nickname', 'babechat_access_token', 'babechat_refresh_token', 'tingle_auth_token', 'tingle_refresh_token', 'tingle_firebase_api_key'] as const
 
 export async function GET(req: NextRequest) {
   const _auth = await requireAdmin(req)
