@@ -127,9 +127,9 @@ rofan·melting 풀이미지는 공개라 제대로 고치면 **원본 그대로 
 - ~~tikita 6~~ ✅ 완료
 - ~~배포~~ ✅ 2026-06-21 배포 완료
 
-### 이미지 백필 (미진행)
-- [ ] rofan 기존 카드 relatedImages 백필
-- [ ] melting 기존 카드 relatedImages 백필
+### 이미지 백필
+- [x] rofan 기존 카드 relatedImages 백필 — 완료. 520개 중 331개 이미지 저장, 189개 없음, 오류 0.
+- [ ] melting 기존 카드 relatedImages 백필 — 카드 1개, 인증 쿠키 필요. UI에서 재임포트 권장.
 
 ### 후순위
 - [ ] chub 갤러리 수집 (F)
