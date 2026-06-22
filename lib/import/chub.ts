@@ -116,6 +116,7 @@ export async function captureChub(url: string): Promise<Captured> {
     additionalInfo: [
       stripChubAuthorNotes(card.description ?? ''),
       card.personality?.trim() && `[성격]\n${card.personality.trim()}`,
+      card.system_prompt?.trim() && `[시스템 설정]\n${card.system_prompt.trim()}`,
       card.creator_notes?.trim() && `[제작자 메모]\n${card.creator_notes.trim()}`,
     ]
       .filter(Boolean)

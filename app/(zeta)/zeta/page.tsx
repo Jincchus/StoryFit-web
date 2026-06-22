@@ -216,7 +216,7 @@ export default function ZetaListPage() {
             {visiblePlots.map(p => {
               const mainChar = p.characters.find(c => c.name === p.title) ?? p.characters[0]
               const thumb = p.coverImageUrl || mainChar?.avatarUrl || ''
-              const intro = getOpenings(mainChar)[0]?.content || ''
+              const blurb = (p.zetaMeta as any)?.shortDescription || getOpenings(mainChar)[0]?.content || ''
               return (
                 <div key={p.id} className="zeta-card"
                   onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>
@@ -234,9 +234,9 @@ export default function ZetaListPage() {
                         {p.lorebookTitles.slice(0, 3).map(t => <span key={t} className="zeta-chip">📒 {t}</span>)}
                       </div>
                     )}
-                    {intro && (
+                    {blurb && (
                       <div style={{ fontSize: 11, color: 'var(--z-ink-soft)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {replaceDisplayPlaceholders(intro, userName, mainChar?.name ?? '')}
+                        {replaceDisplayPlaceholders(blurb, userName, mainChar?.name ?? '')}
                       </div>
                     )}
                   </div>
