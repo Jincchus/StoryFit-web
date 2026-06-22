@@ -281,7 +281,7 @@ export default function TikitaStoryDetailPage() {
                 </div>
               </div>
             </div>
-            {tagline && <p className="tikita-desc" style={{ marginBottom: 10 }}>{tagline}</p>}
+            {tagline && <p className="tikita-desc" style={{ marginBottom: 10 }}>{replaceDisplayPlaceholders(tagline, userName, charNames)}</p>}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {col.tags.map(t => <span key={t} className="tikita-chip">#{t}</span>)}
@@ -312,7 +312,7 @@ export default function TikitaStoryDetailPage() {
                     </div>
                     {expandedCharId === c.id && c.additionalInfo?.trim() && (
                       <div className="tikita-intro-box" style={{ marginTop: 8 }}>
-                        <NovelText text={replaceDisplayPlaceholders(c.additionalInfo, userName, c.name)} />
+                        <NovelText text={replaceDisplayPlaceholders(c.additionalInfo, userName, charNames)} />
                       </div>
                     )}
                   </div>
@@ -508,7 +508,7 @@ export default function TikitaStoryDetailPage() {
               <h2 className="tikita-section-title">에피소드 ({episodeTitles.length})</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {episodeTitles.map((t, i) => (
-                  <div key={i} style={{ fontSize: 13, color: 'var(--t-ink-soft)', padding: '4px 0', borderBottom: '1px solid var(--t-line)' }}>{t}</div>
+                  <div key={i} style={{ fontSize: 13, color: 'var(--t-ink-soft)', padding: '4px 0', borderBottom: '1px solid var(--t-line)' }}>{replaceDisplayPlaceholders(t, userName, charNames)}</div>
                 ))}
               </div>
             </div>
