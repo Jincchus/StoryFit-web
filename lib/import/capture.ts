@@ -544,19 +544,17 @@ export async function captureMelting(url: string): Promise<Captured> {
     throw new Error('멜팅 세션 쿠키가 설정되어 있지 않습니다. 관리자 설정에서 쿠키를 입력해주세요.')
   }
 
-  // JWT exp 직접 검사 — 멜팅 세션 JWT는 발급 후 30분 만료
+  // JWT exp 직접 검사 — 만료됐어도 서버에서 여전히 유효할 수 있으므로 경고만 로깅
   try {
     const jwt = sessionCookie.match(/__Host-melting_session=([^;]+)/)?.[1] ?? sessionCookie
     const payloadB64 = jwt.split('.')[1]
     if (payloadB64) {
       const { exp } = JSON.parse(Buffer.from(payloadB64, 'base64url').toString())
       if (typeof exp === 'number' && exp * 1000 < Date.now()) {
-        console.error(`[melting-import] JWT 만료(exp=${exp}) — 쿠키 재입력 필요, id=${characterId}`)
-        throw new Error('멜팅 세션(쿠키)이 만료되었습니다. 관리자 설정에서 쿠키를 다시 입력해주세요.')
+        console.warn(`[melting-import] JWT exp 초과 — API 호출로 서버 측 유효성 재확인, id=${characterId}`)
       }
     }
-  } catch (e: any) {
-    if (e.message?.includes('만료')) throw e
+  } catch {
     // JWT 파싱 실패는 무시하고 API 호출로 진행
   }
 
@@ -596,6 +594,25 @@ export async function captureMelting(url: string): Promise<Captured> {
   if (data.isOpeningUnlocked === null && data.isCreator === null) {
     console.error(`[melting-import] 세션 만료(인증 컨텍스트 null) — 쿠키 재입력 필요, id=${characterId}`)
     throw new Error('멜팅 세션(쿠키)이 만료되었습니다. 관리자 설정에서 쿠키를 다시 입력해주세요.')
+  }
+
+  // 응답의 Set-Cookie로 갱신된 세션 쿠키를 DB에 저장 (rolling session — 30분 타이머 리셋)
+  try {
+    const setCookieHeaders: string[] =
+      typeof (res.headers as any).getSetCookie === 'function'
+        ? (res.headers as any).getSetCookie()
+        : (res.headers.get('set-cookie') ?? '').split(/,(?=\s*__Host-)/)
+    const refreshed = setCookieHeaders
+      .flatMap(h => h.split(/;\s*/))
+      .map(h => h.trim())
+      .filter(h => h.startsWith('__Host-melting_session'))
+      .map(h => h) // "name=value" 형태
+    if (refreshed.length > 0) {
+      await setGlobalConfigValue('melting_session_cookie', refreshed.join('; '))
+      console.log(`[melting-import] 세션 쿠키 자동 갱신 완료 — id=${characterId}`)
+    }
+  } catch {
+    // 갱신 실패해도 import 결과에 영향 없음
   }
 
   // 태그: 실제 태그는 최상위 json.tags. 보강용으로 publicDescription의 #해시태그도 합친다.
