@@ -519,6 +519,23 @@ export async function captureMelting(url: string): Promise<Captured> {
     console.error(`[melting-import] 세션 쿠키 미설정 — id=${characterId}`)
     throw new Error('멜팅 세션 쿠키가 설정되어 있지 않습니다. 관리자 설정에서 쿠키를 입력해주세요.')
   }
+
+  // JWT exp 직접 검사 — 멜팅 세션 JWT는 발급 후 30분 만료
+  try {
+    const jwt = sessionCookie.match(/__Host-melting_session=([^;]+)/)?.[1] ?? sessionCookie
+    const payloadB64 = jwt.split('.')[1]
+    if (payloadB64) {
+      const { exp } = JSON.parse(Buffer.from(payloadB64, 'base64url').toString())
+      if (typeof exp === 'number' && exp * 1000 < Date.now()) {
+        console.error(`[melting-import] JWT 만료(exp=${exp}) — 쿠키 재입력 필요, id=${characterId}`)
+        throw new Error('멜팅 세션(쿠키)이 만료되었습니다. 관리자 설정에서 쿠키를 다시 입력해주세요.')
+      }
+    }
+  } catch (e: any) {
+    if (e.message?.includes('만료')) throw e
+    // JWT 파싱 실패는 무시하고 API 호출로 진행
+  }
+
   const nickname = await getGlobalConfigValue('melting_session_nickname')
 
   const res = await fetch(`https://melting.chat/api/characters/${characterId}`, {
