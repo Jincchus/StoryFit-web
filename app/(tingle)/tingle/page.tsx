@@ -17,29 +17,28 @@ interface TingleCol {
   completed?: boolean; started?: boolean; createdAt?: string; lastActivityAt?: string
 }
 
-function detectTingleType(sourceUrl: string) {
-  if (sourceUrl.includes('/universes/')) return { label: '서사', color: '#a78bfa' }
-  if (sourceUrl.includes('/scenes/')) return { label: '테마', color: '#06bfd6' }
-  return { label: '캐릭터', color: '#ff5776' }
+type TingleType = 'character' | 'universe' | 'scene'
+
+function detectTingleType(sourceUrl: string): { type: TingleType; label: string; color: string } {
+  if (sourceUrl.includes('/universes/')) return { type: 'universe', label: '서사', color: '#a78bfa' }
+  if (sourceUrl.includes('/scenes/')) return { type: 'scene', label: '테마', color: '#06bfd6' }
+  return { type: 'character', label: '캐릭터', color: '#ff5776' }
 }
 
 function detailPath(col: TingleCol) {
-  const url = col.sourceUrl
-  if (url.includes('/universes/')) {
-    const m = url.match(/\/universes\/(\d+)/)
-    return m ? `/tingle/universes/${m[1]}` : `/tingle/characters/${col.id}`
-  }
-  if (url.includes('/scenes/')) {
-    const m = url.match(/\/scenes\/(\d+)/)
-    return m ? `/tingle/scenes/${m[1]}` : `/tingle/characters/${col.id}`
-  }
+  if (col.sourceUrl.includes('/universes/')) return `/tingle/universes/${col.id}`
+  if (col.sourceUrl.includes('/scenes/')) return `/tingle/scenes/${col.id}`
   return `/tingle/characters/${col.id}`
 }
+
+type ViewTab = 'active' | 'waiting' | 'completed' | 'favorites'
+type TypeTab = 'all' | TingleType
 
 export default function TingleListPage() {
   const router = useRouter()
   const [cols, setCols] = useState<TingleCol[]>([])
-  const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
+  const [view, setView] = useState<ViewTab>('active')
+  const [typeTab, setTypeTab] = useState<TypeTab>('all')
   const { isFav, toggleFav } = useFavorites()
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -57,7 +56,8 @@ export default function TingleListPage() {
   useEffect(() => {
     setEditMode(localStorage.getItem('tg_edit') === '1')
     setSort((localStorage.getItem('tg_sort') as SortOption) || 'latest')
-    setView((sessionStorage.getItem('tg_view') as typeof view) || 'active')
+    setView((sessionStorage.getItem('tg_view') as ViewTab) || 'active')
+    setTypeTab((sessionStorage.getItem('tg_type') as TypeTab) || 'all')
     fetchData()
   }, [])
 
@@ -65,10 +65,11 @@ export default function TingleListPage() {
     setSort(v); localStorage.setItem('tg_sort', v)
     if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
   }
-  const handleView = (v: typeof view) => { setView(v); sessionStorage.setItem('tg_view', v) }
+  const handleView = (v: ViewTab) => { setView(v); sessionStorage.setItem('tg_view', v) }
+  const handleTypeTab = (v: TypeTab) => { setTypeTab(v); sessionStorage.setItem('tg_type', v) }
 
-  const scrollRef = useScrollRestore(`tg_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed], scrollRef)
+  const scrollRef = useScrollRestore(`tg_scroll_${view}_${typeTab}`, !loading)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed, typeTab], scrollRef)
 
   const fetchData = async () => {
     setLoading(true)
@@ -110,13 +111,23 @@ export default function TingleListPage() {
   }
 
   const counts = viewCounts(cols)
+
+  const typeCounts = {
+    all: cols.length,
+    character: cols.filter(c => detectTingleType(c.sourceUrl).type === 'character').length,
+    universe: cols.filter(c => detectTingleType(c.sourceUrl).type === 'universe').length,
+    scene: cols.filter(c => detectTingleType(c.sourceUrl).type === 'scene').length,
+  }
+
   const visible = sortByOption(
-    cols.filter(c =>
-      (view === 'favorites' ? isFav('collection', c.id)
-      : view === 'completed' ? c.completed
-      : view === 'waiting' ? !c.started
-      : !c.completed && !!c.started) && matchesQuery(c)
-    ),
+    cols.filter(c => {
+      const viewMatch = view === 'favorites' ? isFav('collection', c.id)
+        : view === 'completed' ? c.completed
+        : view === 'waiting' ? !c.started
+        : !c.completed && !!c.started
+      const typeMatch = typeTab === 'all' || detectTingleType(c.sourceUrl).type === typeTab
+      return viewMatch && typeMatch && matchesQuery(c)
+    }),
     sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
   )
 
@@ -155,17 +166,18 @@ export default function TingleListPage() {
 
       {msg && <div style={{ padding: '6px 16px', fontSize: 12, color: msg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{msg}</div>}
 
-      <div style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: 6 }}>
+      {/* 상태 탭 */}
+      <div style={{ display: 'flex', gap: 6, padding: '8px 16px 0', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
           {(['active', 'waiting', 'completed', 'favorites'] as const).map(v => (
             <button key={v} className="tingle-chip"
-              style={{ cursor: 'pointer', border: 'none', background: view === v ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: view === v ? '#fff' : 'var(--tg-ink-soft)' }}
+              style={{ cursor: 'pointer', border: 'none', whiteSpace: 'nowrap', background: view === v ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: view === v ? '#fff' : 'var(--tg-ink-soft)' }}
               onClick={() => handleView(v)}>
               {v === 'active' ? `진행 중 ${counts.active}` : v === 'waiting' ? `대기 ${counts.waiting}` : v === 'completed' ? `완결 ${counts.completed}` : '★ 즐겨찾기'}
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           <button className="tingle-chip"
             style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: searchOpen ? '#fff' : 'var(--tg-ink-soft)' }}
             onClick={toggleSearch}>🔍</button>
@@ -177,6 +189,24 @@ export default function TingleListPage() {
             <option value="random">🔀 랜덤</option>
           </select>
         </div>
+      </div>
+
+      {/* 타입 탭 */}
+      <div style={{ display: 'flex', gap: 6, padding: '6px 16px 8px' }}>
+        {([
+          { key: 'all', label: `전체 ${typeCounts.all}`, color: 'var(--tg-accent)' },
+          { key: 'character', label: `캐릭터 ${typeCounts.character}`, color: '#ff5776' },
+          { key: 'universe', label: `서사 ${typeCounts.universe}`, color: '#a78bfa' },
+          { key: 'scene', label: `테마 ${typeCounts.scene}`, color: '#06bfd6' },
+        ] as const).map(t => (
+          <button key={t.key} className="tingle-chip"
+            style={{ cursor: 'pointer', border: 'none', fontSize: 11,
+              background: typeTab === t.key ? t.color : 'var(--tg-surface-2)',
+              color: typeTab === t.key ? '#fff' : 'var(--tg-ink-soft)' }}
+            onClick={() => handleTypeTab(t.key as TypeTab)}>
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {searchOpen && (
@@ -235,7 +265,7 @@ export default function TingleListPage() {
                       <div style={{ fontSize: 11, color: 'var(--tg-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{desc}</div>
                     )}
                     <div className="tingle-card-tags">
-                      <span className="tingle-chip" style={{ background: type.color, color: '#fff' }}>{type.label}</span>
+                      <span className="tingle-chip" style={{ background: type.color, color: '#fff', fontSize: 10 }}>{type.label}</span>
                       {c.tags?.slice(0, 2).map(t => (
                         <span key={t} className="tingle-chip">#{t}</span>
                       ))}

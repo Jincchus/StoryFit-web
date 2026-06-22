@@ -45,6 +45,7 @@ function getTingleDetailPath(colId: string, sourceUrl: string) {
   if (sourceUrl.includes('/scenes/')) return `/tingle/scenes/${colId}`
   return `/tingle/characters/${colId}`
 }
+// (colId는 항상 DB UUID — tingle 원본 숫자 ID와 혼동 금지)
 
 function isWorldType(col: Col): boolean {
   const url = col.sourceUrl

@@ -4,27 +4,61 @@ import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
-import NovelText from '@/components/ui/NovelText'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
+import NovelText from '@/components/ui/NovelText'
 import { getOpenings } from '@/lib/openings'
-import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import { useDisplayName } from '@/lib/useDisplayName'
-import type { Opening } from '@/types'
 
-interface Char {
-  id: string; name: string; avatarUrl: string | null; additionalInfo: string
-  openingMessage: string; openingMessages?: Opening[]; tags: string[]
-}
-interface Col {
-  id: string; title: string; coverImageUrl: string; description: string; tags: string[]
-  characters: Char[]
+interface TingleCol {
+  id: string; title: string; coverImageUrl: string; description?: string; tags: string[]
+  sourceUrl: string
+  characters: { id: string; name: string; avatarUrl: string | null; additionalInfo: string; openingMessage: string; openingMessages?: any[] }[]
 }
 
-export default function TingleCharDetailPage() {
+function tingleType(sourceUrl: string) {
+  if (sourceUrl?.includes('/universes/')) return 'universe'
+  if (sourceUrl?.includes('/scenes/')) return 'scene'
+  return 'character'
+}
+
+function SelectList({ items, selectedId, accentColor, noneLabel, onSelect }: {
+  items: TingleCol[]; selectedId: string | null; accentColor: string; noneLabel: string
+  onSelect: (id: string | null) => void
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <button onClick={() => onSelect(null)} style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+        borderRadius: 8, cursor: 'pointer', textAlign: 'left', appearance: 'none',
+        border: `1.5px solid ${!selectedId ? accentColor : 'var(--tg-line)'}`,
+        background: !selectedId ? `${accentColor}18` : 'var(--tg-surface)',
+      }}>
+        <span style={{ fontSize: 12, color: !selectedId ? accentColor : 'var(--tg-ink-soft)', fontWeight: !selectedId ? 700 : 400 }}>{noneLabel}</span>
+      </button>
+      {items.map(item => (
+        <button key={item.id} onClick={() => onSelect(item.id)} style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+          borderRadius: 8, cursor: 'pointer', textAlign: 'left', appearance: 'none',
+          border: `1.5px solid ${selectedId === item.id ? accentColor : 'var(--tg-line)'}`,
+          background: selectedId === item.id ? `${accentColor}18` : 'var(--tg-surface)',
+        }}>
+          {item.coverImageUrl && <img src={item.coverImageUrl} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} alt="" />}
+          <span style={{ fontSize: 12, fontWeight: 600, color: selectedId === item.id ? accentColor : 'var(--tg-ink)' }}>{item.title}</span>
+        </button>
+      ))}
+      {items.length === 0 && <div style={{ fontSize: 12, color: 'var(--tg-ink-soft)', padding: '4px 0' }}>가져온 항목이 없습니다.</div>}
+    </div>
+  )
+}
+
+export default function TingleCharacterDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
-  const [col, setCol] = useState<Col | null>(null)
+  const [col, setCol] = useState<TingleCol | null>(null)
+  const [allTingle, setAllTingle] = useState<TingleCol[]>([])
   const [openingIdx, setOpeningIdx] = useState(0)
+  const [selectedUniverseId, setSelectedUniverseId] = useState<string | null>(null)
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null)
   const [personaOpen, setPersonaOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -32,18 +66,46 @@ export default function TingleCharDetailPage() {
   const userName = useDisplayName()
 
   useEffect(() => {
-    api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
+    Promise.all([
+      api.get(`/api/collections/${id}`),
+      api.get('/api/collections?isTingle=true'),
+    ]).then(([c, all]) => { setCol(c); setAllTingle(all) }).catch(() => {})
+    setSelectedUniverseId(localStorage.getItem(`tg_uni_${id}`) ?? null)
+    setSelectedSceneId(localStorage.getItem(`tg_scene_${id}`) ?? null)
   }, [id])
 
-  useRefetchOnForeground(() => {
-    api.get(`/api/collections/${id}`).then(f => { if (f) setCol(f) }).catch(() => {})
-  })
+  const universes = allTingle.filter(c => tingleType(c.sourceUrl) === 'universe')
+  const scenes = allTingle.filter(c => tingleType(c.sourceUrl) === 'scene')
+  const selectedUniverse = universes.find(u => u.id === selectedUniverseId) ?? null
+  const selectedScene = scenes.find(s => s.id === selectedSceneId) ?? null
+
+  const handleSelectUniverse = (uid: string | null) => {
+    setSelectedUniverseId(uid)
+    uid ? localStorage.setItem(`tg_uni_${id}`, uid) : localStorage.removeItem(`tg_uni_${id}`)
+  }
+  const handleSelectScene = (sid: string | null) => {
+    setSelectedSceneId(sid)
+    sid ? localStorage.setItem(`tg_scene_${id}`, sid) : localStorage.removeItem(`tg_scene_${id}`)
+  }
 
   if (!col) return <div className="tingle-empty">불러오는 중...</div>
 
   const mainChar = col.characters[0]
+  const charNames = col.characters.map(c => c.name)
   const openings = getOpenings(mainChar)
-  const opening = openings[openingIdx]?.content ?? ''
+
+  const buildScenario = () => {
+    const parts: string[] = []
+    if (selectedUniverse) {
+      const txt = selectedUniverse.characters[0]?.additionalInfo || selectedUniverse.description || ''
+      if (txt) parts.push(`[서사: ${selectedUniverse.title}]\n${txt}`)
+    }
+    if (selectedScene) {
+      const txt = selectedScene.characters[0]?.additionalInfo || selectedScene.description || ''
+      if (txt) parts.push(`[테마: ${selectedScene.title}]\n${txt}`)
+    }
+    return parts.join('\n\n')
+  }
 
   const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
     if (!mainChar) return
@@ -57,20 +119,21 @@ export default function TingleCharDetailPage() {
         })
         personaId = p.id
       }
+      const chosen = openings[openingIdx]?.content
+      const scenarioDescription = buildScenario()
       const resp = await api.post('/api/conversations', {
         title: col.title,
         characterIds: [mainChar.id],
         mode: 'story',
         personaCharacterId: personaId,
-        ...(opening.trim() ? { openingMessage: opening } : {}),
+        ...(chosen !== undefined ? { openingMessage: chosen } : {}),
+        ...(scenarioDescription ? { scenarioDescription } : {}),
       })
       router.push(`/conversations/${resp.id}`)
     } catch (e: any) {
       setError('채팅방 생성 실패: ' + e.message); setCreating(false)
     }
   }
-
-  const charNames = col.characters.map(c => c.name)
 
   return (
     <>
@@ -101,30 +164,14 @@ export default function TingleCharDetailPage() {
           </div>
 
           <div className="tingle-section">
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10 }}>
-              {mainChar?.avatarUrl
-                ? <img className="tingle-avatar" src={mainChar.avatarUrl} alt="" />
-                : <div className="tingle-avatar" style={{ background: 'var(--tg-line)' }} />}
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: 'var(--tg-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col.title}</h1>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--tg-surface-2)', padding: '4px 8px', fontSize: 11 }}
-                      onClick={() => setShowEdit(true)}>✏ 정보</button>
-                    {mainChar && (
-                      <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--tg-surface-2)', padding: '4px 8px', fontSize: 11 }}
-                        onClick={() => router.push(`/characters/${mainChar.id}/edit`)}>✏ 캐릭터</button>
-                    )}
-                  </div>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--tg-accent)', fontWeight: 700 }}>캐릭터</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div>
+                <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: 'var(--tg-ink)' }}>{col.title}</h1>
+                <div style={{ fontSize: 11, color: '#ff5776', fontWeight: 700 }}>캐릭터</div>
               </div>
+              <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--tg-surface-2)', padding: '4px 8px', fontSize: 11 }}
+                onClick={() => setShowEdit(true)}>✏ 정보</button>
             </div>
-            {col.description?.trim() && (
-              <p className="tingle-desc" style={{ marginBottom: 10 }}>
-                {replaceDisplayPlaceholders(col.description, userName, charNames)}
-              </p>
-            )}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {col.tags.map(t => <span key={t} className="tingle-chip">#{t}</span>)}
@@ -134,9 +181,11 @@ export default function TingleCharDetailPage() {
 
           {mainChar?.additionalInfo?.trim() && (
             <div className="tingle-section" style={{ paddingTop: 0 }}>
-              <h2 className="tingle-section-title">상세 설정</h2>
-              <div className="tingle-desc">
-                {replaceDisplayPlaceholders(mainChar.additionalInfo, userName, charNames)}
+              <h2 className="tingle-section-title">캐릭터 설정</h2>
+              <div className="tingle-intro-box">
+                <div className="tingle-desc" style={{ whiteSpace: 'pre-wrap' }}>
+                  {replaceDisplayPlaceholders(mainChar.additionalInfo, userName, charNames)}
+                </div>
               </div>
             </div>
           )}
@@ -146,25 +195,39 @@ export default function TingleCharDetailPage() {
               <h2 className="tingle-section-title">도입부</h2>
               {openings.length > 1 && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                  {openings.map((o, i) => (
-                    <button key={o.id} className="tingle-chip"
-                      style={{ border: 'none', cursor: 'pointer', background: openingIdx === i ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: openingIdx === i ? '#fff' : 'var(--tg-ink-soft)' }}
-                      onClick={() => setOpeningIdx(i)}>{o.title || `도입부 ${i + 1}`}</button>
+                  {openings.map((op, i) => (
+                    <button key={op.id}
+                      style={{ appearance: 'none', border: 'none', cursor: 'pointer', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 600,
+                        background: i === openingIdx ? 'var(--tg-accent)' : 'var(--tg-surface-2)',
+                        color: i === openingIdx ? '#fff' : 'var(--tg-ink-soft)' }}
+                      onClick={() => setOpeningIdx(i)}>
+                      {op.title}
+                    </button>
                   ))}
                 </div>
               )}
               <div className="tingle-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(opening, userName, charNames)} />
+                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, charNames)} />
               </div>
             </div>
           )}
+
+          <div className="tingle-section" style={{ paddingTop: 0 }}>
+            <h2 className="tingle-section-title" style={{ color: '#a78bfa' }}>서사 선택</h2>
+            <SelectList items={universes} selectedId={selectedUniverseId} accentColor="#a78bfa" noneLabel="서사 없음" onSelect={handleSelectUniverse} />
+          </div>
+
+          <div className="tingle-section" style={{ paddingTop: 0 }}>
+            <h2 className="tingle-section-title" style={{ color: '#06bfd6' }}>테마 선택</h2>
+            <SelectList items={scenes} selectedId={selectedSceneId} accentColor="#06bfd6" noneLabel="테마 없음" onSelect={handleSelectScene} />
+          </div>
 
           {error && <div style={{ padding: '0 16px 8px', fontSize: 12, color: '#ff6b8a' }}>{error}</div>}
           <div style={{ height: 80 }} />
         </div>
 
         <div className="tingle-cta">
-          <button className="tingle-cta-btn" disabled={creating} onClick={() => setPersonaOpen(true)}>
+          <button className="tingle-cta-btn" disabled={creating || !mainChar} onClick={() => setPersonaOpen(true)}>
             {creating ? '생성 중...' : '대화 시작'}
           </button>
         </div>
