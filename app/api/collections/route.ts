@@ -8,7 +8,9 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const source = searchParams.get('isWhif') === 'true' ? 'whif'
+  const isAll = searchParams.get('all') === 'true'
+  const source = isAll ? 'all'
+    : searchParams.get('isWhif') === 'true' ? 'whif'
     : searchParams.get('isZeta') === 'true' ? 'zeta'
     : searchParams.get('isMelting') === 'true' ? 'melting'
     : searchParams.get('isTikita') === 'true' ? 'tikita'
@@ -18,9 +20,13 @@ export async function GET(req: NextRequest) {
     : searchParams.get('isBabechat') === 'true' ? 'babechat'
     : 'regular'
 
+  const EXTERNAL_HOSTS = ['whif.', 'zeta-ai.io', 'melting.chat', 'tikita.ai', 'chub.ai', 'rofan.ai', 'loveydovey.ai', 'babechat.']
+
   const whereClause: any = { userId }
 
-  if (source === 'whif') {
+  if (source === 'all') {
+    whereClause.OR = EXTERNAL_HOSTS.map(h => ({ sourceUrl: { contains: h } }))
+  } else if (source === 'whif') {
     whereClause.sourceUrl = { contains: 'whif.' }
   } else if (source === 'zeta') {
     whereClause.sourceUrl = { contains: 'zeta-ai.io' }
@@ -37,16 +43,7 @@ export async function GET(req: NextRequest) {
   } else if (source === 'babechat') {
     whereClause.sourceUrl = { contains: 'babechat.' }
   } else {
-    whereClause.AND = [
-      { NOT: { sourceUrl: { contains: 'whif.' } } },
-      { NOT: { sourceUrl: { contains: 'zeta-ai.io' } } },
-      { NOT: { sourceUrl: { contains: 'melting.chat' } } },
-      { NOT: { sourceUrl: { contains: 'tikita.ai' } } },
-      { NOT: { sourceUrl: { contains: 'chub.ai' } } },
-      { NOT: { sourceUrl: { contains: 'rofan.ai' } } },
-      { NOT: { sourceUrl: { contains: 'loveydovey.ai' } } },
-      { NOT: { sourceUrl: { contains: 'babechat.' } } },
-    ]
+    whereClause.AND = EXTERNAL_HOSTS.map(h => ({ NOT: { sourceUrl: { contains: h } } }))
   }
 
   const collections = await prisma.characterCollection.findMany({

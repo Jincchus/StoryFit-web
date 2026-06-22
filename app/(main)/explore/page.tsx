@@ -56,6 +56,22 @@ export default function ExplorePage() {
     <div className="scroll" style={{ flex: 1, padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div className="vstack" style={{ gap: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 700 }}>외부 센터</div>
+        <button
+          onClick={() => router.push('/explore/all')}
+          style={{
+            appearance: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '14px 16px', borderRadius: 'var(--radius-lg)',
+            background: 'linear-gradient(135deg, #1a1a2e, #16213e)', color: '#fff',
+          }}
+        >
+          <span style={{ fontSize: 26 }}>🗂</span>
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 15, fontWeight: 800 }}>전체 보기</span>
+            <span style={{ display: 'block', fontSize: 12, opacity: .85, marginTop: 2 }}>모든 센터 카드를 한 번에 탐색</span>
+          </span>
+          <span style={{ marginLeft: 'auto', fontSize: 16, opacity: .8 }}>›</span>
+        </button>
         {CENTERS.map(c => (
           <button
             key={c.href}
