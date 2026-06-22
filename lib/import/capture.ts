@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer-core'
 import { prisma } from '@/lib/prisma'
-import type { Captured, TingleRawData, TingleField, TingleLinkedItem } from './types'
+import type { Captured, TingleRawData, TingleField } from './types'
 import { buildZetaCaptured, extractZetaLorebookEntries } from './zeta'
 
 const INPUT_CAP = 40000  // 분류 출력이 작아져 입력 캡을 크게 상향 (잘림 방지)
@@ -891,25 +891,6 @@ async function fetchTingleData(url: string): Promise<{ type: string; id: string;
   return { type, id, data, coverImageUrl, tags, safetyLevel, authToken }
 }
 
-async function fetchTingleLinked(endpoint: string, authToken: string, type: 'character' | 'universe' | 'scene', urlPrefix: string): Promise<TingleLinkedItem[]> {
-  try {
-    const res = await fetch(`https://api.tingle.chat/${endpoint}`, {
-      headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' },
-    })
-    if (!res.ok) return []
-    const d = await res.json()
-    const results: any[] = Array.isArray(d.results) ? d.results : Array.isArray(d) ? d : []
-    return results.slice(0, 15).map((item: any) => ({
-      type,
-      url: `https://tingle.chat/chat/${urlPrefix}/${item.id}`,
-      name: String(item.name ?? (type === 'universe' ? '서사' : type === 'scene' ? '테마' : '캐릭터')),
-      coverImageUrl: item.coverImages?.[0]?.url ?? '',
-      selected: true,
-    }))
-  } catch {
-    return []
-  }
-}
 
 export async function captureTingleRaw(url: string): Promise<TingleRawData> {
   const { type, id, data, coverImageUrl, tags, safetyLevel, authToken } = await fetchTingleData(url)
@@ -933,14 +914,7 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
       }))
       .filter((o: any) => o.content.trim().length > 0)
 
-    // 연결된 서사·테마 병렬 조회
-    const [linkedUniverses, linkedScenes] = await Promise.all([
-      fetchTingleLinked(`universes?personaId=${id}`, authToken, 'universe', 'universes'),
-      fetchTingleLinked(`scenes?personaId=${id}`, authToken, 'scene', 'scenes'),
-    ])
-    const linkedItems: TingleLinkedItem[] = [...linkedUniverses, ...linkedScenes]
-
-    return { type: 'character', url, name: data.name ?? '캐릭터', gender: data.gender ?? '', coverImageUrl, tags, safetyLevel, fields, openings, linkedItems }
+    return { type: 'character', url, name: data.name ?? '캐릭터', gender: data.gender ?? '', coverImageUrl, tags, safetyLevel, fields, openings }
   }
 
   if (type === 'universes') {
@@ -952,9 +926,7 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
     const allRel = [...relationships, ...privateRelationships].filter(Boolean).join('\n')
     if (allRel) fields.push({ key: 'relationships', label: '관계 설정', value: allRel, order: order++ })
 
-    const linkedItems = await fetchTingleLinked(`personas?universeId=${id}`, authToken, 'character', 'characters')
-
-    return { type: 'universe', url, name: data.name ?? '서사', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [], linkedItems }
+    return { type: 'universe', url, name: data.name ?? '서사', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [] }
   }
 
   // scenes
@@ -964,7 +936,5 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
   if (data.timeFrame) fields.push({ key: 'timeFrame', label: '시간대', value: `[시간대] ${data.timeFrame}`, order: order++ })
   if (data.otherDetails) fields.push({ key: 'otherDetails', label: '기타 설명', value: data.otherDetails, order: order++ })
 
-  const linkedItems = await fetchTingleLinked(`personas?sceneId=${id}`, authToken, 'character', 'characters')
-
-  return { type: 'scene', url, name: data.name ?? '테마', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [], linkedItems }
+  return { type: 'scene', url, name: data.name ?? '테마', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [] }
 }

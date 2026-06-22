@@ -86,14 +86,6 @@ export interface TingleOpening {
   removed?: boolean
 }
 
-export interface TingleLinkedItem {
-  type: 'character' | 'universe' | 'scene'
-  url: string
-  name: string
-  coverImageUrl: string
-  selected: boolean
-}
-
 export interface TingleRawData {
   type: 'character' | 'universe' | 'scene'
   url: string
@@ -104,5 +96,4 @@ export interface TingleRawData {
   safetyLevel: 'standard' | 'relaxed'
   fields: TingleField[]
   openings: TingleOpening[]
-  linkedItems?: TingleLinkedItem[]
 }

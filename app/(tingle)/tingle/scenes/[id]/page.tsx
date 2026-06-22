@@ -21,10 +21,29 @@ function tingleType(sourceUrl: string) {
   return 'character'
 }
 
-function SelectList({ items, selectedId, accentColor, noneLabel, onSelect }: {
+function SelectList({ items, selectedId, accentColor, noneLabel, onSelect, onAddUrl }: {
   items: TingleCol[]; selectedId: string | null; accentColor: string; noneLabel: string
   onSelect: (id: string | null) => void
+  onAddUrl?: (url: string) => Promise<void>
 }) {
+  const [addOpen, setAddOpen] = useState(false)
+  const [addUrl, setAddUrl] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [addErr, setAddErr] = useState('')
+
+  const handleAdd = async () => {
+    if (!addUrl.trim() || adding || !onAddUrl) return
+    setAdding(true); setAddErr('')
+    try {
+      await onAddUrl(addUrl.trim())
+      setAddUrl(''); setAddOpen(false)
+    } catch (e: any) {
+      setAddErr(e.message ?? '추가 실패')
+    } finally {
+      setAdding(false)
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <button onClick={() => onSelect(null)} style={{
@@ -46,7 +65,36 @@ function SelectList({ items, selectedId, accentColor, noneLabel, onSelect }: {
           <span style={{ fontSize: 12, fontWeight: 600, color: selectedId === item.id ? accentColor : 'var(--tg-ink)' }}>{item.title}</span>
         </button>
       ))}
-      {items.length === 0 && <div style={{ fontSize: 12, color: 'var(--tg-ink-soft)', padding: '4px 0' }}>가져온 항목이 없습니다.</div>}
+      {onAddUrl && (
+        addOpen ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input
+                className="field" value={addUrl} autoFocus
+                onChange={e => { setAddUrl(e.target.value); setAddErr('') }}
+                onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                placeholder="팅글 URL 붙여넣기"
+                style={{ fontSize: 12, flex: 1 }}
+              />
+              <button onClick={handleAdd} disabled={adding} style={{
+                appearance: 'none', border: 'none', background: accentColor, color: '#fff',
+                borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0,
+              }}>{adding ? '...' : '추가'}</button>
+              <button onClick={() => { setAddOpen(false); setAddUrl(''); setAddErr('') }} style={{
+                appearance: 'none', border: 'none', background: 'var(--tg-surface-2)', color: 'var(--tg-ink-soft)',
+                borderRadius: 8, padding: '0 10px', cursor: 'pointer', fontSize: 13, flexShrink: 0,
+              }}>✕</button>
+            </div>
+            {addErr && <div style={{ fontSize: 11, color: '#ff6b8a' }}>{addErr}</div>}
+          </div>
+        ) : (
+          <button onClick={() => setAddOpen(true)} style={{
+            appearance: 'none', border: `1.5px dashed ${accentColor}55`, background: 'transparent',
+            borderRadius: 8, padding: '8px 12px', cursor: 'pointer', textAlign: 'left',
+            fontSize: 12, color: accentColor, fontWeight: 600,
+          }}>+ URL로 추가</button>
+        )
+      )}
     </div>
   )
 }
@@ -86,6 +134,12 @@ export default function TingleSceneDetailPage() {
   const handleSelectUniverse = (uid: string | null) => {
     setSelectedUniverseId(uid)
     uid ? localStorage.setItem(`tg_uni_scene_${id}`, uid) : localStorage.removeItem(`tg_uni_scene_${id}`)
+  }
+
+  const handleAddUrl = async (url: string) => {
+    await api.post('/api/characters/import', { url })
+    const all = await api.get('/api/collections?isTingle=true')
+    setAllTingle(all)
   }
 
   if (!col) return <div className="tingle-empty">불러오는 중...</div>
@@ -196,7 +250,7 @@ export default function TingleSceneDetailPage() {
           {/* 캐릭터 선택 */}
           <div className="tingle-section" style={{ paddingTop: 0 }}>
             <h2 className="tingle-section-title" style={{ color: '#ff5776' }}>캐릭터 선택</h2>
-            <SelectList items={characters} selectedId={selectedCharId} accentColor="#ff5776" noneLabel="캐릭터 없음" onSelect={handleSelectChar} />
+            <SelectList items={characters} selectedId={selectedCharId} accentColor="#ff5776" noneLabel="캐릭터 없음" onSelect={handleSelectChar} onAddUrl={handleAddUrl} />
           </div>
 
           {/* 선택된 캐릭터의 도입부 */}
@@ -225,7 +279,7 @@ export default function TingleSceneDetailPage() {
           {/* 서사 선택 */}
           <div className="tingle-section" style={{ paddingTop: 0 }}>
             <h2 className="tingle-section-title" style={{ color: '#a78bfa' }}>서사 선택</h2>
-            <SelectList items={universes} selectedId={selectedUniverseId} accentColor="#a78bfa" noneLabel="서사 없음" onSelect={handleSelectUniverse} />
+            <SelectList items={universes} selectedId={selectedUniverseId} accentColor="#a78bfa" noneLabel="서사 없음" onSelect={handleSelectUniverse} onAddUrl={handleAddUrl} />
           </div>
 
           {error && <div style={{ padding: '0 16px 8px', fontSize: 12, color: '#ff6b8a' }}>{error}</div>}
