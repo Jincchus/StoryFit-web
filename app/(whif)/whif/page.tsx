@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
@@ -63,6 +64,7 @@ export default function WhifExplorePage() {
   }
 
   const scrollRef = useScrollRestore(`whif_scroll_${tab}_${view}`, !loading)
+  const { count, sentinelRef } = useInfiniteScroll([tab, view, query, selectedTags, sortUniverses, sortCharacters, randomSeed], scrollRef)
 
   const fetchData = async () => {
     setLoading(true)
@@ -240,7 +242,7 @@ export default function WhifExplorePage() {
                   : <div className="whif-empty">진행 중인 작품이 없습니다.</div>
           ) : (
             <div className="whif-grid">
-              {visibleUniverses.map(u => {
+              {visibleUniverses.slice(0, count).map(u => {
                 const thumb = u.coverImageUrl || u.characters[0]?.avatarUrl || ''
                 return (
                   <div key={u.id} className="whif-card" style={{ position: 'relative' }}
@@ -289,7 +291,7 @@ export default function WhifExplorePage() {
                   : <div className="whif-empty">진행 중인 캐릭터가 없습니다.</div>
           ) : (
             <div className="whif-grid">
-              {visibleCharacters.map(c => (
+              {visibleCharacters.slice(0, count).map(c => (
                 <div key={c.id} className="whif-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/whif/characters/${c.id}`)}>
                   {c.hasArchived && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--w-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
@@ -326,6 +328,7 @@ export default function WhifExplorePage() {
             </div>
           )
         )}
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   )

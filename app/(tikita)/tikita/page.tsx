@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
@@ -57,6 +58,7 @@ export default function TikitaListPage() {
   }
 
   const scrollRef = useScrollRestore(`tikita_scroll_${view}`, !loading)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef)
 
   const fetchData = async () => {
     setLoading(true)
@@ -207,7 +209,7 @@ export default function TikitaListPage() {
                 : <div className="tikita-empty">진행 중인 스토리가 없습니다.</div>
         ) : (
           <div className="tikita-grid">
-            {visibleStories.map(s => {
+            {visibleStories.slice(0, count).map(s => {
               const thumb = s.coverImageUrl || s.characters[0]?.avatarUrl || ''
               return (
                 <div key={s.id} className="tikita-card" style={{ position: 'relative' }}
@@ -244,6 +246,7 @@ export default function TikitaListPage() {
             })}
           </div>
         )}
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   )

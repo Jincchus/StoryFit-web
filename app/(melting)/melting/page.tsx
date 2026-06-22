@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
@@ -56,6 +57,7 @@ export default function MeltingListPage() {
   }
 
   const scrollRef = useScrollRestore(`melting_scroll_${view}`, !loading)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef)
 
   const fetchData = async () => {
     setLoading(true)
@@ -206,7 +208,7 @@ export default function MeltingListPage() {
                 : <div className="melting-empty">진행 중인 캐릭터가 없습니다.</div>
         ) : (
           <div className="melting-grid">
-            {visibleChars.map(c => {
+            {visibleChars.slice(0, count).map(c => {
               const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
               return (
                 <div key={c.id} className="melting-card" style={{ position: 'relative' }}
@@ -243,6 +245,7 @@ export default function MeltingListPage() {
             })}
           </div>
         )}
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   )

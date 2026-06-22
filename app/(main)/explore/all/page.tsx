@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useFavorites } from '@/lib/useFavorites'
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { useDisplayName } from '@/lib/useDisplayName'
 
@@ -57,6 +58,7 @@ export default function AllCentersPage() {
   const { isFav, toggleFav } = useFavorites()
   const scrollRef = useRef<HTMLDivElement>(null)
   const userName = useDisplayName()
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedCenters, randomSeed], scrollRef)
 
   useEffect(() => {
     setView((sessionStorage.getItem('all_view') as ViewTab) || 'active')
@@ -176,7 +178,7 @@ export default function AllCentersPage() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, paddingTop: 10 }}>
-            {filtered.map(col => {
+            {filtered.slice(0, count).map(col => {
               const center = detectCenter(col.sourceUrl)
               const world = isWorldType(col)
               const thumb = col.coverImageUrl || col.characters[0]?.avatarUrl || ''
@@ -230,6 +232,7 @@ export default function AllCentersPage() {
             })}
           </div>
         )}
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   )

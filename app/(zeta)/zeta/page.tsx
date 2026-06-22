@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import { getOpenings } from '@/lib/openings'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
@@ -62,6 +63,7 @@ export default function ZetaListPage() {
   }
 
   const scrollRef = useScrollRestore(`zeta_scroll_${view}`, !loading)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef)
 
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
@@ -213,7 +215,7 @@ export default function ZetaListPage() {
                 : <div className="zeta-empty">진행 중인 작품이 없습니다.</div>
         ) : (
           <div className="zeta-grid">
-            {visiblePlots.map(p => {
+            {visiblePlots.slice(0, count).map(p => {
               const mainChar = p.characters.find(c => c.name === p.title) ?? p.characters[0]
               const thumb = p.coverImageUrl || mainChar?.avatarUrl || ''
               const blurb = (p.zetaMeta as any)?.shortDescription || getOpenings(mainChar)[0]?.content || ''
@@ -258,6 +260,7 @@ export default function ZetaListPage() {
           </div>
           )
         })()}
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   )
