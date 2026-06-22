@@ -15,10 +15,10 @@ async function setConfig(key: string, value: string): Promise<void> {
   await prisma.globalConfig.upsert({ where: { key }, update: { value }, create: { key, value } })
 }
 
-// URL에서 캐릭터 id 추출. 형식: babechat.ai/characters/{uuid}
+// URL에서 캐릭터 id 추출. 형식: babechat.ai/character/u/{uuid}/profile 또는 /characters/{uuid}
 export function parseBabechatUrl(url: string): string {
-  const m = url.match(/\/characters\/([0-9a-fA-F-]{36})/)
-  if (!m) throw new Error('babechat 캐릭터 URL이 아닙니다 (/characters/{id} 형식 필요)')
+  const m = url.match(/\/characters?\/(?:u\/)?([0-9a-fA-F-]{36})/)
+  if (!m) throw new Error('babechat 캐릭터 URL이 아닙니다 (/character/u/{id}/profile 형식 필요)')
   return m[1]
 }
 
