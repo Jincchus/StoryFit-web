@@ -5,7 +5,7 @@ import path from 'path'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { parsePngTavernCard, buildSystemPromptFromCard } from '@/lib/tavernCard'
-import { captureMelting, captureWhif, captureZeta, matchesHost } from '@/lib/import/capture'
+import { captureMelting, captureWhif, captureZeta, captureTingle, matchesHost } from '@/lib/import/capture'
 import { captureTikita } from '@/lib/import/tikita'
 import { captureChub } from '@/lib/import/chub'
 import { captureRofan } from '@/lib/import/rofan'
@@ -112,7 +112,8 @@ async function runImport(captured: Captured, url: string, userId: string) {
   const isZeta = matchesHost(url, 'zeta-ai.io')
   const isMelting = matchesHost(url, 'melting.chat')
   const isTikita = matchesHost(url, 'tikita.ai')
-  const isImmersive = isWhif || isZeta || isMelting || isTikita
+  const isTingle = matchesHost(url, 'tingle.chat')
+  const isImmersive = isWhif || isZeta || isMelting || isTikita || isTingle
 
   const createdChars = await Promise.all(
     result.characters.map((c, i) => {
@@ -218,6 +219,10 @@ export async function POST(req: NextRequest) {
   if (matchesHost(url, 'babechat.ai', 'babechat.jp')) {
     try { return NextResponse.json(await runImport(await captureBabechat(url.trim()), url.trim(), userId), { status: 201 }) }
     catch (e: any) { return NextResponse.json({ error: e.message ?? 'babechat 가져오기 실패' }, { status: 400 }) }
+  }
+  if (matchesHost(url, 'tingle.chat')) {
+    try { return NextResponse.json(await runImport(await captureTingle(url.trim()), url.trim(), userId), { status: 201 }) }
+    catch (e: any) { return NextResponse.json({ error: e.message ?? '팅글 가져오기 실패' }, { status: 400 }) }
   }
 
   let res: Response

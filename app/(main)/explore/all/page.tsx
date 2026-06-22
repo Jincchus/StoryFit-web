@@ -33,10 +33,17 @@ const CENTERS: { key: string; label: string; match: (url: string) => boolean; co
   { key: 'rofan',      label: 'rofanai',    match: u => u.includes('rofan.ai'),     color: '#e0529c', detail: id => `/rofan/characters/${id}` },
   { key: 'loveydovey', label: 'loveydovey', match: u => u.includes('loveydovey.ai'),color: '#ff5a5f', detail: id => `/loveydovey/characters/${id}` },
   { key: 'babechat',   label: 'babechat',   match: u => u.includes('babechat.'),    color: '#5b8cff', detail: id => `/babechat/characters/${id}` },
+  { key: 'tingle',     label: 'tingle',     match: u => u.includes('tingle.chat'),  color: '#ff5776', detail: id => `/tingle/characters/${id}` },
 ]
 
 function detectCenter(sourceUrl: string) {
   return CENTERS.find(c => c.match(sourceUrl)) ?? { key: 'other', label: '기타', color: '#888', detail: (id: string) => `/characters/${id}` }
+}
+
+function getTingleDetailPath(colId: string, sourceUrl: string) {
+  if (sourceUrl.includes('/universes/')) return `/tingle/universes/${colId}`
+  if (sourceUrl.includes('/scenes/')) return `/tingle/scenes/${colId}`
+  return `/tingle/characters/${colId}`
 }
 
 function isWorldType(col: Col): boolean {
@@ -186,9 +193,12 @@ export default function AllCentersPage() {
               const desc = col.description?.trim()
                 ? replaceDisplayPlaceholders(col.description, userName, charNames)
                 : ''
+              const detailPath = center.key === 'tingle'
+                ? getTingleDetailPath(col.id, col.sourceUrl)
+                : center.detail(col.id)
               return (
                 <div key={col.id}
-                  onClick={() => router.push(center.detail(col.id))}
+                  onClick={() => router.push(detailPath)}
                   style={{
                     position: 'relative', cursor: 'pointer', borderRadius: 'var(--radius-lg)',
                     overflow: 'hidden', background: 'var(--pane)', border: '1px solid var(--hairline)',

@@ -69,18 +69,19 @@ const FEATURE_SECTIONS: FeatureSection[] = [
   {
     title: '📥 외부 센터 가져오기',
     items: [
-      { emoji: '🔗', label: 'URL 붙여넣기 가져오기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat 센터의 캐릭터/스토리 URL을 각 센터 ⋮ 메뉴에 붙여넣으면 캐릭터·첫 장면·설정을 자동으로 가져옵니다.' },
+      { emoji: '🔗', label: 'URL 붙여넣기 가져오기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle 센터의 캐릭터/스토리 URL을 각 센터 ⋮ 메뉴에 붙여넣으면 캐릭터·첫 장면·설정을 자동으로 가져옵니다.' },
       { emoji: '🧩', label: 'Chub 외국 센터', desc: 'chub.ai의 외국 캐릭터 카드를 원문(영어) 그대로 즉시 가져옵니다. 상세 화면의 "🌐 한국어로 번역" 버튼을 누르면 AI(Gemini)가 설명·도입부·예시대화를 번역하며, "🔤 원문" 버튼으로 다시 되돌릴 수 있습니다(태그는 가져올 때 한글로 정규화, 이름은 원문 유지).' },
       { emoji: '💗', label: 'rofanai 국내 센터', desc: 'rofan.ai의 로맨스 판타지 캐릭터를 가져옵니다. 캐릭터 페이지 URL(/character/...)을 붙여넣으면 설정·세계관·첫 장면·태그를 자동으로 가져옵니다(한국어라 번역 없음).' },
       { emoji: '💞', label: 'loveydovey (메타데이터)', desc: 'loveydovey.ai 캐릭터 URL을 붙여넣으면 이름·한줄소개·장르·이미지 등 메타데이터를 가져옵니다. (상세 설정·첫 장면은 비공개라 직접 입력해야 합니다.)' },
       { emoji: '🩵', label: 'babechat 국내 센터', desc: 'babechat.ai 캐릭터 URL을 붙여넣으면 설정·도입부·태그를 가져옵니다. 로그인이 필요한 센터라 관리자 설정에서 인증 토큰을 먼저 등록해야 합니다(만료 시 자동 갱신).' },
+      { emoji: '💫', label: 'tingle 국내 센터', desc: 'tingle.chat의 캐릭터·서사·테마 URL을 붙여넣으면 설정·도입부·첫 장면·태그를 가져옵니다. URL 형식: /chat/characters/{id}(캐릭터), /chat/universes/{id}(서사), /chat/scenes/{id}(테마). 로그인이 필요해 관리자 설정에서 Firebase JWT 인증 토큰을 먼저 등록해야 합니다(1시간 만료 시 재등록).' },
     ],
   },
   {
     title: '🔍 검색 & 기록',
     items: [
       { emoji: '🔍', label: '본문 검색', desc: '채팅 목록 검색창에 2글자 이상 입력하면 모든 대화의 메시지 본문에서 검색하고, 결과를 누르면 해당 위치로 바로 이동합니다.' },
-      { emoji: '🏷', label: '센터 태그·제목 검색', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat 센터에서 태그 칩을 눌러 작품/캐릭터를 좁히고, 검색창에 제목·이름을 입력해 빠르게 찾을 수 있습니다.' },
+      { emoji: '🏷', label: '센터 태그·제목 검색', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle 센터에서 태그 칩을 눌러 작품/캐릭터를 좁히고, 검색창에 제목·이름을 입력해 빠르게 찾을 수 있습니다.' },
       { emoji: '🔖', label: '메시지 북마크', desc: '명장면 메시지를 탭하고 🔖을 눌러 저장하세요. 사이드패널에서 모아보고 바로 점프할 수 있습니다.' },
       { emoji: '⬇', label: '소설 내보내기', desc: '서재의 완결작을 선택지 없이 정제된 소설 텍스트(.txt)로 다운로드합니다.' },
       { emoji: '🔠', label: '글자 크기', desc: '채팅방 헤더 ☰ 메뉴에서 본문 글자 크기를 조절할 수 있습니다.' },
@@ -109,7 +110,7 @@ const FEATURE_SECTIONS: FeatureSection[] = [
     items: [
       { emoji: '📚', label: '서재', desc: '완결된 대화를 보관합니다. /library에서 모아보고, "꺼내기"로 채팅 목록에 복귀시킬 수 있습니다.' },
       { emoji: '📌', label: '핀 고정', desc: '자주 쓰는 대화를 채팅 목록 상단에 고정합니다.' },
-      { emoji: '★', label: '센터 즐겨찾기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat 센터에서 카드의 ★를 눌러 즐겨찾기하고, 즐겨찾기 탭에서 모아볼 수 있습니다. 기기 간 동기화됩니다.' },
+      { emoji: '★', label: '센터 즐겨찾기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle 센터에서 카드의 ★를 눌러 즐겨찾기하고, 즐겨찾기 탭에서 모아볼 수 있습니다. 기기 간 동기화됩니다.' },
       { emoji: '🔖', label: '챕터 뱃지', desc: '자동 챕터 구분이 켜진 대화에서 진행 중인 장(N장)을 표시합니다.' },
     ],
   },

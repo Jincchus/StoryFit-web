@@ -57,7 +57,7 @@ function cleanWhifText(text: string): string {
 // 환경변수 방식은 컨테이너 재배포가 있어야 반영되는데, 멜팅 세션은 약 30분마다 만료되어
 // 사실상 갱신이 불가능했다 — DB 조회로 바꿔 재배포 없이 바로 반영되도록 한다.
 async function getGlobalConfigValue(
-  key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname'
+  key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token'
 ): Promise<string> {
   const config = await prisma.globalConfig.findUnique({ where: { key } })
   return config?.value?.trim() ?? ''
@@ -671,6 +671,177 @@ export async function captureMelting(url: string): Promise<Captured> {
       labels: data.labels ?? [],
       openings: data.openings ?? [],
       openingMessage,
+    },
+  }
+}
+
+export async function captureTingle(url: string): Promise<Captured> {
+  const m = url.match(/tingle\.chat\/chat\/(universes|scenes|characters)\/(\d+)/)
+  if (!m) throw new Error('올바른 팅글 URL이 아닙니다. /chat/universes/, /chat/scenes/, /chat/characters/ 형식이어야 합니다.')
+  const [, type, id] = m
+
+  const authToken = await getGlobalConfigValue('tingle_auth_token')
+  if (!authToken) throw new Error('팅글 인증 토큰이 설정되어 있지 않습니다. 관리자 설정에서 Firebase JWT 토큰을 입력해주세요.')
+
+  try {
+    const payloadB64 = authToken.split('.')[1]
+    if (payloadB64) {
+      const { exp } = JSON.parse(Buffer.from(payloadB64, 'base64url').toString())
+      if (typeof exp === 'number' && exp * 1000 < Date.now()) {
+        throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
+      }
+    }
+  } catch (e: any) {
+    if (e.message?.includes('만료')) throw e
+  }
+
+  const apiPath = type === 'characters' ? 'personas' : type
+  const apiUrl = `https://api.tingle.chat/${apiPath}/${id}`
+
+  const res = await fetch(apiUrl, {
+    headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' },
+  })
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
+  }
+  if (res.status === 404) {
+    const label = type === 'universes' ? '서사' : type === 'scenes' ? '테마' : '캐릭터'
+    throw new Error(`팅글 ${label}를 찾을 수 없습니다. (ID: ${id})`)
+  }
+  if (!res.ok) throw new Error(`팅글 API 오류 (HTTP ${res.status})`)
+
+  let data: any
+  try { data = await res.json() } catch { throw new Error('팅글 응답을 해석할 수 없습니다.') }
+
+  if (data?.statusCode && data.statusCode >= 400) {
+    throw new Error(`팅글 API 오류: ${data.message?.[0] ?? data.code ?? '알 수 없는 오류'}`)
+  }
+
+  const coverImageUrl = data.coverImages?.[0]?.url ?? ''
+  const tags = (data.tags ?? []).map((t: any) => String(t.name ?? t)).filter(Boolean)
+  const safetyLevel: 'standard' | 'relaxed' = data.isAdult ? 'relaxed' : 'standard'
+
+  if (type === 'characters') {
+    const name = data.name ?? '캐릭터'
+    const introduction = data.introduction ?? ''
+    const characterDetails = data.isHideCharacterDetails ? '' : (data.characterDetails ?? '')
+    const backgroundDetails = data.isHideBackgroundDetails ? '' : (data.backgroundDetails ?? '')
+    const creatorComment = data.creatorComment ?? ''
+
+    const additionalInfo = [
+      introduction,
+      characterDetails,
+      backgroundDetails,
+      creatorComment && `[제작자 메모]\n${creatorComment}`,
+    ].filter(Boolean).join('\n\n')
+
+    const rawOpenings = Array.isArray(data.openings) ? data.openings : []
+    const openingMessages = rawOpenings
+      .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+      .map((o: any, idx: number) => ({
+        id: String(o.id ?? `opening_${idx}`),
+        title: String(o.title ?? (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
+        content: String(o.content ?? ''),
+      }))
+      .filter((o: any) => o.content.trim().length > 0)
+
+    const openingMessage = openingMessages[0]?.content ?? data.firstMessage ?? ''
+
+    console.log(`[tingle-import] characters ok — id=${id} name=${name} openings=${openingMessages.length}`)
+    return {
+      sections: [],
+      title: name,
+      imageUrl: coverImageUrl,
+      assembledResult: {
+        title: name,
+        characters: [{
+          name,
+          gender: data.gender ?? '',
+          tags,
+          additionalInfo,
+          openingMessage,
+          openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
+          exampleDialogues: '',
+          avatarUrl: coverImageUrl || undefined,
+        }],
+        scenarioDescription: introduction,
+        tags,
+        safetyLevel,
+        coverImageUrl,
+      },
+    }
+  }
+
+  if (type === 'universes') {
+    const name = data.name ?? '서사'
+    const introduction = data.introduction ?? ''
+    const relationships = Array.isArray(data.relationships) ? data.relationships : []
+    const privateRelationships = Array.isArray(data.privateRelationships) ? data.privateRelationships : []
+    const exampleDialogues = [...relationships, ...privateRelationships].filter(Boolean).join('\n')
+
+    const worldBooks = Array.isArray(data.worldBooks) ? data.worldBooks : []
+    const lorebooks = worldBooks
+      .map((wb: any) => ({
+        keyword: [wb.keyword ?? wb.keywords ?? wb.name ?? ''].flat().filter(Boolean),
+        content: String(wb.content ?? ''),
+        priority: wb.priority ?? 0,
+      }))
+      .filter((wb: any) => wb.keyword.length > 0 && wb.content)
+
+    console.log(`[tingle-import] universes ok — id=${id} name=${name} worldBooks=${lorebooks.length}`)
+    const result: Captured = {
+      sections: [],
+      title: name,
+      imageUrl: coverImageUrl,
+      assembledResult: {
+        title: name,
+        characters: [{
+          name,
+          gender: '',
+          tags,
+          additionalInfo: introduction,
+          openingMessage: '',
+          exampleDialogues,
+          avatarUrl: coverImageUrl || undefined,
+        }],
+        scenarioDescription: introduction,
+        tags,
+        safetyLevel,
+        coverImageUrl,
+      },
+    }
+    if (lorebooks.length > 0) result.lorebooks = lorebooks
+    return result
+  }
+
+  // scenes(테마)
+  const name = data.name ?? '테마'
+  const introduction = data.introduction ?? ''
+  const timeFrame = data.timeFrame ?? ''
+  const otherDetails = data.otherDetails ?? ''
+  const scenarioDesc = [introduction, timeFrame && `[시간대] ${timeFrame}`, otherDetails].filter(Boolean).join('\n\n')
+
+  console.log(`[tingle-import] scenes ok — id=${id} name=${name}`)
+  return {
+    sections: [],
+    title: name,
+    imageUrl: coverImageUrl,
+    assembledResult: {
+      title: name,
+      characters: [{
+        name,
+        gender: '',
+        tags,
+        additionalInfo: scenarioDesc,
+        openingMessage: '',
+        exampleDialogues: '',
+        avatarUrl: coverImageUrl || undefined,
+      }],
+      scenarioDescription: scenarioDesc,
+      tags,
+      safetyLevel,
+      coverImageUrl,
     },
   }
 }

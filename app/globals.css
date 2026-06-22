@@ -1498,8 +1498,57 @@ body[data-crt="on"]::after{
 .story-log .seq-narration{ text-align: center; padding: 1px 8px; font-size: inherit; line-height: 1.75; }
 .story-log .narration-block{ text-align: center; padding: 2px 8px; font-size: inherit; line-height: 1.75; }
 
+/* ─── TINGLE immersive (dark, pink-red, scoped) ─────────────────────── */
+.tingle-root{
+  --tg-bg:#0e0d10; --tg-surface:#1a1820; --tg-surface-2:#232029; --tg-line:#32303c;
+  --tg-ink:#f4f2f8; --tg-ink-soft:#9a97a8; --tg-accent:#ff5776; --tg-radius:14px;
+  --w-bg:var(--tg-bg); --w-surface:var(--tg-surface); --w-surface-2:var(--tg-surface-2);
+  --w-line:var(--tg-line); --w-ink:var(--tg-ink); --w-ink-soft:var(--tg-ink-soft);
+  --w-accent:var(--tg-accent); --w-accent-2:var(--tg-accent);
+  display:flex; flex-direction:column; height:100%; min-height:0;
+  background:var(--tg-bg); color:var(--tg-ink);
+}
+.tingle-scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+.tingle-header{ flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid var(--tg-line);
+  background:linear-gradient(90deg,#ff5776,#ff8099); }
+.tingle-logo{ font-size:18px; font-weight:900; letter-spacing:.04em; color:#fff; }
+.tingle-iconbtn{ background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 8px; }
+.tingle-menu{ position:absolute; top:52px; right:12px; z-index:60; background:var(--tg-surface-2);
+  border:1px solid var(--tg-line); border-radius:10px; overflow:hidden; min-width:220px; }
+.tingle-menu-item{ display:block; width:100%; text-align:left; background:none; border:none;
+  color:var(--tg-ink); font-size:13px; padding:11px 14px; cursor:pointer; }
+.tingle-menu-item:hover{ background:var(--tg-surface); }
+.tingle-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:16px; }
+.tingle-card{ background:var(--tg-surface); border:1px solid var(--tg-line); border-radius:var(--tg-radius);
+  overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
+.tingle-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--tg-surface-2); display:block; }
+.tingle-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.tingle-card-title{ font-size:13px; font-weight:800; color:var(--tg-ink); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.tingle-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+.tingle-chip{ display:inline-block; background:var(--tg-surface-2); color:var(--tg-ink-soft);
+  font-size:10px; padding:2px 8px; border-radius:999px; }
+.tingle-chip.sel{ background:var(--tg-accent); color:#fff; }
+.tingle-empty{ padding:48px 16px; text-align:center; color:var(--tg-ink-soft); font-size:13px; line-height:1.7; }
+.tingle-cover{ width:100%; aspect-ratio:1; object-fit:cover; background:var(--tg-surface-2); display:block; }
+.tingle-cover-wrap{ position:relative; }
+.tingle-back{ background:rgba(0,0,0,.4); border:none; color:#fff; font-size:20px; cursor:pointer;
+  padding:2px 10px; border-radius:999px; }
+.tingle-section{ padding:16px; }
+.tingle-section-title{ font-size:15px; font-weight:800; color:var(--tg-ink); margin:0 0 10px; }
+.tingle-avatar{ width:72px; height:72px; border-radius:14px; object-fit:cover; flex-shrink:0; }
+.tingle-desc{ color:var(--tg-ink-soft); line-height:1.7; font-size:14px; white-space:pre-wrap; }
+.tingle-intro-box{ background:var(--tg-surface); border:1px solid var(--tg-line); border-radius:12px;
+  padding:14px; color:var(--tg-ink-soft); line-height:1.7; font-size:14px; }
+.tingle-cta{ position:sticky; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, transparent, var(--tg-bg) 40%); }
+.tingle-cta-btn{ width:100%; padding:14px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#ff5776,#ff8099); color:#fff; font-size:15px; font-weight:800; cursor:pointer; }
+
 /* 다크 센터 스코프에서 스켈레톤 톤 보정 */
-.whif-root .skeleton, .zeta-root .skeleton, .melting-root .skeleton{ background: rgba(255,255,255,.08); }
+.whif-root .skeleton, .zeta-root .skeleton, .melting-root .skeleton, .tingle-root .skeleton{ background: rgba(255,255,255,.08); }
 
 /* ─── 채팅 목록 스와이프 액션 (터치 기기) ───────────────────────────────── */
 .swipe-wrap{ position:relative; overflow:hidden; }

@@ -18,9 +18,10 @@ export async function GET(req: NextRequest) {
     : searchParams.get('isRofan') === 'true' ? 'rofan'
     : searchParams.get('isLoveydovey') === 'true' ? 'loveydovey'
     : searchParams.get('isBabechat') === 'true' ? 'babechat'
+    : searchParams.get('isTingle') === 'true' ? 'tingle'
     : 'regular'
 
-  const EXTERNAL_HOSTS = ['whif.', 'zeta-ai.io', 'melting.chat', 'tikita.ai', 'chub.ai', 'rofan.ai', 'loveydovey.ai', 'babechat.']
+  const EXTERNAL_HOSTS = ['whif.', 'zeta-ai.io', 'melting.chat', 'tikita.ai', 'chub.ai', 'rofan.ai', 'loveydovey.ai', 'babechat.', 'tingle.chat']
 
   const whereClause: any = { userId }
 
@@ -42,6 +43,8 @@ export async function GET(req: NextRequest) {
     whereClause.sourceUrl = { contains: 'loveydovey.ai' }
   } else if (source === 'babechat') {
     whereClause.sourceUrl = { contains: 'babechat.' }
+  } else if (source === 'tingle') {
+    whereClause.sourceUrl = { contains: 'tingle.chat' }
   } else {
     whereClause.AND = EXTERNAL_HOSTS.map(h => ({ NOT: { sourceUrl: { contains: h } } }))
   }

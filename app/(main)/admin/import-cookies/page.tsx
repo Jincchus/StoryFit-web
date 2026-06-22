@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -77,6 +77,8 @@ export default function AdminImportCookiesPage() {
   const [babechatAccessUpdatedAt, setBabechatAccessUpdatedAt] = useState<string | null>(null)
   const [babechatRefresh, setBabechatRefresh] = useState('')
   const [babechatRefreshUpdatedAt, setBabechatRefreshUpdatedAt] = useState<string | null>(null)
+  const [tingleToken, setTingleToken] = useState('')
+  const [tingleTokenUpdatedAt, setTingleTokenUpdatedAt] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -92,6 +94,8 @@ export default function AdminImportCookiesPage() {
       setBabechatAccessUpdatedAt(data.babechat_access_token?.updatedAt ?? null)
       setBabechatRefresh(data.babechat_refresh_token?.value ?? '')
       setBabechatRefreshUpdatedAt(data.babechat_refresh_token?.updatedAt ?? null)
+      setTingleToken(data.tingle_auth_token?.value ?? '')
+      setTingleTokenUpdatedAt(data.tingle_auth_token?.updatedAt ?? null)
     }).catch(() => {})
   }
 
@@ -107,6 +111,7 @@ export default function AdminImportCookiesPage() {
         melting_session_nickname: meltingNickname,
         babechat_access_token: babechatAccess,
         babechat_refresh_token: babechatRefresh,
+        tingle_auth_token: tingleToken,
       })
       setSaved(true)
       load()
@@ -175,6 +180,15 @@ export default function AdminImportCookiesPage() {
               value={babechatRefresh}
               onChange={setBabechatRefresh}
               updatedAt={babechatRefreshUpdatedAt}
+            />
+
+            <CookieField
+              label="팅글 인증 토큰 (tingle.chat) — Firebase JWT"
+              hint={'브라우저에서 tingle.chat에 로그인한 뒤 개발자도구 → Network 탭 → api.tingle.chat 요청 클릭 → Headers → Authorization 헤더의 "Bearer " 뒤 토큰을 복사해 붙여넣으세요.\n⚠️ Firebase JWT라 발급 후 1시간 만료됩니다 — 만료 시 이 화면에서 토큰을 교체해야 합니다.'}
+              placeholder="eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+              value={tingleToken}
+              onChange={setTingleToken}
+              updatedAt={tingleTokenUpdatedAt}
             />
 
             <div className="hstack" style={{ gap: 6 }}>
