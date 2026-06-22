@@ -23,11 +23,17 @@ interface TingleField {
 interface TingleOpening {
   id: string; title: string; content: string; removed?: boolean
 }
+interface TingleLinkedItem {
+  type: 'character' | 'universe' | 'scene'
+  url: string; name: string; coverImageUrl: string; selected: boolean
+}
+
 interface TinglePreview {
   type: 'character' | 'universe' | 'scene'
   url: string; name: string; gender: string; coverImageUrl: string
   tags: string[]; safetyLevel: 'standard' | 'relaxed'
   fields: TingleField[]; openings: TingleOpening[]
+  linkedItems?: TingleLinkedItem[]
 }
 
 type TingleType = 'character' | 'universe' | 'scene'
@@ -66,7 +72,19 @@ function ImportPreviewModal({
   onClose: () => void
   confirming: boolean
 }) {
-  const [items, setItems] = useState<TinglePreview[]>(previews)
+  const [items, setItems] = useState<TinglePreview[]>(
+    previews.map(p => ({
+      ...p,
+      linkedItems: p.linkedItems?.map(li => ({ ...li, selected: true })) ?? [],
+    }))
+  )
+
+  const toggleLinked = (pi: number, url: string) => {
+    setItems(prev => prev.map((p, i) => i !== pi ? p : {
+      ...p,
+      linkedItems: p.linkedItems?.map(li => li.url === url ? { ...li, selected: !li.selected } : li) ?? [],
+    }))
+  }
 
   const removeField = (pi: number, key: string) => {
     setItems(prev => prev.map((p, i) => i !== pi ? p : {
@@ -204,6 +222,49 @@ function ImportPreviewModal({
             </div>
           )
         })}
+
+        {/* 연결 항목 선택 */}
+        {items.some(p => (p.linkedItems?.length ?? 0) > 0) && (
+          <div style={{ marginTop: 20, borderTop: '1px solid var(--tg-line)', paddingTop: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--tg-ink-soft)', marginBottom: 10 }}>함께 등록할 연결 항목</div>
+            {items.map((preview, pi) => {
+              const linked = preview.linkedItems ?? []
+              if (linked.length === 0) return null
+              const groups: Record<string, TingleLinkedItem[]> = {}
+              for (const li of linked) {
+                const g = li.type === 'universe' ? '서사' : li.type === 'scene' ? '테마' : '캐릭터'
+                ;(groups[g] ??= []).push(li)
+              }
+              return (
+                <div key={preview.url}>
+                  {Object.entries(groups).map(([label, gItems]) => {
+                    const gc = label === '서사' ? '#a78bfa' : label === '테마' ? '#06bfd6' : '#ff5776'
+                    return (
+                      <div key={label} style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: gc, marginBottom: 6 }}>{label} ({gItems.length})</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {gItems.map(li => (
+                            <button key={li.url} onClick={() => toggleLinked(pi, li.url)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                                borderRadius: 8, cursor: 'pointer', textAlign: 'left', appearance: 'none',
+                                border: `1.5px solid ${li.selected ? gc : 'var(--tg-line)'}`,
+                                background: li.selected ? `${gc}18` : 'var(--tg-surface)',
+                              }}>
+                              {li.coverImageUrl && <img src={li.coverImageUrl} style={{ width: 28, height: 28, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} alt="" />}
+                              <span style={{ fontSize: 12, fontWeight: 600, color: li.selected ? gc : 'var(--tg-ink-soft)', flex: 1 }}>{li.name}</span>
+                              <span style={{ fontSize: 11, color: li.selected ? gc : 'var(--tg-ink-soft)', flexShrink: 0 }}>{li.selected ? '✓' : '○'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
           <button

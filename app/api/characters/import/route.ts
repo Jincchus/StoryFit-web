@@ -5,7 +5,7 @@ import path from 'path'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { parsePngTavernCard, buildSystemPromptFromCard } from '@/lib/tavernCard'
-import { captureMelting, captureWhif, captureZeta, captureTingle, matchesHost } from '@/lib/import/capture'
+import { captureMelting, captureWhif, captureZeta, captureTingle, captureTingleRaw, matchesHost } from '@/lib/import/capture'
 import { captureTikita } from '@/lib/import/tikita'
 import { captureChub } from '@/lib/import/chub'
 import { captureRofan } from '@/lib/import/rofan'
@@ -232,7 +232,18 @@ export async function POST(req: NextRequest) {
 
   if (previewData && matchesHost(url, 'tingle.chat')) {
     try {
-      return NextResponse.json(await runImport(buildCapturedFromPreview(previewData as TingleRawData), url.trim(), userId), { status: 201 })
+      const mainResult = await runImport(buildCapturedFromPreview(previewData as TingleRawData), url.trim(), userId)
+      // 사용자가 선택한 연결 항목들 순차 import (실패해도 메인 결과에 영향 없음)
+      const linkedItems: any[] = (previewData.linkedItems ?? []).filter((item: any) => item.selected)
+      for (const item of linkedItems) {
+        try {
+          const linked = await captureTingleRaw(item.url)
+          await runImport(buildCapturedFromPreview(linked), item.url, userId)
+        } catch (e: any) {
+          console.log(`[tingle-import] linkedItem 실패: ${item.url} — ${e.message}`)
+        }
+      }
+      return NextResponse.json(mainResult, { status: 201 })
     } catch (e: any) {
       return NextResponse.json({ error: e.message ?? '팅글 가져오기 실패' }, { status: 400 })
     }
