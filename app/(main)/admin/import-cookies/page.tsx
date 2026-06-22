@@ -83,6 +83,7 @@ export default function AdminImportCookiesPage() {
   const [tingleRefreshUpdatedAt, setTingleRefreshUpdatedAt] = useState<string | null>(null)
   const [tingleApiKey, setTingleApiKey] = useState('')
   const [tingleApiKeyUpdatedAt, setTingleApiKeyUpdatedAt] = useState<string | null>(null)
+  const [tingleOpen, setTingleOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -192,32 +193,46 @@ export default function AdminImportCookiesPage() {
               updatedAt={babechatRefreshUpdatedAt}
             />
 
-            <CookieField
-              label="팅글 인증 토큰 (tingle.chat) — Firebase ID 토큰"
-              hint={'브라우저에서 tingle.chat에 로그인한 뒤 개발자도구 → Network 탭 → api.tingle.chat 요청 클릭 → Headers → Authorization 헤더의 "Bearer " 뒤 토큰을 복사해 붙여넣으세요.\n\n아래 refresh 토큰 + Firebase API 키를 함께 저장하면 만료(1시간)마다 서버가 자동 갱신합니다.'}
-              placeholder="eyJhbGciOiJSUzI1NiIsImtpZCI6..."
-              value={tingleToken}
-              onChange={setTingleToken}
-              updatedAt={tingleTokenUpdatedAt}
-            />
-
-            <CookieField
-              label="팅글 refresh 토큰 (자동 갱신용)"
-              hint={'개발자도구 → Application(저장소) → Local Storage → https://tingle.chat → firebase:authUser:... 로 시작하는 항목 클릭 → JSON 값에서 stsTokenManager.refreshToken 값을 복사해 붙여넣으세요.\n\nrefresh 토큰은 사용자가 직접 로그아웃하거나 Firebase에서 세션을 강제 종료하지 않는 한 만료되지 않습니다.'}
-              placeholder="AMf-vBx..."
-              value={tingleRefresh}
-              onChange={setTingleRefresh}
-              updatedAt={tingleRefreshUpdatedAt}
-            />
-
-            <NicknameField
-              label="팅글 Firebase API 키 (자동 갱신용)"
-              hint={'개발자도구 → Application(저장소) → Local Storage → https://tingle.chat → firebase:authUser: 로 시작하는 항목의 키(key) 이름을 보면 firebase:authUser:{API_KEY}:{appName} 형식입니다. 중간의 AIzaSy... 부분이 Firebase API 키입니다.\n\n또는 Network 탭에서 securetoken.googleapis.com 요청의 URL ?key= 파라미터를 확인하세요.'}
-              placeholder="AIzaSy..."
-              value={tingleApiKey}
-              onChange={setTingleApiKey}
-              updatedAt={tingleApiKeyUpdatedAt}
-            />
+            <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+              <button
+                onClick={() => setTingleOpen(o => !o)}
+                style={{ appearance: 'none', border: 'none', background: 'var(--surface-2)', width: '100%', padding: '10px 12px', cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <div>
+                  <span className="tiny" style={{ fontWeight: 700 }}>팅글 인증 (tingle.chat)</span>
+                  <span className="tiny muted" style={{ marginLeft: 8 }}>자동 갱신 설정됨 — 수동 변경 필요 시 펼치기</span>
+                </div>
+                <span className="tiny muted">{tingleOpen ? '▲' : '▼'}</span>
+              </button>
+              {tingleOpen && (
+                <div className="vstack" style={{ gap: 16, padding: 12 }}>
+                  <CookieField
+                    label="팅글 인증 토큰 (Firebase ID 토큰)"
+                    hint={'브라우저에서 tingle.chat에 로그인한 뒤 개발자도구 → Network 탭 → api.tingle.chat 요청 클릭 → Headers → Authorization 헤더의 "Bearer " 뒤 토큰을 복사해 붙여넣으세요.\n\n아래 refresh 토큰 + Firebase API 키가 설정되어 있으면 만료(1시간)마다 서버가 자동 갱신합니다.'}
+                    placeholder="eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+                    value={tingleToken}
+                    onChange={setTingleToken}
+                    updatedAt={tingleTokenUpdatedAt}
+                  />
+                  <CookieField
+                    label="팅글 refresh 토큰 (자동 갱신용)"
+                    hint={'개발자도구 → Network 탭 → securetoken.googleapis.com/v1/token 요청 → Payload 탭 → refresh_token 값 복사\n\nrefresh 토큰은 로그아웃하거나 Firebase에서 강제 종료하지 않는 한 만료되지 않습니다.'}
+                    placeholder="AMf-vBx..."
+                    value={tingleRefresh}
+                    onChange={setTingleRefresh}
+                    updatedAt={tingleRefreshUpdatedAt}
+                  />
+                  <NicknameField
+                    label="팅글 Firebase API 키 (자동 갱신용)"
+                    hint={'개발자도구 → Network 탭 → securetoken.googleapis.com/v1/token?key=AIzaSy... → URL의 key= 파라미터 값 복사'}
+                    placeholder="AIzaSy..."
+                    value={tingleApiKey}
+                    onChange={setTingleApiKey}
+                    updatedAt={tingleApiKeyUpdatedAt}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="hstack" style={{ gap: 6 }}>
               <button className="btn primary" disabled={loading} onClick={handleSave}>
