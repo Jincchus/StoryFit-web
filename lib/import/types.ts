@@ -70,3 +70,30 @@ export interface AssembledResult {
   safetyLevel?: string
   coverImageUrl?: string
 }
+
+export interface TingleField {
+  key: string
+  label: string
+  value: string
+  order: number
+  removed?: boolean
+}
+
+export interface TingleOpening {
+  id: string
+  title: string
+  content: string
+  removed?: boolean
+}
+
+export interface TingleRawData {
+  type: 'character' | 'universe' | 'scene'
+  url: string
+  name: string
+  gender: string
+  coverImageUrl: string
+  tags: string[]
+  safetyLevel: 'standard' | 'relaxed'
+  fields: TingleField[]
+  openings: TingleOpening[]
+}

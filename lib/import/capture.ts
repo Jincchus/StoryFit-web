@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer-core'
 import { prisma } from '@/lib/prisma'
-import type { Captured } from './types'
+import type { Captured, TingleRawData, TingleField } from './types'
 import { buildZetaCaptured, extractZetaLorebookEntries } from './zeta'
 
 const INPUT_CAP = 40000  // 분류 출력이 작아져 입력 캡을 크게 상향 (잘림 방지)
@@ -847,4 +847,91 @@ export async function captureTingle(url: string): Promise<Captured> {
       coverImageUrl,
     },
   }
+}
+
+async function fetchTingleData(url: string): Promise<{ type: string; id: string; data: any; coverImageUrl: string; tags: string[]; safetyLevel: 'standard' | 'relaxed' }> {
+  const m = url.match(/tingle\.chat\/chat\/(universes|scenes|characters)\/(\d+)/)
+  if (!m) throw new Error('올바른 팅글 URL이 아닙니다. /chat/universes/, /chat/scenes/, /chat/characters/ 형식이어야 합니다.')
+  const [, type, id] = m
+
+  const authToken = await getGlobalConfigValue('tingle_auth_token')
+  if (!authToken) throw new Error('팅글 인증 토큰이 설정되어 있지 않습니다. 관리자 설정에서 Firebase JWT 토큰을 입력해주세요.')
+
+  try {
+    const payloadB64 = authToken.split('.')[1]
+    if (payloadB64) {
+      const { exp } = JSON.parse(Buffer.from(payloadB64, 'base64url').toString())
+      if (typeof exp === 'number' && exp * 1000 < Date.now()) {
+        throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
+      }
+    }
+  } catch (e: any) {
+    if (e.message?.includes('만료')) throw e
+  }
+
+  const apiPath = type === 'characters' ? 'personas' : type
+  const res = await fetch(`https://api.tingle.chat/${apiPath}/${id}`, {
+    headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' },
+  })
+
+  if (res.status === 401 || res.status === 403) throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
+  if (res.status === 404) {
+    const label = type === 'universes' ? '서사' : type === 'scenes' ? '테마' : '캐릭터'
+    throw new Error(`팅글 ${label}를 찾을 수 없습니다. (ID: ${id})`)
+  }
+  if (!res.ok) throw new Error(`팅글 API 오류 (HTTP ${res.status})`)
+
+  let data: any
+  try { data = await res.json() } catch { throw new Error('팅글 응답을 해석할 수 없습니다.') }
+  if (data?.statusCode && data.statusCode >= 400) throw new Error(`팅글 API 오류: ${data.message?.[0] ?? data.code ?? '알 수 없는 오류'}`)
+
+  const coverImageUrl = data.coverImages?.[0]?.url ?? ''
+  const tags = (data.tags ?? []).map((t: any) => String(t.name ?? t)).filter(Boolean)
+  const safetyLevel: 'standard' | 'relaxed' = data.isAdult ? 'relaxed' : 'standard'
+  return { type, id, data, coverImageUrl, tags, safetyLevel }
+}
+
+export async function captureTingleRaw(url: string): Promise<TingleRawData> {
+  const { type, data, coverImageUrl, tags, safetyLevel } = await fetchTingleData(url)
+
+  if (type === 'characters') {
+    const fields: TingleField[] = []
+    let order = 1
+    if (data.introduction) fields.push({ key: 'introduction', label: '소개', value: data.introduction, order: order++ })
+    if (data.age) fields.push({ key: 'age', label: '나이', value: `나이: ${data.age}세`, order: order++ })
+    if (data.characterDetails) fields.push({ key: 'characterDetails', label: '캐릭터 설정', value: String(data.characterDetails), order: order++ })
+    if (data.backgroundDetails) fields.push({ key: 'backgroundDetails', label: '배경 설정', value: String(data.backgroundDetails), order: order++ })
+    if (data.creatorComment) fields.push({ key: 'creatorComment', label: '제작자 메모', value: `[제작자 메모]\n${data.creatorComment}`, order: order++ })
+
+    const rawOpenings = Array.isArray(data.openings) ? data.openings : []
+    const openings = rawOpenings
+      .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+      .map((o: any, idx: number) => ({
+        id: String(o.id ?? `opening_${idx}`),
+        title: String(o.title ?? (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
+        content: String(o.content ?? ''),
+      }))
+      .filter((o: any) => o.content.trim().length > 0)
+
+    return { type: 'character', url, name: data.name ?? '캐릭터', gender: data.gender ?? '', coverImageUrl, tags, safetyLevel, fields, openings }
+  }
+
+  if (type === 'universes') {
+    const fields: TingleField[] = []
+    let order = 1
+    if (data.introduction) fields.push({ key: 'introduction', label: '소개', value: data.introduction, order: order++ })
+    const relationships = Array.isArray(data.relationships) ? data.relationships : []
+    const privateRelationships = Array.isArray(data.privateRelationships) ? data.privateRelationships : []
+    const allRel = [...relationships, ...privateRelationships].filter(Boolean).join('\n')
+    if (allRel) fields.push({ key: 'relationships', label: '관계 설정', value: allRel, order: order++ })
+    return { type: 'universe', url, name: data.name ?? '서사', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [] }
+  }
+
+  // scenes
+  const fields: TingleField[] = []
+  let order = 1
+  if (data.introduction) fields.push({ key: 'introduction', label: '소개', value: data.introduction, order: order++ })
+  if (data.timeFrame) fields.push({ key: 'timeFrame', label: '시간대', value: `[시간대] ${data.timeFrame}`, order: order++ })
+  if (data.otherDetails) fields.push({ key: 'otherDetails', label: '기타 설명', value: data.otherDetails, order: order++ })
+  return { type: 'scene', url, name: data.name ?? '테마', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [] }
 }

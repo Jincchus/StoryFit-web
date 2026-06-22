@@ -14,7 +14,7 @@ import { captureBabechat } from '@/lib/import/babechat'
 import { splitIntoBlocks } from '@/lib/import/blocks'
 import { classifyBlocks } from '@/lib/import/classify'
 import { assemble, buildFallback } from '@/lib/import/assemble'
-import type { Captured } from '@/lib/import/types'
+import type { Captured, TingleRawData, TingleField, TingleOpening } from '@/lib/import/types'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'avatars')
 
@@ -53,6 +53,47 @@ function parseTavernJson(json: any): CardShape {
     first_mes: data?.first_mes ?? '',
     mes_example: data?.mes_example ?? '',
     system_prompt: data?.system_prompt ?? '',
+  }
+}
+
+function buildCapturedFromPreview(previewData: TingleRawData): Captured {
+  const { name, gender, coverImageUrl, tags, safetyLevel, fields, openings } = previewData
+
+  const activeFields = (fields as TingleField[])
+    .filter(f => !f.removed)
+    .sort((a, b) => a.order - b.order)
+
+  const additionalInfo = activeFields.map(f => f.value).filter(Boolean).join('\n\n')
+
+  const activeOpenings = (openings as TingleOpening[]).filter(o => !o.removed)
+  const openingMessage = activeOpenings[0]?.content ?? ''
+  const openingMessagesArr = activeOpenings.map(o => ({ id: o.id, title: o.title, content: o.content }))
+
+  const exampleDialogues = previewData.type === 'universe'
+    ? (activeFields.find(f => f.key === 'relationships')?.value ?? '')
+    : ''
+
+  return {
+    sections: [],
+    title: name,
+    imageUrl: coverImageUrl,
+    assembledResult: {
+      title: name,
+      characters: [{
+        name,
+        gender: gender ?? '',
+        tags,
+        additionalInfo,
+        openingMessage,
+        openingMessages: openingMessagesArr.length > 1 ? openingMessagesArr : undefined,
+        exampleDialogues,
+        avatarUrl: coverImageUrl || undefined,
+      }],
+      scenarioDescription: '',
+      tags,
+      safetyLevel,
+      coverImageUrl,
+    },
   }
 }
 
@@ -185,8 +226,17 @@ export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
-  const { url } = await req.json()
+  const body = await req.json()
+  const { url, previewData } = body
   if (!url?.trim()) return NextResponse.json({ error: 'URL이 필요합니다.' }, { status: 400 })
+
+  if (previewData && matchesHost(url, 'tingle.chat')) {
+    try {
+      return NextResponse.json(await runImport(buildCapturedFromPreview(previewData as TingleRawData), url.trim(), userId), { status: 201 })
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message ?? '팅글 가져오기 실패' }, { status: 400 })
+    }
+  }
 
   if (matchesHost(url, 'zeta-ai.io')) {
     try { return NextResponse.json(await runImport(await captureZeta(url.trim()), url.trim(), userId), { status: 201 }) }
