@@ -57,15 +57,18 @@ export function assembleBabechat(d: any): AssembledResult {
   const details = String(cd.details ?? d.details ?? '').trim()
   const arr = (v: any): string[] => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : [])
   const attrs = [
-    arr(cd.jobs).length ? `직업: ${arr(cd.jobs).join(', ')}` : '',
-    String(cd.height ?? '').trim() && `키: ${String(cd.height).trim()}`,
-    String(cd.weight ?? '').trim() && `몸무게: ${String(cd.weight).trim()}`,
-    arr(cd.interests).length ? `관심사: ${arr(cd.interests).join(', ')}` : '',
-    arr(cd.likes).length ? `좋아하는 것: ${arr(cd.likes).join(', ')}` : '',
-    arr(cd.dislikes).length ? `싫어하는 것: ${arr(cd.dislikes).join(', ')}` : '',
-    String(cd.location ?? '').trim() && `장소: ${String(cd.location).trim()}`,
+    String(cd.date ?? d.date ?? '').trim() && `생일: ${String(cd.date ?? d.date).trim()}`,
+    arr(cd.jobs ?? d.jobs).length ? `직업: ${arr(cd.jobs ?? d.jobs).join(', ')}` : '',
+    String(cd.height ?? d.height ?? '').trim() && `키: ${String(cd.height ?? d.height).trim()}`,
+    String(cd.weight ?? d.weight ?? '').trim() && `몸무게: ${String(cd.weight ?? d.weight).trim()}`,
+    arr(cd.interests ?? d.interests).length ? `관심사: ${arr(cd.interests ?? d.interests).join(', ')}` : '',
+    arr(cd.likes ?? d.likes).length ? `좋아하는 것: ${arr(cd.likes ?? d.likes).join(', ')}` : '',
+    arr(cd.dislikes ?? d.dislikes).length ? `싫어하는 것: ${arr(cd.dislikes ?? d.dislikes).join(', ')}` : '',
+    String(cd.location ?? d.location ?? '').trim() && `장소: ${String(cd.location ?? d.location).trim()}`,
   ].filter(Boolean)
-  const additionalInfo = [details, attrs.join('\n')].filter(Boolean).join('\n\n')
+  // details가 없으면 description(소개글)을 대신 사용
+  const mainContent = details || String(d.description ?? '').trim()
+  const additionalInfo = [mainContent, attrs.join('\n')].filter(Boolean).join('\n\n')
 
   // 도입부: startingScenarios 우선, 없으면 top-level initial*.
   const scenarios = Array.isArray(d.startingScenarios) && d.startingScenarios.length

@@ -725,12 +725,15 @@ export async function captureTingle(url: string): Promise<Captured> {
   if (type === 'characters') {
     const name = data.name ?? '캐릭터'
     const introduction = data.introduction ?? ''
-    const characterDetails = data.isHideCharacterDetails ? '' : (data.characterDetails ?? '')
-    const backgroundDetails = data.isHideBackgroundDetails ? '' : (data.backgroundDetails ?? '')
+    const age = data.age ? `나이: ${data.age}세` : ''
+    // isHide* 플래그는 팅글 앱 UI 표시 여부이고, API가 이미 실제 내용을 반환하므로 항상 포함
+    const characterDetails = String(data.characterDetails ?? '')
+    const backgroundDetails = String(data.backgroundDetails ?? '')
     const creatorComment = data.creatorComment ?? ''
 
     const additionalInfo = [
       introduction,
+      age,
       characterDetails,
       backgroundDetails,
       creatorComment && `[제작자 메모]\n${creatorComment}`,
