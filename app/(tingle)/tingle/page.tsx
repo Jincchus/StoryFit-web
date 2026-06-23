@@ -31,11 +31,6 @@ interface TinglePreview {
   isLinked?: boolean
 }
 
-interface PreviewItem extends TinglePreview {
-  _included: boolean
-  _removed: boolean
-}
-
 type TingleType = 'character' | 'universe' | 'scene'
 
 function detectTingleType(sourceUrl: string): { type: TingleType; label: string; color: string } {
@@ -51,233 +46,24 @@ function detailPath(col: TingleCol) {
 }
 
 type ViewTab = 'active' | 'waiting' | 'completed' | 'favorites'
-type TypeTab = 'all' | TingleType
+type TypeTab = 'character' | 'universe' | 'scene'
 
 interface LikedPersona {
   id: string; name: string; coverImageUrl: string | null
   tags: string[]; isAdult: boolean; sourceUrl: string
 }
 
-function typeLabel(type: TinglePreview['type']) {
-  if (type === 'universe') return '서사'
-  if (type === 'scene') return '테마'
-  return '캐릭터'
-}
-function typeColor(type: TinglePreview['type']) {
-  if (type === 'universe') return '#a78bfa'
-  if (type === 'scene') return '#06bfd6'
-  return '#ff5776'
-}
-
-function ImportPreviewModal({
-  previews, onConfirm, onClose, confirming,
-}: {
-  previews: TinglePreview[]
-  onConfirm: (previews: PreviewItem[]) => void
-  onClose: () => void
-  confirming: boolean
-}) {
-  const [items, setItems] = useState<PreviewItem[]>(() =>
-    previews.map(p => ({ ...p, _included: true, _removed: false }))
-  )
-
-  const updateItem = (pi: number, patch: Partial<PreviewItem>) =>
-    setItems(prev => prev.map((item, i) => i !== pi ? item : { ...item, ...patch }))
-
-  const setFieldValue = (pi: number, key: string, val: string) =>
-    setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p, fields: p.fields.map(f => f.key === key ? { ...f, value: val } : f),
-    }))
-  const removeField = (pi: number, key: string) =>
-    setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p, fields: p.fields.map(f => f.key === key ? { ...f, removed: true } : f),
-    }))
-  const restoreField = (pi: number, key: string) =>
-    setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p, fields: p.fields.map(f => f.key === key ? { ...f, removed: false } : f),
-    }))
-
-  const setOpeningContent = (pi: number, oid: string, val: string) =>
-    setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p, openings: p.openings.map(o => o.id === oid ? { ...o, content: val } : o),
-    }))
-  const removeOpening = (pi: number, oid: string) =>
-    setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p, openings: p.openings.map(o => o.id === oid ? { ...o, removed: true } : o),
-    }))
-  const restoreOpening = (pi: number, oid: string) =>
-    setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p, openings: p.openings.map(o => o.id === oid ? { ...o, removed: false } : o),
-    }))
-
-  const toImport = items.filter(i => i._included && !i._removed)
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.75)',
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-    }} onClick={onClose}>
-      <div style={{
-        width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto',
-        background: 'var(--tg-bg)', borderRadius: '16px 16px 0 0', padding: '20px 14px 32px',
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tg-ink)' }}>가져오기 미리보기</div>
-          <button onClick={onClose} style={{ appearance: 'none', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--tg-ink-soft)' }}>✕</button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {items.map((item, pi) => {
-            const color = typeColor(item.type)
-            return (
-              <div key={`${item.url}-${pi}`} style={{
-                border: `1px solid ${item._removed ? 'var(--tg-line)' : color + '44'}`,
-                borderRadius: 12, overflow: 'hidden',
-                opacity: item._removed ? 0.5 : 1,
-                transition: 'opacity 0.15s',
-              }}>
-                {/* 아이템 헤더 */}
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                  background: item._removed ? 'var(--tg-surface)' : color + '18',
-                  borderBottom: item._removed ? 'none' : `1px solid ${color}33`,
-                }}>
-                  {/* 포함 체크박스 */}
-                  <div
-                    onClick={() => !item._removed && updateItem(pi, { _included: !item._included })}
-                    style={{
-                      width: 20, height: 20, borderRadius: 5, flexShrink: 0,
-                      cursor: item._removed ? 'default' : 'pointer',
-                      border: `2px solid ${item._included && !item._removed ? color : 'var(--tg-line)'}`,
-                      background: item._included && !item._removed ? color : 'transparent',
-                      display: 'grid', placeItems: 'center', transition: 'all 0.15s',
-                    }}
-                  >
-                    {item._included && !item._removed && <span style={{ fontSize: 11, color: '#fff', lineHeight: 1 }}>✓</span>}
-                  </div>
-                  {item.coverImageUrl && (
-                    <img src={item.coverImageUrl} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} alt="" />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--tg-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color, display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                      {typeLabel(item.type)}
-                      {item.isLinked && <span style={{ opacity: 0.7 }}>· 자동 연결</span>}
-                      {item.safetyLevel === 'relaxed' && <span style={{ background: '#ff5776', color: '#fff', padding: '0 3px', borderRadius: 2, fontSize: 9 }}>성인</span>}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => updateItem(pi, { _removed: !item._removed, _included: item._removed ? true : item._included })}
-                    style={{
-                      appearance: 'none', cursor: 'pointer', flexShrink: 0,
-                      border: 'none', borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 700,
-                      background: item._removed ? '#4ade8022' : '#ff6b8a22',
-                      color: item._removed ? '#4ade80' : '#ff6b8a',
-                    }}
-                  >{item._removed ? '복원' : '제외'}</button>
-                </div>
-
-                {/* 아이템 바디 — 제외 시 숨김 */}
-                {!item._removed && (
-                  <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {item.fields.map(field => (
-                      <div key={field.key} style={{
-                        borderRadius: 8, padding: '8px 10px',
-                        background: field.removed ? 'var(--tg-surface)' : 'var(--tg-surface-2)',
-                        opacity: field.removed ? 0.45 : 1,
-                        border: `1px solid ${field.removed ? 'var(--tg-line)' : color + '44'}`,
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: field.removed ? 0 : 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: field.removed ? 'var(--tg-ink-soft)' : color, flex: 1 }}>{field.label}</span>
-                          <button
-                            onClick={() => field.removed ? restoreField(pi, field.key) : removeField(pi, field.key)}
-                            style={{ appearance: 'none', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: field.removed ? '#4ade80' : '#ff6b8a', padding: '0 2px', flexShrink: 0 }}
-                          >{field.removed ? '↩' : '✕'}</button>
-                        </div>
-                        {!field.removed && (
-                          <textarea
-                            value={field.value}
-                            onChange={e => setFieldValue(pi, field.key, e.target.value)}
-                            style={{
-                              width: '100%', minHeight: 56, fontSize: 11, color: 'var(--tg-ink)',
-                              background: 'var(--tg-bg)', border: '1px solid var(--tg-line)',
-                              borderRadius: 6, padding: '6px 8px', resize: 'vertical',
-                              lineHeight: 1.5, boxSizing: 'border-box', fontFamily: 'inherit',
-                            }}
-                          />
-                        )}
-                      </div>
-                    ))}
-
-                    {item.openings.length > 0 && (
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tg-ink-soft)', marginBottom: 6 }}>도입부</div>
-                        {item.openings.map(op => (
-                          <div key={op.id} style={{
-                            borderRadius: 8, padding: '8px 10px', marginBottom: 6,
-                            background: op.removed ? 'var(--tg-surface)' : 'var(--tg-surface-2)',
-                            opacity: op.removed ? 0.45 : 1,
-                            border: `1px solid ${op.removed ? 'var(--tg-line)' : color + '44'}`,
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: op.removed ? 0 : 6 }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: op.removed ? 'var(--tg-ink-soft)' : color, flex: 1 }}>{op.title}</span>
-                              <button
-                                onClick={() => op.removed ? restoreOpening(pi, op.id) : removeOpening(pi, op.id)}
-                                style={{ appearance: 'none', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: op.removed ? '#4ade80' : '#ff6b8a', padding: '0 2px', flexShrink: 0 }}
-                              >{op.removed ? '↩' : '✕'}</button>
-                            </div>
-                            {!op.removed && (
-                              <textarea
-                                value={op.content}
-                                onChange={e => setOpeningContent(pi, op.id, e.target.value)}
-                                style={{
-                                  width: '100%', minHeight: 72, fontSize: 11, color: 'var(--tg-ink)',
-                                  background: 'var(--tg-bg)', border: '1px solid var(--tg-line)',
-                                  borderRadius: 6, padding: '6px 8px', resize: 'vertical',
-                                  lineHeight: 1.5, boxSizing: 'border-box', fontFamily: 'inherit',
-                                }}
-                              />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 16, position: 'sticky', bottom: 0, paddingTop: 12, background: 'var(--tg-bg)' }}>
-          <button
-            onClick={onClose}
-            style={{ flex: 1, appearance: 'none', border: '1px solid var(--tg-line)', background: 'var(--tg-surface)', color: 'var(--tg-ink)', borderRadius: 10, padding: '11px 0', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
-          >취소</button>
-          <button
-            onClick={() => onConfirm(toImport)}
-            disabled={confirming || toImport.length === 0}
-            style={{ flex: 2, appearance: 'none', border: 'none', background: toImport.length === 0 ? 'var(--tg-surface-2)' : 'var(--tg-accent)', color: toImport.length === 0 ? 'var(--tg-ink-soft)' : '#fff', borderRadius: 10, padding: '11px 0', fontSize: 13, cursor: toImport.length === 0 ? 'default' : 'pointer', fontWeight: 700 }}
-          >{confirming ? '저장 중...' : `📥 가져오기 (${toImport.length}개)`}</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function TingleListPage() {
   const router = useRouter()
   const [cols, setCols] = useState<TingleCol[]>([])
   const [view, setView] = useState<ViewTab>('active')
-  const [typeTab, setTypeTab] = useState<TypeTab>('all')
+  const [typeTab, setTypeTab] = useState<TypeTab>('character')
   const { isFav, toggleFav } = useFavorites()
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [previews, setPreviews] = useState<TinglePreview[] | null>(null)
   const [msg, setMsg] = useState('')
   const [sort, setSort] = useState<SortOption>('latest')
   const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
@@ -295,7 +81,8 @@ export default function TingleListPage() {
     setEditMode(localStorage.getItem('tg_edit') === '1')
     setSort((localStorage.getItem('tg_sort') as SortOption) || 'latest')
     setView((sessionStorage.getItem('tg_view') as ViewTab) || 'active')
-    setTypeTab((sessionStorage.getItem('tg_type') as TypeTab) || 'all')
+    const stored = sessionStorage.getItem('tg_type') as TypeTab
+    setTypeTab(stored === 'character' || stored === 'universe' || stored === 'scene' ? stored : 'character')
     fetchData()
   }, [])
 
@@ -315,48 +102,45 @@ export default function TingleListPage() {
     finally { setLoading(false) }
   }
 
-  // URL 입력 → preview API 호출 → 미리보기 모달 열기
-  const handlePreview = async () => {
+  const importTingleUrl = async (url: string) => {
+    if (url.includes('tingle.chat')) {
+      const previews: TinglePreview[] = await api.post('/api/characters/import/preview', { url })
+      const main = previews.find(p => !p.isLinked)
+      const linked = previews.filter(p => p.isLinked)
+      if (!main) throw new Error('미리보기 데이터 없음')
+      const mainResult = await api.post('/api/characters/import', { url: main.url, previewData: main })
+      for (const item of linked) {
+        const linkedResult = await api.post('/api/characters/import', { url: item.url, previewData: item })
+        if (item.type === 'universe' && mainResult.collectionId) {
+          localStorage.setItem(`tg_uni_${mainResult.collectionId}`, linkedResult.collectionId)
+        }
+        if (item.type === 'scene' && mainResult.collectionId) {
+          localStorage.setItem(`tg_scene_${mainResult.collectionId}`, linkedResult.collectionId)
+        }
+      }
+    } else {
+      await api.post('/api/characters/import', { url })
+    }
+  }
+
+  const handleDirectImport = async () => {
     const urls = importUrl.split('\n').map(u => u.trim()).filter(Boolean)
     if (urls.length === 0 || importing) return
     setImporting(true); setMsg('')
-    const results: TinglePreview[] = []
+    let ok = 0
     const failed: string[] = []
     for (let i = 0; i < urls.length; i++) {
-      setMsg(`미리보기 로드 중... (${i + 1}/${urls.length})`)
+      setMsg(`가져오는 중... (${i + 1}/${urls.length})`)
       try {
-        const items = await api.post('/api/characters/import/preview', { url: urls[i] })
-        results.push(...(Array.isArray(items) ? items : [items]))
+        await importTingleUrl(urls[i])
+        ok++
       } catch (e: any) {
         failed.push(urls[i])
         setMsg(`⚠ ${urls[i]} — ${e.message}`)
       }
     }
     setImporting(false)
-    if (results.length > 0) {
-      setPreviews(results)
-      setMsg('')
-    } else {
-      setMsg(failed.length ? `⚠ 모두 실패` : '')
-    }
-  }
-
-  // 미리보기 확인 → 실제 저장 (PreviewItem도 TinglePreview 확장이라 그대로 수신)
-  const handleConfirm = async (edited: PreviewItem[]) => {
-    setConfirming(true)
-    let ok = 0
-    const failed: string[] = []
-    for (const preview of edited) {
-      try {
-        await api.post('/api/characters/import', { url: preview.url, previewData: preview })
-        ok++
-      } catch {
-        failed.push(preview.name)
-      }
-    }
-    setConfirming(false)
-    setPreviews(null)
-    if (ok > 0) setImportUrl(failed.length ? importUrl : '')
+    if (ok > 0) setImportUrl(failed.length > 0 ? importUrl : '')
     setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.join(', ')} 실패` : `✓ ${ok}개 가져왔습니다`)
     if (failed.length === 0) setMenuOpen(false)
     await fetchData()
@@ -391,24 +175,24 @@ export default function TingleListPage() {
     const targets = likedList.filter(x => likedSelected.has(x.id))
     if (targets.length === 0 || importing) return
     setImporting(true); setMsg('')
-    const results: TinglePreview[] = []
+    let ok = 0
     const failed: string[] = []
     for (let i = 0; i < targets.length; i++) {
-      setMsg(`미리보기 로드 중... (${i + 1}/${targets.length})`)
+      setMsg(`가져오는 중... (${i + 1}/${targets.length})`)
       try {
-        const items = await api.post('/api/characters/import/preview', { url: targets[i].sourceUrl })
-        results.push(...(Array.isArray(items) ? items : [items]))
+        await importTingleUrl(targets[i].sourceUrl)
+        ok++
       } catch {
         failed.push(targets[i].name)
       }
     }
     setImporting(false)
-    if (failed.length) setMsg(`⚠ ${failed.join(', ')} 실패`)
-    else setMsg('')
-    if (results.length > 0) {
-      setPreviews(results)
+    setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.join(', ')} 실패` : `✓ ${ok}개 가져왔습니다`)
+    if (failed.length === 0) {
       setLikedPanel(false)
+      setLikedSelected(new Set())
     }
+    await fetchData()
   }
 
   const toggleEditMode = () => {
@@ -429,7 +213,6 @@ export default function TingleListPage() {
   const counts = viewCounts(cols)
 
   const typeCounts = {
-    all: cols.length,
     character: cols.filter(c => detectTingleType(c.sourceUrl).type === 'character').length,
     universe: cols.filter(c => detectTingleType(c.sourceUrl).type === 'universe').length,
     scene: cols.filter(c => detectTingleType(c.sourceUrl).type === 'scene').length,
@@ -441,7 +224,7 @@ export default function TingleListPage() {
         : view === 'completed' ? c.completed
         : view === 'waiting' ? !c.started
         : !c.completed && !!c.started
-      const typeMatch = typeTab === 'all' || detectTingleType(c.sourceUrl).type === typeTab
+      const typeMatch = detectTingleType(c.sourceUrl).type === typeTab
       return viewMatch && typeMatch && matchesQuery(c)
     }),
     sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
@@ -449,15 +232,6 @@ export default function TingleListPage() {
 
   return (
     <>
-      {previews && (
-        <ImportPreviewModal
-          previews={previews}
-          onConfirm={handleConfirm}
-          onClose={() => setPreviews(null)}
-          confirming={confirming}
-        />
-      )}
-
       {/* 좋아요 목록 패널 */}
       {likedPanel && (() => {
         const importable = likedList.filter(x => !cols.some(c => c.sourceUrl === x.sourceUrl))
@@ -541,7 +315,7 @@ export default function TingleListPage() {
                     disabled={importing}
                     onClick={handleLikedImport}
                     style={{ width: '100%', appearance: 'none', border: 'none', background: 'var(--tg-accent)', color: '#fff', borderRadius: 10, padding: '13px 0', fontSize: 14, cursor: 'pointer', fontWeight: 700 }}>
-                    {importing ? msg || '미리보기 로드 중...' : `📥 선택한 ${likedSelected.size}개 가져오기`}
+                    {importing ? msg || '가져오는 중...' : `📥 선택한 ${likedSelected.size}개 가져오기`}
                   </button>
                 </div>
               )}
@@ -571,8 +345,8 @@ export default function TingleListPage() {
                 className="tingle-menu-item"
                 style={{ background: 'var(--tg-accent)', borderRadius: 8, color: '#fff', textAlign: 'center' }}
                 disabled={importing}
-                onClick={handlePreview}
-              >{importing ? '불러오는 중...' : '🔍 미리보기'}</button>
+                onClick={handleDirectImport}
+              >{importing ? '가져오는 중...' : '📥 가져오기'}</button>
             </div>
             <button className="tingle-menu-item" onClick={handleLikedScan}>
               ♥ 좋아요 목록
@@ -586,20 +360,51 @@ export default function TingleListPage() {
 
       {msg && <div style={{ padding: '6px 16px', fontSize: 12, color: msg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{msg}</div>}
 
-      {/* 상태 탭 */}
+      {/* 주탭: 캐릭터 / 서사 / 테마 */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--tg-line)', padding: '0 16px' }}>
+        {([
+          { key: 'character', label: '캐릭터', color: '#ff5776' },
+          { key: 'universe', label: '서사', color: '#a78bfa' },
+          { key: 'scene', label: '테마', color: '#06bfd6' },
+        ] as const).map(t => (
+          <button key={t.key}
+            style={{
+              appearance: 'none', border: 'none', background: 'none', cursor: 'pointer',
+              padding: '10px 16px', fontSize: 14, fontWeight: 700,
+              color: typeTab === t.key ? t.color : 'var(--tg-ink-soft)',
+              borderBottom: typeTab === t.key ? `2px solid ${t.color}` : '2px solid transparent',
+              marginBottom: -1,
+            }}
+            onClick={() => handleTypeTab(t.key)}>
+            {t.label}
+            <span style={{ marginLeft: 4, fontSize: 11, opacity: 0.6 }}>
+              {typeCounts[t.key]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* 상태 필터 + 검색/정렬 */}
       <div style={{ display: 'flex', gap: 6, padding: '8px 16px 0', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
           {(['active', 'waiting', 'completed', 'favorites'] as const).map(v => (
             <button key={v} className="tingle-chip"
-              style={{ cursor: 'pointer', border: 'none', whiteSpace: 'nowrap', background: view === v ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: view === v ? '#fff' : 'var(--tg-ink-soft)' }}
+              style={{ cursor: 'pointer', border: 'none', whiteSpace: 'nowrap',
+                background: view === v ? 'var(--tg-accent)' : 'var(--tg-surface-2)',
+                color: view === v ? '#fff' : 'var(--tg-ink-soft)' }}
               onClick={() => handleView(v)}>
-              {v === 'active' ? `진행 중 ${counts.active}` : v === 'waiting' ? `대기 ${counts.waiting}` : v === 'completed' ? `완결 ${counts.completed}` : '★ 즐겨찾기'}
+              {v === 'active' ? `진행 중 ${counts.active}`
+                : v === 'waiting' ? `대기 ${counts.waiting}`
+                : v === 'completed' ? `완결 ${counts.completed}`
+                : '★ 즐겨찾기'}
             </button>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           <button className="tingle-chip"
-            style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: searchOpen ? '#fff' : 'var(--tg-ink-soft)' }}
+            style={{ cursor: 'pointer', border: 'none',
+              background: searchOpen ? 'var(--tg-accent)' : 'var(--tg-surface-2)',
+              color: searchOpen ? '#fff' : 'var(--tg-ink-soft)' }}
             onClick={toggleSearch}>🔍</button>
           <select className="field" style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }} value={sort} onChange={e => handleSort(e.target.value as SortOption)}>
             <option value="latest">최신순</option>
@@ -609,24 +414,6 @@ export default function TingleListPage() {
             <option value="random">🔀 랜덤</option>
           </select>
         </div>
-      </div>
-
-      {/* 타입 탭 */}
-      <div style={{ display: 'flex', gap: 6, padding: '6px 16px 8px' }}>
-        {([
-          { key: 'all', label: `전체 ${typeCounts.all}`, color: 'var(--tg-accent)' },
-          { key: 'character', label: `캐릭터 ${typeCounts.character}`, color: '#ff5776' },
-          { key: 'universe', label: `서사 ${typeCounts.universe}`, color: '#a78bfa' },
-          { key: 'scene', label: `테마 ${typeCounts.scene}`, color: '#06bfd6' },
-        ] as const).map(t => (
-          <button key={t.key} className="tingle-chip"
-            style={{ cursor: 'pointer', border: 'none', fontSize: 11,
-              background: typeTab === t.key ? t.color : 'var(--tg-surface-2)',
-              color: typeTab === t.key ? '#fff' : 'var(--tg-ink-soft)' }}
-            onClick={() => handleTypeTab(t.key as TypeTab)}>
-            {t.label}
-          </button>
-        ))}
       </div>
 
       {searchOpen && (
@@ -657,8 +444,8 @@ export default function TingleListPage() {
               : view === 'completed' ? '완결한 항목이 없습니다.'
               : view === 'waiting' ? '대기 중인 항목이 없습니다.'
               : cols.length === 0
-                ? '가져온 항목이 없습니다.\n⋮ 메뉴에서 팅글 URL을 붙여넣고 🔍 미리보기를 누르세요.\n(관리자 설정에서 인증 토큰 설정 필요)'
-                : '진행 중인 항목이 없습니다.'}
+                ? `가져온 ${typeTab === 'character' ? '캐릭터' : typeTab === 'universe' ? '서사' : '테마'}가 없습니다.\n⋮ 메뉴에서 팅글 URL을 붙여넣고 📥 가져오기를 누르세요.\n(관리자 설정에서 인증 토큰 설정 필요)`
+                : `진행 중인 ${typeTab === 'character' ? '캐릭터' : typeTab === 'universe' ? '서사' : '테마'}가 없습니다.`}
           </div>
         ) : (
           <div className="tingle-grid">
