@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const raw = await captureTingleRaw(url.trim())
-    const items = [raw, ...(raw.linked ?? [])]
+    const linkedItems = (raw.linked ?? []).map(item => ({ ...item, isLinked: true }))
+    const items = [raw, ...linkedItems]
     return NextResponse.json(items)
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? '미리보기 실패' }, { status: 400 })

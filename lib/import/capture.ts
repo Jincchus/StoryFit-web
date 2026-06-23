@@ -963,8 +963,13 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
     let order = 1
     if (data.introduction) fields.push({ key: 'introduction', label: '소개', value: data.introduction, order: order++ })
     if (data.age) fields.push({ key: 'age', label: '나이', value: `나이: ${data.age}세`, order: order++ })
+    if (data.job) fields.push({ key: 'job', label: '직업', value: String(data.job), order: order++ })
+    if (data.personality) fields.push({ key: 'personality', label: '성격', value: String(data.personality), order: order++ })
+    if (data.speakingStyle) fields.push({ key: 'speakingStyle', label: '말투', value: String(data.speakingStyle), order: order++ })
+    if (data.favorites) fields.push({ key: 'favorites', label: '좋아하는 것', value: String(data.favorites), order: order++ })
     if (data.characterDetails) fields.push({ key: 'characterDetails', label: '캐릭터 설정', value: String(data.characterDetails), order: order++ })
     if (data.backgroundDetails) fields.push({ key: 'backgroundDetails', label: '배경 설정', value: String(data.backgroundDetails), order: order++ })
+    if (data.otherDetails) fields.push({ key: 'otherDetails', label: '기타 설명', value: String(data.otherDetails), order: order++ })
     if (data.creatorComment) fields.push({ key: 'creatorComment', label: '제작자 메모', value: `[제작자 메모]\n${data.creatorComment}`, order: order++ })
 
     const rawOpenings = Array.isArray(data.openings) ? data.openings : []

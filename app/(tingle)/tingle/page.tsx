@@ -28,6 +28,12 @@ interface TinglePreview {
   url: string; name: string; gender: string; coverImageUrl: string
   tags: string[]; safetyLevel: 'standard' | 'relaxed'
   fields: TingleField[]; openings: TingleOpening[]
+  isLinked?: boolean
+}
+
+interface PreviewItem extends TinglePreview {
+  _included: boolean
+  _removed: boolean
 }
 
 type TingleType = 'character' | 'universe' | 'scene'
@@ -67,44 +73,44 @@ function ImportPreviewModal({
   previews, onConfirm, onClose, confirming,
 }: {
   previews: TinglePreview[]
-  onConfirm: (previews: TinglePreview[]) => void
+  onConfirm: (previews: PreviewItem[]) => void
   onClose: () => void
   confirming: boolean
 }) {
-  const [items, setItems] = useState<TinglePreview[]>(previews)
+  const [items, setItems] = useState<PreviewItem[]>(() =>
+    previews.map(p => ({ ...p, _included: true, _removed: false }))
+  )
 
-  const removeField = (pi: number, key: string) => {
+  const updateItem = (pi: number, patch: Partial<PreviewItem>) =>
+    setItems(prev => prev.map((item, i) => i !== pi ? item : { ...item, ...patch }))
+
+  const setFieldValue = (pi: number, key: string, val: string) =>
     setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p,
-      fields: p.fields.map(f => f.key === key ? { ...f, removed: true } : f),
+      ...p, fields: p.fields.map(f => f.key === key ? { ...f, value: val } : f),
     }))
-  }
-  const restoreField = (pi: number, key: string) => {
+  const removeField = (pi: number, key: string) =>
     setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p,
-      fields: p.fields.map(f => f.key === key ? { ...f, removed: false } : f),
+      ...p, fields: p.fields.map(f => f.key === key ? { ...f, removed: true } : f),
     }))
-  }
-  const setOrder = (pi: number, key: string, val: string) => {
-    const n = parseInt(val)
-    if (isNaN(n)) return
+  const restoreField = (pi: number, key: string) =>
     setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p,
-      fields: p.fields.map(f => f.key === key ? { ...f, order: n } : f),
+      ...p, fields: p.fields.map(f => f.key === key ? { ...f, removed: false } : f),
     }))
-  }
-  const removeOpening = (pi: number, oid: string) => {
+
+  const setOpeningContent = (pi: number, oid: string, val: string) =>
     setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p,
-      openings: p.openings.map(o => o.id === oid ? { ...o, removed: true } : o),
+      ...p, openings: p.openings.map(o => o.id === oid ? { ...o, content: val } : o),
     }))
-  }
-  const restoreOpening = (pi: number, oid: string) => {
+  const removeOpening = (pi: number, oid: string) =>
     setItems(prev => prev.map((p, i) => i !== pi ? p : {
-      ...p,
-      openings: p.openings.map(o => o.id === oid ? { ...o, removed: false } : o),
+      ...p, openings: p.openings.map(o => o.id === oid ? { ...o, removed: true } : o),
     }))
-  }
+  const restoreOpening = (pi: number, oid: string) =>
+    setItems(prev => prev.map((p, i) => i !== pi ? p : {
+      ...p, openings: p.openings.map(o => o.id === oid ? { ...o, removed: false } : o),
+    }))
+
+  const toImport = items.filter(i => i._included && !i._removed)
 
   return (
     <div style={{
@@ -112,114 +118,147 @@ function ImportPreviewModal({
       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     }} onClick={onClose}>
       <div style={{
-        width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto',
-        background: 'var(--tg-bg)', borderRadius: '16px 16px 0 0', padding: '20px 16px 32px',
+        width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto',
+        background: 'var(--tg-bg)', borderRadius: '16px 16px 0 0', padding: '20px 14px 32px',
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tg-ink)' }}>가져오기 미리보기</div>
           <button onClick={onClose} style={{ appearance: 'none', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--tg-ink-soft)' }}>✕</button>
         </div>
 
-        {items.map((preview, pi) => {
-          const color = typeColor(preview.type)
-          const sorted = [...preview.fields].sort((a, b) => a.order - b.order)
-          return (
-            <div key={preview.url} style={{ marginBottom: items.length > 1 ? 24 : 0 }}>
-              {items.length > 1 && (
-                <div style={{ fontSize: 12, fontWeight: 700, color, marginBottom: 8 }}>
-                  [{pi + 1}] {typeLabel(preview.type)} — {preview.name}
-                </div>
-              )}
-              {items.length === 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  {preview.coverImageUrl && (
-                    <img src={preview.coverImageUrl} style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} alt="" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {items.map((item, pi) => {
+            const color = typeColor(item.type)
+            return (
+              <div key={`${item.url}-${pi}`} style={{
+                border: `1px solid ${item._removed ? 'var(--tg-line)' : color + '44'}`,
+                borderRadius: 12, overflow: 'hidden',
+                opacity: item._removed ? 0.5 : 1,
+                transition: 'opacity 0.15s',
+              }}>
+                {/* 아이템 헤더 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+                  background: item._removed ? 'var(--tg-surface)' : color + '18',
+                  borderBottom: item._removed ? 'none' : `1px solid ${color}33`,
+                }}>
+                  {/* 포함 체크박스 */}
+                  <div
+                    onClick={() => !item._removed && updateItem(pi, { _included: !item._included })}
+                    style={{
+                      width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                      cursor: item._removed ? 'default' : 'pointer',
+                      border: `2px solid ${item._included && !item._removed ? color : 'var(--tg-line)'}`,
+                      background: item._included && !item._removed ? color : 'transparent',
+                      display: 'grid', placeItems: 'center', transition: 'all 0.15s',
+                    }}
+                  >
+                    {item._included && !item._removed && <span style={{ fontSize: 11, color: '#fff', lineHeight: 1 }}>✓</span>}
+                  </div>
+                  {item.coverImageUrl && (
+                    <img src={item.coverImageUrl} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} alt="" />
                   )}
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--tg-ink)' }}>{preview.name}</div>
-                    <div style={{ fontSize: 11, color, fontWeight: 700 }}>{typeLabel(preview.type)}</div>
-                  </div>
-                </div>
-              )}
-
-              {/* 필드 목록 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {sorted.map(field => (
-                  <div key={field.key} style={{
-                    borderRadius: 8, padding: '8px 10px',
-                    background: field.removed ? 'var(--tg-surface)' : 'var(--tg-surface-2)',
-                    opacity: field.removed ? 0.45 : 1,
-                    border: `1px solid ${field.removed ? 'var(--tg-line)' : color + '55'}`,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: field.removed ? 0 : 4 }}>
-                      <input
-                        type="number"
-                        min={1}
-                        value={field.order}
-                        disabled={field.removed}
-                        onChange={e => setOrder(pi, field.key, e.target.value)}
-                        style={{
-                          width: 36, height: 24, borderRadius: 4, border: '1px solid var(--tg-line)',
-                          background: 'var(--tg-bg)', color: 'var(--tg-ink)', fontSize: 11,
-                          textAlign: 'center', padding: 0, flexShrink: 0,
-                        }}
-                      />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: field.removed ? 'var(--tg-ink-soft)' : color, flex: 1 }}>{field.label}</span>
-                      <button
-                        onClick={() => field.removed ? restoreField(pi, field.key) : removeField(pi, field.key)}
-                        style={{ appearance: 'none', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: field.removed ? '#4ade80' : '#ff6b8a', padding: '0 2px', flexShrink: 0 }}
-                      >{field.removed ? '↩' : '✕'}</button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--tg-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color, display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                      {typeLabel(item.type)}
+                      {item.isLinked && <span style={{ opacity: 0.7 }}>· 자동 연결</span>}
+                      {item.safetyLevel === 'relaxed' && <span style={{ background: '#ff5776', color: '#fff', padding: '0 3px', borderRadius: 2, fontSize: 9 }}>성인</span>}
                     </div>
-                    {!field.removed && (
-                      <div style={{ fontSize: 11, color: 'var(--tg-ink-soft)', whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden', lineHeight: 1.5, WebkitLineClamp: 4, display: '-webkit-box', WebkitBoxOrient: 'vertical' }}>
-                        {field.value}
-                      </div>
-                    )}
                   </div>
-                ))}
+                  <button
+                    onClick={() => updateItem(pi, { _removed: !item._removed, _included: item._removed ? true : item._included })}
+                    style={{
+                      appearance: 'none', cursor: 'pointer', flexShrink: 0,
+                      border: 'none', borderRadius: 6, padding: '3px 9px', fontSize: 11, fontWeight: 700,
+                      background: item._removed ? '#4ade8022' : '#ff6b8a22',
+                      color: item._removed ? '#4ade80' : '#ff6b8a',
+                    }}
+                  >{item._removed ? '복원' : '제외'}</button>
+                </div>
 
-                {/* 도입부 (character만) */}
-                {preview.openings.length > 0 && (
-                  <div style={{ marginTop: 4 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tg-ink-soft)', marginBottom: 6 }}>도입부</div>
-                    {preview.openings.map(op => (
-                      <div key={op.id} style={{
-                        borderRadius: 8, padding: '8px 10px', marginBottom: 6,
-                        background: op.removed ? 'var(--tg-surface)' : 'var(--tg-surface-2)',
-                        opacity: op.removed ? 0.45 : 1,
-                        border: `1px solid ${op.removed ? 'var(--tg-line)' : color + '55'}`,
+                {/* 아이템 바디 — 제외 시 숨김 */}
+                {!item._removed && (
+                  <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {item.fields.map(field => (
+                      <div key={field.key} style={{
+                        borderRadius: 8, padding: '8px 10px',
+                        background: field.removed ? 'var(--tg-surface)' : 'var(--tg-surface-2)',
+                        opacity: field.removed ? 0.45 : 1,
+                        border: `1px solid ${field.removed ? 'var(--tg-line)' : color + '44'}`,
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: op.removed ? 0 : 4 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: op.removed ? 'var(--tg-ink-soft)' : color, flex: 1 }}>{op.title}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: field.removed ? 0 : 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: field.removed ? 'var(--tg-ink-soft)' : color, flex: 1 }}>{field.label}</span>
                           <button
-                            onClick={() => op.removed ? restoreOpening(pi, op.id) : removeOpening(pi, op.id)}
-                            style={{ appearance: 'none', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: op.removed ? '#4ade80' : '#ff6b8a', padding: '0 2px', flexShrink: 0 }}
-                          >{op.removed ? '↩' : '✕'}</button>
+                            onClick={() => field.removed ? restoreField(pi, field.key) : removeField(pi, field.key)}
+                            style={{ appearance: 'none', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: field.removed ? '#4ade80' : '#ff6b8a', padding: '0 2px', flexShrink: 0 }}
+                          >{field.removed ? '↩' : '✕'}</button>
                         </div>
-                        {!op.removed && (
-                          <div style={{ fontSize: 11, color: 'var(--tg-ink-soft)', whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden', WebkitLineClamp: 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', lineHeight: 1.5 }}>
-                            {op.content}
-                          </div>
+                        {!field.removed && (
+                          <textarea
+                            value={field.value}
+                            onChange={e => setFieldValue(pi, field.key, e.target.value)}
+                            style={{
+                              width: '100%', minHeight: 56, fontSize: 11, color: 'var(--tg-ink)',
+                              background: 'var(--tg-bg)', border: '1px solid var(--tg-line)',
+                              borderRadius: 6, padding: '6px 8px', resize: 'vertical',
+                              lineHeight: 1.5, boxSizing: 'border-box', fontFamily: 'inherit',
+                            }}
+                          />
                         )}
                       </div>
                     ))}
+
+                    {item.openings.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tg-ink-soft)', marginBottom: 6 }}>도입부</div>
+                        {item.openings.map(op => (
+                          <div key={op.id} style={{
+                            borderRadius: 8, padding: '8px 10px', marginBottom: 6,
+                            background: op.removed ? 'var(--tg-surface)' : 'var(--tg-surface-2)',
+                            opacity: op.removed ? 0.45 : 1,
+                            border: `1px solid ${op.removed ? 'var(--tg-line)' : color + '44'}`,
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: op.removed ? 0 : 6 }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: op.removed ? 'var(--tg-ink-soft)' : color, flex: 1 }}>{op.title}</span>
+                              <button
+                                onClick={() => op.removed ? restoreOpening(pi, op.id) : removeOpening(pi, op.id)}
+                                style={{ appearance: 'none', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: op.removed ? '#4ade80' : '#ff6b8a', padding: '0 2px', flexShrink: 0 }}
+                              >{op.removed ? '↩' : '✕'}</button>
+                            </div>
+                            {!op.removed && (
+                              <textarea
+                                value={op.content}
+                                onChange={e => setOpeningContent(pi, op.id, e.target.value)}
+                                style={{
+                                  width: '100%', minHeight: 72, fontSize: 11, color: 'var(--tg-ink)',
+                                  background: 'var(--tg-bg)', border: '1px solid var(--tg-line)',
+                                  borderRadius: 6, padding: '6px 8px', resize: 'vertical',
+                                  lineHeight: 1.5, boxSizing: 'border-box', fontFamily: 'inherit',
+                                }}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 16, position: 'sticky', bottom: 0, paddingTop: 12, background: 'var(--tg-bg)' }}>
           <button
             onClick={onClose}
             style={{ flex: 1, appearance: 'none', border: '1px solid var(--tg-line)', background: 'var(--tg-surface)', color: 'var(--tg-ink)', borderRadius: 10, padding: '11px 0', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
           >취소</button>
           <button
-            onClick={() => onConfirm(items)}
-            disabled={confirming}
-            style={{ flex: 2, appearance: 'none', border: 'none', background: 'var(--tg-accent)', color: '#fff', borderRadius: 10, padding: '11px 0', fontSize: 13, cursor: 'pointer', fontWeight: 700 }}
-          >{confirming ? '저장 중...' : '📥 가져오기'}</button>
+            onClick={() => onConfirm(toImport)}
+            disabled={confirming || toImport.length === 0}
+            style={{ flex: 2, appearance: 'none', border: 'none', background: toImport.length === 0 ? 'var(--tg-surface-2)' : 'var(--tg-accent)', color: toImport.length === 0 ? 'var(--tg-ink-soft)' : '#fff', borderRadius: 10, padding: '11px 0', fontSize: 13, cursor: toImport.length === 0 ? 'default' : 'pointer', fontWeight: 700 }}
+          >{confirming ? '저장 중...' : `📥 가져오기 (${toImport.length}개)`}</button>
         </div>
       </div>
     </div>
@@ -302,8 +341,8 @@ export default function TingleListPage() {
     }
   }
 
-  // 미리보기 확인 → 실제 저장
-  const handleConfirm = async (edited: TinglePreview[]) => {
+  // 미리보기 확인 → 실제 저장 (PreviewItem도 TinglePreview 확장이라 그대로 수신)
+  const handleConfirm = async (edited: PreviewItem[]) => {
     setConfirming(true)
     let ok = 0
     const failed: string[] = []

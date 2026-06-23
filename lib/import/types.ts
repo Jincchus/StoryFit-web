@@ -97,4 +97,5 @@ export interface TingleRawData {
   fields: TingleField[]
   openings: TingleOpening[]
   linked?: TingleRawData[]  // 캐릭터에 연결된 서사/테마
+  isLinked?: boolean        // linked[]에서 온 자동 연결 항목
 }
