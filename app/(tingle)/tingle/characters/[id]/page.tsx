@@ -99,6 +99,19 @@ export default function TingleCharacterDetailPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [showEdit, setShowEdit] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!confirm('이 항목을 삭제할까요?')) return
+    setDeleting(true)
+    try {
+      await api.delete(`/api/collections/${id}`)
+      router.push('/tingle')
+    } catch (e: any) {
+      setDeleting(false)
+    }
+  }
+
   const [uniPickerOpen, setUniPickerOpen] = useState(false)
   const [scenePickerOpen, setScenePickerOpen] = useState(false)
   const userName = useDisplayName()
@@ -162,6 +175,7 @@ export default function TingleCharacterDetailPage() {
       }
       const chosen = openings[openingIdx]?.content
       const scenarioDescription = buildScenario()
+      const extraCollectionIds = [selectedUniverseId, selectedSceneId].filter(Boolean) as string[]
       const resp = await api.post('/api/conversations', {
         title: col.title,
         characterIds: [mainChar.id],
@@ -169,6 +183,7 @@ export default function TingleCharacterDetailPage() {
         personaCharacterId: personaId,
         ...(chosen !== undefined ? { openingMessage: chosen } : {}),
         ...(scenarioDescription ? { scenarioDescription } : {}),
+        ...(extraCollectionIds.length > 0 ? { extraCollectionIds } : {}),
       })
       router.push(`/conversations/${resp.id}`)
     } catch (e: any) {
@@ -219,8 +234,12 @@ export default function TingleCharacterDetailPage() {
                 <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: 'var(--tg-ink)' }}>{col.title}</h1>
                 <div style={{ fontSize: 11, color: '#ff5776', fontWeight: 700 }}>캐릭터</div>
               </div>
-              <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--tg-surface-2)', padding: '4px 8px', fontSize: 11 }}
-                onClick={() => setShowEdit(true)}>✏ 정보</button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--tg-surface-2)', padding: '4px 8px', fontSize: 11 }}
+                  onClick={() => setShowEdit(true)}>✏ 정보</button>
+                <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: '#ff6b8a22', color: '#ff6b8a', padding: '4px 8px', fontSize: 11 }}
+                  onClick={handleDelete} disabled={deleting}>🗑 삭제</button>
+              </div>
             </div>
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
