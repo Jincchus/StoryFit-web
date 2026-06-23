@@ -47,6 +47,11 @@ function detailPath(col: TingleCol) {
 type ViewTab = 'active' | 'waiting' | 'completed' | 'favorites'
 type TypeTab = 'all' | TingleType
 
+interface LikedPersona {
+  id: string; name: string; coverImageUrl: string | null
+  tags: string[]; isAdult: boolean; sourceUrl: string
+}
+
 function typeLabel(type: TinglePreview['type']) {
   if (type === 'universe') return '서사'
   if (type === 'scene') return '테마'
@@ -239,6 +244,10 @@ export default function TingleListPage() {
   const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [likedPanel, setLikedPanel] = useState(false)
+  const [likedList, setLikedList] = useState<LikedPersona[]>([])
+  const [scanning, setScanning] = useState(false)
+  const [scanMsg, setScanMsg] = useState('')
   const userName = useDisplayName()
   const toggleSearch = () => setSearchOpen(o => { if (o) setQuery(''); return !o })
 
@@ -313,6 +322,22 @@ export default function TingleListPage() {
     await fetchData()
   }
 
+  const handleLikedScan = async () => {
+    setMenuOpen(false)
+    setLikedPanel(true)
+    if (likedList.length > 0) return  // 이미 스캔 결과 있으면 재사용
+    setScanning(true); setScanMsg('팅글 전체 스캔 중...')
+    try {
+      const res = await api.get('/api/tingle/liked-scan')
+      setLikedList(res.liked ?? [])
+      setScanMsg(`♥ ${res.liked?.length ?? 0}개 발견 (${res.scanned}페이지 스캔)`)
+    } catch (e: any) {
+      setScanMsg(`⚠ ${e.message ?? '스캔 실패'}`)
+    } finally {
+      setScanning(false)
+    }
+  }
+
   const toggleEditMode = () => {
     const next = !editMode; setEditMode(next)
     localStorage.setItem('tg_edit', next ? '1' : '0'); setMenuOpen(false)
@@ -360,6 +385,82 @@ export default function TingleListPage() {
         />
       )}
 
+      {/* 좋아요 목록 패널 */}
+      {likedPanel && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          onClick={() => setLikedPanel(false)}>
+          <div style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: 'var(--tg-bg)', borderRadius: '16px 16px 0 0' }}
+            onClick={e => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 10px', flexShrink: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--tg-ink)' }}>♥ 팅글 좋아요 목록</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button onClick={() => { setLikedList([]); handleLikedScan() }}
+                  style={{ appearance: 'none', border: '1px solid var(--tg-line)', background: 'var(--tg-surface)', color: 'var(--tg-ink-soft)', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer' }}>
+                  새로고침
+                </button>
+                <button onClick={() => setLikedPanel(false)}
+                  style={{ appearance: 'none', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--tg-ink-soft)' }}>✕</button>
+              </div>
+            </div>
+            {scanMsg && (
+              <div style={{ padding: '0 16px 8px', fontSize: 11, color: scanMsg.startsWith('⚠') ? '#ff6b8a' : 'var(--tg-ink-soft)', flexShrink: 0 }}>{scanMsg}</div>
+            )}
+            {/* 목록 */}
+            <div style={{ overflowY: 'auto', flex: 1, padding: '0 12px 24px' }}>
+              {scanning ? (
+                <div style={{ textAlign: 'center', padding: 32, color: 'var(--tg-ink-soft)', fontSize: 13 }}>스캔 중...</div>
+              ) : likedList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 32, color: 'var(--tg-ink-soft)', fontSize: 13 }}>좋아요한 캐릭터가 없습니다.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {likedList.map(item => {
+                    const alreadyImported = cols.some(c => c.sourceUrl === item.sourceUrl)
+                    return (
+                      <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid var(--tg-line)' }}>
+                        {item.coverImageUrl
+                          ? <img src={item.coverImageUrl} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                          : <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--tg-surface-2)', display: 'grid', placeItems: 'center', fontSize: 20, flexShrink: 0 }}>🎭</div>
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--tg-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+                            {item.isAdult && <span style={{ fontSize: 9, fontWeight: 700, background: '#ff5776', color: '#fff', padding: '1px 4px', borderRadius: 3 }}>성인</span>}
+                            {item.tags.slice(0, 2).map(t => (
+                              <span key={t} style={{ fontSize: 9, color: 'var(--tg-ink-soft)', background: 'var(--tg-surface-2)', padding: '1px 5px', borderRadius: 10 }}>#{t}</span>
+                            ))}
+                          </div>
+                        </div>
+                        {alreadyImported ? (
+                          <span style={{ fontSize: 11, color: '#4ade80', flexShrink: 0 }}>✓ 완료</span>
+                        ) : (
+                          <button
+                            disabled={importing}
+                            onClick={async () => {
+                              setImporting(true); setMsg('')
+                              try {
+                                const p = await api.post('/api/characters/import/preview', { url: item.sourceUrl })
+                                setPreviews([p]); setLikedPanel(false)
+                              } catch (e: any) {
+                                setMsg(`⚠ ${item.name}: ${e.message}`)
+                                setLikedPanel(false)
+                              } finally {
+                                setImporting(false)
+                              }
+                            }}
+                            style={{ appearance: 'none', border: 'none', background: 'var(--tg-accent)', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}
+                          >가져오기</button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="tingle-header" style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button className="tingle-iconbtn" aria-label="홈으로" onClick={() => router.push('/')}>🏠</button>
@@ -384,6 +485,9 @@ export default function TingleListPage() {
                 onClick={handlePreview}
               >{importing ? '불러오는 중...' : '🔍 미리보기'}</button>
             </div>
+            <button className="tingle-menu-item" onClick={handleLikedScan}>
+              ♥ 좋아요 목록
+            </button>
             <button className="tingle-menu-item" onClick={toggleEditMode}>
               {editMode ? '✓ 편집 모드 끄기' : '✏ 편집 모드 켜기'}
             </button>

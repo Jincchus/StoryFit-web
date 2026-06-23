@@ -56,7 +56,7 @@ function cleanWhifText(text: string): string {
 // WHIF/멜팅 세션 쿠키는 GlobalConfig(DB)에 저장해 관리자 페이지에서 즉시 갱신할 수 있게 한다.
 // 환경변수 방식은 컨테이너 재배포가 있어야 반영되는데, 멜팅 세션은 약 30분마다 만료되어
 // 사실상 갱신이 불가능했다 — DB 조회로 바꿔 재배포 없이 바로 반영되도록 한다.
-async function getGlobalConfigValue(
+export async function getGlobalConfigValue(
   key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key'
 ): Promise<string> {
   const config = await prisma.globalConfig.findUnique({ where: { key } })
@@ -67,7 +67,7 @@ async function setGlobalConfigValue(key: string, value: string): Promise<void> {
 }
 
 // Firebase refresh token으로 새 ID 토큰을 발급받아 DB에 저장 후 반환.
-async function refreshTingleToken(): Promise<string> {
+export async function refreshTingleToken(): Promise<string> {
   const [refreshToken, apiKey] = await Promise.all([
     getGlobalConfigValue('tingle_refresh_token'),
     getGlobalConfigValue('tingle_firebase_api_key'),
@@ -896,7 +896,7 @@ export async function captureTingle(url: string): Promise<Captured> {
   }
 }
 
-function isTingleTokenExpired(token: string): boolean {
+export function isTingleTokenExpired(token: string): boolean {
   try {
     const payloadB64 = token.split('.')[1]
     if (!payloadB64) return false
