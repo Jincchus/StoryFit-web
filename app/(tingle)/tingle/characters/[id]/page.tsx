@@ -9,9 +9,12 @@ import NovelText from '@/components/ui/NovelText'
 import { getOpenings } from '@/lib/openings'
 import { useDisplayName } from '@/lib/useDisplayName'
 
+interface TingleField { key: string; label: string; value: string; order: number }
+
 interface TingleCol {
   id: string; title: string; coverImageUrl: string; description?: string; tags: string[]
   sourceUrl: string
+  tingleMeta?: { type: string; fields: TingleField[]; openings: any[] }
   characters: { id: string; name: string; avatarUrl: string | null; additionalInfo: string; openingMessage: string; openingMessages?: any[] }[]
 }
 
@@ -248,7 +251,18 @@ export default function TingleCharacterDetailPage() {
             )}
           </div>
 
-          {mainChar?.additionalInfo?.trim() && (
+          {(col.tingleMeta?.fields?.length ?? 0) > 0 ? (
+            (col.tingleMeta!.fields as TingleField[]).map((f) => f.value?.trim() ? (
+              <div key={f.key} className="tingle-section" style={{ paddingTop: 0 }}>
+                <h2 className="tingle-section-title">{f.label}</h2>
+                <div className="tingle-intro-box">
+                  <div className="tingle-desc" style={{ whiteSpace: 'pre-wrap' }}>
+                    {replaceDisplayPlaceholders(f.value, userName, charNames)}
+                  </div>
+                </div>
+              </div>
+            ) : null)
+          ) : mainChar?.additionalInfo?.trim() ? (
             <div className="tingle-section" style={{ paddingTop: 0 }}>
               <h2 className="tingle-section-title">캐릭터 설정</h2>
               <div className="tingle-intro-box">
@@ -257,7 +271,7 @@ export default function TingleCharacterDetailPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {openings.length > 0 && (
             <div className="tingle-section" style={{ paddingTop: 0 }}>

@@ -11,9 +11,12 @@ import { useDisplayName } from '@/lib/useDisplayName'
 
 interface Lorebook { id: string; keyword: string[]; content: string; priority: number }
 
+interface TingleField { key: string; label: string; value: string; order: number }
+
 interface TingleCol {
   id: string; title: string; coverImageUrl: string; description?: string; tags: string[]
   sourceUrl: string
+  tingleMeta?: { type: string; fields: TingleField[]; openings: any[] }
   characters: { id: string; name: string; avatarUrl: string | null; additionalInfo: string; openingMessage: string; openingMessages?: any[]; exampleDialogues?: string }[]
 }
 
@@ -287,8 +290,19 @@ export default function TingleUniverseDetailPage() {
             )}
           </div>
 
-          {/* 서사 설명 */}
-          {(col.description?.trim() || mainChar?.additionalInfo?.trim()) && (
+          {/* 서사 설명 — tingleMeta.fields 있으면 라벨별 섹션, 없으면 단일 블록 */}
+          {(col.tingleMeta?.fields?.length ?? 0) > 0 ? (
+            (col.tingleMeta!.fields as TingleField[]).map((f) => f.value?.trim() ? (
+              <div key={f.key} className="tingle-section" style={{ paddingTop: 0 }}>
+                <h2 className="tingle-section-title">{f.label}</h2>
+                <div className="tingle-intro-box">
+                  <div className="tingle-desc" style={{ whiteSpace: 'pre-wrap' }}>
+                    {replaceDisplayPlaceholders(f.value, userName, charNames)}
+                  </div>
+                </div>
+              </div>
+            ) : null)
+          ) : (col.description?.trim() || mainChar?.additionalInfo?.trim()) ? (
             <div className="tingle-section" style={{ paddingTop: 0 }}>
               <h2 className="tingle-section-title">서사 설정</h2>
               <div className="tingle-intro-box">
@@ -297,7 +311,7 @@ export default function TingleUniverseDetailPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* 세계관 등록 */}
           <div className="tingle-section" style={{ paddingTop: 0 }}>

@@ -98,6 +98,11 @@ function buildCapturedFromPreview(previewData: TingleRawData): Captured {
   if (previewData.lorebooks?.length) {
     captured.lorebooks = previewData.lorebooks
   }
+  captured.tingleMeta = {
+    type: previewData.type,
+    fields: activeFields,
+    openings: openingMessagesArr,
+  }
   return captured
 }
 
@@ -197,6 +202,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
       ...(captured.zetaMeta ? { zetaMeta: captured.zetaMeta } : {}),
       ...(captured.meltingMeta ? { meltingMeta: captured.meltingMeta } : {}),
       ...(captured.tikitaMeta ? { tikitaMeta: captured.tikitaMeta } : {}),
+      ...(captured.tingleMeta ? { tingleMeta: captured.tingleMeta } : {}),
     },
   })
 
