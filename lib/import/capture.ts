@@ -609,7 +609,13 @@ export async function captureMelting(url: string): Promise<Captured> {
       .map(h => h) // "name=value" 형태
     if (refreshed.length > 0) {
       await setGlobalConfigValue('melting_session_cookie', refreshed.join('; '))
+      await setGlobalConfigValue('melting_session_started_at', String(Date.now()))
       console.log(`[melting-import] 세션 쿠키 자동 갱신 완료 — id=${characterId}`)
+      // keep-alive 타이머 재시작 (6시간 윈도우 리셋)
+      try {
+        const { restartMeltingSessionKeeper } = await import('../melting-session-keeper')
+        restartMeltingSessionKeeper()
+      } catch {}
     }
   } catch {
     // 갱신 실패해도 import 결과에 영향 없음

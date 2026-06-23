@@ -33,6 +33,20 @@ export async function PATCH(req: NextRequest) {
       })
     )
   )
+
+  // 멜팅 쿠키가 새로 저장되면 6시간 keep-alive 타이머 시작
+  if (entries.includes('melting_session_cookie') && String(body['melting_session_cookie']).trim()) {
+    await prisma.globalConfig.upsert({
+      where: { key: 'melting_session_started_at' },
+      update: { value: String(Date.now()) },
+      create: { key: 'melting_session_started_at', value: String(Date.now()) },
+    })
+    try {
+      const { restartMeltingSessionKeeper } = await import('@/lib/melting-session-keeper')
+      restartMeltingSessionKeeper()
+    } catch {}
+  }
+
   await logAdminAction(adminId, '가져오기 세션 쿠키 변경', entries.join(', '))
   return NextResponse.json({ ok: true })
 }
