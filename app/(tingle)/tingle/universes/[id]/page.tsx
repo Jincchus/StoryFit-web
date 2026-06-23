@@ -9,6 +9,8 @@ import NovelText from '@/components/ui/NovelText'
 import { getOpenings } from '@/lib/openings'
 import { useDisplayName } from '@/lib/useDisplayName'
 
+interface Lorebook { id: string; keyword: string[]; content: string; priority: number }
+
 interface TingleCol {
   id: string; title: string; coverImageUrl: string; description?: string; tags: string[]
   sourceUrl: string
@@ -111,13 +113,19 @@ export default function TingleUniverseDetailPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [showEdit, setShowEdit] = useState(false)
+  const [lorebooks, setLorebooks] = useState<Lorebook[]>([])
+  const [worldSaving, setWorldSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const userName = useDisplayName()
 
   useEffect(() => {
     Promise.all([
       api.get(`/api/collections/${id}`),
       api.get('/api/collections?isTingle=true'),
-    ]).then(([c, all]) => { setCol(c); setAllTingle(all) }).catch(() => {})
+      api.get(`/api/lorebooks?collectionId=${id}`),
+    ]).then(([c, all, lb]) => {
+      setCol(c); setAllTingle(all); setLorebooks(lb)
+    }).catch(() => {})
     setSelectedCharId(localStorage.getItem(`tg_char_uni_${id}`) ?? null)
     setSelectedSceneId(localStorage.getItem(`tg_scene_uni_${id}`) ?? null)
   }, [id])
@@ -134,6 +142,44 @@ export default function TingleUniverseDetailPage() {
   const handleSelectScene = (sid: string | null) => {
     setSelectedSceneId(sid)
     sid ? localStorage.setItem(`tg_scene_uni_${id}`, sid) : localStorage.removeItem(`tg_scene_uni_${id}`)
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('이 서사를 삭제할까요?')) return
+    setDeleting(true)
+    try {
+      await api.delete(`/api/collections/${id}`)
+      router.push('/tingle')
+    } catch { setDeleting(false) }
+  }
+
+  const handleWorldRegister = async () => {
+    if (!col || worldSaving) return
+    setWorldSaving(true)
+    try {
+      const content = col.characters[0]?.additionalInfo || col.description || ''
+      if (!content.trim()) return
+      const lb = await api.post('/api/lorebooks', {
+        collectionId: id,
+        keyword: [col.title],
+        content,
+        priority: 50,
+      })
+      setLorebooks(prev => [...prev, lb])
+    } catch (e: any) {
+      alert('등록 실패: ' + e.message)
+    } finally { setWorldSaving(false) }
+  }
+
+  const handleWorldUnregister = async () => {
+    if (!confirm('세계관 등록을 해제할까요?') || worldSaving) return
+    setWorldSaving(true)
+    try {
+      await Promise.all(lorebooks.map(lb => api.delete(`/api/lorebooks/${lb.id}`)))
+      setLorebooks([])
+    } catch (e: any) {
+      alert('해제 실패: ' + e.message)
+    } finally { setWorldSaving(false) }
   }
 
   const handleAddUrl = async (url: string) => {
@@ -177,6 +223,7 @@ export default function TingleUniverseDetailPage() {
       }
       const chosen = openings[openingIdx]?.content
       const scenarioDescription = buildScenario()
+      const extraCollectionIds = [col.id, selectedSceneId].filter(Boolean) as string[]
       const resp = await api.post('/api/conversations', {
         title: `${selectedChar!.title} × ${col.title}`,
         characterIds: [activeChar.id],
@@ -184,6 +231,7 @@ export default function TingleUniverseDetailPage() {
         personaCharacterId: personaId,
         ...(chosen !== undefined ? { openingMessage: chosen } : {}),
         ...(scenarioDescription ? { scenarioDescription } : {}),
+        ...(extraCollectionIds.length > 0 ? { extraCollectionIds } : {}),
       })
       router.push(`/conversations/${resp.id}`)
     } catch (e: any) {
@@ -225,8 +273,12 @@ export default function TingleUniverseDetailPage() {
                 <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: 'var(--tg-ink)' }}>{col.title}</h1>
                 <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 700 }}>서사</div>
               </div>
-              <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--tg-surface-2)', padding: '4px 8px', fontSize: 11 }}
-                onClick={() => setShowEdit(true)}>✏ 정보</button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--tg-surface-2)', padding: '4px 8px', fontSize: 11 }}
+                  onClick={() => setShowEdit(true)}>✏ 정보</button>
+                <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: '#ff6b8a22', color: '#ff6b8a', padding: '4px 8px', fontSize: 11 }}
+                  onClick={handleDelete} disabled={deleting}>🗑 삭제</button>
+              </div>
             </div>
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -246,6 +298,29 @@ export default function TingleUniverseDetailPage() {
               </div>
             </div>
           )}
+
+          {/* 세계관 등록 */}
+          <div className="tingle-section" style={{ paddingTop: 0 }}>
+            <h2 className="tingle-section-title" style={{ color: '#a78bfa' }}>세계관 등록</h2>
+            {lorebooks.length > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #a78bfa', background: '#a78bfa18' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa', flex: 1 }}>✓ 세계관 등록됨 — 채팅방 생성 시 자동 포함</span>
+                <button
+                  onClick={handleWorldUnregister}
+                  disabled={worldSaving}
+                  style={{ appearance: 'none', border: 'none', background: '#ff6b8a22', color: '#ff6b8a', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>
+                  {worldSaving ? '...' : '해제'}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleWorldRegister}
+                disabled={worldSaving || !(col.characters[0]?.additionalInfo || col.description)}
+                style={{ width: '100%', appearance: 'none', border: '1.5px dashed #a78bfa55', background: 'transparent', borderRadius: 10, padding: '10px 12px', cursor: 'pointer', textAlign: 'left', fontSize: 13, color: '#a78bfa', fontWeight: 600 }}>
+                {worldSaving ? '등록 중...' : '+ 세계관으로 등록 (채팅방에 자동 포함)'}
+              </button>
+            )}
+          </div>
 
           {/* 관계 설정 */}
           {mainChar?.exampleDialogues?.trim() && (
