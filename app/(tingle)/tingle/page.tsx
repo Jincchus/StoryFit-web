@@ -210,7 +210,8 @@ export default function TingleListPage() {
     return !q || c.title.toLowerCase().includes(q) || c.tags?.some(t => t.toLowerCase().includes(q))
   }
 
-  const counts = viewCounts(cols)
+  const colsByType = cols.filter(c => detectTingleType(c.sourceUrl).type === typeTab)
+  const counts = viewCounts(colsByType)
 
   const typeCounts = {
     character: cols.filter(c => detectTingleType(c.sourceUrl).type === 'character').length,
