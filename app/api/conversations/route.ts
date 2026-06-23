@@ -139,9 +139,15 @@ export async function POST(req: NextRequest) {
   })
 
   // Clone collection-level lorebooks to this conversation
-  if (collectionIds.length > 0) {
+  // extraCollectionIds: 선택된 서사/테마 컬렉션 ID (팅글 캐릭터 페이지에서 전달)
+  const extraCollectionIds: string[] = Array.isArray(body.extraCollectionIds)
+    ? body.extraCollectionIds.map(String).filter(Boolean)
+    : []
+  const allCollectionIds = Array.from(new Set([...collectionIds, ...extraCollectionIds]))
+
+  if (allCollectionIds.length > 0) {
     const collectionLorebooks = await prisma.lorebook.findMany({
-      where: { collectionId: { in: collectionIds } },
+      where: { collectionId: { in: allCollectionIds } },
     })
 
     if (collectionLorebooks.length > 0) {
