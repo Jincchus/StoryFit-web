@@ -21,80 +21,68 @@ function tingleType(sourceUrl: string) {
   return 'character'
 }
 
-function SelectList({ items, selectedId, accentColor, noneLabel, onSelect, onAddUrl }: {
-  items: TingleCol[]; selectedId: string | null; accentColor: string; noneLabel: string
+function TinglePickerModal({ items, selectedId, accentColor, title, noneLabel, onSelect, onClose }: {
+  items: TingleCol[]; selectedId: string | null; accentColor: string; title: string; noneLabel: string
   onSelect: (id: string | null) => void
-  onAddUrl?: (url: string) => Promise<void>
+  onClose: () => void
 }) {
-  const [addOpen, setAddOpen] = useState(false)
-  const [addUrl, setAddUrl] = useState('')
-  const [adding, setAdding] = useState(false)
-  const [addErr, setAddErr] = useState('')
-
-  const handleAdd = async () => {
-    if (!addUrl.trim() || adding || !onAddUrl) return
-    setAdding(true); setAddErr('')
-    try {
-      await onAddUrl(addUrl.trim())
-      setAddUrl(''); setAddOpen(false)
-    } catch (e: any) {
-      setAddErr(e.message ?? '추가 실패')
-    } finally {
-      setAdding(false)
-    }
-  }
+  const [query, setQuery] = useState('')
+  const filtered = query.trim()
+    ? items.filter(x => x.title.toLowerCase().includes(query.toLowerCase()) || x.tags?.some(t => t.toLowerCase().includes(query.toLowerCase())))
+    : items
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <button onClick={() => onSelect(null)} style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-        borderRadius: 8, cursor: 'pointer', textAlign: 'left', appearance: 'none',
-        border: `1.5px solid ${!selectedId ? accentColor : 'var(--tg-line)'}`,
-        background: !selectedId ? `${accentColor}18` : 'var(--tg-surface)',
-      }}>
-        <span style={{ fontSize: 12, color: !selectedId ? accentColor : 'var(--tg-ink-soft)', fontWeight: !selectedId ? 700 : 400 }}>{noneLabel}</span>
-      </button>
-      {items.map(item => (
-        <button key={item.id} onClick={() => onSelect(item.id)} style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-          borderRadius: 8, cursor: 'pointer', textAlign: 'left', appearance: 'none',
-          border: `1.5px solid ${selectedId === item.id ? accentColor : 'var(--tg-line)'}`,
-          background: selectedId === item.id ? `${accentColor}18` : 'var(--tg-surface)',
-        }}>
-          {item.coverImageUrl && <img src={item.coverImageUrl} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} alt="" />}
-          <span style={{ fontSize: 12, fontWeight: 600, color: selectedId === item.id ? accentColor : 'var(--tg-ink)' }}>{item.title}</span>
-        </button>
-      ))}
-      {onAddUrl && (
-        addOpen ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <input
-                className="field" value={addUrl} autoFocus
-                onChange={e => { setAddUrl(e.target.value); setAddErr('') }}
-                onKeyDown={e => e.key === 'Enter' && handleAdd()}
-                placeholder="팅글 URL 붙여넣기"
-                style={{ fontSize: 12, flex: 1 }}
-              />
-              <button onClick={handleAdd} disabled={adding} style={{
-                appearance: 'none', border: 'none', background: accentColor, color: '#fff',
-                borderRadius: 8, padding: '0 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0,
-              }}>{adding ? '...' : '추가'}</button>
-              <button onClick={() => { setAddOpen(false); setAddUrl(''); setAddErr('') }} style={{
-                appearance: 'none', border: 'none', background: 'var(--tg-surface-2)', color: 'var(--tg-ink-soft)',
-                borderRadius: 8, padding: '0 10px', cursor: 'pointer', fontSize: 13, flexShrink: 0,
-              }}>✕</button>
-            </div>
-            {addErr && <div style={{ fontSize: 11, color: '#ff6b8a' }}>{addErr}</div>}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+      onClick={onClose}>
+      <div style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: 'var(--tg-bg)', borderRadius: '16px 16px 0 0' }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 10px', flexShrink: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: accentColor }}>{title}</div>
+          <button onClick={onClose} style={{ appearance: 'none', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--tg-ink-soft)' }}>✕</button>
+        </div>
+        <div style={{ padding: '0 12px 8px', flexShrink: 0 }}>
+          <input className="field" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="이름·태그로 검색" style={{ fontSize: 12, width: '100%' }} autoFocus />
+        </div>
+        <div style={{ overflowY: 'auto', flex: 1, padding: '0 12px 24px' }}>
+          {/* 없음 */}
+          <div onClick={() => onSelect(null)} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px',
+            borderBottom: '1px solid var(--tg-line)', cursor: 'pointer',
+            background: !selectedId ? `${accentColor}14` : 'transparent',
+          }}>
+            <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--tg-surface-2)', display: 'grid', placeItems: 'center', fontSize: 16, flexShrink: 0 }}>✕</div>
+            <span style={{ fontSize: 13, fontWeight: !selectedId ? 700 : 400, color: !selectedId ? accentColor : 'var(--tg-ink-soft)' }}>{noneLabel}</span>
+            {!selectedId && <span style={{ marginLeft: 'auto', fontSize: 13, color: accentColor }}>✓</span>}
           </div>
-        ) : (
-          <button onClick={() => setAddOpen(true)} style={{
-            appearance: 'none', border: `1.5px dashed ${accentColor}55`, background: 'transparent',
-            borderRadius: 8, padding: '8px 12px', cursor: 'pointer', textAlign: 'left',
-            fontSize: 12, color: accentColor, fontWeight: 600,
-          }}>+ URL로 추가</button>
-        )
-      )}
+          {filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 32, fontSize: 13, color: 'var(--tg-ink-soft)' }}>
+              {items.length === 0 ? '가져온 항목이 없습니다.' : '검색 결과 없음'}
+            </div>
+          )}
+          {filtered.map(item => (
+            <div key={item.id} onClick={() => onSelect(item.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px',
+              borderBottom: '1px solid var(--tg-line)', cursor: 'pointer',
+              background: selectedId === item.id ? `${accentColor}14` : 'transparent',
+            }}>
+              {item.coverImageUrl
+                ? <img src={item.coverImageUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                : <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--tg-surface-2)', display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0 }}>🎭</div>
+              }
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: selectedId === item.id ? accentColor : 'var(--tg-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
+                {item.tags?.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
+                    {item.tags.slice(0, 3).map(t => <span key={t} style={{ fontSize: 9, color: 'var(--tg-ink-soft)', background: 'var(--tg-surface-2)', padding: '1px 5px', borderRadius: 10 }}>#{t}</span>)}
+                  </div>
+                )}
+              </div>
+              {selectedId === item.id && <span style={{ fontSize: 14, color: accentColor, flexShrink: 0 }}>✓</span>}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -111,6 +99,8 @@ export default function TingleCharacterDetailPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [showEdit, setShowEdit] = useState(false)
+  const [uniPickerOpen, setUniPickerOpen] = useState(false)
+  const [scenePickerOpen, setScenePickerOpen] = useState(false)
   const userName = useDisplayName()
 
   useEffect(() => {
@@ -127,19 +117,16 @@ export default function TingleCharacterDetailPage() {
   const selectedUniverse = universes.find(u => u.id === selectedUniverseId) ?? null
   const selectedScene = scenes.find(s => s.id === selectedSceneId) ?? null
 
+
   const handleSelectUniverse = (uid: string | null) => {
     setSelectedUniverseId(uid)
     uid ? localStorage.setItem(`tg_uni_${id}`, uid) : localStorage.removeItem(`tg_uni_${id}`)
+    setUniPickerOpen(false)
   }
   const handleSelectScene = (sid: string | null) => {
     setSelectedSceneId(sid)
     sid ? localStorage.setItem(`tg_scene_${id}`, sid) : localStorage.removeItem(`tg_scene_${id}`)
-  }
-
-  const handleAddUrl = async (url: string) => {
-    await api.post('/api/characters/import', { url })
-    const all = await api.get('/api/collections?isTingle=true')
-    setAllTingle(all)
+    setScenePickerOpen(false)
   }
 
   if (!col) return <div className="tingle-empty">불러오는 중...</div>
@@ -191,6 +178,15 @@ export default function TingleCharacterDetailPage() {
 
   return (
     <>
+      {uniPickerOpen && (
+        <TinglePickerModal items={universes} selectedId={selectedUniverseId} accentColor="#a78bfa"
+          title="서사 선택" noneLabel="서사 없음" onSelect={handleSelectUniverse} onClose={() => setUniPickerOpen(false)} />
+      )}
+      {scenePickerOpen && (
+        <TinglePickerModal items={scenes} selectedId={selectedSceneId} accentColor="#06bfd6"
+          title="테마 선택" noneLabel="테마 없음" onSelect={handleSelectScene} onClose={() => setScenePickerOpen(false)} />
+      )}
+
       {showEdit && (
         <CollectionEditModal
           collection={{ id: col.id, title: col.title, tags: col.tags ?? [], description: col.description ?? '', coverImageUrl: col.coverImageUrl ?? '' }}
@@ -268,12 +264,34 @@ export default function TingleCharacterDetailPage() {
 
           <div className="tingle-section" style={{ paddingTop: 0 }}>
             <h2 className="tingle-section-title" style={{ color: '#a78bfa' }}>서사 선택</h2>
-            <SelectList items={universes} selectedId={selectedUniverseId} accentColor="#a78bfa" noneLabel="서사 없음" onSelect={handleSelectUniverse} onAddUrl={handleAddUrl} />
+            <button onClick={() => setUniPickerOpen(true)} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+              appearance: 'none', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+              border: `1.5px solid ${selectedUniverse ? '#a78bfa' : 'var(--tg-line)'}`,
+              background: selectedUniverse ? '#a78bfa18' : 'var(--tg-surface)',
+            }}>
+              {selectedUniverse?.coverImageUrl && <img src={selectedUniverse.coverImageUrl} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} alt="" />}
+              <span style={{ fontSize: 13, fontWeight: 600, color: selectedUniverse ? '#a78bfa' : 'var(--tg-ink-soft)', flex: 1 }}>
+                {selectedUniverse ? selectedUniverse.title : '서사 없음'}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--tg-ink-soft)' }}>▼</span>
+            </button>
           </div>
 
           <div className="tingle-section" style={{ paddingTop: 0 }}>
             <h2 className="tingle-section-title" style={{ color: '#06bfd6' }}>테마 선택</h2>
-            <SelectList items={scenes} selectedId={selectedSceneId} accentColor="#06bfd6" noneLabel="테마 없음" onSelect={handleSelectScene} onAddUrl={handleAddUrl} />
+            <button onClick={() => setScenePickerOpen(true)} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+              appearance: 'none', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+              border: `1.5px solid ${selectedScene ? '#06bfd6' : 'var(--tg-line)'}`,
+              background: selectedScene ? '#06bfd618' : 'var(--tg-surface)',
+            }}>
+              {selectedScene?.coverImageUrl && <img src={selectedScene.coverImageUrl} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} alt="" />}
+              <span style={{ fontSize: 13, fontWeight: 600, color: selectedScene ? '#06bfd6' : 'var(--tg-ink-soft)', flex: 1 }}>
+                {selectedScene ? selectedScene.title : '테마 없음'}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--tg-ink-soft)' }}>▼</span>
+            </button>
           </div>
 
           {error && <div style={{ padding: '0 16px 8px', fontSize: 12, color: '#ff6b8a' }}>{error}</div>}

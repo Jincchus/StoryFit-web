@@ -286,8 +286,8 @@ export default function TingleListPage() {
     for (let i = 0; i < urls.length; i++) {
       setMsg(`미리보기 로드 중... (${i + 1}/${urls.length})`)
       try {
-        const p = await api.post('/api/characters/import/preview', { url: urls[i] })
-        results.push(p)
+        const items = await api.post('/api/characters/import/preview', { url: urls[i] })
+        results.push(...(Array.isArray(items) ? items : [items]))
       } catch (e: any) {
         failed.push(urls[i])
         setMsg(`⚠ ${urls[i]} — ${e.message}`)
@@ -357,8 +357,8 @@ export default function TingleListPage() {
     for (let i = 0; i < targets.length; i++) {
       setMsg(`미리보기 로드 중... (${i + 1}/${targets.length})`)
       try {
-        const p = await api.post('/api/characters/import/preview', { url: targets[i].sourceUrl })
-        results.push(p)
+        const items = await api.post('/api/characters/import/preview', { url: targets[i].sourceUrl })
+        results.push(...(Array.isArray(items) ? items : [items]))
       } catch {
         failed.push(targets[i].name)
       }

@@ -96,4 +96,5 @@ export interface TingleRawData {
   safetyLevel: 'standard' | 'relaxed'
   fields: TingleField[]
   openings: TingleOpening[]
+  linked?: TingleRawData[]  // 캐릭터에 연결된 서사/테마
 }

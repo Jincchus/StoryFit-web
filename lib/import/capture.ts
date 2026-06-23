@@ -977,7 +977,22 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
       }))
       .filter((o: any) => o.content.trim().length > 0)
 
-    return { type: 'character', url, name: data.name ?? '캐릭터', gender: data.gender ?? '', coverImageUrl, tags, safetyLevel, fields, openings }
+    // 캐릭터에 연결된 서사/테마 자동 포함
+    const linked: import('./types').TingleRawData[] = []
+    if (data.universe?.id) {
+      try {
+        const uRaw = await captureTingleRaw(`https://tingle.chat/chat/universes/${data.universe.id}`)
+        linked.push(uRaw)
+      } catch {}
+    }
+    if (data.scene?.id) {
+      try {
+        const sRaw = await captureTingleRaw(`https://tingle.chat/chat/scenes/${data.scene.id}`)
+        linked.push(sRaw)
+      } catch {}
+    }
+
+    return { type: 'character', url, name: data.name ?? '캐릭터', gender: data.gender ?? '', coverImageUrl, tags, safetyLevel, fields, openings, ...(linked.length > 0 ? { linked } : {}) }
   }
 
   if (type === 'universes') {
