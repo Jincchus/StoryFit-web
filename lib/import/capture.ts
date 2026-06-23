@@ -972,8 +972,21 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
     if (data.otherDetails) fields.push({ key: 'otherDetails', label: '기타 설명', value: String(data.otherDetails), order: order++ })
     if (data.creatorComment) fields.push({ key: 'creatorComment', label: '제작자 메모', value: `[제작자 메모]\n${data.creatorComment}`, order: order++ })
 
+    // catch-all: 아직 처리되지 않은 알 수 없는 string 필드
+    const knownCharKeys = new Set(['name', 'introduction', 'age', 'job', 'personality', 'speakingStyle',
+      'favorites', 'characterDetails', 'backgroundDetails', 'otherDetails', 'creatorComment',
+      'openings', 'gender', 'coverImages', 'tags', 'isAdult', 'universe', 'scene', 'id',
+      'userId', 'createdAt', 'updatedAt', 'isHideAge', 'isHideJob', 'isHidePersonality',
+      'isHideSpeakingStyle', 'isHideFavorites', 'isHideCharacterDetails', 'isHideBackgroundDetails',
+      'firstMessage', 'displayOrder', 'likesCount', 'chatCount', 'isPublic', 'status'])
+    for (const [key, value] of Object.entries(data)) {
+      if (knownCharKeys.has(key)) continue
+      if (typeof value !== 'string' || !value.trim()) continue
+      fields.push({ key, label: key, value, order: order++ })
+    }
+
     const rawOpenings = Array.isArray(data.openings) ? data.openings : []
-    const openings = rawOpenings
+    let openings = rawOpenings
       .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
       .map((o: any, idx: number) => ({
         id: String(o.id ?? `opening_${idx}`),
@@ -982,7 +995,12 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
       }))
       .filter((o: any) => o.content.trim().length > 0)
 
-    // 캐릭터에 연결된 서사/테마 자동 포함
+    // firstMessage 폴백: openings가 없을 때
+    if (openings.length === 0 && data.firstMessage?.trim()) {
+      openings = [{ id: 'first_message', title: '기본 도입부', content: data.firstMessage }]
+    }
+
+    // 연결된 서사/테마 자동 포함
     const linked: import('./types').TingleRawData[] = []
     if (data.universe?.id) {
       try {
@@ -1009,7 +1027,30 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
     const allRel = [...relationships, ...privateRelationships].filter(Boolean).join('\n')
     if (allRel) fields.push({ key: 'relationships', label: '관계 설정', value: allRel, order: order++ })
 
-    return { type: 'universe', url, name: data.name ?? '서사', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [] }
+    // catch-all
+    const knownUnivKeys = new Set(['name', 'introduction', 'relationships', 'privateRelationships',
+      'worldBooks', 'coverImages', 'tags', 'isAdult', 'id', 'userId', 'createdAt', 'updatedAt',
+      'likesCount', 'chatCount', 'isPublic', 'status'])
+    for (const [key, value] of Object.entries(data)) {
+      if (knownUnivKeys.has(key)) continue
+      if (typeof value !== 'string' || !value.trim()) continue
+      fields.push({ key, label: key, value, order: order++ })
+    }
+
+    // worldBooks → lorebooks
+    const worldBooks = Array.isArray(data.worldBooks) ? data.worldBooks : []
+    const loreEntries = worldBooks
+      .map((wb: any) => ({
+        keyword: [wb.keyword ?? wb.keywords ?? wb.name ?? ''].flat().filter(Boolean) as string[],
+        content: String(wb.content ?? ''),
+        priority: wb.priority ?? 0,
+      }))
+      .filter((wb: any) => wb.keyword.length > 0 && wb.content.trim())
+
+    return {
+      type: 'universe', url, name: data.name ?? '서사', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [],
+      ...(loreEntries.length > 0 ? { lorebooks: loreEntries } : {}),
+    }
   }
 
   // scenes
@@ -1018,6 +1059,16 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
   if (data.introduction) fields.push({ key: 'introduction', label: '소개', value: data.introduction, order: order++ })
   if (data.timeFrame) fields.push({ key: 'timeFrame', label: '시간대', value: `[시간대] ${data.timeFrame}`, order: order++ })
   if (data.otherDetails) fields.push({ key: 'otherDetails', label: '기타 설명', value: data.otherDetails, order: order++ })
+
+  // catch-all
+  const knownSceneKeys = new Set(['name', 'introduction', 'timeFrame', 'otherDetails',
+    'coverImages', 'tags', 'isAdult', 'id', 'userId', 'createdAt', 'updatedAt',
+    'likesCount', 'chatCount', 'isPublic', 'status'])
+  for (const [key, value] of Object.entries(data)) {
+    if (knownSceneKeys.has(key)) continue
+    if (typeof value !== 'string' || !value.trim()) continue
+    fields.push({ key, label: key, value, order: order++ })
+  }
 
   return { type: 'scene', url, name: data.name ?? '테마', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [] }
 }
