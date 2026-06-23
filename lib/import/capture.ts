@@ -976,9 +976,14 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
     const knownCharKeys = new Set(['name', 'introduction', 'age', 'job', 'personality', 'speakingStyle',
       'favorites', 'characterDetails', 'backgroundDetails', 'otherDetails', 'creatorComment',
       'openings', 'gender', 'coverImages', 'tags', 'isAdult', 'universe', 'scene', 'id',
-      'userId', 'createdAt', 'updatedAt', 'isHideAge', 'isHideJob', 'isHidePersonality',
-      'isHideSpeakingStyle', 'isHideFavorites', 'isHideCharacterDetails', 'isHideBackgroundDetails',
-      'firstMessage', 'displayOrder', 'likesCount', 'chatCount', 'isPublic', 'status'])
+      'userId', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
+      'isHideAge', 'isHideJob', 'isHidePersonality', 'isHideSpeakingStyle', 'isHideFavorites',
+      'isHideCharacterDetails', 'isHideBackgroundDetails', 'isHideOtherDetails',
+      'firstMessage', 'displayOrder', 'likesCount', 'chatCount', 'isPublic', 'status',
+      'provider', 'type', 'languageCode', 'firstPublishedAt',
+      'isLiked', 'isBlocked', 'isBlockedByUser', 'hasTriggerImage', 'isBookmarked',
+      'isGlobal', 'isGlobalRejected', 'isCustomizable', 'isVisible',
+      'statistics', 'shareTokens', 'worldBooks', 'user'])
     for (const [key, value] of Object.entries(data)) {
       if (knownCharKeys.has(key)) continue
       if (typeof value !== 'string' || !value.trim()) continue
@@ -1030,7 +1035,11 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
     // catch-all
     const knownUnivKeys = new Set(['name', 'introduction', 'relationships', 'privateRelationships',
       'worldBooks', 'coverImages', 'tags', 'isAdult', 'id', 'userId', 'createdAt', 'updatedAt',
-      'likesCount', 'chatCount', 'isPublic', 'status'])
+      'createdBy', 'updatedBy', 'likesCount', 'chatCount', 'isPublic', 'status',
+      'provider', 'languageCode', 'firstPublishedAt',
+      'isLiked', 'isBlocked', 'isBookmarked', 'isGlobal', 'isGlobalRejected', 'isVisible',
+      'isHideOtherDetails', 'isHideRelationships', 'hasWorldBook',
+      'statistics', 'user'])
     for (const [key, value] of Object.entries(data)) {
       if (knownUnivKeys.has(key)) continue
       if (typeof value !== 'string' || !value.trim()) continue
@@ -1057,13 +1066,17 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
   const fields: TingleField[] = []
   let order = 1
   if (data.introduction) fields.push({ key: 'introduction', label: '소개', value: data.introduction, order: order++ })
+  if (data.place) fields.push({ key: 'place', label: '장소', value: `[장소] ${data.place}`, order: order++ })
   if (data.timeFrame) fields.push({ key: 'timeFrame', label: '시간대', value: `[시간대] ${data.timeFrame}`, order: order++ })
   if (data.otherDetails) fields.push({ key: 'otherDetails', label: '기타 설명', value: data.otherDetails, order: order++ })
 
   // catch-all
-  const knownSceneKeys = new Set(['name', 'introduction', 'timeFrame', 'otherDetails',
+  const knownSceneKeys = new Set(['name', 'introduction', 'place', 'timeFrame', 'otherDetails',
     'coverImages', 'tags', 'isAdult', 'id', 'userId', 'createdAt', 'updatedAt',
-    'likesCount', 'chatCount', 'isPublic', 'status'])
+    'createdBy', 'updatedBy', 'likesCount', 'chatCount', 'isPublic', 'status',
+    'provider', 'languageCode', 'firstPublishedAt',
+    'isLiked', 'isBlocked', 'isBookmarked', 'isGlobal', 'isGlobalRejected', 'isVisible',
+    'isHideOtherDetails', 'statistics', 'user'])
   for (const [key, value] of Object.entries(data)) {
     if (knownSceneKeys.has(key)) continue
     if (typeof value !== 'string' || !value.trim()) continue
