@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import NovelText from '@/components/ui/NovelText'
+import TingleCardPreviewSheet from '@/components/ui/TingleCardPreviewSheet'
 import { getOpenings } from '@/lib/openings'
 import { useDisplayName } from '@/lib/useDisplayName'
 
@@ -26,9 +27,10 @@ function tingleType(sourceUrl: string) {
   return 'character'
 }
 
-function SelectList({ items, selectedId, accentColor, noneLabel, onSelect, onAddUrl }: {
+function SelectList({ items, selectedId, accentColor, noneLabel, onSelect, onPreview, onAddUrl }: {
   items: TingleCol[]; selectedId: string | null; accentColor: string; noneLabel: string
   onSelect: (id: string | null) => void
+  onPreview?: (id: string) => void
   onAddUrl?: (url: string) => Promise<void>
 }) {
   const [addOpen, setAddOpen] = useState(false)
@@ -60,7 +62,7 @@ function SelectList({ items, selectedId, accentColor, noneLabel, onSelect, onAdd
         <span style={{ fontSize: 12, color: !selectedId ? accentColor : 'var(--tg-ink-soft)', fontWeight: !selectedId ? 700 : 400 }}>{noneLabel}</span>
       </button>
       {items.map(item => (
-        <button key={item.id} onClick={() => onSelect(item.id)} style={{
+        <button key={item.id} onClick={() => onPreview ? onPreview(item.id) : onSelect(item.id)} style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
           borderRadius: 8, cursor: 'pointer', textAlign: 'left', appearance: 'none',
           border: `1.5px solid ${selectedId === item.id ? accentColor : 'var(--tg-line)'}`,
@@ -119,6 +121,7 @@ export default function TingleSceneDetailPage() {
   const [lorebooks, setLorebooks] = useState<Lorebook[]>([])
   const [worldSaving, setWorldSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [previewTarget, setPreviewTarget] = useState<{ id: string; label: string; accentColor: string; onConfirm: () => void } | null>(null)
   const userName = useDisplayName()
 
   useEffect(() => {
@@ -242,6 +245,15 @@ export default function TingleSceneDetailPage() {
 
   return (
     <>
+      {previewTarget && (
+        <TingleCardPreviewSheet
+          collectionId={previewTarget.id}
+          label={previewTarget.label}
+          accentColor={previewTarget.accentColor}
+          onConfirm={previewTarget.onConfirm}
+          onClose={() => setPreviewTarget(null)}
+        />
+      )}
       {showEdit && (
         <CollectionEditModal
           collection={{ id: col.id, title: col.title, tags: col.tags ?? [], description: col.description ?? '', coverImageUrl: col.coverImageUrl ?? '' }}
@@ -337,7 +349,7 @@ export default function TingleSceneDetailPage() {
           {/* 캐릭터 선택 */}
           <div className="tingle-section" style={{ paddingTop: 0 }}>
             <h2 className="tingle-section-title" style={{ color: '#ff5776' }}>캐릭터 선택</h2>
-            <SelectList items={characters} selectedId={selectedCharId} accentColor="#ff5776" noneLabel="캐릭터 없음" onSelect={handleSelectChar} onAddUrl={handleAddUrl} />
+            <SelectList items={characters} selectedId={selectedCharId} accentColor="#ff5776" noneLabel="캐릭터 없음" onSelect={handleSelectChar} onPreview={id => setPreviewTarget({ id, label: '캐릭터', accentColor: '#ff5776', onConfirm: () => handleSelectChar(id) })} onAddUrl={handleAddUrl} />
           </div>
 
           {/* 선택된 캐릭터의 도입부 */}
@@ -366,7 +378,7 @@ export default function TingleSceneDetailPage() {
           {/* 서사 선택 */}
           <div className="tingle-section" style={{ paddingTop: 0 }}>
             <h2 className="tingle-section-title" style={{ color: '#a78bfa' }}>서사 선택</h2>
-            <SelectList items={universes} selectedId={selectedUniverseId} accentColor="#a78bfa" noneLabel="서사 없음" onSelect={handleSelectUniverse} onAddUrl={handleAddUrl} />
+            <SelectList items={universes} selectedId={selectedUniverseId} accentColor="#a78bfa" noneLabel="서사 없음" onSelect={handleSelectUniverse} onPreview={id => setPreviewTarget({ id, label: '서사', accentColor: '#a78bfa', onConfirm: () => handleSelectUniverse(id) })} onAddUrl={handleAddUrl} />
           </div>
 
           {error && <div style={{ padding: '0 16px 8px', fontSize: 12, color: '#ff6b8a' }}>{error}</div>}

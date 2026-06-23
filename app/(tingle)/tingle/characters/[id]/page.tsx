@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import NovelText from '@/components/ui/NovelText'
+import TingleCardPreviewSheet from '@/components/ui/TingleCardPreviewSheet'
 import { getOpenings } from '@/lib/openings'
 import { useDisplayName } from '@/lib/useDisplayName'
 
@@ -24,9 +25,10 @@ function tingleType(sourceUrl: string) {
   return 'character'
 }
 
-function TinglePickerModal({ items, selectedId, accentColor, title, noneLabel, onSelect, onClose }: {
+function TinglePickerModal({ items, selectedId, accentColor, title, noneLabel, onSelect, onPreview, onClose }: {
   items: TingleCol[]; selectedId: string | null; accentColor: string; title: string; noneLabel: string
   onSelect: (id: string | null) => void
+  onPreview: (id: string) => void
   onClose: () => void
 }) {
   const [query, setQuery] = useState('')
@@ -64,7 +66,7 @@ function TinglePickerModal({ items, selectedId, accentColor, title, noneLabel, o
             </div>
           )}
           {filtered.map(item => (
-            <div key={item.id} onClick={() => onSelect(item.id)} style={{
+            <div key={item.id} onClick={() => onPreview(item.id)} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 8px',
               borderBottom: '1px solid var(--tg-line)', cursor: 'pointer',
               background: selectedId === item.id ? `${accentColor}14` : 'transparent',
@@ -117,6 +119,7 @@ export default function TingleCharacterDetailPage() {
 
   const [uniPickerOpen, setUniPickerOpen] = useState(false)
   const [scenePickerOpen, setScenePickerOpen] = useState(false)
+  const [previewTarget, setPreviewTarget] = useState<{ id: string; label: string; accentColor: string; onConfirm: () => void } | null>(null)
   const userName = useDisplayName()
 
   useEffect(() => {
@@ -198,11 +201,24 @@ export default function TingleCharacterDetailPage() {
     <>
       {uniPickerOpen && (
         <TinglePickerModal items={universes} selectedId={selectedUniverseId} accentColor="#a78bfa"
-          title="서사 선택" noneLabel="서사 없음" onSelect={handleSelectUniverse} onClose={() => setUniPickerOpen(false)} />
+          title="서사 선택" noneLabel="서사 없음" onSelect={handleSelectUniverse}
+          onPreview={id => setPreviewTarget({ id, label: '서사', accentColor: '#a78bfa', onConfirm: () => { handleSelectUniverse(id); setUniPickerOpen(false) } })}
+          onClose={() => setUniPickerOpen(false)} />
       )}
       {scenePickerOpen && (
         <TinglePickerModal items={scenes} selectedId={selectedSceneId} accentColor="#06bfd6"
-          title="테마 선택" noneLabel="테마 없음" onSelect={handleSelectScene} onClose={() => setScenePickerOpen(false)} />
+          title="테마 선택" noneLabel="테마 없음" onSelect={handleSelectScene}
+          onPreview={id => setPreviewTarget({ id, label: '테마', accentColor: '#06bfd6', onConfirm: () => { handleSelectScene(id); setScenePickerOpen(false) } })}
+          onClose={() => setScenePickerOpen(false)} />
+      )}
+      {previewTarget && (
+        <TingleCardPreviewSheet
+          collectionId={previewTarget.id}
+          label={previewTarget.label}
+          accentColor={previewTarget.accentColor}
+          onConfirm={previewTarget.onConfirm}
+          onClose={() => setPreviewTarget(null)}
+        />
       )}
 
       {showEdit && (
