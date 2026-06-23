@@ -73,7 +73,7 @@ function buildCapturedFromPreview(previewData: TingleRawData): Captured {
     ? (activeFields.find(f => f.key === 'relationships')?.value ?? '')
     : ''
 
-  return {
+  const captured: Captured = {
     sections: [],
     title: name,
     imageUrl: coverImageUrl,
@@ -95,6 +95,10 @@ function buildCapturedFromPreview(previewData: TingleRawData): Captured {
       coverImageUrl,
     },
   }
+  if (previewData.lorebooks?.length) {
+    captured.lorebooks = previewData.lorebooks
+  }
+  return captured
 }
 
 async function runImport(captured: Captured, url: string, userId: string) {
