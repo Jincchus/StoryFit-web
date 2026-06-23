@@ -140,10 +140,17 @@ export async function POST(req: NextRequest) {
 
   // Clone collection-level lorebooks to this conversation
   // extraCollectionIds: 선택된 서사/테마 컬렉션 ID (팅글 캐릭터 페이지에서 전달)
-  const extraCollectionIds: string[] = Array.isArray(body.extraCollectionIds)
+  const rawExtraIds: string[] = Array.isArray(body.extraCollectionIds)
     ? body.extraCollectionIds.map(String).filter(Boolean)
     : []
-  const allCollectionIds = Array.from(new Set([...collectionIds, ...extraCollectionIds]))
+  // Ownership check — only clone from collections the authenticated user owns
+  const validatedExtras: string[] = rawExtraIds.length > 0
+    ? (await prisma.characterCollection.findMany({
+        where: { id: { in: rawExtraIds }, userId },
+        select: { id: true },
+      })).map(c => c.id)
+    : []
+  const allCollectionIds = Array.from(new Set([...collectionIds, ...validatedExtras]))
 
   if (allCollectionIds.length > 0) {
     const collectionLorebooks = await prisma.lorebook.findMany({
