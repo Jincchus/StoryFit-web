@@ -19,7 +19,7 @@ import SidePanel from './_components/SidePanel'
 import BranchModal from './_components/BranchModal'
 import CommandMenu from './_components/CommandMenu'
 import VoiceCallOverlay from './_components/VoiceCallOverlay'
-import { StatsPopover, InventoryPopover, RecapPopover } from './_components/HeaderPopovers'
+import { StatsPopover, InventoryPopover, RecapPopover, ScenarioPopover } from './_components/HeaderPopovers'
 import ChapterNav from './_components/ChapterNav'
 import type { ChapterAnchor } from '@/lib/chapters'
 
@@ -65,6 +65,7 @@ export default function ChatPage() {
   const [sendError, setSendError] = useState('')
   const [showPanel, setShowPanel] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [showScenario, setShowScenario] = useState(false)
   const [showInventory, setShowInventory] = useState(false)
   const [showRecap, setShowRecap] = useState(false)
   const [recapText, setRecapText] = useState('')
@@ -881,6 +882,11 @@ export default function ChatPage() {
                         <span>🎒 인벤토리</span>{showInventory && <span>✓</span>}
                       </div>
                     )}
+                    {isStoryOrMulti && conv.scenarioDescription?.trim() && (
+                      <div className="ai-dropdown-item" onClick={() => { setMoreOpen(false); setShowScenario(p => !p) }}>
+                        <span>🌐 세계관 배경</span>{showScenario && <span>✓</span>}
+                      </div>
+                    )}
                     {isStoryOrMulti && (
                       <div className="ai-dropdown-item" onClick={() => { setMoreOpen(false); setShowRecap(true); setShowStats(false); setShowInventory(false); loadRecap() }}>
                         <span>📜 지금까지의 줄거리</span>
@@ -1193,6 +1199,10 @@ export default function ChatPage() {
 
           {showInventory && (
             <InventoryPopover inventory={conv.inventory} onDelete={handleInventoryDelete} onClose={() => setShowInventory(false)} />
+          )}
+
+          {showScenario && conv.scenarioDescription?.trim() && (
+            <ScenarioPopover scenario={conv.scenarioDescription} onClose={() => setShowScenario(false)} />
           )}
 
           {showRecap && (

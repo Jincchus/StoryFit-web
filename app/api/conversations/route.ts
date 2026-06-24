@@ -64,13 +64,17 @@ export async function POST(req: NextRequest) {
 
   let convSourceUrl = body.sourceUrl ?? ''
   let tikitaPlotOutline: any = null
+  let colDescription = ''
   if (collectionIds.length > 0) {
     const col = await prisma.characterCollection.findFirst({
       where: { id: { in: collectionIds } },
-      select: { sourceUrl: true, tikitaMeta: true }
+      select: { sourceUrl: true, tikitaMeta: true, description: true }
     })
     if (!convSourceUrl && col?.sourceUrl) {
       convSourceUrl = col.sourceUrl
+    }
+    if (col?.description?.trim()) {
+      colDescription = col.description.trim()
     }
     const episodes = (col?.tikitaMeta as any)?.episodes
     if (Array.isArray(episodes) && episodes.length > 0) {
@@ -117,6 +121,10 @@ export async function POST(req: NextRequest) {
     : []
 
   let scenarioDescription = body.scenarioDescription ?? ''
+  // 클라이언트가 scenarioDescription을 따로 보내지 않았고 컬렉션에 배경 설명이 있으면 자동 주입
+  if (!scenarioDescription && colDescription) {
+    scenarioDescription = colDescription
+  }
   if (validatedExtras.length > 0) {
     const extraCols = await prisma.characterCollection.findMany({
       where: { id: { in: validatedExtras } },
