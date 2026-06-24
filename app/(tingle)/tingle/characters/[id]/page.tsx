@@ -152,6 +152,7 @@ export default function TingleCharacterDetailPage() {
 
   const mainChar = col.characters[0]
   const charNames = col.characters.map(c => c.name)
+  const introText = col.tingleMeta?.fields?.find(f => f.key === 'introduction')?.value ?? col.description ?? ''
   const openings = getOpenings(mainChar)
 
   const buildScenario = () => {
@@ -260,6 +261,7 @@ export default function TingleCharacterDetailPage() {
                   onClick={handleDelete} disabled={deleting}>🗑 삭제</button>
               </div>
             </div>
+            {introText && <p style={{ color: 'var(--tg-ink-soft)', margin: '0 0 10px', fontSize: 14, lineHeight: 1.5 }}>{replaceDisplayPlaceholders(introText, userName, charNames)}</p>}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {col.tags.map(t => <span key={t} className="tingle-chip">#{t}</span>)}
@@ -268,7 +270,7 @@ export default function TingleCharacterDetailPage() {
           </div>
 
           {(col.tingleMeta?.fields?.length ?? 0) > 0 ? (
-            (col.tingleMeta!.fields as TingleField[]).map((f) => f.value?.trim() ? (
+            (col.tingleMeta!.fields as TingleField[]).filter(f => f.key !== 'introduction').map((f) => f.value?.trim() ? (
               <div key={f.key} className="tingle-section" style={{ paddingTop: 0 }}>
                 <h2 className="tingle-section-title">{f.label}</h2>
                 <div className="tingle-intro-box">

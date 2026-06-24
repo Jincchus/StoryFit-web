@@ -73,6 +73,8 @@ function buildCapturedFromPreview(previewData: TingleRawData): Captured {
     ? (activeFields.find(f => f.key === 'relationships')?.value ?? '')
     : ''
 
+  const scenarioDescription = activeFields.find(f => f.key === 'introduction')?.value ?? ''
+
   const captured: Captured = {
     sections: [],
     title: name,
@@ -89,7 +91,7 @@ function buildCapturedFromPreview(previewData: TingleRawData): Captured {
         exampleDialogues,
         avatarUrl: coverImageUrl || undefined,
       }],
-      scenarioDescription: '',
+      scenarioDescription,
       tags,
       safetyLevel,
       coverImageUrl,
