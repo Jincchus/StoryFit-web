@@ -10,9 +10,11 @@ import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 import { useFavorites } from '@/lib/useFavorites'
 import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
+import type { LikedCharacter } from '@/app/api/melting/liked-scan/route'
 
 interface MChar {
   id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
+  sourceUrl: string
   characters: { id: string; name: string; avatarUrl: string | null }[]
   completed?: boolean
   started?: boolean
@@ -39,6 +41,11 @@ export default function MeltingListPage() {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
+  const [likedPanel, setLikedPanel] = useState(false)
+  const [likedList, setLikedList] = useState<LikedCharacter[]>([])
+  const [likedSelected, setLikedSelected] = useState<Set<string>>(new Set())
+  const [scanning, setScanning] = useState(false)
+  const [scanMsg, setScanMsg] = useState('')
   const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
 
   useEffect(() => {
@@ -101,6 +108,55 @@ export default function MeltingListPage() {
     setImporting(false)
   }
 
+  const handleLikedScan = async () => {
+    setMenuOpen(false)
+    setLikedPanel(true)
+    if (likedList.length > 0) return
+    setScanning(true); setScanMsg('멜팅 좋아요 목록 스캔 중...')
+    try {
+      const res = await api.get('/api/melting/liked-scan')
+      const list: LikedCharacter[] = res.liked ?? []
+      setLikedList(list)
+      setScanMsg(`♥ ${list.length}개 발견 (${res.scanned}페이지 스캔)`)
+    } catch (e: any) {
+      setScanMsg(`⚠ ${e.message ?? '스캔 실패'}`)
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  const toggleLikedSelect = (id: string) => {
+    setLikedSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleLikedImport = async () => {
+    const targets = likedList.filter(x => likedSelected.has(x.id))
+    if (targets.length === 0 || importing) return
+    setImporting(true); setMsg('')
+    let ok = 0
+    const failed: string[] = []
+    for (let i = 0; i < targets.length; i++) {
+      setMsg(`가져오는 중... (${i + 1}/${targets.length})`)
+      try {
+        await api.post('/api/characters/import', { url: targets[i].sourceUrl })
+        ok++
+      } catch {
+        failed.push(targets[i].name)
+      }
+    }
+    setImporting(false)
+    setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.join(', ')} 실패` : `✓ ${ok}개 가져왔습니다`)
+    if (failed.length === 0) {
+      setLikedPanel(false)
+      setLikedSelected(new Set())
+    }
+    await fetchData()
+  }
+
   const toggleEditMode = () => {
     const next = !editMode; setEditMode(next)
     localStorage.setItem('melting_edit', next ? '1' : '0'); setMenuOpen(false)
@@ -135,6 +191,93 @@ export default function MeltingListPage() {
 
   return (
     <>
+      {/* 좋아요 목록 패널 */}
+      {likedPanel && (() => {
+        const importable = likedList.filter(x => !chars.some(c => c.sourceUrl === x.sourceUrl))
+        const allSelected = importable.length > 0 && importable.every(x => likedSelected.has(x.id))
+        const toggleAll = () => {
+          if (allSelected) setLikedSelected(new Set())
+          else setLikedSelected(new Set(importable.map(x => x.id)))
+        }
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            onClick={() => setLikedPanel(false)}>
+            <div style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: 'var(--m-bg)', borderRadius: '16px 16px 0 0' }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px', flexShrink: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--m-ink)' }}>♥ 멜팅 좋아요 목록</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button onClick={() => { setLikedList([]); setLikedSelected(new Set()); setScanMsg(''); handleLikedScan() }}
+                    style={{ appearance: 'none', border: '1px solid var(--m-line)', background: 'var(--m-surface)', color: 'var(--m-ink-soft)', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer' }}>
+                    새로고침
+                  </button>
+                  <button onClick={() => setLikedPanel(false)}
+                    style={{ appearance: 'none', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--m-ink-soft)' }}>✕</button>
+                </div>
+              </div>
+              {scanMsg && (
+                <div style={{ padding: '0 16px 6px', fontSize: 11, color: scanMsg.startsWith('⚠') ? '#ff6b8a' : 'var(--m-ink-soft)', flexShrink: 0 }}>{scanMsg}</div>
+              )}
+              {!scanning && importable.length > 0 && (
+                <div style={{ padding: '0 16px 6px', flexShrink: 0 }}>
+                  <button onClick={toggleAll}
+                    style={{ appearance: 'none', border: '1px solid var(--m-line)', background: 'var(--m-surface)', color: 'var(--m-ink-soft)', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
+                    {allSelected ? '전체 해제' : `전체 선택 (${importable.length}개)`}
+                  </button>
+                </div>
+              )}
+              <div style={{ overflowY: 'auto', flex: 1, padding: '0 12px 8px' }}>
+                {scanning ? (
+                  <div style={{ textAlign: 'center', padding: 32, color: 'var(--m-ink-soft)', fontSize: 13 }}>스캔 중...</div>
+                ) : likedList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 32, color: 'var(--m-ink-soft)', fontSize: 13 }}>좋아요한 캐릭터가 없습니다.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {likedList.map(item => {
+                      const alreadyImported = chars.some(c => c.sourceUrl === item.sourceUrl)
+                      const checked = likedSelected.has(item.id)
+                      return (
+                        <div key={item.id}
+                          onClick={() => !alreadyImported && toggleLikedSelect(item.id)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid var(--m-line)', cursor: alreadyImported ? 'default' : 'pointer', opacity: alreadyImported ? 0.5 : 1 }}>
+                          <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${checked ? 'var(--m-accent)' : 'var(--m-line)'}`, background: checked ? 'var(--m-accent)' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                            {checked && <span style={{ fontSize: 12, color: '#fff', lineHeight: 1 }}>✓</span>}
+                          </div>
+                          {item.coverImageUrl
+                            ? <img src={item.coverImageUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                            : <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--m-surface)', display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0 }}>🎭</div>
+                          }
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--m-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
+                              {item.isAdult && <span style={{ fontSize: 9, fontWeight: 700, background: '#ff5776', color: '#fff', padding: '1px 4px', borderRadius: 3 }}>성인</span>}
+                              {item.tags.slice(0, 2).map(t => (
+                                <span key={t} style={{ fontSize: 9, color: 'var(--m-ink-soft)', background: 'var(--m-surface)', padding: '1px 5px', borderRadius: 10 }}>#{t}</span>
+                              ))}
+                            </div>
+                          </div>
+                          {alreadyImported && <span style={{ fontSize: 11, color: '#4ade80', flexShrink: 0 }}>✓ 완료</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+              {!scanning && likedSelected.size > 0 && (
+                <div style={{ padding: '10px 16px 20px', flexShrink: 0, borderTop: '1px solid var(--m-line)' }}>
+                  <button
+                    disabled={importing}
+                    onClick={handleLikedImport}
+                    style={{ width: '100%', appearance: 'none', border: 'none', background: 'var(--m-accent)', color: '#fff', borderRadius: 10, padding: '13px 0', fontSize: 14, cursor: 'pointer', fontWeight: 700 }}>
+                    {importing ? msg || '가져오는 중...' : `📥 선택한 ${likedSelected.size}개 가져오기`}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       <div className="melting-header" style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button className="melting-iconbtn" aria-label="홈으로" onClick={() => router.push('/')}>🏠</button>
@@ -149,6 +292,7 @@ export default function MeltingListPage() {
                 style={{ background: 'var(--m-accent)', borderRadius: 8, color: '#fff', textAlign: 'center' }}
                 disabled={importing} onClick={handleImport}>{importing ? '가져오는 중...' : '📥 가져오기'}</button>
             </div>
+            <button className="melting-menu-item" onClick={handleLikedScan}>♥ 좋아요 목록</button>
             <button className="melting-menu-item" onClick={createCharacter}>+ 새 캐릭터 만들기</button>
             <button className="melting-menu-item" onClick={toggleEditMode}>
               {editMode ? '✓ 편집 모드 끄기' : '✏ 편집 모드 켜기'}
