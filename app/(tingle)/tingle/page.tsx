@@ -6,9 +6,11 @@ import { sortByOption, type SortOption } from '@/lib/listSort'
 import { useScrollRestore } from '@/lib/useScrollRestore'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import { useFavorites } from '@/lib/useFavorites'
-import { viewCounts } from '@/lib/centerCounts'
+import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { useDisplayName } from '@/lib/useDisplayName'
+import TagFilterBar from '@/components/ui/TagFilterBar'
+import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
 
 interface TingleCol {
   id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
@@ -76,6 +78,8 @@ export default function TingleListPage() {
   const [likedSelected, setLikedSelected] = useState<Set<string>>(new Set())
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
   const userName = useDisplayName()
   const toggleSearch = () => setSearchOpen(o => { if (o) setQuery(''); return !o })
 
@@ -86,6 +90,7 @@ export default function TingleListPage() {
     const stored = sessionStorage.getItem('tg_type') as TypeTab
     setTypeTab(stored === 'character' || stored === 'universe' || stored === 'scene' ? stored : 'character')
     fetchData()
+    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
 
   const handleSort = (v: SortOption) => {
@@ -118,7 +123,7 @@ export default function TingleListPage() {
   }
 
   const scrollRef = useScrollRestore(`tg_scroll_${view}_${typeTab}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed, typeTab], scrollRef, 30, loadMore)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed, typeTab, selectedTags], scrollRef, 30, loadMore)
 
   const importTingleUrl = async (url: string) => {
     if (url.includes('tingle.chat')) {
@@ -228,8 +233,13 @@ export default function TingleListPage() {
     return !q || c.title.toLowerCase().includes(q) || c.tags?.some(t => t.toLowerCase().includes(q))
   }
 
+  const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
+  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+
   const colsByType = cols.filter(c => detectTingleType(c.sourceUrl).type === typeTab)
   const counts = viewCounts(colsByType)
+  const tagGroups = buildTagGroups(colsByType.flatMap(c => c.tags ?? []), tagConfig)
+  const tCounts = tagCounts(colsByType)
 
   const typeCounts = {
     character: cols.filter(c => detectTingleType(c.sourceUrl).type === 'character').length,
@@ -244,7 +254,7 @@ export default function TingleListPage() {
         : view === 'waiting' ? !c.started
         : !c.completed && !!c.started
       const typeMatch = detectTingleType(c.sourceUrl).type === typeTab
-      return viewMatch && typeMatch && matchesQuery(c)
+      return viewMatch && typeMatch && matchesQuery(c) && matchesTag(c.tags ?? [])
     }),
     sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
   )
@@ -436,10 +446,13 @@ export default function TingleListPage() {
       </div>
 
       {searchOpen && (
-        <div style={{ padding: '0 16px 8px' }}>
-          <input className="field" style={{ fontSize: 12, width: '100%' }} placeholder="이름·태그로 검색"
-            value={query} onChange={e => setQuery(e.target.value)} autoFocus />
-        </div>
+        <>
+          <div style={{ padding: '0 16px 8px' }}>
+            <input className="field" style={{ fontSize: 12, width: '100%' }} placeholder="이름·태그로 검색"
+              value={query} onChange={e => setQuery(e.target.value)} autoFocus />
+          </div>
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="tingle-chip" accentVar="--tg-accent" counts={tCounts} />
+        </>
       )}
 
       <div className="tingle-scroll" ref={scrollRef}>
@@ -457,7 +470,7 @@ export default function TingleListPage() {
           </div>
         ) : visible.length === 0 ? (
           <div className="tingle-empty">
-            {query.trim()
+            {query.trim() || selectedTags.length > 0
               ? '검색 결과가 없습니다.'
               : view === 'favorites' ? '즐겨찾기한 항목이 없습니다.'
               : view === 'completed' ? '완결한 항목이 없습니다.'

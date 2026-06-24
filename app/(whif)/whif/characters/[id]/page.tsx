@@ -40,6 +40,8 @@ export default function CharacterDetailPage() {
   const [imgIdx, setImgIdx] = useState(0)
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
+  const [isEditingOpening, setIsEditingOpening] = useState(false)
+  const [editContent, setEditContent] = useState('')
   const userName = useDisplayName()
 
   useEffect(() => {
@@ -62,6 +64,28 @@ export default function CharacterDetailPage() {
     } else {
       setPersonaOpen(true)
     }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!char) return
+    const ops = getOpenings(char)
+    const target = ops[openingIdx]
+    if (!target) return
+    setError('')
+    try {
+      const updatedMessages = ops.map(o => o.id === target.id ? { ...o, content: editContent } : o) as Opening[]
+      await api.patch(`/api/characters/${id}`, { openingMessages: updatedMessages })
+      setChar(prev => prev ? { ...prev, openingMessages: updatedMessages } : prev)
+      setIsEditingOpening(false)
+    } catch (e: any) {
+      setError('도입부 수정 실패: ' + e.message)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!char || !confirm(`${char.name}을(를) 삭제할까요?`)) return
+    await api.delete(`/api/characters/${id}`)
+    router.push('/whif')
   }
 
   if (!char) return <div className="whif-empty">불러오는 중...</div>
@@ -128,6 +152,10 @@ export default function CharacterDetailPage() {
               ? <img className="whif-cover" src={char.avatarUrl} alt="" />
               : <div className="whif-cover" />}
             <button className="whif-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
+            <div style={{ position: 'absolute', top: 12, right: 8, display: 'flex', gap: 8 }}>
+              <button className="whif-iconbtn" style={{ color: 'var(--w-accent)' }} onClick={() => router.push(`/characters/${id}/edit`)}>✏ 정보 수정</button>
+              <button className="whif-iconbtn" style={{ color: '#ff6b8a' }} onClick={handleDelete}>삭제</button>
+            </div>
           </div>
 
           {/* Name + Badge + Tags */}
@@ -155,19 +183,39 @@ export default function CharacterDetailPage() {
           {openings.length > 0 && (
             <div className="whif-section" style={{ paddingTop: 0 }}>
               <h2 className="whif-section-title">시작 상황</h2>
-              {openings.length > 1 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                  {openings.map((op, i) => (
-                    <button key={op.id} className={`whif-chip ${i === openingIdx ? 'sel' : ''}`}
-                      style={{ border: 'none', cursor: 'pointer' }} onClick={() => setOpeningIdx(i)}>
-                      {op.title}
-                    </button>
-                  ))}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+                {openings.map((op, i) => (
+                  <button key={op.id} className={`whif-chip ${i === openingIdx ? 'sel' : ''}`}
+                    style={{ border: 'none', cursor: 'pointer' }} onClick={() => { setOpeningIdx(i); setIsEditingOpening(false) }}>
+                    {op.title}
+                  </button>
+                ))}
+                {!isEditingOpening && (
+                  <button className="whif-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--w-surface)', marginLeft: 'auto' }}
+                    onClick={() => { setEditContent(openings[openingIdx]?.content ?? ''); setIsEditingOpening(true) }}>
+                    ✏ 편집
+                  </button>
+                )}
+              </div>
+              {isEditingOpening ? (
+                <div className="vstack" style={{ gap: 8 }}>
+                  <textarea
+                    className="field"
+                    style={{ fontSize: 13, background: 'var(--w-surface)', border: '1px solid var(--w-line)', color: 'var(--w-ink)', padding: 10, borderRadius: 10, width: '100%', resize: 'vertical' }}
+                    rows={8}
+                    value={editContent}
+                    onChange={e => setEditContent(e.target.value)}
+                  />
+                  <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
+                    <button className="btn primary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={handleSaveEdit}>저장</button>
+                    <button className="btn ghost" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => setIsEditingOpening(false)}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: 'var(--w-surface)', border: '1px solid var(--w-line)', borderRadius: 10, padding: 14, color: 'var(--w-ink-soft)', lineHeight: 1.6, fontSize: 14 }}>
+                  <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, char.name)} />
                 </div>
               )}
-              <div style={{ background: 'var(--w-surface)', border: '1px solid var(--w-line)', borderRadius: 10, padding: 14, color: 'var(--w-ink-soft)', lineHeight: 1.6, fontSize: 14 }}>
-                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, char.name)} />
-              </div>
             </div>
           )}
 
@@ -265,7 +313,7 @@ export default function CharacterDetailPage() {
 
         {/* 하단 고정 채팅 하기 */}
         <div className="whif-cta">
-          <button className="whif-cta-btn" onClick={handleCtaClick}>채팅 하기</button>
+          <button className="whif-cta-btn" onClick={handleCtaClick}>{existingConvs.length > 0 ? '새로운 대화 시작하기' : '채팅 하기'}</button>
         </div>
       </div>
     </>
