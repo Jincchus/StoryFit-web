@@ -105,6 +105,37 @@ export async function POST(req: NextRequest) {
     select: { defaultTemperature: true, defaultFrequencyPenalty: true, defaultMaxOutputTokens: true, defaultThinkingBudget: true, defaultSafetyLevel: true },
   })
 
+  // extraCollectionIds: 팅글 서사/테마 — 서버에서 additionalInfo 읽어 scenarioDescription에 합산
+  const rawExtraIds: string[] = Array.isArray(body.extraCollectionIds)
+    ? body.extraCollectionIds.map(String).filter(Boolean)
+    : []
+  const validatedExtras: string[] = rawExtraIds.length > 0
+    ? (await prisma.characterCollection.findMany({
+        where: { id: { in: rawExtraIds }, userId },
+        select: { id: true },
+      })).map(c => c.id)
+    : []
+
+  let scenarioDescription = body.scenarioDescription ?? ''
+  if (validatedExtras.length > 0) {
+    const extraCols = await prisma.characterCollection.findMany({
+      where: { id: { in: validatedExtras } },
+      select: {
+        id: true, title: true, sourceUrl: true,
+        characters: { select: { additionalInfo: true }, take: 1 },
+      },
+    })
+    const extraParts = extraCols.map(col => {
+      const txt = col.characters[0]?.additionalInfo?.trim() ?? ''
+      if (!txt) return null
+      const label = col.sourceUrl?.includes('/universes/') ? '서사' : col.sourceUrl?.includes('/scenes/') ? '테마' : null
+      return label ? `[${label}: ${col.title}]\n${txt}` : null
+    }).filter(Boolean) as string[]
+    if (extraParts.length > 0) {
+      scenarioDescription = [scenarioDescription, ...extraParts].filter(Boolean).join('\n\n')
+    }
+  }
+
   const conversation = await prisma.conversation.create({
     data: {
       userId,
@@ -112,7 +143,7 @@ export async function POST(req: NextRequest) {
       mode,
       currentAI: body.currentAI ?? 'gemini',
       personaCharacterId: body.personaCharacterId ?? null,
-      scenarioDescription: body.scenarioDescription ?? '',
+      scenarioDescription,
       tags: body.tags ?? [],
       temperature: body.temperature ?? settings?.defaultTemperature ?? 0.9,
       frequencyPenalty: body.frequencyPenalty ?? settings?.defaultFrequencyPenalty ?? 0.3,
@@ -139,17 +170,6 @@ export async function POST(req: NextRequest) {
   })
 
   // Clone collection-level lorebooks to this conversation
-  // extraCollectionIds: 선택된 서사/테마 컬렉션 ID (팅글 캐릭터 페이지에서 전달)
-  const rawExtraIds: string[] = Array.isArray(body.extraCollectionIds)
-    ? body.extraCollectionIds.map(String).filter(Boolean)
-    : []
-  // Ownership check — only clone from collections the authenticated user owns
-  const validatedExtras: string[] = rawExtraIds.length > 0
-    ? (await prisma.characterCollection.findMany({
-        where: { id: { in: rawExtraIds }, userId },
-        select: { id: true },
-      })).map(c => c.id)
-    : []
   const allCollectionIds = Array.from(new Set([...collectionIds, ...validatedExtras]))
 
   if (allCollectionIds.length > 0) {
