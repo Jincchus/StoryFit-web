@@ -9,6 +9,7 @@ import NovelText from '@/components/ui/NovelText'
 import TingleCardPreviewSheet from '@/components/ui/TingleCardPreviewSheet'
 import { getOpenings } from '@/lib/openings'
 import { useDisplayName } from '@/lib/useDisplayName'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 
 interface Lorebook { id: string; keyword: string[]; content: string; priority: number }
 
@@ -135,6 +136,14 @@ export default function TingleUniverseDetailPage() {
     setSelectedCharId(localStorage.getItem(`tg_char_uni_${id}`) ?? null)
     setSelectedSceneId(localStorage.getItem(`tg_scene_uni_${id}`) ?? null)
   }, [id])
+
+  useRefetchOnForeground(() => {
+    Promise.all([
+      api.get(`/api/collections/${id}`),
+      api.get('/api/collections?isTingle=true'),
+      api.get(`/api/lorebooks?collectionId=${id}`),
+    ]).then(([c, all, lb]) => { setCol(c); setAllTingle(all); setLorebooks(lb) }).catch(() => {})
+  })
 
   const characters = allTingle.filter(c => tingleType(c.sourceUrl) === 'character')
   const scenes = allTingle.filter(c => tingleType(c.sourceUrl) === 'scene')

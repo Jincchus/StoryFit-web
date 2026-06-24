@@ -8,6 +8,7 @@ import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { useDisplayName } from '@/lib/useDisplayName'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 
 function formatDate(s?: string) {
   if (!s) return ''
@@ -36,6 +37,8 @@ export default function TikitaStoryDetailPage() {
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [isEditingOpening, setIsEditingOpening] = useState(false)
+  const [editContent, setEditContent] = useState('')
   const [chatModeOpen, setChatModeOpen] = useState(false)
   const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
   const [expandedCharId, setExpandedCharId] = useState<string | null>(null)
@@ -54,6 +57,11 @@ export default function TikitaStoryDetailPage() {
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
   }, [id])
+
+  useRefetchOnForeground(() => {
+    if (isEditingOpening) return
+    api.get(`/api/collections/${id}`).then(setCol).catch(() => {})
+  })
 
   useEffect(() => {
     const charId = col?.characters?.[0]?.id
@@ -517,9 +525,36 @@ export default function TikitaStoryDetailPage() {
           {opening.trim() && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">첫 장면</h2>
-              <div className="tikita-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(opening, userName, charNames)} />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                {!isEditingOpening && (
+                  <button className="tikita-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--t-surface-2)' }}
+                    onClick={() => { setEditContent(opening); setIsEditingOpening(true) }}>
+                    ✏ 편집
+                  </button>
+                )}
               </div>
+              {isEditingOpening ? (
+                <div className="vstack" style={{ gap: 8 }}>
+                  <textarea className="field" rows={8}
+                    style={{ fontSize: 13, background: 'var(--t-surface)', border: '1px solid var(--t-line)', color: 'var(--t-ink)', padding: 10, borderRadius: 10, width: '100%', resize: 'vertical' }}
+                    value={editContent} onChange={e => setEditContent(e.target.value)} />
+                  <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
+                    <button className="btn primary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={async () => {
+                      if (!mainChar) return
+                      try {
+                        await api.patch(`/api/characters/${mainChar.id}`, { openingMessage: editContent })
+                        setCol(prev => prev ? { ...prev, characters: prev.characters.map(c => c.id === mainChar.id ? { ...c, openingMessage: editContent } : c) } : prev)
+                        setIsEditingOpening(false)
+                      } catch (e: any) { setError('도입부 수정 실패: ' + e.message) }
+                    }}>저장</button>
+                    <button className="btn ghost" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => setIsEditingOpening(false)}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="tikita-intro-box">
+                  <NovelText text={replaceDisplayPlaceholders(opening, userName, charNames)} />
+                </div>
+              )}
             </div>
           )}
 

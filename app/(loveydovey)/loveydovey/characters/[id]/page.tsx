@@ -9,6 +9,7 @@ import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { getOpenings } from '@/lib/openings'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import type { Opening } from '@/types'
 
 function formatDate(s?: string) {
@@ -59,6 +60,11 @@ export default function LoveydoveyCharDetailPage() {
       api.get(`/api/conversations?characterId=${charId}`).then(setExistingConvs).catch(() => setExistingConvs([]))
     }
   }, [col])
+
+  useRefetchOnForeground(() => {
+    if (isEditingOpening) return
+    api.get(`/api/collections/${id}`).then(setCol).catch(() => {})
+  })
 
   const handleCtaClick = () => {
     if (existingConvs.length > 0) {

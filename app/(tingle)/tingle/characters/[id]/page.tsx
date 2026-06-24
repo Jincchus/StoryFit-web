@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import NovelText from '@/components/ui/NovelText'
 import TingleCardPreviewSheet from '@/components/ui/TingleCardPreviewSheet'
 import { getOpenings } from '@/lib/openings'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import { useDisplayName } from '@/lib/useDisplayName'
 
 interface TingleField { key: string; label: string; value: string; order: number }
@@ -114,6 +115,8 @@ export default function TingleCharacterDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
+  const [isEditingOpening, setIsEditingOpening] = useState(false)
+  const [editContent, setEditContent] = useState('')
 
   const handleDelete = async () => {
     if (!confirm('이 항목을 삭제할까요?')) return
@@ -146,6 +149,14 @@ export default function TingleCharacterDetailPage() {
     setSelectedUniverseId(localStorage.getItem(`tg_uni_${id}`) ?? null)
     setSelectedSceneId(localStorage.getItem(`tg_scene_${id}`) ?? null)
   }, [id])
+
+  useRefetchOnForeground(() => {
+    if (isEditingOpening) return
+    Promise.all([
+      api.get(`/api/collections/${id}`),
+      api.get('/api/collections?isTingle=true'),
+    ]).then(([c, all]) => { setCol(c); setAllTingle(all) }).catch(() => {})
+  })
 
   const universes = allTingle.filter(c => tingleType(c.sourceUrl) === 'universe')
   const scenes = allTingle.filter(c => tingleType(c.sourceUrl) === 'scene')
@@ -341,22 +352,48 @@ export default function TingleCharacterDetailPage() {
           {openings.length > 0 && (
             <div className="tingle-section" style={{ paddingTop: 0 }}>
               <h2 className="tingle-section-title">도입부</h2>
-              {openings.length > 1 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                  {openings.map((op, i) => (
-                    <button key={op.id}
-                      style={{ appearance: 'none', border: 'none', cursor: 'pointer', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 600,
-                        background: i === openingIdx ? 'var(--tg-accent)' : 'var(--tg-surface-2)',
-                        color: i === openingIdx ? '#fff' : 'var(--tg-ink-soft)' }}
-                      onClick={() => setOpeningIdx(i)}>
-                      {op.title}
-                    </button>
-                  ))}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+                {openings.map((op, i) => (
+                  <button key={op.id}
+                    style={{ appearance: 'none', border: 'none', cursor: 'pointer', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 600,
+                      background: i === openingIdx ? 'var(--tg-accent)' : 'var(--tg-surface-2)',
+                      color: i === openingIdx ? '#fff' : 'var(--tg-ink-soft)' }}
+                    onClick={() => { setOpeningIdx(i); setIsEditingOpening(false) }}>
+                    {op.title}
+                  </button>
+                ))}
+                {!isEditingOpening && (
+                  <button className="tingle-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--tg-surface-2)', marginLeft: 'auto' }}
+                    onClick={() => { setEditContent(openings[openingIdx]?.content ?? ''); setIsEditingOpening(true) }}>
+                    ✏ 편집
+                  </button>
+                )}
+              </div>
+              {isEditingOpening ? (
+                <div className="vstack" style={{ gap: 8 }}>
+                  <textarea className="field" rows={8}
+                    style={{ fontSize: 13, background: 'var(--tg-surface)', border: '1px solid var(--tg-line)', color: 'var(--tg-ink)', padding: 10, borderRadius: 10, width: '100%', resize: 'vertical' }}
+                    value={editContent} onChange={e => setEditContent(e.target.value)} />
+                  <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
+                    <button className="btn primary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={async () => {
+                      if (!mainChar) return
+                      const target = openings[openingIdx]
+                      if (!target) return
+                      try {
+                        const updated = openings.map(o => o.id === target.id ? { ...o, content: editContent } : o)
+                        await api.patch(`/api/characters/${mainChar.id}`, { openingMessages: updated })
+                        setCol(prev => prev ? { ...prev, characters: prev.characters.map(c => c.id === mainChar.id ? { ...c, openingMessages: updated as any } : c) } : prev)
+                        setIsEditingOpening(false)
+                      } catch (e: any) { setError('도입부 수정 실패: ' + e.message) }
+                    }}>저장</button>
+                    <button className="btn ghost" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => setIsEditingOpening(false)}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="tingle-intro-box">
+                  <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, charNames)} />
                 </div>
               )}
-              <div className="tingle-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, charNames)} />
-              </div>
             </div>
           )}
 

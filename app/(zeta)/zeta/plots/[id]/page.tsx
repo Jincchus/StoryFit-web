@@ -10,6 +10,7 @@ import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { useDisplayName } from '@/lib/useDisplayName'
 import { getOpenings } from '@/lib/openings'
 import type { Opening } from '@/types'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 
 interface Char {
   id: string; name: string; avatarUrl: string | null; additionalInfo: string
@@ -47,6 +48,8 @@ export default function ZetaPlotDetailPage() {
   const [chatModeOpen, setChatModeOpen] = useState(false)
   const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
   const [showEdit, setShowEdit] = useState(false)
+  const [isEditingOpening, setIsEditingOpening] = useState(false)
+  const [editContent, setEditContent] = useState('')
   const userName = useDisplayName()
 
   useEffect(() => {
@@ -64,6 +67,11 @@ export default function ZetaPlotDetailPage() {
   useEffect(() => {
     api.get(`/api/lorebooks?collectionId=${id}`).then(setLorebooks).catch(() => {})
   }, [id])
+
+  useRefetchOnForeground(() => {
+    if (isEditingOpening) return
+    api.get(`/api/collections/${id}`).then(setCol).catch(() => {})
+  })
 
   const handleDeleteChar = async (charId: string) => {
     if (!confirm('이 캐릭터를 삭제할까요? 캐릭터와 관련된 모든 대화방 기록도 함께 정리됩니다.')) return
@@ -89,6 +97,20 @@ export default function ZetaPlotDetailPage() {
       setShowNewChatConfirm(true)
     } else {
       startChat()
+    }
+  }
+
+  const handleSaveEdit = async (charId: string, openings: Opening[]) => {
+    const target = openings[openingIdx]
+    if (!target) return
+    setError('')
+    try {
+      const updatedMessages = openings.map(o => o.id === target.id ? { ...o, content: editContent } : o) as Opening[]
+      await api.patch(`/api/characters/${charId}`, { openingMessages: updatedMessages })
+      setCol(prev => prev ? { ...prev, characters: prev.characters.map(c => c.id === charId ? { ...c, openingMessages: updatedMessages } : c) } : prev)
+      setIsEditingOpening(false)
+    } catch (e: any) {
+      setError('도입부 수정 실패: ' + e.message)
     }
   }
 
@@ -258,18 +280,34 @@ export default function ZetaPlotDetailPage() {
           {openings.length > 0 && (
             <div className="zeta-section" style={{ paddingTop: 0 }}>
               <h2 className="zeta-section-title">인트로</h2>
-              {openings.length > 1 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                  {openings.map((op, i) => (
-                    <button key={op.id} className="zeta-chip"
-                      style={{ border: 'none', cursor: 'pointer', background: i === openingIdx ? 'var(--z-accent)' : 'var(--z-surface-2)', color: i === openingIdx ? '#fff' : 'var(--z-ink-soft)' }}
-                      onClick={() => setOpeningIdx(i)}>{op.title}</button>
-                  ))}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+                {openings.map((op, i) => (
+                  <button key={op.id} className="zeta-chip"
+                    style={{ border: 'none', cursor: 'pointer', background: i === openingIdx ? 'var(--z-accent)' : 'var(--z-surface-2)', color: i === openingIdx ? '#fff' : 'var(--z-ink-soft)' }}
+                    onClick={() => { setOpeningIdx(i); setIsEditingOpening(false) }}>{op.title}</button>
+                ))}
+                {!isEditingOpening && (
+                  <button className="zeta-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--z-surface-2)', marginLeft: 'auto' }}
+                    onClick={() => { setEditContent(openings[openingIdx]?.content ?? ''); setIsEditingOpening(true) }}>
+                    ✏ 편집
+                  </button>
+                )}
+              </div>
+              {isEditingOpening ? (
+                <div className="vstack" style={{ gap: 8 }}>
+                  <textarea className="field" rows={8}
+                    style={{ fontSize: 13, background: 'var(--z-surface)', border: '1px solid var(--z-line)', color: 'var(--z-ink)', padding: 10, borderRadius: 10, width: '100%', resize: 'vertical' }}
+                    value={editContent} onChange={e => setEditContent(e.target.value)} />
+                  <div className="hstack" style={{ gap: 6, justifyContent: 'flex-end' }}>
+                    <button className="btn primary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => mainChar && handleSaveEdit(mainChar.id, openings)}>저장</button>
+                    <button className="btn ghost" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => setIsEditingOpening(false)}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="zeta-intro-box">
+                  <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, mainChar?.name ?? '')} />
                 </div>
               )}
-              <div className="zeta-intro-box">
-                <NovelText text={replaceDisplayPlaceholders(openings[openingIdx]?.content ?? '', userName, mainChar?.name ?? '')} />
-              </div>
             </div>
           )}
 

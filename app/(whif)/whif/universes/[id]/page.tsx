@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { useDisplayName } from '@/lib/useDisplayName'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 
 interface Universe { id: string; title: string; coverImageUrl: string; description: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[] }
 interface Character { id: string; name: string; avatarUrl: string | null; tags: string[]; collection?: { id: string } | null }
@@ -32,6 +33,8 @@ export default function UniverseDetailPage() {
     setEditMode(localStorage.getItem('whif_edit') === '1')
     fetchAll()
   }, [id])
+
+  useRefetchOnForeground(fetchAll)
 
   const fetchAll = async () => {
     const [unis, allChars, lb] = await Promise.all([

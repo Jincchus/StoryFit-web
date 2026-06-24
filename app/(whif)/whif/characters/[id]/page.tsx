@@ -8,6 +8,7 @@ import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { getOpenings } from '@/lib/openings'
 import { useDisplayName } from '@/lib/useDisplayName'
+import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import type { Opening } from '@/types'
 
 function formatDate(s?: string) {
@@ -54,6 +55,11 @@ export default function CharacterDetailPage() {
       api.get(`/api/conversations?characterId=${id}`).then(setExistingConvs).catch(() => setExistingConvs([]))
     }
   }, [id])
+
+  useRefetchOnForeground(() => {
+    if (isEditingOpening) return
+    api.get(`/api/characters/${id}`).then(setChar).catch(() => {})
+  })
 
   const handleCtaClick = async () => {
     if (existingConvs.length > 0) {
