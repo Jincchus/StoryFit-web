@@ -34,8 +34,6 @@ export default function UniverseDetailPage() {
     fetchAll()
   }, [id])
 
-  useRefetchOnForeground(fetchAll)
-
   const fetchAll = async () => {
     const [unis, allChars, lb] = await Promise.all([
       api.get('/api/collections?isWhif=true'),
@@ -46,6 +44,8 @@ export default function UniverseDetailPage() {
     setChars(allChars.filter((c: Character) => c.collection?.id === id))
     setLore(lb)
   }
+
+  useRefetchOnForeground(fetchAll)
 
   const saveLore = async () => {
     if (!loreKeyword.trim() || !loreContent.trim()) return
