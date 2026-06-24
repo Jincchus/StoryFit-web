@@ -261,7 +261,7 @@ export default function TingleCharacterDetailPage() {
                   onClick={handleDelete} disabled={deleting}>🗑 삭제</button>
               </div>
             </div>
-            {introText && <p style={{ color: 'var(--tg-ink-soft)', margin: '0 0 10px', fontSize: 14, lineHeight: 1.5 }}>{replaceDisplayPlaceholders(introText, userName, charNames)}</p>}
+            {introText && <p style={{ color: 'var(--tg-ink-soft)', margin: '0 0 10px', fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{replaceDisplayPlaceholders(introText, userName, charNames)}</p>}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {col.tags.map(t => <span key={t} className="tingle-chip">#{t}</span>)}

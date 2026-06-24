@@ -295,7 +295,7 @@ export default function TingleUniverseDetailPage() {
                   onClick={handleDelete} disabled={deleting}>🗑 삭제</button>
               </div>
             </div>
-            {(() => { const v = col.tingleMeta?.fields?.find(f => f.key === 'introduction')?.value ?? col.description ?? ''; return v ? <p style={{ color: 'var(--tg-ink-soft)', margin: '0 0 10px', fontSize: 14, lineHeight: 1.5 }}>{replaceDisplayPlaceholders(v, userName, charNames)}</p> : null })()}
+            {(() => { const v = col.tingleMeta?.fields?.find(f => f.key === 'introduction')?.value ?? col.description ?? ''; return v ? <p style={{ color: 'var(--tg-ink-soft)', margin: '0 0 10px', fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{replaceDisplayPlaceholders(v, userName, charNames)}</p> : null })()}
             {col.tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {col.tags.map(t => <span key={t} className="tingle-chip">#{t}</span>)}
