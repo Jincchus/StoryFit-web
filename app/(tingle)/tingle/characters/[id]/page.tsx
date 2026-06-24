@@ -16,7 +16,7 @@ interface TingleCol {
   id: string; title: string; coverImageUrl: string; description?: string; tags: string[]
   sourceUrl: string
   tingleMeta?: { type: string; fields: TingleField[]; openings: any[] }
-  characters: { id: string; name: string; avatarUrl: string | null; additionalInfo: string; openingMessage: string; openingMessages?: any[] }[]
+  characters: { id: string; name: string; avatarUrl: string | null; gender?: string; additionalInfo: string; openingMessage: string; openingMessages?: any[] }[]
 }
 
 function tingleType(sourceUrl: string) {
@@ -269,18 +269,34 @@ export default function TingleCharacterDetailPage() {
             )}
           </div>
 
-          {(col.tingleMeta?.fields?.length ?? 0) > 0 ? (
-            (col.tingleMeta!.fields as TingleField[]).filter(f => f.key !== 'introduction').map((f) => f.value?.trim() ? (
-              <div key={f.key} className="tingle-section" style={{ paddingTop: 0 }}>
-                <h2 className="tingle-section-title">{f.label}</h2>
+          {(col.tingleMeta?.fields?.length ?? 0) > 0 ? (() => {
+            const detailFields = (col.tingleMeta!.fields as TingleField[]).filter(f => f.key !== 'introduction' && f.value?.trim())
+            const genderStr = mainChar?.gender?.trim()
+            const allFields = genderStr
+              ? [{ key: 'gender', label: '성별', value: genderStr, order: 0 }, ...detailFields]
+              : detailFields
+            if (allFields.length === 0) return null
+            return (
+              <div className="tingle-section" style={{ paddingTop: 0 }}>
+                <h2 className="tingle-section-title">상세정보</h2>
                 <div className="tingle-intro-box">
-                  <div className="tingle-desc" style={{ whiteSpace: 'pre-wrap' }}>
-                    {replaceDisplayPlaceholders(f.value, userName, charNames)}
-                  </div>
+                  {allFields.map((f, i) => (
+                    <div key={f.key} style={{
+                      display: 'flex', gap: 12, padding: '8px 0',
+                      borderBottom: i < allFields.length - 1 ? '1px solid var(--tg-line)' : 'none',
+                    }}>
+                      <div style={{ fontSize: 11, color: 'var(--tg-accent)', fontWeight: 700, minWidth: 60, flexShrink: 0, paddingTop: 2 }}>
+                        {f.label}
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--tg-ink)', whiteSpace: 'pre-wrap', flex: 1, lineHeight: 1.6 }}>
+                        {replaceDisplayPlaceholders(f.value, userName, charNames)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ) : null)
-          ) : mainChar?.additionalInfo?.trim() ? (
+            )
+          })() : mainChar?.additionalInfo?.trim() ? (
             <div className="tingle-section" style={{ paddingTop: 0 }}>
               <h2 className="tingle-section-title">캐릭터 설정</h2>
               <div className="tingle-intro-box">
