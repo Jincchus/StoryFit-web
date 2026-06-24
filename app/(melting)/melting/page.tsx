@@ -117,7 +117,7 @@ export default function MeltingListPage() {
       const res = await api.get('/api/melting/liked-scan')
       const list: LikedCharacter[] = res.liked ?? []
       setLikedList(list)
-      setScanMsg(`♥ ${list.length}개 발견 (${res.scanned}페이지 스캔)`)
+      setScanMsg(`♥ ${list.length}개 발견`)
     } catch (e: any) {
       setScanMsg(`⚠ ${e.message ?? '스캔 실패'}`)
     } finally {
