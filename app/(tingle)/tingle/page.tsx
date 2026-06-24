@@ -60,6 +60,8 @@ export default function TingleListPage() {
   const [typeTab, setTypeTab] = useState<TypeTab>('character')
   const { isFav, toggleFav } = useFavorites()
   const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(false)
+  const [fetchingMore, setFetchingMore] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
@@ -93,14 +95,30 @@ export default function TingleListPage() {
   const handleView = (v: ViewTab) => { setView(v); sessionStorage.setItem('tg_view', v) }
   const handleTypeTab = (v: TypeTab) => { setTypeTab(v); sessionStorage.setItem('tg_type', v) }
 
-  const scrollRef = useScrollRestore(`tg_scroll_${view}_${typeTab}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed, typeTab], scrollRef)
+  const FETCH_SIZE = 60
 
   const fetchData = async () => {
     setLoading(true)
-    try { setCols(await api.get('/api/collections?isTingle=true')) }
-    finally { setLoading(false) }
+    setHasMore(false)
+    try {
+      const data: TingleCol[] = await api.get(`/api/collections?isTingle=true&limit=${FETCH_SIZE}`)
+      setCols(data)
+      setHasMore(data.length === FETCH_SIZE)
+    } finally { setLoading(false) }
   }
+
+  const loadMore = async () => {
+    if (fetchingMore || !hasMore) return
+    setFetchingMore(true)
+    try {
+      const data: TingleCol[] = await api.get(`/api/collections?isTingle=true&limit=${FETCH_SIZE}&offset=${cols.length}`)
+      setCols(prev => [...prev, ...data])
+      setHasMore(data.length === FETCH_SIZE)
+    } catch {} finally { setFetchingMore(false) }
+  }
+
+  const scrollRef = useScrollRestore(`tg_scroll_${view}_${typeTab}`, !loading)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed, typeTab], scrollRef, 30, loadMore)
 
   const importTingleUrl = async (url: string) => {
     if (url.includes('tingle.chat')) {

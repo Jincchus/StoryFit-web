@@ -32,6 +32,8 @@ export default function ZetaListPage() {
   const { isFav, toggleFav } = useFavorites()
   const userName = useDisplayName()
   const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(false)
+  const [fetchingMore, setFetchingMore] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
@@ -62,8 +64,30 @@ export default function ZetaListPage() {
     setView(v); sessionStorage.setItem('zeta_view', v)
   }
 
+  const FETCH_SIZE = 60
+
+  const fetchData = async () => {
+    setLoading(true)
+    setHasMore(false)
+    try {
+      const data: Plot[] = await api.get(`/api/collections?isZeta=true&limit=${FETCH_SIZE}`)
+      setPlots(data)
+      setHasMore(data.length === FETCH_SIZE)
+    } finally { setLoading(false) }
+  }
+
+  const loadMore = async () => {
+    if (fetchingMore || !hasMore) return
+    setFetchingMore(true)
+    try {
+      const data: Plot[] = await api.get(`/api/collections?isZeta=true&limit=${FETCH_SIZE}&offset=${plots.length}`)
+      setPlots(prev => [...prev, ...data])
+      setHasMore(data.length === FETCH_SIZE)
+    } catch {} finally { setFetchingMore(false) }
+  }
+
   const scrollRef = useScrollRestore(`zeta_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef, 30, loadMore)
 
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
@@ -71,12 +95,6 @@ export default function ZetaListPage() {
   const tagGroups = buildTagGroups(plots.flatMap(p => p.tags ?? []), tagConfig)
   const counts = viewCounts(plots)
   const tCounts = tagCounts(plots)
-
-  const fetchData = async () => {
-    setLoading(true)
-    try { setPlots(await api.get('/api/collections?isZeta=true')) }
-    finally { setLoading(false) }
-  }
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)

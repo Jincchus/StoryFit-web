@@ -49,9 +49,13 @@ export async function GET(req: NextRequest) {
     whereClause.AND = EXTERNAL_HOSTS.map(h => ({ NOT: { sourceUrl: { contains: h } } }))
   }
 
+  const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
+  const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0
+
   const collections = await prisma.characterCollection.findMany({
     where: whereClause,
     orderBy: { createdAt: 'desc' },
+    ...(limit ? { take: limit, skip: offset } : {}),
     select: {
       id: true,
       title: true,

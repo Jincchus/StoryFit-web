@@ -26,6 +26,8 @@ export default function MeltingListPage() {
   const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
   const { isFav, toggleFav } = useFavorites()
   const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(false)
+  const [fetchingMore, setFetchingMore] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
@@ -56,14 +58,30 @@ export default function MeltingListPage() {
     setView(v); sessionStorage.setItem('melting_view', v)
   }
 
-  const scrollRef = useScrollRestore(`melting_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef)
+  const FETCH_SIZE = 60
 
   const fetchData = async () => {
     setLoading(true)
-    try { setChars(await api.get('/api/collections?isMelting=true')) }
-    finally { setLoading(false) }
+    setHasMore(false)
+    try {
+      const data: MChar[] = await api.get(`/api/collections?isMelting=true&limit=${FETCH_SIZE}`)
+      setChars(data)
+      setHasMore(data.length === FETCH_SIZE)
+    } finally { setLoading(false) }
   }
+
+  const loadMore = async () => {
+    if (fetchingMore || !hasMore) return
+    setFetchingMore(true)
+    try {
+      const data: MChar[] = await api.get(`/api/collections?isMelting=true&limit=${FETCH_SIZE}&offset=${chars.length}`)
+      setChars(prev => [...prev, ...data])
+      setHasMore(data.length === FETCH_SIZE)
+    } catch {} finally { setFetchingMore(false) }
+  }
+
+  const scrollRef = useScrollRestore(`melting_scroll_${view}`, !loading)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef, 30, loadMore)
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)

@@ -5,6 +5,7 @@ export function useInfiniteScroll(
   deps: unknown[],
   scrollRef: React.RefObject<HTMLElement | null>,
   pageSize = 30,
+  onLoadMore?: () => void,
 ) {
   const [count, setCount] = useState(pageSize)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -19,7 +20,12 @@ export function useInfiniteScroll(
     const root = scrollRef.current
     if (!sentinel || !root) return
     const obs = new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) setCount(c => c + pageSize) },
+      entries => {
+        if (entries[0].isIntersecting) {
+          setCount(c => c + pageSize)
+          onLoadMore?.()
+        }
+      },
       { root, rootMargin: '300px' },
     )
     obs.observe(sentinel)

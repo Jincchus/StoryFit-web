@@ -27,6 +27,8 @@ export default function TikitaListPage() {
   const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
   const { isFav, toggleFav } = useFavorites()
   const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(false)
+  const [fetchingMore, setFetchingMore] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
@@ -57,14 +59,30 @@ export default function TikitaListPage() {
     setView(v); sessionStorage.setItem('tikita_view', v)
   }
 
-  const scrollRef = useScrollRestore(`tikita_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef)
+  const FETCH_SIZE = 60
 
   const fetchData = async () => {
     setLoading(true)
-    try { setStories(await api.get('/api/collections?isTikita=true')) }
-    finally { setLoading(false) }
+    setHasMore(false)
+    try {
+      const data: TStory[] = await api.get(`/api/collections?isTikita=true&limit=${FETCH_SIZE}`)
+      setStories(data)
+      setHasMore(data.length === FETCH_SIZE)
+    } finally { setLoading(false) }
   }
+
+  const loadMore = async () => {
+    if (fetchingMore || !hasMore) return
+    setFetchingMore(true)
+    try {
+      const data: TStory[] = await api.get(`/api/collections?isTikita=true&limit=${FETCH_SIZE}&offset=${stories.length}`)
+      setStories(prev => [...prev, ...data])
+      setHasMore(data.length === FETCH_SIZE)
+    } catch {} finally { setFetchingMore(false) }
+  }
+
+  const scrollRef = useScrollRestore(`tikita_scroll_${view}`, !loading)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef, 30, loadMore)
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
