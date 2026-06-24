@@ -65,6 +65,9 @@ export function applyPersonaPlaceholders(text: string, personaName: string, char
         .replace(/\{char\}/gi, firstChar)
         .replace(/\{캐릭터\}/g, firstChar)
         .replace(/\{\{캐릭터\}\}/g, firstChar)
+        // {{assistant}} is used by some platforms (e.g. Tingle) as character name placeholder
+        .replace(/\{\{assistant\}\}/gi, firstChar)
+        .replace(/\{assistant\}/gi, firstChar)
     }
   }
 

@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import NovelText from '@/components/ui/NovelText'
 import TingleCardPreviewSheet from '@/components/ui/TingleCardPreviewSheet'
 import { getOpenings } from '@/lib/openings'
@@ -17,6 +18,12 @@ interface TingleCol {
   sourceUrl: string
   tingleMeta?: { type: string; fields: TingleField[]; openings: any[] }
   characters: { id: string; name: string; avatarUrl: string | null; gender?: string; additionalInfo: string; openingMessage: string; openingMessages?: any[] }[]
+}
+
+function formatDate(s?: string) {
+  if (!s) return ''
+  const d = new Date(s)
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
 function tingleType(sourceUrl: string) {
@@ -105,6 +112,8 @@ export default function TingleCharacterDetailPage() {
   const [error, setError] = useState('')
   const [showEdit, setShowEdit] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [existingConvs, setExistingConvs] = useState<any[]>([])
+  const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
 
   const handleDelete = async () => {
     if (!confirm('이 항목을 삭제할까요?')) return
@@ -121,6 +130,13 @@ export default function TingleCharacterDetailPage() {
   const [scenePickerOpen, setScenePickerOpen] = useState(false)
   const [previewTarget, setPreviewTarget] = useState<{ id: string; label: string; accentColor: string; onConfirm: () => void } | null>(null)
   const userName = useDisplayName()
+
+  useEffect(() => {
+    const charId = col?.characters?.[0]?.id
+    if (charId) {
+      api.get(`/api/conversations?characterId=${charId}`).then(setExistingConvs).catch(() => setExistingConvs([]))
+    }
+  }, [col])
 
   useEffect(() => {
     Promise.all([
@@ -166,6 +182,14 @@ export default function TingleCharacterDetailPage() {
       if (txt) parts.push(`[테마: ${selectedScene.title}]\n${txt}`)
     }
     return parts.join('\n\n')
+  }
+
+  const handleCtaClick = () => {
+    if (existingConvs.length > 0) {
+      setShowNewChatConfirm(true)
+    } else {
+      setPersonaOpen(true)
+    }
   }
 
   const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
@@ -228,6 +252,13 @@ export default function TingleCharacterDetailPage() {
           label="캐릭터"
           onClose={() => setShowEdit(false)}
           onSaved={u => setCol(prev => prev ? { ...prev, ...u } : prev)}
+        />
+      )}
+      {showNewChatConfirm && (
+        <ConfirmDialog
+          message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
+          onConfirm={() => { setShowNewChatConfirm(false); setPersonaOpen(true) }}
+          onCancel={() => setShowNewChatConfirm(false)}
         />
       )}
       {personaOpen && (
@@ -361,13 +392,32 @@ export default function TingleCharacterDetailPage() {
             </button>
           </div>
 
+          {existingConvs.length > 0 && (
+            <div className="tingle-section" style={{ paddingTop: 0 }}>
+              <h2 className="tingle-section-title">진행 중인 대화</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {existingConvs.map(c => (
+                  <div key={c.id} style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--tg-surface)', border: '1px solid var(--tg-line)', borderRadius: 10 }} onClick={() => router.push(`/conversations/${c.id}`)}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--tg-ink)' }}>{c.title}</div>
+                      {c.messages?.[0]?.content && (
+                        <div style={{ color: 'var(--tg-ink-soft)', fontSize: 12, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.messages[0].content}</div>
+                      )}
+                    </div>
+                    <div style={{ color: 'var(--tg-ink-soft)', fontSize: 11, flexShrink: 0, marginLeft: 10 }}>{formatDate(c.updatedAt)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {error && <div style={{ padding: '0 16px 8px', fontSize: 12, color: '#ff6b8a' }}>{error}</div>}
           <div style={{ height: 80 }} />
         </div>
 
         <div className="tingle-cta">
-          <button className="tingle-cta-btn" disabled={creating || !mainChar} onClick={() => setPersonaOpen(true)}>
-            {creating ? '생성 중...' : '대화 시작'}
+          <button className="tingle-cta-btn" disabled={creating || !mainChar} onClick={handleCtaClick}>
+            {creating ? '생성 중...' : existingConvs.length > 0 ? '새로운 대화 시작하기' : '대화 시작'}
           </button>
         </div>
       </div>
