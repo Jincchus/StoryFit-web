@@ -32,7 +32,7 @@ export default function CharacterDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const [char, setChar] = useState<Character | null>(null)
-  const [allChars, setAllChars] = useState<Character[]>([])
+  const [personaCandidates, setPersonaCandidates] = useState<Character[]>([])
   const [openingIdx, setOpeningIdx] = useState(0)
   const [personaOpen, setPersonaOpen] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -45,11 +45,8 @@ export default function CharacterDetailPage() {
   const userName = useDisplayName()
 
   useEffect(() => {
-    (async () => {
-      const list: Character[] = await api.get('/api/characters?isWhif=true')
-      setAllChars(list)
-      setChar(list.find(c => c.id === id) ?? null)
-    })()
+    setChar(null)
+    api.get(`/api/characters/${id}`).then(setChar).catch(() => setChar(null))
   }, [id])
 
   useEffect(() => {
@@ -58,10 +55,15 @@ export default function CharacterDetailPage() {
     }
   }, [id])
 
-  const handleCtaClick = () => {
+  const handleCtaClick = async () => {
     if (existingConvs.length > 0) {
       setShowNewChatConfirm(true)
     } else {
+      if (char?.collection?.id && personaCandidates.length === 0) {
+        api.get(`/api/characters?isWhif=true&collectionId=${char.collection.id}`)
+          .then((list: Character[]) => setPersonaCandidates(list.filter(c => c.id !== char.id)))
+          .catch(() => {})
+      }
       setPersonaOpen(true)
     }
   }
@@ -92,7 +94,6 @@ export default function CharacterDetailPage() {
 
   const openings = getOpenings(char)
   const nsfw = char.safetyLevel === 'relaxed'
-  const personaCandidates = allChars.filter(c => c.collection?.id === char.collection?.id && c.id !== char.id)
   const relatedImgs = (char.relatedImages ?? []).filter(u => !getYouTubeId(u))
   const relatedVideo = (char.relatedImages ?? []).find(u => getYouTubeId(u))
 

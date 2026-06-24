@@ -42,8 +42,13 @@ export async function GET(req: NextRequest) {
           ],
         }
 
+  const collectionId = searchParams.get('collectionId')
+  const finalWhere = collectionId
+    ? { ...whereClause, collectionId }
+    : whereClause
+
   const characters = await prisma.character.findMany({
-    where: whereClause,
+    where: finalWhere,
     orderBy: [{ isPreset: 'desc' }, { createdAt: 'asc' }],
     include: {
       collection: { select: { id: true, title: true, sourceUrl: true } },
