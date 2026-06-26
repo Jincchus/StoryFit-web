@@ -20,6 +20,16 @@ function centerKeyOf(c: Character): string {
   return CENTERS.find(ctr => ctr.dbHosts.some(h => url.includes(h)))?.key ?? 'none'
 }
 
+// 성별 원시값(GENDER_MALE·남성·남자 / GENDER_FEMALE·여성 / 빈값 등)을 버킷으로 정규화.
+// ⚠️ 'female'이 'male'을 부분 포함하므로 female을 먼저 검사한다.
+function genderBucket(g?: string): 'male' | 'female' | 'none' {
+  const s = (g ?? '').toLowerCase()
+  if (s.includes('female') || s.includes('여')) return 'female'
+  if (s.includes('male') || s.includes('남')) return 'male'
+  return 'none'
+}
+const GENDER_LABEL: Record<string, string> = { male: '남성', female: '여성', none: '기타·미설정' }
+
 let sparkleCount = 0
 function sparkleAt(x: number, y: number) {
   if (sparkleCount >= 3) return
@@ -65,6 +75,7 @@ export default function CharactersPage() {
   const [duplicating, setDuplicating] = useState(false)
   const [roomFilter, setRoomFilter] = useState<string>('all')
   const [centerFilter, setCenterFilter] = useState<string>('all')
+  const [genderFilter, setGenderFilter] = useState<string>('all')
   const [sort, setSort] = useState<SortOption>('latest')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchTab, setSearchTab] = useState<'text' | 'tag'>('text')
@@ -128,6 +139,15 @@ export default function CharactersPage() {
     return viewBase.filter(c => centerKeyOf(c) === centerFilter)
   }, [viewBase, centerFilter, view])
 
+  // 성별 필터 옵션 (센터 필터 적용된 집합에서 버킷별 카운트)
+  const availableGenders = useMemo(() => {
+    const counts = new Map<string, number>()
+    centerBase.forEach(c => { const b = genderBucket(c.gender); counts.set(b, (counts.get(b) ?? 0) + 1) })
+    return (['male', 'female', 'none'] as const)
+      .filter(b => counts.has(b))
+      .map(b => ({ key: b, label: GENDER_LABEL[b], count: counts.get(b)! }))
+  }, [centerBase])
+
   // 카드(컬렉션) 드롭다운 옵션 — 센터 필터 적용된 집합에서
   const collections = useMemo(() => {
     const map = new Map<string, string>()
@@ -155,6 +175,8 @@ export default function CharactersPage() {
       if (collectionFilter === 'none') r = r.filter(c => !c.collection && !c.isPreset)
       else if (collectionFilter !== 'all') r = r.filter(c => c.collection?.id === collectionFilter)
     }
+    // 성별 필터
+    if (genderFilter !== 'all') r = r.filter(c => genderBucket(c.gender) === genderFilter)
     // 검색: 이름·카드명 텍스트
     const q = query.trim().toLowerCase()
     if (q) r = r.filter(c => c.name.toLowerCase().includes(q) || (c.collection?.title ?? '').toLowerCase().includes(q))
@@ -162,7 +184,7 @@ export default function CharactersPage() {
     if (selectedTags.length > 0) r = r.filter(c => selectedTags.every(t => (c.tags ?? []).includes(t)))
     // 정렬
     return sortByOption(r, sort, c => c.name, c => c.createdAt ?? '', c => c.createdAt ?? '')
-  }, [centerBase, view, collectionFilter, roomFilter, query, selectedTags, sort])
+  }, [centerBase, view, collectionFilter, roomFilter, genderFilter, query, selectedTags, sort])
 
   const selectableInFilter = filteredCharacters.filter(c => !c.isPreset)
 
@@ -296,7 +318,7 @@ export default function CharactersPage() {
               key={v}
               className={`btn ${view === v ? 'primary' : 'ghost'}`}
               style={{ fontSize: 11, padding: '3px 10px' }}
-              onClick={() => { setView(v); setRoomFilter('all'); setCollectionFilter('all'); setCenterFilter('all'); resetSearch(); exitSelect() }}
+              onClick={() => { setView(v); setRoomFilter('all'); setCollectionFilter('all'); setCenterFilter('all'); setGenderFilter('all'); resetSearch(); exitSelect() }}
             >{v === 'active' ? '진행 중' : v === 'waiting' ? '대기' : '완결 캐릭터'}</button>
           ))}
         </div>
@@ -315,6 +337,19 @@ export default function CharactersPage() {
               <option value="all">전체 센터</option>
               {availableCenters.map(ctr => (
                 <option key={ctr.key} value={ctr.key}>{ctr.label} ({ctr.count})</option>
+              ))}
+            </select>
+          )}
+          {availableGenders.length > 1 && (
+            <select
+              className="field"
+              style={{ fontSize: 11, width: 'auto', minWidth: 90, padding: '3px 8px' }}
+              value={genderFilter}
+              onChange={e => { setGenderFilter(e.target.value); exitSelect() }}
+            >
+              <option value="all">전체 성별</option>
+              {availableGenders.map(g => (
+                <option key={g.key} value={g.key}>{g.label} ({g.count})</option>
               ))}
             </select>
           )}
