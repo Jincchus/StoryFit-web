@@ -344,6 +344,27 @@ export default function SidePanel({
         <div className="tiny muted" style={{ marginTop: 4 }}>ON이면 내 입력을 다듬어 소설체로 확장한 뒤 AI가 자연스럽게 이어갑니다.</div>
       </div>
 
+      <div className="side-section" hidden={tab !== 'ai'}>
+        <div className="spread" style={{ alignItems: 'center' }}>
+          <div className="label" style={{ marginBottom: 0 }}>🎭 페르소나 자율 대사</div>
+          <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={(conv as any).personaAutoMode ?? false}
+              onChange={async e => {
+                const checked = e.target.checked
+                try {
+                  await api.patch(`/api/conversations/${convId}`, { personaAutoMode: checked })
+                  setConv(c => c ? { ...c, personaAutoMode: checked } : c)
+                } catch { setToast('설정 저장에 실패했습니다') }
+              }}
+            />
+            <span className="tiny">{(conv as any).personaAutoMode ? 'ON' : 'OFF'}</span>
+          </label>
+        </div>
+        <div className="tiny muted" style={{ marginTop: 4 }}>ON이면 AI가 페르소나의 대사와 행동도 함께 서술합니다. 소설처럼 양쪽 모두 AI가 씁니다.</div>
+      </div>
+
       <div className="side-section" hidden={tab !== 'memory'}>
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, bookmark: !o.bookmark }))}>
           <span>🔖 북마크</span>

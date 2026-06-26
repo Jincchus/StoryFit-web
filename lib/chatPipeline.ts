@@ -67,6 +67,7 @@ export function buildModeSystemPrompt({
   characters,
   statsConfig,
   inventory,
+  allowPersonaDialogue,
 }: {
   mode: string
   base: any
@@ -74,9 +75,10 @@ export function buildModeSystemPrompt({
   characters: any[]
   statsConfig?: { name: string; value: number; min: number; max: number }[]
   inventory?: { name: string; qty: number; description?: string }[]
+  allowPersonaDialogue?: boolean
 }): string {
-  if (mode === 'multiStory') return buildMultiStorySystemPrompt({ ...base, characters, statsConfig, inventory })
-  return buildStorySystemPrompt({ ...base, character, statsConfig, inventory })
+  if (mode === 'multiStory') return buildMultiStorySystemPrompt({ ...base, characters, statsConfig, inventory, allowPersonaDialogue })
+  return buildStorySystemPrompt({ ...base, character, statsConfig, inventory, allowPersonaDialogue })
 }
 
 export function buildGeminiHistory(

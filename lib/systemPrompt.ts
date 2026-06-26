@@ -29,6 +29,7 @@ interface BuildSystemPromptParams {
   inventory?: { name: string; qty: number; description?: string }[]
   styleConfig?: StyleConfig | null
   plotSection?: string
+  allowPersonaDialogue?: boolean
 }
 
 function buildStyleSection(s: StyleConfig): string {
@@ -85,7 +86,10 @@ function buildLorebookSection(lorebook: LorebookEntry[]): string {
   return selected.length > 0 ? `[세계관 정보]\n${selected.join('\n\n')}` : ''
 }
 
-function buildStoryBaseRules(charName: string, personaName: string): string {
+function buildStoryBaseRules(charName: string, personaName: string, allowPersonaDialogue = false): string {
+  const personaRule = allowPersonaDialogue
+    ? `- ${personaName}'s words and actions may be written naturally as part of the scene.`
+    : `- FORBIDDEN: Writing ${personaName}'s new words, actions, emotions, or decisions. The body must consist only of ${charName}'s and secondary characters' dialogue and actions. Do not confirm ${personaName}'s major decisions without user input.`
   return `You are an interactive story writer. Follow the format below strictly in every response.
 
 [Output Format]
@@ -95,7 +99,7 @@ function buildStoryBaseRules(charName: string, personaName: string): string {
 - Secondary characters also follow the same Name : "dialogue" format.
 - ${charName} must take direct action and deliver at least one line of dialogue or inner monologue, then naturally advance the scene to the next moment.
 - Do NOT offer choices, numbered options, or host-like questions (e.g. "What will you do?", "Choose one"). Never append a "---" divider followed by a list of options. End with the scene itself.
-- FORBIDDEN: Writing ${personaName}'s new words, actions, emotions, or decisions. The body must consist only of ${charName}'s and secondary characters' dialogue and actions. Do not confirm ${personaName}'s major decisions without user input.
+- ${personaRule}
 - FORBIDDEN: Writing dialogue without a speaker name. Whoever speaks must follow the Name : "content" format without exception.
 - FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story prose and dialogue.
 - If a user message contains a "🎲 판정" result line, that outcome (대성공/성공/실패/대실패) is FINAL. Never reverse or soften it: a failure must fail with consequences, a success must succeed.
@@ -126,13 +130,14 @@ export function buildStorySystemPrompt({
   inventory,
   styleConfig,
   plotSection,
+  allowPersonaDialogue = false,
 }: BuildSystemPromptParams): string {
   const personaName = personaCharacter?.name ?? '나'
   const parts: string[] = []
 
   if (globalRules?.trim()) parts.push(`[플랫폼 공통 규칙]\n${globalRules}`)
   if (personalRules?.trim()) parts.push(`[유저 개인 설정]\n${personalRules}`)
-  parts.push(buildStoryBaseRules(character.name, personaName))
+  parts.push(buildStoryBaseRules(character.name, personaName, allowPersonaDialogue))
   if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
   if (modeRules?.trim()) parts.push(`[스토리 추가 규칙]\n${modeRules}`)
 
@@ -193,6 +198,7 @@ export interface MultiStoryPromptParams {
   inventory?: { name: string; qty: number; description?: string }[]
   styleConfig?: StyleConfig | null
   plotSection?: string
+  allowPersonaDialogue?: boolean
 }
 
 export function buildMultiStorySystemPrompt({
@@ -212,9 +218,14 @@ export function buildMultiStorySystemPrompt({
   inventory,
   styleConfig,
   plotSection,
+  allowPersonaDialogue = false,
 }: MultiStoryPromptParams): string {
   const personaName = personaCharacter?.name ?? '나'
   const charNames = characters.map(c => c.name).join(', ')
+
+  const personaRule = allowPersonaDialogue
+    ? `- ${personaName}'s words and actions may be written naturally as part of the scene.`
+    : `- FORBIDDEN: Writing ${personaName}'s words or actions in the body. The body is for ${charNames} only.`
 
   const baseRules = `You are an interactive story writer with multiple characters.
 All characters interact naturally in each scene — decide who speaks, acts, or reacts based on the situation. Do not follow a fixed order.
@@ -226,7 +237,7 @@ All characters interact naturally in each scene — decide who speaks, acts, or 
 - ANY of the following characters may speak or act in each response: ${charNames}
 - At least one character must take direct action or deliver dialogue, then naturally advance the scene.
 - Do NOT offer choices, numbered options, or host-like questions. Never append a "---" divider followed by a list of options. End with the scene itself.
-- FORBIDDEN: Writing ${personaName}'s words or actions in the body. The body is for ${charNames} only.
+- ${personaRule}
 - FORBIDDEN: Writing dialogue without a speaker name.
 - FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story.
 - If a user message contains a "🎲 판정" result line, that outcome (대성공/성공/실패/대실패) is FINAL. Never reverse or soften it: a failure must fail with consequences, a success must succeed.

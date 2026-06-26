@@ -204,6 +204,7 @@ model Conversation {
   plotOutline            Json?
   suggestRepliesEnabled  Boolean              @default(false)
   enrichInputMode        Boolean              @default(false)
+  personaAutoMode        Boolean              @default(false)
   autoChapterEnabled     Boolean              @default(false)
   isAutoCreated       Boolean                 @default(false)
   sourceUrl           String                  @default("")

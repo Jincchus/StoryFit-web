@@ -224,6 +224,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     characters: conv.characters.map((cc: any) => buildCharParam(cc.character)),
     statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
     inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
+    allowPersonaDialogue: conv.personaAutoMode ?? false,
   })
 
   const enrichMode = conv.enrichInputMode ?? false

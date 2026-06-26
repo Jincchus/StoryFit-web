@@ -107,6 +107,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     characters: conv.characters.map((cc: any) => buildCharParam(cc.character)),
     statsConfig: conv.statsEnabled && Array.isArray(freshConv?.statsConfig) ? freshConv?.statsConfig as any : undefined,
     inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv?.inventory as any : undefined,
+    allowPersonaDialogue: conv.personaAutoMode ?? false,
   })
 
   const latestUserId = [...mappedHistoryMsgs].reverse().find(m => m.role === 'user')?.id
