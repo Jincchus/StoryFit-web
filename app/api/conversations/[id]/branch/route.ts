@@ -23,27 +23,39 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const branchMsgIdx = source.messages.findIndex(m => m.id === branchFromMessageId)
   if (branchMsgIdx === -1) return NextResponse.json({ error: '메시지를 찾을 수 없습니다.' }, { status: 404 })
   const messagesToCopy = source.messages.slice(0, branchMsgIdx + 1)
+  const branchMsgCreatedAt = source.messages[branchMsgIdx].createdAt
 
   // 새 메시지 id를 미리 생성해 원본→분기 id 매핑을 만든다(메모리 range 리매핑에 사용).
   const msgIdMap = new Map<string, string>()
   for (const m of messagesToCopy) msgIdMap.set(m.id, randomUUID())
 
-  // 분기 시점까지 포함된 장기 메모리만 복제한다(요약 구간의 끝이 복사 범위 안에 있는 것).
+  // 분기 시점까지의 장기 메모리를 '원본 그대로' 복제한다(분기 후부터 개별 관리).
+  // ⚠️ 과거 버그: messageRangeEnd가 복사 메시지에 없으면 메모리를 통째로 버렸다. 그런데
+  //    재생성/편집으로 end 메시지가 삭제되면 그 메모리는 댕글링(레코드는 살아있고 end 포인터만
+  //    죽음)이 되는데, 분기 시 그 댕글링 메모리(=실제 과거 요약)가 전부 증발했다.
+  //    이제: end/start 앵커가 복사 범위에 있으면 새 id로 리매핑, 앵커가 죽은 댕글링이라도
+  //    분기 시점 '이전'에 생성된 메모리(과거 history)면 보존한다. 분기 시점 '이후'의
+  //    메모리(다른 타임라인 사건 요약)만 제외한다.
   const sourceMemories = await prisma.memory.findMany({
     where: { conversationId: params.id },
     orderBy: { createdAt: 'asc' },
   })
   const memIdMap = new Map<string, string>() // oldMemId -> newMemId
   const memoryCreates = sourceMemories
-    .filter(mem => msgIdMap.has(mem.messageRangeEnd))
+    .filter(mem =>
+      msgIdMap.has(mem.messageRangeEnd) ||
+      msgIdMap.has(mem.messageRangeStart) ||
+      mem.createdAt <= branchMsgCreatedAt
+    )
     .map(mem => {
       const newId = randomUUID()
       memIdMap.set(mem.id, newId)
       return {
         id: newId,
         summary: mem.summary,
-        messageRangeStart: msgIdMap.get(mem.messageRangeStart) ?? msgIdMap.get(mem.messageRangeEnd)!,
-        messageRangeEnd: msgIdMap.get(mem.messageRangeEnd)!,
+        // 복사된 메시지면 새 id로, 죽은 앵커면 원본 값을 그대로 둔다(원본 상태 무손실 복제).
+        messageRangeStart: msgIdMap.get(mem.messageRangeStart) ?? msgIdMap.get(mem.messageRangeEnd) ?? mem.messageRangeStart,
+        messageRangeEnd: msgIdMap.get(mem.messageRangeEnd) ?? msgIdMap.get(mem.messageRangeStart) ?? mem.messageRangeEnd,
         promoted: mem.promoted,
         createdAt: mem.createdAt,
       }
