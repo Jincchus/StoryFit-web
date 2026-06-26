@@ -202,25 +202,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 도입부(첫 메시지)는 항상 1번 캐릭터(turnOrder 0 = characterIds[0]) 것 하나만 사용한다.
+  // 멀티 대화여도 참여자 전원의 도입부를 깔지 않는다.
   const chars = conversation.characters.map(cc => cc.character)
-  const firstChar = chars[0]
-  const seenOpenings = new Map<string, string>()
-  for (const char of chars) {
-    const content = char.id === firstChar?.id && body.openingMessage !== undefined
-      ? String(body.openingMessage || '').trim()
-      : (char.openingMessage || '').trim()
-    if (!content) continue
-    if (seenOpenings.has(content)) continue
-    seenOpenings.set(content, char.id)
-  }
+  const firstChar = chars.find(c => c.id === characterIds[0]) ?? chars[0]
+  const openingContent = body.openingMessage !== undefined
+    ? String(body.openingMessage || '').trim()
+    : (firstChar?.openingMessage || '').trim()
 
-  for (const [content, characterId] of Array.from(seenOpenings)) {
+  if (firstChar && openingContent) {
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
         role: 'assistant',
-        content,
-        characterId,
+        content: openingContent,
+        characterId: firstChar.id,
         chapter: 1,
         isSelected: true,
         isStreaming: false,
@@ -233,7 +229,7 @@ export async function POST(req: NextRequest) {
     const characterLines = conversation.characters
       .map(cc => `${cc.character.name}${cc.character.tags?.length ? ` (${cc.character.tags.join(', ')})` : ''}: ${(cc.character.additionalInfo ?? '').slice(0, 300)}`)
       .join('\n')
-    const openingText = Array.from(seenOpenings.keys()).join('\n\n').slice(0, 2000)
+    const openingText = openingContent.slice(0, 2000)
     generatePlotOutline({
       scenario: conversation.scenarioDescription,
       characterLines,
