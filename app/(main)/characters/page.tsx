@@ -532,10 +532,23 @@ export default function CharactersPage() {
                 }
                 <RoomChips rooms={c.rooms} />
                 {!c.isPreset && !selecting && (
-                  <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
-                    <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} onClick={() => router.push(`/characters/${c.id}/edit`)}>✏ 수정</button>
-                    <button className="btn ghost" style={{ fontSize: 10, padding: '3px 8px' }} disabled={duplicating} onClick={e => { e.stopPropagation(); handleDuplicate(c.id) }}>⎘ 복제</button>
-                    <button className="btn danger" style={{ fontSize: 10, padding: '3px 8px' }} onClick={e => { e.stopPropagation(); setConfirmDeleteId(c.id) }}>✕ 삭제</button>
+                  <div className="hstack" style={{ gap: 4, marginTop: 6, justifyContent: 'center', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+                    <button className="btn ghost" style={{ fontSize: 10, padding: '3px 6px' }} onClick={() => {
+                      const src = c.collection?.sourceUrl ?? ''
+                      const p = src.includes('whif.io') || src.includes('whif.club') ? '?isWhif=true'
+                        : src.includes('tingle.chat') ? '?isTingle=true'
+                        : src.includes('melting.chat') ? '?isMelting=true'
+                        : src.includes('zeta-ai.io') ? '?isZeta=true'
+                        : src.includes('tikita.ai') ? '?isTikita=true'
+                        : src.includes('chub.ai') || src.includes('characterhub.org') ? '?isChub=true'
+                        : src.includes('rofan.ai') ? '?isRofan=true'
+                        : src.includes('loveydovey.ai') ? '?isLoveydovey=true'
+                        : src.includes('babechat.ai') ? '?isBabechat=true'
+                        : ''
+                      router.push(`/characters/${c.id}/edit${p}`)
+                    }}>✏ 수정</button>
+                    <button className="btn ghost" style={{ fontSize: 10, padding: '3px 6px' }} disabled={duplicating} onClick={e => { e.stopPropagation(); handleDuplicate(c.id) }}>⎘ 복제</button>
+                    <button className="btn danger" style={{ fontSize: 10, padding: '3px 6px' }} onClick={e => { e.stopPropagation(); setConfirmDeleteId(c.id) }}>✕ 삭제</button>
                   </div>
                 )}
               </div>

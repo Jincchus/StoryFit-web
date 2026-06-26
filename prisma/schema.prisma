@@ -129,6 +129,9 @@ model CharacterCollection {
   tingleMeta     Json?
   chubMeta       Json?         // 번역 토글용: { activeLang: 'en'|'ko', alt: 비활성 언어 스냅샷 }
   createdAt      DateTime      @default(now())
+
+  @@index([userId])
+  @@index([sourceUrl])
 }
 
 model Character {
@@ -157,6 +160,9 @@ model Character {
   collection          CharacterCollection? @relation(fields: [collectionId], references: [id])
   conversations       ConversationCharacter[]
   personaConversations Conversation[]
+
+  @@index([creatorId])
+  @@index([collectionId])
 }
 
 model UploadedImage {
@@ -224,6 +230,7 @@ model ConversationCharacter {
   character      Character    @relation(fields: [characterId], references: [id])
 
   @@id([conversationId, characterId])
+  @@index([characterId])
 }
 
 model Message {

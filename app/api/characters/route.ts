@@ -12,12 +12,14 @@ export async function GET(req: NextRequest) {
   // isXxx=true 쿼리 → 센터 정의. (단일 소스: lib/centers.ts)
   const matchedCenter = centerByApiParam(searchParams)
 
-  const whereClause = matchedCenter
+  const whereClause: any = matchedCenter
     ? { creatorId: userId, collection: { sourceUrl: { contains: matchedCenter.dbHosts[0] } } }
     : {
-        OR: [
-          { isPreset: true },
-          { creatorId: userId },
+        AND: [
+          { OR: [{ isPreset: true }, { creatorId: userId }] },
+          // 팅글 서사(universes)/테마(scenes)는 세계관·배경 컨테이너로, 실제 캐릭터가 아님 — 캐릭터 목록에서 제외
+          { NOT: { collection: { sourceUrl: { contains: 'tingle.chat/chat/universes/' } } } },
+          { NOT: { collection: { sourceUrl: { contains: 'tingle.chat/chat/scenes/' } } } },
         ],
       }
 
@@ -29,7 +31,15 @@ export async function GET(req: NextRequest) {
   const characters = await prisma.character.findMany({
     where: finalWhere,
     orderBy: [{ isPreset: 'desc' }, { createdAt: 'asc' }],
-    include: {
+    // 목록 조회 시 대용량 텍스트 필드(additionalInfo·exampleDialogues·openingMessage·openingMessages·relatedImages)는
+    // 제외 — 수정 페이지에서 단건 조회 시 포함됨. 이 최적화 덕분에 수천 개 캐릭터를 가진 사용자도
+    // 빠르게 목록을 받을 수 있다.
+    select: {
+      id: true, name: true, gender: true, avatarUrl: true, tags: true,
+      safetyLevel: true, temperature: true, frequencyPenalty: true,
+      maxOutputTokens: true, thinkingBudget: true, defaultAI: true,
+      isPreset: true, isAutoCreated: true, createdAt: true,
+      creatorId: true, collectionId: true,
       collection: { select: { id: true, title: true, sourceUrl: true } },
       conversations: {
         where: { conversation: { userId, characterCollection: { isNot: null } } },

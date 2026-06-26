@@ -4,8 +4,7 @@ import { getGlobalConfigValue, isTingleTokenExpired, refreshTingleToken } from '
 
 const TINGLE_API = 'https://api.tingle.chat'
 const PAGE_SIZE = 50
-const PARALLEL = 3           // 동시 요청 수 (너무 높으면 rate limit 위험)
-const BATCH_DELAY_MS = 400   // 배치 사이 대기
+const PARALLEL = 8  // 동시 요청 수
 
 export interface LikedPersona {
   id: string
@@ -61,9 +60,7 @@ export async function GET(req: NextRequest) {
       for (const r of results) {
         if (r.status === 'fulfilled') liked.push(...filterLiked(r.value.results))
       }
-      if (batch + PARALLEL <= totalPages) {
-        await new Promise(res => setTimeout(res, BATCH_DELAY_MS))
-      }
+
     }
 
     return NextResponse.json({ liked, total: liked.length, scanned: totalPages })
