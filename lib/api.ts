@@ -2,6 +2,18 @@ import { clearAccessToken } from './authClient'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
+// 세션 만료 처리: 인증 플래그를 비우고 로그인 페이지로 보낸다.
+// ⚠️ 이미 /login에 있으면 재이동하지 않는다. ThemeProvider 등 루트 레이아웃의 전역
+//    authed 호출이 /login에서도 401을 내는데, 무조건 location.href='/login'로 보내면
+//    페이지가 재마운트되며 다시 401 → 무한 리로드 루프가 된다.
+function redirectToLogin() {
+  if (typeof window === 'undefined') return
+  clearAccessToken()
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login'
+  }
+}
+
 async function tryRefresh(): Promise<boolean> {
   try {
     const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
@@ -20,8 +32,7 @@ async function apiFetch(path: string, options?: RequestInit, isRetry = false): P
   if (res.status === 401 && !isRetry) {
     const refreshed = await tryRefresh()
     if (refreshed) return apiFetch(path, options, true)
-    clearAccessToken()
-    if (typeof window !== 'undefined') window.location.href = '/login'
+    redirectToLogin()
     throw new Error('로그인이 필요합니다.')
   }
   if (!res.ok) {
@@ -57,8 +68,7 @@ export const api = {
           signal,
         })
       }
-      clearAccessToken()
-      if (typeof window !== 'undefined') window.location.href = '/login'
+      redirectToLogin()
     }
     return res
   },
@@ -80,8 +90,7 @@ export const api = {
           signal,
         })
       }
-      clearAccessToken()
-      if (typeof window !== 'undefined') window.location.href = '/login'
+      redirectToLogin()
     }
     return res
   },
