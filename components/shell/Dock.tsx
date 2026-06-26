@@ -1,5 +1,6 @@
 'use client'
 import { usePathname, useRouter } from 'next/navigation'
+import { CENTER_PATHS } from '@/lib/centers'
 
 const TABS = [
   {
@@ -12,7 +13,7 @@ const TABS = [
   },
   {
     href: '/explore', icon: '🧭', label: '탐색',
-    isActive: (p: string) => p === '/explore' || p.startsWith('/whif') || p.startsWith('/zeta') || p.startsWith('/melting') || p.startsWith('/tikita') || p.startsWith('/chub') || p.startsWith('/rofan') || p.startsWith('/loveydovey') || p.startsWith('/babechat') || p.startsWith('/characters'),
+    isActive: (p: string) => p === '/explore' || p.startsWith('/characters') || CENTER_PATHS.some(cp => p.startsWith(cp)),
   },
   {
     href: '/library', icon: '📚', label: '서재',

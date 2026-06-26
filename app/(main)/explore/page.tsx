@@ -1,53 +1,11 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import { CENTERS as CENTER_DEFS } from '@/lib/centers'
 
-const CENTERS = [
-  {
-    href: '/whif', emoji: '🪐', name: 'WHIF 센터',
-    desc: '세계관 단위로 캐릭터를 탐색하고 가져오기',
-    grad: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-  },
-  {
-    href: '/zeta', emoji: '⚡', name: 'ZETA 센터',
-    desc: '플롯 중심의 인터랙티브 스토리 가져오기',
-    grad: 'linear-gradient(135deg, #7c5cff, #9d6bff)',
-  },
-  {
-    href: '/melting', emoji: '🔥', name: 'MELTING 센터',
-    desc: '캐릭터 중심의 몰입형 대화 가져오기',
-    grad: 'linear-gradient(135deg, #ff2e93, #ff5fae)',
-  },
-  {
-    href: '/tikita', emoji: '🎫', name: 'TIKITA 센터',
-    desc: '스토리 URL로 캐릭터·첫 장면 가져오기',
-    grad: 'linear-gradient(135deg, #16b8a6, #27d3bf)',
-  },
-  {
-    href: '/chub', emoji: '🧩', name: 'CHUB 센터',
-    desc: '외국 캐릭터 URL을 AI 번역으로 가져오기',
-    grad: 'linear-gradient(135deg, #ff6a3d, #ff9a5a)',
-  },
-  {
-    href: '/rofan', emoji: '💗', name: 'rofanai 센터',
-    desc: '로맨스 판타지 캐릭터 URL로 가져오기',
-    grad: 'linear-gradient(135deg, #e0529c, #f07ab8)',
-  },
-  {
-    href: '/loveydovey', emoji: '💞', name: 'loveydovey 센터',
-    desc: '캐릭터 메타데이터 가져오기',
-    grad: 'linear-gradient(135deg, #ff5a5f, #ff8a8d)',
-  },
-  {
-    href: '/babechat', emoji: '🩵', name: 'babechat 센터',
-    desc: '캐릭터 설정·도입부 가져오기',
-    grad: 'linear-gradient(135deg, #5b8cff, #8a6cff)',
-  },
-  {
-    href: '/tingle', emoji: '💫', name: 'tingle 센터',
-    desc: '캐릭터·서사·테마 가져오기',
-    grad: 'linear-gradient(135deg, #ff5776, #ff8099)',
-  },
-]
+// 센터 목록은 lib/centers.ts 단일 소스에서 파생.
+const CENTERS = CENTER_DEFS.map(c => ({
+  href: c.path, emoji: c.emoji, name: `${c.label} 센터`, desc: c.desc, grad: c.grad,
+}))
 
 const SHORTCUTS = [
   { href: '/characters', emoji: '🎭', name: '내 캐릭터', desc: '컬렉션 관리 · 직접 만들기' },

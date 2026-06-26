@@ -2,45 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { aggregateCounts, isCompleted, hasArchived, type CountableConversation } from '@/lib/completion'
+import { centerByApiParam } from '@/lib/centers'
 
 export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const source = searchParams.get('isWhif') === 'true' ? 'whif'
-    : searchParams.get('isZeta') === 'true' ? 'zeta'
-    : searchParams.get('isMelting') === 'true' ? 'melting'
-    : searchParams.get('isTikita') === 'true' ? 'tikita'
-    : searchParams.get('isChub') === 'true' ? 'chub'
-    : searchParams.get('isRofan') === 'true' ? 'rofan'
-    : searchParams.get('isLoveydovey') === 'true' ? 'loveydovey'
-    : searchParams.get('isBabechat') === 'true' ? 'babechat'
-    : 'regular'
+  // isXxx=true 쿼리 → 센터 정의. (단일 소스: lib/centers.ts)
+  const matchedCenter = centerByApiParam(searchParams)
 
-  const whereClause =
-    source === 'whif'
-      ? { creatorId: userId, collection: { sourceUrl: { contains: 'whif.' } } }
-    : source === 'zeta'
-      ? { creatorId: userId, collection: { sourceUrl: { contains: 'zeta-ai.io' } } }
-    : source === 'melting'
-      ? { creatorId: userId, collection: { sourceUrl: { contains: 'melting.chat' } } }
-    : source === 'tikita'
-      ? { creatorId: userId, collection: { sourceUrl: { contains: 'tikita.ai' } } }
-    : source === 'chub'
-      ? { creatorId: userId, collection: { sourceUrl: { contains: 'chub.ai' } } }
-    : source === 'rofan'
-      ? { creatorId: userId, collection: { sourceUrl: { contains: 'rofan.ai' } } }
-    : source === 'loveydovey'
-      ? { creatorId: userId, collection: { sourceUrl: { contains: 'loveydovey.ai' } } }
-    : source === 'babechat'
-      ? { creatorId: userId, collection: { sourceUrl: { contains: 'babechat.' } } }
-      : {
-          OR: [
-            { isPreset: true },
-            { creatorId: userId },
-          ],
-        }
+  const whereClause = matchedCenter
+    ? { creatorId: userId, collection: { sourceUrl: { contains: matchedCenter.dbHosts[0] } } }
+    : {
+        OR: [
+          { isPreset: true },
+          { creatorId: userId },
+        ],
+      }
 
   const collectionId = searchParams.get('collectionId')
   const finalWhere = collectionId

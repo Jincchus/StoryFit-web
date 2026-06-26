@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
 import { aggregateCounts, isCompleted, type CountableConversation } from '@/lib/completion'
+import { EXTERNAL_HOSTS, centerByApiParam } from '@/lib/centers'
 
 export async function GET(req: NextRequest) {
   const userId = await authenticate(req)
@@ -9,43 +10,17 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const isAll = searchParams.get('all') === 'true'
-  const source = isAll ? 'all'
-    : searchParams.get('isWhif') === 'true' ? 'whif'
-    : searchParams.get('isZeta') === 'true' ? 'zeta'
-    : searchParams.get('isMelting') === 'true' ? 'melting'
-    : searchParams.get('isTikita') === 'true' ? 'tikita'
-    : searchParams.get('isChub') === 'true' ? 'chub'
-    : searchParams.get('isRofan') === 'true' ? 'rofan'
-    : searchParams.get('isLoveydovey') === 'true' ? 'loveydovey'
-    : searchParams.get('isBabechat') === 'true' ? 'babechat'
-    : searchParams.get('isTingle') === 'true' ? 'tingle'
-    : 'regular'
-
-  const EXTERNAL_HOSTS = ['whif.', 'zeta-ai.io', 'melting.chat', 'tikita.ai', 'chub.ai', 'rofan.ai', 'loveydovey.ai', 'babechat.', 'tingle.chat']
+  // isXxx=true 쿼리 → 센터 정의. (단일 소스: lib/centers.ts)
+  const matchedCenter = centerByApiParam(searchParams)
 
   const whereClause: any = { userId }
 
-  if (source === 'all') {
+  if (isAll) {
     whereClause.OR = EXTERNAL_HOSTS.map(h => ({ sourceUrl: { contains: h } }))
-  } else if (source === 'whif') {
-    whereClause.sourceUrl = { contains: 'whif.' }
-  } else if (source === 'zeta') {
-    whereClause.sourceUrl = { contains: 'zeta-ai.io' }
-  } else if (source === 'melting') {
-    whereClause.sourceUrl = { contains: 'melting.chat' }
-  } else if (source === 'tikita') {
-    whereClause.sourceUrl = { contains: 'tikita.ai' }
-  } else if (source === 'chub') {
-    whereClause.sourceUrl = { contains: 'chub.ai' }
-  } else if (source === 'rofan') {
-    whereClause.sourceUrl = { contains: 'rofan.ai' }
-  } else if (source === 'loveydovey') {
-    whereClause.sourceUrl = { contains: 'loveydovey.ai' }
-  } else if (source === 'babechat') {
-    whereClause.sourceUrl = { contains: 'babechat.' }
-  } else if (source === 'tingle') {
-    whereClause.sourceUrl = { contains: 'tingle.chat' }
+  } else if (matchedCenter) {
+    whereClause.OR = matchedCenter.dbHosts.map(h => ({ sourceUrl: { contains: h } }))
   } else {
+    // 'regular' — 외부 센터에 속하지 않는 컬렉션
     whereClause.AND = EXTERNAL_HOSTS.map(h => ({ NOT: { sourceUrl: { contains: h } } }))
   }
 
