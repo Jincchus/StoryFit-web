@@ -49,41 +49,49 @@ export async function triggerMemorySummarization(
   if (updated.count === 0) return // Already summarizing!
 
   try {
-    const totalMessages = await prisma.message.count({
-      where: { conversationId, isSelected: true },
-    })
-
-    // 이미 요약된 경계 = 메모리들의 messageRangeEnd 중 "이 대화에 실제로 존재하는" 가장 늦은 메시지.
-    // ⚠️ 과거 버그: 마지막 메모리의 end 메시지가 재생성/편집으로 삭제되면 findUnique가 null →
-    //    summarizedCount=0 → skip 0부터 처음 10개를 다시 요약 → lastMem이 그 중복으로 바뀌며
-    //    대화 전체를 처음부터 재요약(중복 폭증). 단일 last가 아니라 "유효한 end들 중 최신"으로 계산해 방지.
-    const memEnds = await prisma.memory.findMany({
-      where: { conversationId },
-      select: { messageRangeEnd: true },
-    })
-    let summarizedCount = 0
-    if (memEnds.length > 0) {
-      const lastValidEnd = await prisma.message.findFirst({
-        where: { id: { in: memEnds.map(m => m.messageRangeEnd) }, conversationId },
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true },
-      })
-      if (lastValidEnd) {
-        summarizedCount = await prisma.message.count({
-          where: { conversationId, isSelected: true, createdAt: { lte: lastValidEnd.createdAt } },
-        })
-      } else {
-        // 모든 end 메시지가 사라진 극단 케이스 — 메모리 개수로 근사(최소한 처음부터 재요약은 막는다).
-        summarizedCount = memEnds.length * SUMMARIZE_EVERY
-      }
-    }
-    if (totalMessages - summarizedCount < SUMMARIZE_EVERY) return
-
-    const messages = await prisma.message.findMany({
+    // 선택된 메시지 전체를 시간순으로 로드(id·createdAt). 커버리지 계산과 요약 fetch에 함께 쓴다.
+    const allMsgs = await prisma.message.findMany({
       where: { conversationId, isSelected: true },
       orderBy: { createdAt: 'asc' },
-      skip: summarizedCount,
-      take: SUMMARIZE_EVERY,
+      select: { id: true, createdAt: true },
+    })
+
+    // 각 메모리가 커버하는 createdAt 구간을 만든다(유효 앵커 기준).
+    // ⚠️ 과거 버그: '가장 늦은 메모리 end까지가 전부 요약됐다'는 연속 가정으로 summarizedCount를
+    //    계산했다. 분기 복사·재생성으로 메모리가 드문드문해지면(중간 빈 구간 + 늦은 위치의 메모리),
+    //    그 값이 부풀어 앞의 거대한 빈 구간을 영영 요약하지 않았다(요약 영구 정지).
+    //    이제 메모리 range를 createdAt 구간으로 환산해 '실제 미커버 메시지'만 골라 요약한다.
+    const mems = await prisma.memory.findMany({
+      where: { conversationId },
+      select: { messageRangeStart: true, messageRangeEnd: true },
+    })
+    const msgTime = new Map(allMsgs.map(m => [m.id, m.createdAt.getTime()]))
+    const intervals: [number, number][] = []
+    for (const mem of mems) {
+      const s = msgTime.get(mem.messageRangeStart)
+      const e = msgTime.get(mem.messageRangeEnd)
+      const lo = s ?? e
+      const hi = e ?? s
+      if (lo != null && hi != null) intervals.push([Math.min(lo, hi), Math.max(lo, hi)])
+    }
+
+    // 모든 메모리의 앵커가 사라진 극단 케이스(전부 댕글링)는 처음부터 전체 재요약 시 대량 중복이
+    // 생기므로 건드리지 않는다. (정상 흐름에선 도달하지 않음)
+    if (mems.length > 0 && intervals.length === 0) return
+
+    // 어떤 메모리 range에도 안 들어가는 '미커버' 메시지만 추린다. 이미 요약된 구간은 다시
+    // 요약하지 않으므로 중복이 안 생기고, 분기/삭제로 생긴 빈 구간만 앞에서부터 메운다.
+    const uncovered = allMsgs.filter(m => {
+      const t = m.createdAt.getTime()
+      return !intervals.some(([lo, hi]) => t >= lo && t <= hi)
+    })
+    if (uncovered.length < SUMMARIZE_EVERY) return
+
+    const chunkIds = uncovered.slice(0, SUMMARIZE_EVERY).map(m => m.id)
+    const messages = await prisma.message.findMany({
+      where: { id: { in: chunkIds } },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, role: true, content: true },
     })
     if (messages.length < SUMMARIZE_EVERY) return
 
