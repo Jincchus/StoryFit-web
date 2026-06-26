@@ -26,20 +26,9 @@ function CharacterEditContent() {
   const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
 
   useEffect(() => {
-    let colsUrl = '/api/collections'
-    if (isWhif) colsUrl += '?isWhif=true'
-    else if (isZeta) colsUrl += '?isZeta=true'
-    else if (isMelting) colsUrl += '?isMelting=true'
-    else if (isTikita) colsUrl += '?isTikita=true'
-    else if (isChub) colsUrl += '?isChub=true'
-    else if (isRofan) colsUrl += '?isRofan=true'
-    else if (isLoveydovey) colsUrl += '?isLoveydovey=true'
-    else if (isBabechat) colsUrl += '?isBabechat=true'
-
-    Promise.all([
-      api.get(`/api/characters/${id}`),
-      api.get(colsUrl),
-    ]).then(([c, cols]) => {
+    // 캐릭터를 먼저 받아 폼을 즉시 렌더한다(빠름). 컬렉션 목록은 드롭다운용 경량(id·title)으로
+    // 별도 비동기 로드 — 무거운 메타/집계 때문에 폼 표시가 지연되지 않게 한다.
+    api.get(`/api/characters/${id}`).then((c: any) => {
       setForm({
         name: c.name ?? '',
         gender: c.gender ?? '',
@@ -50,14 +39,28 @@ function CharacterEditContent() {
         openingMessage: c.openingMessage ?? '',
         collectionId: c.collection?.id ?? null,
       })
-      const colList: { id: string; title: string }[] = Array.isArray(cols) ? cols : []
-      const currentCollection = c.collection
-      setCollections(
-        currentCollection && !colList.some(col => col.id === currentCollection.id)
-          ? [...colList, { id: currentCollection.id, title: currentCollection.title }]
-          : colList
-      )
+      // 현재 소속 컬렉션은 먼저 단독으로 채워둔다(드롭다운이 비어도 현재 값은 보이게).
+      if (c.collection) setCollections([{ id: c.collection.id, title: c.collection.title }])
     }).catch((e: any) => setFetchError(e.message))
+
+    let colsUrl = '/api/collections?fields=basic'
+    if (isWhif) colsUrl = '/api/collections?isWhif=true&fields=basic'
+    else if (isZeta) colsUrl = '/api/collections?isZeta=true&fields=basic'
+    else if (isMelting) colsUrl = '/api/collections?isMelting=true&fields=basic'
+    else if (isTikita) colsUrl = '/api/collections?isTikita=true&fields=basic'
+    else if (isChub) colsUrl = '/api/collections?isChub=true&fields=basic'
+    else if (isRofan) colsUrl = '/api/collections?isRofan=true&fields=basic'
+    else if (isLoveydovey) colsUrl = '/api/collections?isLoveydovey=true&fields=basic'
+    else if (isBabechat) colsUrl = '/api/collections?isBabechat=true&fields=basic'
+
+    api.get(colsUrl).then((cols: any) => {
+      const colList: { id: string; title: string }[] = Array.isArray(cols) ? cols : []
+      // 현재 소속 컬렉션이 목록에 없으면 합쳐서 드롭다운에 보이게 한다.
+      setCollections(prev => {
+        const current = prev[0]
+        return current && !colList.some(col => col.id === current.id) ? [...colList, current] : colList
+      })
+    }).catch(() => {})
   }, [id, isWhif, isZeta, isMelting, isTikita, isChub, isRofan, isLoveydovey, isBabechat])
 
   if (fetchError) return (

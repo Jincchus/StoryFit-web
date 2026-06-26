@@ -24,6 +24,17 @@ export async function GET(req: NextRequest) {
     whereClause.AND = EXTERNAL_HOSTS.map(h => ({ NOT: { sourceUrl: { contains: h } } }))
   }
 
+  // 경량 모드: 드롭다운 등 id·title만 필요할 때. 거대 메타(zeta/melting/tikitaMeta) select와
+  // 로어북·대화 집계를 모두 건너뛰어 빠르게 반환한다(수정 페이지 컬렉션 선택용).
+  if (searchParams.get('fields') === 'basic') {
+    const basic = await prisma.characterCollection.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, title: true, sourceUrl: true },
+    })
+    return NextResponse.json(basic)
+  }
+
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
   const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0
 
