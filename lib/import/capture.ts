@@ -57,7 +57,7 @@ function cleanWhifText(text: string): string {
 // 환경변수 방식은 컨테이너 재배포가 있어야 반영되는데, 멜팅 세션은 약 30분마다 만료되어
 // 사실상 갱신이 불가능했다 — DB 조회로 바꿔 재배포 없이 바로 반영되도록 한다.
 export async function getGlobalConfigValue(
-  key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key'
+  key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token'
 ): Promise<string> {
   const config = await prisma.globalConfig.findUnique({ where: { key } })
   return config?.value?.trim() ?? ''

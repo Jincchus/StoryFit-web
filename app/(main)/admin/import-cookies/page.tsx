@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -83,6 +83,8 @@ export default function AdminImportCookiesPage() {
   const [tingleRefreshUpdatedAt, setTingleRefreshUpdatedAt] = useState<string | null>(null)
   const [tingleApiKey, setTingleApiKey] = useState('')
   const [tingleApiKeyUpdatedAt, setTingleApiKeyUpdatedAt] = useState<string | null>(null)
+  const [zetaToken, setZetaToken] = useState('')
+  const [zetaTokenUpdatedAt, setZetaTokenUpdatedAt] = useState<string | null>(null)
   const [tingleOpen, setTingleOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -105,6 +107,8 @@ export default function AdminImportCookiesPage() {
       setTingleRefreshUpdatedAt(data.tingle_refresh_token?.updatedAt ?? null)
       setTingleApiKey(data.tingle_firebase_api_key?.value ?? '')
       setTingleApiKeyUpdatedAt(data.tingle_firebase_api_key?.updatedAt ?? null)
+      setZetaToken(data.zeta_token?.value ?? '')
+      setZetaTokenUpdatedAt(data.zeta_token?.updatedAt ?? null)
     }).catch(() => {})
   }
 
@@ -123,6 +127,7 @@ export default function AdminImportCookiesPage() {
         tingle_auth_token: tingleToken,
         tingle_refresh_token: tingleRefresh,
         tingle_firebase_api_key: tingleApiKey,
+        zeta_token: zetaToken,
       })
       setSaved(true)
       load()
@@ -191,6 +196,15 @@ export default function AdminImportCookiesPage() {
               value={babechatRefresh}
               onChange={setBabechatRefresh}
               updatedAt={babechatRefreshUpdatedAt}
+            />
+
+            <CookieField
+              label="Zeta TOKEN (zeta-ai.io)"
+              hint={'브라우저에서 zeta-ai.io에 로그인한 뒤, 개발자도구 → Network 탭 → 임의 요청 클릭 → Headers → Cookie 항목에서 TOKEN= 뒤 값(eyJ...)을 복사해 붙여넣으세요.\n또는 Application → Cookies → TOKEN 항목의 값을 직접 복사할 수도 있습니다.\n⚠️ 7일마다 만료됩니다 — 스캔이 안 되면 이 화면에서 TOKEN을 재입력하세요.'}
+              placeholder="eyJhbGciOiJIUzM4NCJ9.eyJ1aWQiOi..."
+              value={zetaToken}
+              onChange={setZetaToken}
+              updatedAt={zetaTokenUpdatedAt}
             />
 
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
