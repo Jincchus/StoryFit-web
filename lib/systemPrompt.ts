@@ -138,7 +138,10 @@ export function buildStorySystemPrompt({
 
   if (personaCharacter) {
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
-    parts.push(`[유저 역할]\n이름: ${personaCharacter.name}${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
+    const personaInfo = personaCharacter.additionalInfo
+      ? replacePlaceholders(personaCharacter.additionalInfo, character.name, personaCharacter.name)
+      : ''
+    parts.push(`[유저 역할]\n이름: ${personaCharacter.name}${tagLine}${personaInfo ? `\n${personaInfo}` : ''}`)
   }
   parts.push(`[캐릭터 설정]\n${buildCharLines(character, personaName)}`)
   if (scenarioDescription?.trim()) {
@@ -243,7 +246,10 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
 
   if (personaCharacter) {
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
-    parts.push(`[${personaName} 설정]${tagLine}${personaCharacter.additionalInfo ? `\n${personaCharacter.additionalInfo}` : ''}`)
+    const personaInfo = personaCharacter.additionalInfo
+      ? replacePlaceholders(personaCharacter.additionalInfo, characters.map(c => c.name).join(', '), personaCharacter.name)
+      : ''
+    parts.push(`[${personaName} 설정]${tagLine}${personaInfo ? `\n${personaInfo}` : ''}`)
   }
   for (const char of characters) {
     parts.push(`[${char.name} 설정]\n${buildCharLines(char, personaName)}`)
