@@ -6,7 +6,19 @@ import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import TagFilterBar from '@/components/ui/TagFilterBar'
+import { sortByOption, type SortOption } from '@/lib/listSort'
+import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { tagCounts } from '@/lib/centerCounts'
+import { CENTERS } from '@/lib/centers'
 import type { Character } from '@/types'
+
+// 캐릭터가 속한 센터 키를 collection.sourceUrl로 판별. 컬렉션이 없거나 외부 센터가 아니면 'none'(미분류).
+function centerKeyOf(c: Character): string {
+  const url = c.collection?.sourceUrl ?? ''
+  if (!url) return 'none'
+  return CENTERS.find(ctr => ctr.dbHosts.some(h => url.includes(h)))?.key ?? 'none'
+}
 
 let sparkleCount = 0
 function sparkleAt(x: number, y: number) {
@@ -52,10 +64,21 @@ export default function CharactersPage() {
   const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
   const [duplicating, setDuplicating] = useState(false)
   const [roomFilter, setRoomFilter] = useState<string>('all')
+  const [centerFilter, setCenterFilter] = useState<string>('all')
+  const [sort, setSort] = useState<SortOption>('latest')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchTab, setSearchTab] = useState<'text' | 'tag'>('text')
+  const [query, setQuery] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
 
   useEffect(() => {
     api.get('/api/characters').then(data => { setCharacters(data); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
+    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
+
+  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  const resetSearch = () => { setQuery(''); setSelectedTags([]) }
 
   const handleImport = async () => {
     if (!importUrl.trim() || importing) return
@@ -83,15 +106,34 @@ export default function CharactersPage() {
 
   const selectedChar = characters.find(c => c.id === draft.charId)
 
+  // view(진행/대기/완결) 기준 1차 분류
+  const viewBase = useMemo(() => {
+    if (view === 'completed') return characters.filter(c => c.completed)
+    if (view === 'waiting') return characters.filter(c => !c.completed && !c.started)
+    return characters.filter(c => !c.completed && c.started)
+  }, [characters, view])
+
+  // 센터 필터 옵션 (이 view에 실제로 멤버가 있는 센터만, 카운트 포함)
+  const availableCenters = useMemo(() => {
+    const counts = new Map<string, number>()
+    viewBase.forEach(c => { const k = centerKeyOf(c); counts.set(k, (counts.get(k) ?? 0) + 1) })
+    const list = CENTERS.filter(ctr => counts.has(ctr.key)).map(ctr => ({ key: ctr.key, label: ctr.label, count: counts.get(ctr.key)! }))
+    if (counts.has('none')) list.push({ key: 'none', label: '미분류·직접만든', count: counts.get('none')! })
+    return list
+  }, [viewBase])
+
+  // 센터 필터 적용 (완결 view는 센터 대신 방 필터를 쓰므로 그대로)
+  const centerBase = useMemo(() => {
+    if (view === 'completed' || centerFilter === 'all') return viewBase
+    return viewBase.filter(c => centerKeyOf(c) === centerFilter)
+  }, [viewBase, centerFilter, view])
+
+  // 카드(컬렉션) 드롭다운 옵션 — 센터 필터 적용된 집합에서
   const collections = useMemo(() => {
     const map = new Map<string, string>()
-    characters
-      .filter(c => !c.completed && (view === 'active' ? c.started : !c.started))
-      .forEach(c => {
-        if (c.collection) map.set(c.collection.id, c.collection.title)
-      })
+    centerBase.forEach(c => { if (c.collection) map.set(c.collection.id, c.collection.title) })
     return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
-  }, [characters, view])
+  }, [centerBase])
 
   const completedRooms = useMemo(() => {
     const map = new Map<string, string>()
@@ -101,19 +143,26 @@ export default function CharactersPage() {
     return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
   }, [characters])
 
+  // 태그 검색용 — 현재 필터된 집합에 등록된 태그 목록 + 카운트
+  const tagGroups = useMemo(() => buildTagGroups(centerBase.flatMap(c => c.tags ?? []), tagConfig), [centerBase, tagConfig])
+  const tCounts = useMemo(() => tagCounts(centerBase), [centerBase])
+
   const filteredCharacters = useMemo(() => {
+    let r = centerBase
     if (view === 'completed') {
-      const completed = characters.filter(c => c.completed)
-      if (roomFilter === 'all') return completed
-      return completed.filter(c => c.rooms?.some(r => r.id === roomFilter))
+      if (roomFilter !== 'all') r = r.filter(c => c.rooms?.some(rm => rm.id === roomFilter))
+    } else {
+      if (collectionFilter === 'none') r = r.filter(c => !c.collection && !c.isPreset)
+      else if (collectionFilter !== 'all') r = r.filter(c => c.collection?.id === collectionFilter)
     }
-    const base = view === 'waiting'
-      ? characters.filter(c => !c.completed && !c.started)
-      : characters.filter(c => !c.completed && c.started)
-    if (collectionFilter === 'all') return base
-    if (collectionFilter === 'none') return base.filter(c => !c.collection && !c.isPreset)
-    return base.filter(c => c.collection?.id === collectionFilter)
-  }, [characters, collectionFilter, roomFilter, view])
+    // 검색: 이름·카드명 텍스트
+    const q = query.trim().toLowerCase()
+    if (q) r = r.filter(c => c.name.toLowerCase().includes(q) || (c.collection?.title ?? '').toLowerCase().includes(q))
+    // 검색: 태그 (선택 태그를 모두 가진 캐릭터)
+    if (selectedTags.length > 0) r = r.filter(c => selectedTags.every(t => (c.tags ?? []).includes(t)))
+    // 정렬
+    return sortByOption(r, sort, c => c.name, c => c.createdAt ?? '', c => c.createdAt ?? '')
+  }, [centerBase, view, collectionFilter, roomFilter, query, selectedTags, sort])
 
   const selectableInFilter = filteredCharacters.filter(c => !c.isPreset)
 
@@ -242,24 +291,72 @@ export default function CharactersPage() {
         </div>
 
         <div className="hstack" style={{ gap: 6 }}>
-          <button
-            className={`btn ${view === 'active' ? 'primary' : 'ghost'}`}
-            style={{ fontSize: 11, padding: '3px 10px' }}
-            onClick={() => { setView('active'); setRoomFilter('all'); setCollectionFilter('all'); exitSelect() }}
-          >진행 중</button>
-          <button
-            className={`btn ${view === 'waiting' ? 'primary' : 'ghost'}`}
-            style={{ fontSize: 11, padding: '3px 10px' }}
-            onClick={() => { setView('waiting'); setRoomFilter('all'); setCollectionFilter('all'); exitSelect() }}
-          >대기</button>
-          <button
-            className={`btn ${view === 'completed' ? 'primary' : 'ghost'}`}
-            style={{ fontSize: 11, padding: '3px 10px' }}
-            onClick={() => { setView('completed'); setRoomFilter('all'); setCollectionFilter('all'); exitSelect() }}
-          >완결 캐릭터</button>
+          {(['active', 'waiting', 'completed'] as const).map(v => (
+            <button
+              key={v}
+              className={`btn ${view === v ? 'primary' : 'ghost'}`}
+              style={{ fontSize: 11, padding: '3px 10px' }}
+              onClick={() => { setView(v); setRoomFilter('all'); setCollectionFilter('all'); setCenterFilter('all'); resetSearch(); exitSelect() }}
+            >{v === 'active' ? '진행 중' : v === 'waiting' ? '대기' : '완결 캐릭터'}</button>
+          ))}
         </div>
 
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
+
+        {/* 센터 필터 · 정렬 · 검색 */}
+        <div className="hstack" style={{ gap: 6, flexWrap: 'wrap' }}>
+          {view !== 'completed' && availableCenters.length > 0 && (
+            <select
+              className="field"
+              style={{ fontSize: 11, width: 'auto', minWidth: 110, padding: '3px 8px' }}
+              value={centerFilter}
+              onChange={e => { setCenterFilter(e.target.value); setCollectionFilter('all'); exitSelect() }}
+            >
+              <option value="all">전체 센터</option>
+              {availableCenters.map(ctr => (
+                <option key={ctr.key} value={ctr.key}>{ctr.label} ({ctr.count})</option>
+              ))}
+            </select>
+          )}
+          <select
+            className="field"
+            style={{ fontSize: 11, width: 'auto', minWidth: 90, padding: '3px 8px' }}
+            value={sort}
+            onChange={e => setSort(e.target.value as SortOption)}
+          >
+            <option value="latest">최신순</option>
+            <option value="oldest">오래된순</option>
+            <option value="alpha">가나다순</option>
+          </select>
+          <button
+            className={`btn ${searchOpen ? 'primary' : 'ghost'}`}
+            style={{ fontSize: 11, padding: '3px 10px' }}
+            onClick={() => setSearchOpen(o => { if (o) resetSearch(); return !o })}
+          >🔍 검색{(query.trim() || selectedTags.length > 0) ? ` (${(query.trim() ? 1 : 0) + selectedTags.length})` : ''}</button>
+        </div>
+
+        {searchOpen && (
+          <div className="vstack" style={{ gap: 6 }}>
+            <div className="hstack" style={{ gap: 6 }}>
+              <button className={`btn ${searchTab === 'text' ? 'primary' : 'ghost'}`} style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setSearchTab('text')}>이름·카드명</button>
+              <button className={`btn ${searchTab === 'tag' ? 'primary' : 'ghost'}`} style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setSearchTab('tag')}>태그</button>
+            </div>
+            {searchTab === 'text' ? (
+              <input
+                className="field"
+                style={{ fontSize: 12, width: '100%' }}
+                placeholder="캐릭터명 또는 카드(세계관)명으로 검색"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                autoFocus
+              />
+            ) : (
+              tagGroups.length > 0
+                ? <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="btn ghost" accentVar="--hot-pink" counts={tCounts} />
+                : <div className="tiny muted" style={{ padding: '4px 0' }}>등록된 태그가 없습니다.</div>
+            )}
+          </div>
+        )}
 
         {view !== 'completed' && collections.length > 0 && (
           <select

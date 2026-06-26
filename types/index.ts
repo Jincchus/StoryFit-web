@@ -18,6 +18,7 @@ export type AvatarKind = 'wizard' | 'knight' | 'rogue' | 'maid' | 'vampire' | 'a
 export interface CharacterCollection {
   id: string
   title: string
+  sourceUrl?: string
 }
 
 export interface Character {
@@ -41,6 +42,7 @@ export interface Character {
   completed?: boolean
   hasArchived?: boolean
   started?: boolean
+  createdAt?: string
   rooms?: { id: string; title: string }[]
 }
 
