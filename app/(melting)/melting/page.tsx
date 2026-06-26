@@ -389,7 +389,7 @@ export default function MeltingListPage() {
                 <div key={c.id} className="melting-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/melting/characters/${c.id}`)}>
                   {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--m-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="melting-card-img" src={thumb} alt="" /> : <div className="melting-card-img" />}
+                  {thumb ? <img className="melting-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="melting-card-img" />}
                   <div className="melting-card-body">
                     <div className="melting-card-title">{c.title}</div>
                     {c.description?.trim() && (

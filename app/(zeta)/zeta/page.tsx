@@ -377,7 +377,7 @@ export default function ZetaListPage() {
                 <div key={p.id} className="zeta-card"
                   onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>
                   {p.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: '#8b5cf6', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="zeta-card-img" src={thumb} alt="" /> : <div className="zeta-card-img" />}
+                  {thumb ? <img className="zeta-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="zeta-card-img" />}
                   <div className="zeta-card-body">
                     <div className="zeta-card-title">{p.title}</div>
                     {p.tags?.length > 0 && (

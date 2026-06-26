@@ -266,7 +266,7 @@ export default function WhifExplorePage() {
                   <div key={u.id} className="whif-card" style={{ position: 'relative' }}
                     onClick={() => !editMode && router.push(`/whif/universes/${u.id}`)}>
                     {u.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--w-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                    {thumb ? <img className="whif-card-img" src={thumb} alt="" />
+                    {thumb ? <img className="whif-card-img" loading="lazy" decoding="async" src={thumb} alt="" />
                       : <div className="whif-card-img" />}
                     <div className="whif-card-body">
                       <div className="whif-card-title">{u.title}</div>
@@ -313,7 +313,7 @@ export default function WhifExplorePage() {
                 <div key={c.id} className="whif-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/whif/characters/${c.id}`)}>
                   {c.hasArchived && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--w-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {c.avatarUrl ? <img className="whif-card-img" src={c.avatarUrl} alt="" />
+                  {c.avatarUrl ? <img className="whif-card-img" loading="lazy" decoding="async" src={c.avatarUrl} alt="" />
                     : <div className="whif-card-img" />}
                   <div className="whif-card-body">
                     <div className="whif-card-title">{c.name}</div>

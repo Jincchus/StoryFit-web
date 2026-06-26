@@ -244,7 +244,7 @@ export default function RofanListPage() {
                 <div key={c.id} className="rofan-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/rofan/characters/${c.id}`)}>
                   {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--r-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="rofan-card-img" src={thumb} alt="" /> : <div className="rofan-card-img" />}
+                  {thumb ? <img className="rofan-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="rofan-card-img" />}
                   <div className="rofan-card-body">
                     <div className="rofan-card-title">{c.title}</div>
                     {c.description?.trim() && (

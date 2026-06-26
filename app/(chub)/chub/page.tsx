@@ -244,7 +244,7 @@ export default function ChubListPage() {
                 <div key={c.id} className="chub-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/chub/characters/${c.id}`)}>
                   {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--c-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="chub-card-img" src={thumb} alt="" /> : <div className="chub-card-img" />}
+                  {thumb ? <img className="chub-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="chub-card-img" />}
                   <div className="chub-card-body">
                     <div className="chub-card-title">{c.title}</div>
                     {c.description?.trim() && (

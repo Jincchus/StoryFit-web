@@ -244,7 +244,7 @@ export default function BabechatListPage() {
                 <div key={c.id} className="bc-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/babechat/characters/${c.id}`)}>
                   {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--b-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="bc-card-img" src={thumb} alt="" /> : <div className="bc-card-img" />}
+                  {thumb ? <img className="bc-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="bc-card-img" />}
                   <div className="bc-card-body">
                     <div className="bc-card-title">{c.title}</div>
                     {c.description?.trim() && (

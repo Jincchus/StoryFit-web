@@ -209,7 +209,7 @@ export default function AllCentersPage() {
                   {/* 썸네일 */}
                   <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', background: 'var(--chrome-face)' }}>
                     {thumb
-                      ? <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ? <img src={thumb} loading="lazy" decoding="async" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', fontSize: 32 }}>🎭</div>
                     }
                     {/* 완결 뱃지 */}

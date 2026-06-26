@@ -245,7 +245,7 @@ export default function TikitaListPage() {
                 <div key={s.id} className="tikita-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/tikita/story/${s.id}`)}>
                   {s.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--t-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="tikita-card-img" src={thumb} alt="" /> : <div className="tikita-card-img" />}
+                  {thumb ? <img className="tikita-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="tikita-card-img" />}
                   <div className="tikita-card-body">
                     <div className="tikita-card-title">{s.title}</div>
                     {(s.tikitaMeta?.tagline || s.description)?.trim() && (

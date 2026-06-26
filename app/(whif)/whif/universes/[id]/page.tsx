@@ -129,7 +129,7 @@ export default function UniverseDetailPage() {
           <div className="whif-grid" style={{ padding: 0 }}>
             {chars.map(c => (
               <div key={c.id} className="whif-card" onClick={() => router.push(`/whif/characters/${c.id}`)}>
-                {c.avatarUrl ? <img className="whif-card-img" src={c.avatarUrl} alt="" /> : <div className="whif-card-img" />}
+                {c.avatarUrl ? <img className="whif-card-img" loading="lazy" decoding="async" src={c.avatarUrl} alt="" /> : <div className="whif-card-img" />}
                 <div className="whif-card-body"><div className="whif-card-title">{c.name}</div></div>
               </div>
             ))}

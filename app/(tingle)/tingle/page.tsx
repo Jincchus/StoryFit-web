@@ -509,7 +509,7 @@ export default function TingleListPage() {
                     <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--tg-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>
                   )}
                   {thumb
-                    ? <img className="tingle-card-img" src={thumb} alt="" />
+                    ? <img className="tingle-card-img" loading="lazy" decoding="async" src={thumb} alt="" />
                     : <div className="tingle-card-img" style={{ display: 'grid', placeItems: 'center', fontSize: 32 }}>🎭</div>
                   }
                   <div className="tingle-card-body">

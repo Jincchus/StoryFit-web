@@ -244,7 +244,7 @@ export default function LoveydoveyListPage() {
                 <div key={c.id} className="lovey-card" style={{ position: 'relative' }}
                   onClick={() => !editMode && router.push(`/loveydovey/characters/${c.id}`)}>
                   {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--l-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="lovey-card-img" src={thumb} alt="" /> : <div className="lovey-card-img" />}
+                  {thumb ? <img className="lovey-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="lovey-card-img" />}
                   <div className="lovey-card-body">
                     <div className="lovey-card-title">{c.title}</div>
                     {c.description?.trim() && (

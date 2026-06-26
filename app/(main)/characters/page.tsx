@@ -1,8 +1,9 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -187,6 +188,16 @@ export default function CharactersPage() {
   }, [centerBase, view, collectionFilter, roomFilter, genderFilter, query, selectedTags, sort])
 
   const selectableInFilter = filteredCharacters.filter(c => !c.isPreset)
+
+  // 렌더 윈도잉: 필터·정렬은 전체 목록에서 계산하되(센터/성별/완결 카운트 배지 유지),
+  // 화면에는 count개만 렌더해 수천 개 카드·이미지를 한꺼번에 그리는 프리즈를 방지한다.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const { count: renderCount, sentinelRef } = useInfiniteScroll(
+    [view, centerFilter, collectionFilter, roomFilter, genderFilter, query, selectedTags, sort],
+    scrollRef,
+    30,
+  )
+  const visibleCharacters = filteredCharacters.slice(0, renderCount)
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
@@ -449,7 +460,7 @@ export default function CharactersPage() {
             ))}
           </div>
         ) : (
-        <div className="char-grid scroll">
+        <div className="char-grid scroll" ref={scrollRef}>
           {view === 'completed' && filteredCharacters.length === 0 && (
             <div className="muted" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 16px', fontSize: 13 }}>
               완결한 캐릭터가 없습니다.<br />이어가려면 서재에서 꺼내세요.
@@ -460,7 +471,7 @@ export default function CharactersPage() {
               대기 중인 캐릭터가 없습니다.<br />아직 대화를 시작하지 않은 캐릭터가 여기에 표시됩니다.
             </div>
           )}
-          {filteredCharacters.map(c => {
+          {visibleCharacters.map(c => {
             const isChecked = selected.has(c.id)
             if (view === 'completed') {
               return (
@@ -468,7 +479,7 @@ export default function CharactersPage() {
                   <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, background: '#8b5cf6', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>
                   <div className="pic-wrap">
                     {c.avatarUrl
-                      ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      ? <img src={c.avatarUrl} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                       : <PixelAvatar kind={c.kind} size={72} />
                     }
                   </div>
@@ -521,7 +532,7 @@ export default function CharactersPage() {
                 )}
                 <div className="pic-wrap">
                   {c.avatarUrl
-                    ? <img src={c.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                    ? <img src={c.avatarUrl} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                     : <PixelAvatar kind={c.kind} size={72} />
                   }
                 </div>
@@ -564,6 +575,7 @@ export default function CharactersPage() {
               <p>태그·추가정보로<br />직접 설정</p>
             </div>
           )}
+          <div ref={sentinelRef} style={{ gridColumn: '1 / -1', height: 1 }} />
         </div>
         )}
       </div>

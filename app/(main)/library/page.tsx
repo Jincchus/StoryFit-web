@@ -88,7 +88,7 @@ export default function LibraryPage() {
                 >
                   <div className="thumb">
                     {char?.avatarUrl
-                      ? <img src={char.avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                      ? <img src={char.avatarUrl} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                       : <PixelAvatar kind="custom" size={36} />
                     }
                   </div>
