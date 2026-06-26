@@ -7,13 +7,14 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { cardGenderBucket, availableGenderBuckets } from '@/lib/cardGender'
 import { useFavorites } from '@/lib/useFavorites'
 import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface RChar {
   id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
-  characters: { id: string; name: string; avatarUrl: string | null }[]
+  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null }[]
   completed?: boolean
   started?: boolean
   createdAt?: string
@@ -39,7 +40,8 @@ export default function RofanListPage() {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
+  const [genderFilter, setGenderFilter] = useState<string>('all')
+  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
   useEffect(() => {
     setEditMode(localStorage.getItem('rofan_edit') === '1')
@@ -81,7 +83,7 @@ export default function RofanListPage() {
   }
 
   const scrollRef = useScrollRestore(`rofan_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef, 30, loadMore)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, genderFilter, randomSeed], scrollRef, 30, loadMore)
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
@@ -123,12 +125,13 @@ export default function RofanListPage() {
   const tagGroups = buildTagGroups(chars.flatMap(c => c.tags ?? []), tagConfig)
   const counts = viewCounts(chars)
   const tCounts = tagCounts(chars)
+  const genderBuckets = availableGenderBuckets(chars)
   const visibleChars = sortByOption(
     chars.filter(c =>
       (view === 'favorites' ? isFav('collection', c.id)
       : view === 'completed' ? c.completed
       : view === 'waiting' ? !c.started
-      : !c.completed && !!c.started) && matchesTag(c.tags) && matchesQuery(c.title, c.tags)
+      : !c.completed && !!c.started) && matchesTag(c.tags) && matchesQuery(c.title, c.tags) && (genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter)
     ),
     sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
   )
@@ -195,6 +198,15 @@ export default function RofanListPage() {
               autoFocus
             />
           </div>
+          {genderBuckets.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 16px 8px', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }}>성별</span>
+              <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === 'all' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: genderFilter === 'all' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => setGenderFilter('all')}>전체</button>
+              {genderBuckets.map(g => (
+                <button key={g.key} className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === g.key ? 'var(--r-accent)' : 'var(--r-surface-2)', color: genderFilter === g.key ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => setGenderFilter(g.key)}>{g.label} <span style={{ opacity: 0.55 }}>{g.count}</span></button>
+              ))}
+            </div>
+          )}
           <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="rofan-chip" accentVar="--r-accent" counts={tCounts} />
         </>
       )}

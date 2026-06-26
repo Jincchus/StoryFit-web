@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       zetaMeta: true,
       meltingMeta: true,
       tikitaMeta: true,
-      characters: { select: { id: true, name: true, avatarUrl: true, openingMessage: true, openingMessages: true } },
+      characters: { select: { id: true, name: true, avatarUrl: true, gender: true, openingMessage: true, openingMessages: true } },
     },
   })
 

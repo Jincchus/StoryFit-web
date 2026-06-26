@@ -7,13 +7,14 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { cardGenderBucket, availableGenderBuckets } from '@/lib/cardGender'
 import { useFavorites } from '@/lib/useFavorites'
 import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 
 interface TStory {
   id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
-  characters: { id: string; name: string; avatarUrl: string | null }[]
+  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null }[]
   tikitaMeta?: any
   completed?: boolean
   started?: boolean
@@ -40,7 +41,8 @@ export default function TikitaListPage() {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
+  const [genderFilter, setGenderFilter] = useState<string>('all')
+  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
   useEffect(() => {
     setEditMode(localStorage.getItem('tikita_edit') === '1')
@@ -82,7 +84,7 @@ export default function TikitaListPage() {
   }
 
   const scrollRef = useScrollRestore(`tikita_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef, 30, loadMore)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, genderFilter, randomSeed], scrollRef, 30, loadMore)
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
@@ -124,12 +126,13 @@ export default function TikitaListPage() {
   const tagGroups = buildTagGroups(stories.flatMap(s => s.tags ?? []), tagConfig)
   const counts = viewCounts(stories)
   const tCounts = tagCounts(stories)
+  const genderBuckets = availableGenderBuckets(stories)
   const visibleStories = sortByOption(
     stories.filter(s =>
       (view === 'favorites' ? isFav('collection', s.id)
       : view === 'completed' ? s.completed
       : view === 'waiting' ? !s.started
-      : !s.completed && !!s.started) && matchesTag(s.tags) && matchesQuery(s.title, s.tags)
+      : !s.completed && !!s.started) && matchesTag(s.tags) && matchesQuery(s.title, s.tags) && (genderFilter === 'all' || cardGenderBucket(s.characters) === genderFilter)
     ),
     sort, s => s.title, s => s.createdAt ?? '', s => s.lastActivityAt ?? s.createdAt ?? '', randomSeed
   )
@@ -196,6 +199,15 @@ export default function TikitaListPage() {
               autoFocus
             />
           </div>
+          {genderBuckets.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 16px 8px', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }}>성별</span>
+              <button className="tikita-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === 'all' ? 'var(--t-accent)' : 'var(--t-surface-2)', color: genderFilter === 'all' ? '#fff' : 'var(--t-ink-soft)' }} onClick={() => setGenderFilter('all')}>전체</button>
+              {genderBuckets.map(g => (
+                <button key={g.key} className="tikita-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === g.key ? 'var(--t-accent)' : 'var(--t-surface-2)', color: genderFilter === g.key ? '#fff' : 'var(--t-ink-soft)' }} onClick={() => setGenderFilter(g.key)}>{g.label} <span style={{ opacity: 0.55 }}>{g.count}</span></button>
+              ))}
+            </div>
+          )}
           <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="tikita-chip" accentVar="--t-accent" counts={tCounts} />
         </>
       )}

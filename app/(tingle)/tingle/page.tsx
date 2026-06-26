@@ -11,11 +11,12 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { useDisplayName } from '@/lib/useDisplayName'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { cardGenderBucket, availableGenderBuckets } from '@/lib/cardGender'
 
 interface TingleCol {
   id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
   sourceUrl: string
-  characters: { id: string; name: string; avatarUrl: string | null }[]
+  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null }[]
   completed?: boolean; started?: boolean; createdAt?: string; lastActivityAt?: string
 }
 
@@ -79,9 +80,10 @@ export default function TingleListPage() {
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [genderFilter, setGenderFilter] = useState<string>('all')
   const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
   const userName = useDisplayName()
-  const toggleSearch = () => setSearchOpen(o => { if (o) setQuery(''); return !o })
+  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
   useEffect(() => {
     setEditMode(localStorage.getItem('tg_edit') === '1')
@@ -98,7 +100,7 @@ export default function TingleListPage() {
     if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
   }
   const handleView = (v: ViewTab) => { setView(v); sessionStorage.setItem('tg_view', v) }
-  const handleTypeTab = (v: TypeTab) => { setTypeTab(v); sessionStorage.setItem('tg_type', v) }
+  const handleTypeTab = (v: TypeTab) => { setTypeTab(v); setGenderFilter('all'); sessionStorage.setItem('tg_type', v) }
 
   const FETCH_SIZE = 60
 
@@ -123,7 +125,7 @@ export default function TingleListPage() {
   }
 
   const scrollRef = useScrollRestore(`tg_scroll_${view}_${typeTab}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed, typeTab, selectedTags], scrollRef, 30, loadMore)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed, typeTab, selectedTags, genderFilter], scrollRef, 30, loadMore)
 
   const importTingleUrl = async (url: string) => {
     if (url.includes('tingle.chat')) {
@@ -240,6 +242,8 @@ export default function TingleListPage() {
   const counts = viewCounts(colsByType)
   const tagGroups = buildTagGroups(colsByType.flatMap(c => c.tags ?? []), tagConfig)
   const tCounts = tagCounts(colsByType)
+  // 성별 필터는 캐릭터 타입탭에서만
+  const genderBuckets = typeTab === 'character' ? availableGenderBuckets(colsByType) : []
 
   const typeCounts = {
     character: cols.filter(c => detectTingleType(c.sourceUrl).type === 'character').length,
@@ -254,7 +258,8 @@ export default function TingleListPage() {
         : view === 'waiting' ? !c.started
         : !c.completed && !!c.started
       const typeMatch = detectTingleType(c.sourceUrl).type === typeTab
-      return viewMatch && typeMatch && matchesQuery(c) && matchesTag(c.tags ?? [])
+      const genderMatch = typeTab !== 'character' || genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter
+      return viewMatch && typeMatch && matchesQuery(c) && matchesTag(c.tags ?? []) && genderMatch
     }),
     sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
   )
@@ -451,6 +456,15 @@ export default function TingleListPage() {
             <input className="field" style={{ fontSize: 12, width: '100%' }} placeholder="이름·태그로 검색"
               value={query} onChange={e => setQuery(e.target.value)} autoFocus />
           </div>
+          {genderBuckets.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 16px 8px', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }}>성별</span>
+              <button className="tingle-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === 'all' ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: genderFilter === 'all' ? '#fff' : 'var(--tg-ink-soft)' }} onClick={() => setGenderFilter('all')}>전체</button>
+              {genderBuckets.map(g => (
+                <button key={g.key} className="tingle-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === g.key ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: genderFilter === g.key ? '#fff' : 'var(--tg-ink-soft)' }} onClick={() => setGenderFilter(g.key)}>{g.label} <span style={{ opacity: 0.55 }}>{g.count}</span></button>
+              ))}
+            </div>
+          )}
           <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="tingle-chip" accentVar="--tg-accent" counts={tCounts} />
         </>
       )}

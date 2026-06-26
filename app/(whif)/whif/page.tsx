@@ -8,11 +8,12 @@ import { useScrollRestore } from '@/lib/useScrollRestore'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { genderBucket, CARD_GENDER_LABEL } from '@/lib/cardGender'
 import { useFavorites } from '@/lib/useFavorites'
 import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { useDisplayName } from '@/lib/useDisplayName'
 
-interface Character { id: string; name: string; avatarUrl: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
+interface Character { id: string; name: string; avatarUrl: string | null; gender?: string | null; additionalInfo: string; tags: string[]; collection?: { id: string } | null; hasArchived?: boolean; started?: boolean; createdAt?: string }
 interface Universe { id: string; title: string; coverImageUrl: string; tags: string[]; characters: { id: string; name: string; avatarUrl: string | null }[]; completed?: boolean; started?: boolean; createdAt?: string; lastActivityAt?: string }
 
 export default function WhifExplorePage() {
@@ -36,7 +37,8 @@ export default function WhifExplorePage() {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
+  const [genderFilter, setGenderFilter] = useState<string>('all')
+  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
   useEffect(() => {
     setEditMode(localStorage.getItem('whif_edit') === '1')
@@ -57,14 +59,14 @@ export default function WhifExplorePage() {
     if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
   }
   const handleTab = (v: typeof tab) => {
-    setTab(v); setSelectedTags([]); sessionStorage.setItem('whif_tab', v)
+    setTab(v); setSelectedTags([]); setGenderFilter('all'); sessionStorage.setItem('whif_tab', v)
   }
   const handleView = (v: typeof view) => {
     setView(v); sessionStorage.setItem('whif_view', v)
   }
 
   const scrollRef = useScrollRestore(`whif_scroll_${tab}_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([tab, view, query, selectedTags, sortUniverses, sortCharacters, randomSeed], scrollRef)
+  const { count, sentinelRef } = useInfiniteScroll([tab, view, query, selectedTags, genderFilter, sortUniverses, sortCharacters, randomSeed], scrollRef)
 
   const fetchData = async () => {
     setLoading(true)
@@ -124,6 +126,13 @@ export default function WhifExplorePage() {
   const tagGroups = buildTagGroups((tab === 'universes' ? universes : characters).flatMap(item => item.tags ?? []), tagConfig)
   const counts = tab === 'universes' ? viewCounts(universes) : viewCounts(characters, isCharCompleted)
   const tCounts = tab === 'universes' ? tagCounts(universes) : tagCounts(characters)
+  // 성별 필터는 캐릭터 탭에서만 (개별 캐릭터라 멀티 없음)
+  const genderBuckets = (() => {
+    if (tab !== 'characters') return [] as { key: string; label: string; count: number }[]
+    const cnt = new Map<string, number>()
+    characters.forEach(c => { const b = genderBucket(c.gender); cnt.set(b, (cnt.get(b) ?? 0) + 1) })
+    return (['male', 'female', 'none'] as const).filter(b => cnt.has(b)).map(b => ({ key: b, label: CARD_GENDER_LABEL[b], count: cnt.get(b)! }))
+  })()
   const visibleUniverses = sortByOption(
     universes.filter(u =>
       (view === 'favorites' ? isFav('collection', u.id)
@@ -138,7 +147,7 @@ export default function WhifExplorePage() {
       (view === 'favorites' ? isFav('character', c.id)
       : view === 'completed' ? isCharCompleted(c)
       : view === 'waiting' ? !c.started
-      : !isCharCompleted(c) && !!c.started) && matchesTag(c.tags) && matchesQuery(c.name, c.tags)
+      : !isCharCompleted(c) && !!c.started) && matchesTag(c.tags) && matchesQuery(c.name, c.tags) && (genderFilter === 'all' || genderBucket(c.gender) === genderFilter)
     ),
     sortCharacters, c => c.name, c => c.createdAt ?? '', undefined, randomSeed
   )
@@ -210,6 +219,15 @@ export default function WhifExplorePage() {
               autoFocus
             />
           </div>
+          {genderBuckets.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 16px 8px', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }}>성별</span>
+              <button className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === 'all' ? 'var(--w-accent)' : 'var(--w-surface-2)', color: genderFilter === 'all' ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setGenderFilter('all')}>전체</button>
+              {genderBuckets.map(g => (
+                <button key={g.key} className="whif-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === g.key ? 'var(--w-accent)' : 'var(--w-surface-2)', color: genderFilter === g.key ? '#fff' : 'var(--w-ink-soft)' }} onClick={() => setGenderFilter(g.key)}>{g.label} <span style={{ opacity: 0.55 }}>{g.count}</span></button>
+              ))}
+            </div>
+          )}
           <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="whif-chip" accentVar="--w-accent" counts={tCounts} />
         </>
       )}

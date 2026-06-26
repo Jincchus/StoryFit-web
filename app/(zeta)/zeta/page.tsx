@@ -9,6 +9,7 @@ import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import { getOpenings } from '@/lib/openings'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { cardGenderBucket, availableGenderBuckets } from '@/lib/cardGender'
 import { useFavorites } from '@/lib/useFavorites'
 import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { useDisplayName } from '@/lib/useDisplayName'
@@ -16,7 +17,7 @@ import type { Opening } from '@/types'
 
 interface Plot {
   id: string; title: string; coverImageUrl: string; tags: string[]
-  characters: { id: string; name: string; avatarUrl: string | null; openingMessage: string; openingMessages?: Opening[] }[]
+  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null; openingMessage: string; openingMessages?: Opening[] }[]
   lorebookTitles?: string[]
   zetaMeta?: any
   completed?: boolean
@@ -45,7 +46,8 @@ export default function ZetaListPage() {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]) } return !o })
+  const [genderFilter, setGenderFilter] = useState<string>('all')
+  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
   useEffect(() => {
     setEditMode(localStorage.getItem('zeta_edit') === '1')
@@ -87,7 +89,7 @@ export default function ZetaListPage() {
   }
 
   const scrollRef = useScrollRestore(`zeta_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, randomSeed], scrollRef, 30, loadMore)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, genderFilter, randomSeed], scrollRef, 30, loadMore)
 
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
@@ -95,6 +97,7 @@ export default function ZetaListPage() {
   const tagGroups = buildTagGroups(plots.flatMap(p => p.tags ?? []), tagConfig)
   const counts = viewCounts(plots)
   const tCounts = tagCounts(plots)
+  const genderBuckets = availableGenderBuckets(plots)
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
@@ -192,6 +195,15 @@ export default function ZetaListPage() {
               autoFocus
             />
           </div>
+          {genderBuckets.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 16px 8px', alignItems: 'center' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }}>성별</span>
+              <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === 'all' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: genderFilter === 'all' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setGenderFilter('all')}>전체</button>
+              {genderBuckets.map(g => (
+                <button key={g.key} className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === g.key ? 'var(--z-accent)' : 'var(--z-surface-2)', color: genderFilter === g.key ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setGenderFilter(g.key)}>{g.label} <span style={{ opacity: 0.55 }}>{g.count}</span></button>
+              ))}
+            </div>
+          )}
           <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" counts={tCounts} />
         </>
       )}
@@ -203,7 +215,7 @@ export default function ZetaListPage() {
               (view === 'favorites' ? isFav('collection', p.id)
               : view === 'completed' ? p.completed
               : view === 'waiting' ? !p.started
-              : !p.completed && !!p.started) && matchesTag(p.tags) && matchesQuery(p.title, p.tags)
+              : !p.completed && !!p.started) && matchesTag(p.tags) && matchesQuery(p.title, p.tags) && (genderFilter === 'all' || cardGenderBucket(p.characters) === genderFilter)
             ),
             sort, p => p.title, p => p.createdAt ?? '', p => p.lastActivityAt ?? p.createdAt ?? '', randomSeed
           )
