@@ -49,7 +49,7 @@ function NewConversationInner() {
   const [frequencyPenalty, setFrequencyPenalty] = useState(0.3)
   const [maxOutputTokens, setMaxOutputTokens] = useState(8192)
   const [thinkingBudget, setThinkingBudget] = useState(0)
-  const [styleConfig, setStyleConfig] = useState<Record<string, string | null>>({
+  const [styleConfig, setStyleConfig] = useState<Record<string, any>>({
     pov: null, tense: null, mood: null, style: null, length: null, pace: null,
   })
   const [altGreetings, setAltGreetings] = useState<AlternativeGreeting[]>([])
@@ -294,7 +294,7 @@ function NewConversationInner() {
               canGenerate={!!char}
             />
 
-            <StyleSection styleConfig={styleConfig} onToggle={toggleStyle} />
+            <StyleSection styleConfig={styleConfig} onToggle={toggleStyle} onLengthChange={l => setStyleConfig(s => ({ ...s, length: l }))} />
 
             <AdvancedParamsSection
               safetyLevel={safetyLevel}

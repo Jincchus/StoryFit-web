@@ -1,9 +1,11 @@
 'use client'
 
-export default function StyleSection({ styleConfig, onToggle }: {
-  styleConfig: Record<string, string | null>
+export default function StyleSection({ styleConfig, onToggle, onLengthChange }: {
+  styleConfig: Record<string, any>
   onToggle: (key: string, val: string) => void
+  onLengthChange: (length: { min?: number; max?: number }) => void
 }) {
+  const len = (styleConfig.length ?? {}) as { min?: number; max?: number }
   return (
     <section className="new-conv-section">
       <div className="label">스타일 설정 <span className="muted" style={{ fontWeight: 400 }}>(선택사항)</span></div>
@@ -13,7 +15,6 @@ export default function StyleSection({ styleConfig, onToggle }: {
         { key: 'tense',  label: '시제',     opts: ['현재형', '과거형'] },
         { key: 'mood',   label: '분위기',   opts: ['밝음', '중립', '어두움'] },
         { key: 'style',  label: '문체',     opts: ['문학적', '일상적', '극적'] },
-        { key: 'length', label: '응답 길이', opts: ['짧게', '보통', '길게'] },
         { key: 'pace',   label: '전개 속도', opts: ['빠름', '보통', '느림'] },
       ] as const).map(({ key, label, opts }) => (
         <div key={key} className="hstack" style={{ gap: 8, marginBottom: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -31,6 +32,21 @@ export default function StyleSection({ styleConfig, onToggle }: {
           </div>
         </div>
       ))}
+      <div className="hstack" style={{ gap: 6, marginBottom: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, fontWeight: 600, width: 60, flexShrink: 0 }}>응답 길이</span>
+        <input
+          type="number" min={0} placeholder="최소" style={{ width: 70, fontSize: 11 }}
+          value={len.min ?? ''}
+          onChange={e => onLengthChange({ ...len, min: e.target.value ? Number(e.target.value) : undefined })}
+        />
+        <span className="muted">~</span>
+        <input
+          type="number" min={0} placeholder="최대" style={{ width: 70, fontSize: 11 }}
+          value={len.max ?? ''}
+          onChange={e => onLengthChange({ ...len, max: e.target.value ? Number(e.target.value) : undefined })}
+        />
+        <span className="muted" style={{ fontSize: 11 }}>자</span>
+      </div>
     </section>
   )
 }

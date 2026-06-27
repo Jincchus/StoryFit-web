@@ -82,6 +82,12 @@ export default function SidePanel({
     setConv(c => c ? { ...c, styleConfig: next } : c)
     api.patch(`/api/conversations/${convId}`, { styleConfig: next }).catch(() => setToast('스타일 저장에 실패했습니다'))
   }
+  const setLength = (patch: { min?: number; max?: number }) => {
+    const cur = ((conv?.styleConfig as any)?.length ?? {}) as { min?: number; max?: number }
+    const next = { ...(conv?.styleConfig ?? {}), length: { ...cur, ...patch } }
+    setConv(c => c ? { ...c, styleConfig: next } : c)
+    api.patch(`/api/conversations/${convId}`, { styleConfig: next }).catch(() => setToast('스타일 저장에 실패했습니다'))
+  }
 
   const handleParam = (field: 'temperature' | 'frequencyPenalty' | 'maxOutputTokens' | 'thinkingBudget', value: number) => {
     setConv(c => c ? { ...c, [field]: value } : c)
@@ -421,7 +427,6 @@ export default function SidePanel({
               { key: 'tense',  label: '시제',     opts: ['현재형', '과거형'] },
               { key: 'mood',   label: '분위기',   opts: ['밝음', '중립', '어두움'] },
               { key: 'style',  label: '문체',     opts: ['문학적', '일상적', '극적'] },
-              { key: 'length', label: '응답 길이', opts: ['짧게', '보통', '길게'] },
               { key: 'pace',   label: '전개 속도', opts: ['빠름', '보통', '느림'] },
             ] as const).map(({ key, label, opts }) => (
               <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -438,6 +443,17 @@ export default function SidePanel({
                 </div>
               </div>
             ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, width: 54, flexShrink: 0 }}>응답 길이</span>
+              <input type="number" min={0} placeholder="최소" style={{ width: 56, fontSize: 10 }}
+                value={(conv?.styleConfig as any)?.length?.min ?? ''}
+                onChange={e => setLength({ min: e.target.value ? Number(e.target.value) : undefined })} />
+              <span className="muted">~</span>
+              <input type="number" min={0} placeholder="최대" style={{ width: 56, fontSize: 10 }}
+                value={(conv?.styleConfig as any)?.length?.max ?? ''}
+                onChange={e => setLength({ max: e.target.value ? Number(e.target.value) : undefined })} />
+              <span className="muted" style={{ fontSize: 10 }}>자</span>
+            </div>
           </div>
         )}
       </div>

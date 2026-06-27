@@ -12,7 +12,7 @@ export interface Conv {
   id: string; title: string; mode: string; currentAI: string; chatModel?: string | null; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null
   inventoryEnabled: boolean; inventory: { name: string; qty: number; description?: string }[] | null
-  styleConfig?: Record<string, string | null> | null
+  styleConfig?: Record<string, any> | null
   sourceLorebookUrls?: { url: string; name: string }[] | null
   suggestRepliesEnabled?: boolean
   enrichInputMode?: boolean
