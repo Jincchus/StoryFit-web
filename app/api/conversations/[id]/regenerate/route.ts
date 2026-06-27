@@ -109,6 +109,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv?.inventory as any : undefined,
     allowPersonaDialogue: conv.personaAutoMode ?? false,
     flipPersonaPlaceholders: conv.personaFlipPlaceholders ?? true,
+    fastPace: conv.fastPaceEnabled ?? false,
   })
 
   const latestUserId = [...mappedHistoryMsgs].reverse().find(m => m.role === 'user')?.id

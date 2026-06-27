@@ -12,6 +12,11 @@ function approxTokens(text: string): number {
 
 type PersonaCharacter = { name: string; tags?: string[]; additionalInfo?: string } | null | undefined
 
+const FAST_PACE_BLOCK = `[전개 속도 — 다른 모든 속도 지시보다 우선]
+- 이번 대화는 빠르게 전개한다: 시간·장소를 과감히 건너뛰고, 한 응답에서 사건을 여러 단계 진행시켜 상황을 크게 움직인다.
+- 군더더기 묘사·뜸들이는 서술을 줄이고 핵심 전개에 집중한다.
+- 이 지시는 [공통 문체]의 "느리게 서술"·"결론을 서두르지 않는다"보다 우선한다.`
+
 interface BuildSystemPromptParams {
   character: Character
   personaCharacter?: PersonaCharacter
@@ -31,6 +36,7 @@ interface BuildSystemPromptParams {
   plotSection?: string
   allowPersonaDialogue?: boolean
   flipPersonaPlaceholders?: boolean
+  fastPace?: boolean
 }
 
 function buildStyleSection(s: StyleConfig): string {
@@ -132,6 +138,7 @@ export function buildStorySystemPrompt({
   plotSection,
   allowPersonaDialogue = false,
   flipPersonaPlaceholders = true,
+  fastPace = false,
 }: BuildSystemPromptParams): string {
   const personaName = personaCharacter?.name ?? '나'
   const parts: string[] = []
@@ -141,6 +148,7 @@ export function buildStorySystemPrompt({
   parts.push(buildStoryBaseRules(character.name, personaName, allowPersonaDialogue))
   if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
   if (modeRules?.trim()) parts.push(`[스토리 추가 규칙]\n${modeRules}`)
+  if (fastPace) parts.push(FAST_PACE_BLOCK)
 
   if (personaCharacter) {
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
@@ -203,6 +211,7 @@ export interface MultiStoryPromptParams {
   plotSection?: string
   allowPersonaDialogue?: boolean
   flipPersonaPlaceholders?: boolean
+  fastPace?: boolean
 }
 
 export function buildMultiStorySystemPrompt({
@@ -224,6 +233,7 @@ export function buildMultiStorySystemPrompt({
   plotSection,
   allowPersonaDialogue = false,
   flipPersonaPlaceholders = true,
+  fastPace = false,
 }: MultiStoryPromptParams): string {
   const personaName = personaCharacter?.name ?? '나'
   const charNames = characters.map(c => c.name).join(', ')
@@ -259,6 +269,7 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
   parts.push(baseRules)
   if (styleConfig) { const s = buildStyleSection(styleConfig); if (s) parts.push(s) }
   if (modeRules?.trim()) parts.push(`[멀티스토리 추가 규칙]\n${modeRules}`)
+  if (fastPace) parts.push(FAST_PACE_BLOCK)
 
   if (personaCharacter) {
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''

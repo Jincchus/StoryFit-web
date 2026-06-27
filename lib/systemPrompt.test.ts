@@ -106,3 +106,15 @@ describe('matchLorebook', () => {
     expect(matchLorebook([entry(['마왕성'], { scanDepth: 1 })], msgs('마왕성에 도착했다', '날씨가 좋다'))).toHaveLength(0)
   })
 })
+
+describe('빠른전개(fastPace)', () => {
+  const character = { name: '지영', kind: 'custom', safetyLevel: 'standard', defaultAI: 'gemini' } as any
+  it('fastPace=true면 빠른 전개 블록이 포함된다', () => {
+    const out = buildStorySystemPrompt({ character, fastPace: true })
+    expect(out).toContain('[전개 속도 — 다른 모든 속도 지시보다 우선]')
+  })
+  it('fastPace 미지정이면 빠른 전개 블록이 없다', () => {
+    const out = buildStorySystemPrompt({ character })
+    expect(out).not.toContain('[전개 속도 — 다른 모든 속도 지시보다 우선]')
+  })
+})
