@@ -118,3 +118,15 @@ describe('빠른전개(fastPace)', () => {
     expect(out).not.toContain('[전개 속도 — 다른 모든 속도 지시보다 우선]')
   })
 })
+
+describe('응답 길이 min/max', () => {
+  const character = { name: '지영', kind: 'custom', safetyLevel: 'standard', defaultAI: 'gemini' } as any
+  it('min·max 모두 있으면 범위로 출력', () => {
+    const out = buildStorySystemPrompt({ character, styleConfig: { length: { min: 300, max: 600 } } as any })
+    expect(out).toContain('응답 길이: 300~600자')
+  })
+  it('레거시 문자열 length는 무시(출력 없음)', () => {
+    const out = buildStorySystemPrompt({ character, styleConfig: { length: '짧게' } as any })
+    expect(out).not.toContain('응답 길이')
+  })
+})

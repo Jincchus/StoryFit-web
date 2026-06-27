@@ -45,7 +45,12 @@ function buildStyleSection(s: StyleConfig): string {
   if (s.tense)  lines.push(`- 시제: ${s.tense}`)
   if (s.mood)   lines.push(`- 분위기: ${s.mood === '밝음' ? '밝고 따뜻한 톤 유지' : s.mood === '어두움' ? '어둡고 무거운 톤 유지' : '중립적 톤 유지'}`)
   if (s.style)  lines.push(`- 문체: ${s.style === '문학적' ? '문학적 (비유·묘사 풍부하게)' : s.style === '일상적' ? '일상적 (자연스럽고 간결하게)' : '극적 (긴장감·감정을 강조하게)'}`)
-  if (s.length) lines.push(`- 응답 길이: ${s.length === '짧게' ? '짧게 (핵심만 간결하게)' : s.length === '길게' ? '길게 (묘사와 대화를 충분히)' : '보통'}`)
+  if (s.length && typeof s.length === 'object') {
+    const { min, max } = s.length
+    if (min && max)    lines.push(`- 응답 길이: ${min}~${max}자`)
+    else if (min)      lines.push(`- 응답 길이: 최소 ${min}자 이상`)
+    else if (max)      lines.push(`- 응답 길이: 최대 ${max}자 이내`)
+  }
   if (s.pace)   lines.push(`- 전개 속도: ${s.pace === '빠름' ? '빠르게 (장면 전환을 신속하게)' : s.pace === '느림' ? '느리게 (감정과 분위기를 천천히)' : '보통'}`)
   return lines.length > 0 ? `[스타일 지시]\n${lines.join('\n')}` : ''
 }
