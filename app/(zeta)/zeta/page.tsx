@@ -100,9 +100,15 @@ export default function ZetaListPage() {
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const tagGroups = buildTagGroups(plots.flatMap(p => p.tags ?? []), tagConfig)
+  const viewMatch = (p: Plot) => view === 'favorites' ? isFav('collection', p.id)
+    : view === 'completed' ? p.completed
+    : view === 'waiting' ? !p.started
+    : !p.completed && !!p.started
+  // 태그 목록·카운트는 뷰+성별+검색 적용 base 기준(태그 자신 제외) — 진행중 탭이면 진행중 카드 태그만.
+  const tagBase = plots.filter(p => viewMatch(p) && (genderFilter === 'all' || cardGenderBucket(p.characters) === genderFilter) && matchesQuery(p.title, p.tags))
+  const tagGroups = buildTagGroups(tagBase.flatMap(p => p.tags ?? []), tagConfig)
   const counts = viewCounts(plots)
-  const tCounts = tagCounts(plots)
+  const tCounts = tagCounts(tagBase)
   const genderBuckets = availableGenderBuckets(plots)
 
   const handleImport = async () => {
@@ -328,19 +334,14 @@ export default function ZetaListPage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" counts={tCounts} />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" counts={tCounts} storageKey="zeta_tagcollapse" />
         </>
       )}
 
       <div className="zeta-scroll" ref={scrollRef}>
         {(() => {
           const visiblePlots = sortByOption(
-            plots.filter(p =>
-              (view === 'favorites' ? isFav('collection', p.id)
-              : view === 'completed' ? p.completed
-              : view === 'waiting' ? !p.started
-              : !p.completed && !!p.started) && matchesTag(p.tags) && matchesQuery(p.title, p.tags) && (genderFilter === 'all' || cardGenderBucket(p.characters) === genderFilter)
-            ),
+            tagBase.filter(p => matchesTag(p.tags)),
             sort, p => p.title, p => p.createdAt ?? '', p => p.lastActivityAt ?? p.createdAt ?? '', randomSeed
           )
           return loading ? (
