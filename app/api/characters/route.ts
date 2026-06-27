@@ -24,9 +24,12 @@ export async function GET(req: NextRequest) {
       }
 
   const collectionId = searchParams.get('collectionId')
-  const finalWhere = collectionId
-    ? { ...whereClause, collectionId }
-    : whereClause
+  const unassigned = searchParams.get('unassigned') === 'true'
+  const finalWhere = unassigned
+    ? { creatorId: userId, collectionId: null }
+    : collectionId
+      ? { ...whereClause, collectionId }
+      : whereClause
 
   const characters = await prisma.character.findMany({
     where: finalWhere,
