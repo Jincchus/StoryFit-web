@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
-import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
+import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
+import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
+import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
@@ -41,6 +43,7 @@ export default function TikitaStoryDetailPage() {
   const [editContent, setEditContent] = useState('')
   const [chatModeOpen, setChatModeOpen] = useState(false)
   const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
+  const [standalone, setStandalone] = useState<PersonaCandidate[]>([])
   const [expandedCharId, setExpandedCharId] = useState<string | null>(null)
   const userName = useDisplayName()
 
@@ -53,6 +56,12 @@ export default function TikitaStoryDetailPage() {
   const [editingText, setEditingText] = useState('')
   const [worldSaving, setWorldSaving] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
+
+  useEffect(() => {
+    api.get('/api/characters?unassigned=true')
+      .then((list: any[]) => setStandalone(list.map((c: any) => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl ?? null }))))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -138,6 +147,11 @@ export default function TikitaStoryDetailPage() {
   const meta = col.tikitaMeta ?? {}
   const mainChar = col.characters[0]
   const aiCharIds = pendingAiCharIds ?? (mainChar ? [mainChar.id] : [])
+  const personaCandidates = buildPersonaCandidates({
+    collectionChars: col.characters.map(c => ({ id: c.id, name: c.name, gender: '', avatarUrl: c.avatarUrl })),
+    standaloneCards: standalone,
+    aiCharIds,
+  })
   const introSections: Record<string, string> = meta.introSections ?? {}
   const personaDefault = introSections['PERSONA'] ?? introSections['페르소나'] ?? ''
   const tagline = meta.tagline ?? col.description ?? ''
@@ -179,35 +193,26 @@ export default function TikitaStoryDetailPage() {
       .join('\n\n')
   }
 
-  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
+  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = true) => {
     if (!mainChar) return
     setCreating(true); setError('')
     try {
-      let personaId = personaCharId
-      if (!personaId && newPersona) {
-        const p = await api.post('/api/characters', {
-          name: newPersona.name, gender: newPersona.gender, additionalInfo: newPersona.additionalInfo,
-          collectionId: col.id,
-        })
-        personaId = p.id
-      }
       const scenarioText = buildScenarioText()
-      const resp = await api.post('/api/conversations', {
+      const resp = await createCenterChat({
+        collectionId: col.id,
         title: col.title,
-        characterIds: aiCharIds,
-        mode: aiCharIds.length > 1 ? 'multiStory' : 'story',
-        personaCharacterId: personaId,
-        suggestRepliesEnabled: true,
-        ...(scenarioText ? { scenarioDescription: scenarioText } : col.description ? { scenarioDescription: col.description } : {}),
-        ...(opening.trim() ? { openingMessage: opening } : {}),
+        aiCharIds,
+        personaCharId,
+        newPersona,
+        flipPlaceholders: flip,
+        opening: opening.trim() ? opening : undefined,
+        extras: { ...(scenarioText ? { scenarioDescription: scenarioText } : col.description ? { scenarioDescription: col.description } : {}) },
       })
       const startersParam = chatStarters.length > 0
         ? `?starters=${encodeURIComponent(JSON.stringify(chatStarters))}`
         : ''
       router.push(`/conversations/${resp.id}${startersParam}`)
-    } catch (e: any) {
-      setError('채팅방 생성 실패: ' + e.message); setCreating(false)
-    }
+    } catch (e: any) { setError('채팅방 생성 실패: ' + e.message); setCreating(false) }
   }
 
   return (
@@ -230,36 +235,19 @@ export default function TikitaStoryDetailPage() {
         />
       )}
       {chatModeOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setChatModeOpen(false)}>
-          <div className="win" style={{ minWidth: 260, maxWidth: 320 }} onClick={e => e.stopPropagation()}>
-            <div className="win-title">
-              <div className="win-title-l"><span>대화 방식 선택</span></div>
-              <div className="win-controls"><button onClick={() => setChatModeOpen(false)}>×</button></div>
-            </div>
-            <div className="win-body vstack" style={{ gap: 8 }}>
-              <button className="btn primary" style={{ textAlign: 'left' }}
-                onClick={() => { setPendingAiCharIds(col.characters.map(c => c.id)); setChatModeOpen(false); setPersonaOpen(true) }}>
-                👥 전체 다중 대화 ({col.characters.length}명)
-              </button>
-              <div className="tiny muted" style={{ marginTop: 4 }}>1:1 대화 상대 선택</div>
-              {col.characters.map((c, i) => (
-                <button key={c.id} className="btn ghost" style={{ textAlign: 'left' }}
-                  onClick={() => { setPendingAiCharIds([c.id]); setChatModeOpen(false); setPersonaOpen(true) }}>
-                  👤 {i + 1}. {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <ChatModeModal
+          characters={col.characters.map(c => ({ id: c.id, name: c.name, avatarUrl: c.avatarUrl }))}
+          onClose={() => setChatModeOpen(false)}
+          onPick={(ids) => { setPendingAiCharIds(ids); setChatModeOpen(false); setPersonaOpen(true) }}
+        />
       )}
       {personaOpen && (
         <WhifPersonaModal
-          candidates={[]}
+          candidates={personaCandidates}
           loading={creating}
           defaultSettings={personaDefault}
           onCancel={() => { setPersonaOpen(false); setCreating(false) }}
-          onSelect={(charId, newPersona) => handlePersonaSelect(charId, newPersona)}
+          onSelect={handlePersonaSelect}
         />
       )}
 
@@ -300,7 +288,13 @@ export default function TikitaStoryDetailPage() {
           {/* 등장인물 */}
           {col.characters.length > 0 && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">등장인물 ({col.characters.length})</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <h2 className="tikita-section-title" style={{ margin: 0 }}>등장인물 ({col.characters.length})</h2>
+                <button className="tikita-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--t-surface-2)' }}
+                  onClick={() => router.push(`/characters/new?isTikita=true&collectionId=${col.id}`)}>
+                  + 캐릭터 등록
+                </button>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {col.characters.map((c, i) => (
                   <div key={c.id}>
