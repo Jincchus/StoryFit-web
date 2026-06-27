@@ -123,17 +123,18 @@ export default function TikitaListPage() {
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const tagGroups = buildTagGroups(stories.flatMap(s => s.tags ?? []), tagConfig)
   const counts = viewCounts(stories)
-  const tCounts = tagCounts(stories)
   const genderBuckets = availableGenderBuckets(stories)
+  const viewMatch = (s: typeof stories[number]) => view === 'favorites' ? isFav('collection', s.id)
+    : view === 'completed' ? s.completed
+    : view === 'waiting' ? !s.started
+    : !s.completed && !!s.started
+  // 태그 목록·카운트는 뷰+성별+검색 적용 base 기준(태그 제외) — 진행중 탭이면 진행중 카드 태그만.
+  const tagBase = stories.filter(s => viewMatch(s) && (genderFilter === 'all' || cardGenderBucket(s.characters) === genderFilter) && matchesQuery(s.title, s.tags))
+  const tagGroups = buildTagGroups(tagBase.flatMap(s => s.tags ?? []), tagConfig)
+  const tCounts = tagCounts(tagBase)
   const visibleStories = sortByOption(
-    stories.filter(s =>
-      (view === 'favorites' ? isFav('collection', s.id)
-      : view === 'completed' ? s.completed
-      : view === 'waiting' ? !s.started
-      : !s.completed && !!s.started) && matchesTag(s.tags) && matchesQuery(s.title, s.tags) && (genderFilter === 'all' || cardGenderBucket(s.characters) === genderFilter)
-    ),
+    tagBase.filter(s => matchesTag(s.tags)),
     sort, s => s.title, s => s.createdAt ?? '', s => s.lastActivityAt ?? s.createdAt ?? '', randomSeed
   )
 
@@ -208,7 +209,7 @@ export default function TikitaListPage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="tikita-chip" accentVar="--t-accent" counts={tCounts} />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="tikita-chip" accentVar="--t-accent" counts={tCounts} storageKey="tikita_tagcollapse" />
         </>
       )}
 
