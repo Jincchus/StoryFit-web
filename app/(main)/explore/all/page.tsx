@@ -232,6 +232,7 @@ export default function AllCentersPage() {
             chipClass="chip"
             accentVar="--accent"
             counts={tCounts}
+            storageKey="all_tagcollapse"
           />
         </div>
       )}
