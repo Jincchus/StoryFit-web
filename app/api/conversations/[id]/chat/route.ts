@@ -225,6 +225,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
     inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
     allowPersonaDialogue: conv.personaAutoMode ?? false,
+    flipPersonaPlaceholders: conv.personaFlipPlaceholders ?? true,
   })
 
   const enrichMode = conv.enrichInputMode ?? false
