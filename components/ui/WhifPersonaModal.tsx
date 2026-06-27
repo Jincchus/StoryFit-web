@@ -40,17 +40,19 @@ interface Props {
   loading?: boolean
   defaultName?: string
   defaultSettings?: string
+  defaultFlip?: boolean
   onCancel: () => void
-  onSelect: (personaCharId: string | null, newPersona?: NewPersonaData) => void
+  onSelect: (personaCharId: string | null, newPersona: NewPersonaData | undefined, flipPlaceholders: boolean) => void
 }
 
-export default function WhifPersonaModal({ candidates, loading, defaultName, defaultSettings, onCancel, onSelect }: Props) {
+export default function WhifPersonaModal({ candidates, loading, defaultName, defaultSettings, defaultFlip, onCancel, onSelect }: Props) {
   const [tab, setTab] = useState<'new' | 'existing'>(candidates.length > 0 ? 'existing' : 'new')
   const [selectedId, setSelectedId] = useState<string | null>(candidates[0]?.id ?? null)
   const [name, setName] = useState(defaultName ?? '')
   const [gender, setGender] = useState('여성')
   const [settings, setSettings] = useState(defaultSettings ?? '')
   const [relationships, setRelationships] = useState<string[]>([])
+  const [flip, setFlip] = useState(defaultFlip ?? true)
 
   const toggleRelationship = (r: string) => {
     setRelationships(prev =>
@@ -61,13 +63,13 @@ export default function WhifPersonaModal({ candidates, loading, defaultName, def
 
   const handleStart = () => {
     if (tab === 'existing' && selectedId) {
-      onSelect(selectedId)
+      onSelect(selectedId, undefined, flip)
     } else {
       const additionalInfo = [
         settings.trim() && `성격/설정: ${settings.trim()}`,
         relationships.length > 0 && `관계: ${relationships.join(', ')}`,
       ].filter(Boolean).join('\n')
-      onSelect(null, { name: name.trim() || '유저', gender, additionalInfo })
+      onSelect(null, { name: name.trim() || '유저', gender, additionalInfo }, flip)
     }
   }
 
@@ -170,6 +172,11 @@ export default function WhifPersonaModal({ candidates, loading, defaultName, def
             </div>
           </div>
         )}
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--w-ink-soft)', cursor: 'pointer', marginTop: 10 }}>
+          <input type="checkbox" checked={flip} onChange={e => setFlip(e.target.checked)} />
+          페르소나 카드의 설정을 페르소나 기준으로 치환 ({'{{char}}'}→페르소나, {'{{user}}'}→캐릭터)
+        </label>
 
         <button onClick={handleStart} disabled={loading}
           style={{
