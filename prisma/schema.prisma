@@ -205,6 +205,7 @@ model Conversation {
   suggestRepliesEnabled  Boolean              @default(false)
   enrichInputMode        Boolean              @default(false)
   personaAutoMode        Boolean              @default(false)
+  personaFlipPlaceholders Boolean              @default(true)
   autoChapterEnabled     Boolean              @default(false)
   isAutoCreated       Boolean                 @default(false)
   sourceUrl           String                  @default("")

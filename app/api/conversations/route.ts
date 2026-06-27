@@ -166,6 +166,7 @@ export async function POST(req: NextRequest) {
       suggestRepliesEnabled: body.suggestRepliesEnabled ?? false,
       enrichInputMode: body.enrichInputMode ?? false,
       autoChapterEnabled: body.autoChapterEnabled ?? false,
+      personaFlipPlaceholders: typeof body.personaFlipPlaceholders === 'boolean' ? body.personaFlipPlaceholders : true,
       sourceUrl: convSourceUrl,
       ...(tikitaPlotOutline ? { plotOutline: tikitaPlotOutline, chapter: 1 } : {}),
       ...(characterIds.length > 0 ? {
