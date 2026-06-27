@@ -178,18 +178,19 @@ export default function MeltingListPage() {
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const tagGroups = buildTagGroups(chars.flatMap(c => c.tags ?? []), tagConfig)
   const counts = viewCounts(chars)
-  const tCounts = tagCounts(chars)
   const genderBuckets = availableGenderBuckets(chars)
   const matchesGender = (c: MChar) => genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter
+  const viewMatch = (c: MChar) => view === 'favorites' ? isFav('collection', c.id)
+    : view === 'completed' ? c.completed
+    : view === 'waiting' ? !c.started
+    : !c.completed && !!c.started
+  // 태그 목록·카운트는 뷰+성별+검색 적용 base 기준(태그 제외) — 진행중 탭이면 진행중 카드 태그만.
+  const tagBase = chars.filter(c => viewMatch(c) && matchesGender(c) && matchesQuery(c.title, c.tags))
+  const tagGroups = buildTagGroups(tagBase.flatMap(c => c.tags ?? []), tagConfig)
+  const tCounts = tagCounts(tagBase)
   const visibleChars = sortByOption(
-    chars.filter(c =>
-      (view === 'favorites' ? isFav('collection', c.id)
-      : view === 'completed' ? c.completed
-      : view === 'waiting' ? !c.started
-      : !c.completed && !!c.started) && matchesTag(c.tags) && matchesQuery(c.title, c.tags) && matchesGender(c)
-    ),
+    tagBase.filter(c => matchesTag(c.tags)),
     sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
   )
 
@@ -352,7 +353,7 @@ export default function MeltingListPage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="melting-chip" accentVar="--m-accent" counts={tCounts} />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="melting-chip" accentVar="--m-accent" counts={tCounts} storageKey="melting_tagcollapse" />
         </>
       )}
 
