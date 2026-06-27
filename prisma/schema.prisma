@@ -207,6 +207,7 @@ model Conversation {
   personaAutoMode        Boolean              @default(false)
   personaFlipPlaceholders Boolean              @default(true)
   fastPaceEnabled         Boolean              @default(false)
+  adultGatingEnabled      Boolean              @default(true)
   autoChapterEnabled     Boolean              @default(false)
   isAutoCreated       Boolean                 @default(false)
   sourceUrl           String                  @default("")

@@ -90,6 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     allowPersonaDialogue: conv.personaAutoMode ?? false,
     flipPersonaPlaceholders: conv.personaFlipPlaceholders ?? true,
     fastPace: conv.fastPaceEnabled ?? false,
+    adultGating: conv.adultGatingEnabled ?? true,
   })
 
   const instruction = comebackElapsed

@@ -131,6 +131,18 @@ describe('응답 길이 min/max', () => {
   })
 })
 
+describe('합의 게이팅(adultGating)', () => {
+  const character = { name: '지영', kind: 'custom', safetyLevel: 'standard', defaultAI: 'gemini' } as any
+  it('adultGating 미지정(기본 true)이면 게이팅 블록 포함', () => {
+    const out = buildStorySystemPrompt({ character })
+    expect(out).toContain('[성애 진입 — 합의·맥락 전제]')
+  })
+  it('adultGating=false면 게이팅 블록 없음', () => {
+    const out = buildStorySystemPrompt({ character, adultGating: false })
+    expect(out).not.toContain('[성애 진입 — 합의·맥락 전제]')
+  })
+})
+
 describe('멀티 base 선택지 허용', () => {
   const chars = [
     { name: 'A', kind: 'custom', safetyLevel: 'standard', defaultAI: 'gemini' },
