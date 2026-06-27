@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
-import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
+import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
+import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
@@ -52,6 +53,13 @@ export default function ZetaPlotDetailPage() {
   const [isEditingOpening, setIsEditingOpening] = useState(false)
   const [editContent, setEditContent] = useState('')
   const userName = useDisplayName()
+  const [standalone, setStandalone] = useState<PersonaCandidate[]>([])
+
+  useEffect(() => {
+    api.get('/api/characters?unassigned=true')
+      .then((list: any[]) => setStandalone(list.map((c: any) => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl ?? null }))))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     api.get(`/api/collections/${id}`).then(setCol).catch(() => setCol(null))
@@ -120,40 +128,33 @@ export default function ZetaPlotDetailPage() {
   const meta = col.zetaMeta ?? {}
   const mainChar = col.characters.find(c => c.name === col.title) ?? col.characters[0]
   const aiCharIds = pendingAiCharIds ?? (mainChar ? [mainChar.id] : [])
-  const personaCandidates = col.characters
-    .filter(c => !aiCharIds.includes(c.id))
-    .map(c => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl, additionalInfo: c.additionalInfo }))
+  const personaCandidates = buildPersonaCandidates({
+    collectionChars: col.characters.map(c => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl })),
+    standaloneCards: standalone,
+    aiCharIds,
+  })
   const openings: Opening[] = getOpenings(mainChar)
   const chatProfile = Array.isArray(meta.chatProfiles) ? meta.chatProfiles[0] : null
   const personaDefaults = chatProfile
     ? [chatProfile.summary, chatProfile.description].filter(Boolean).join('\n')
     : ''
 
-  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
+  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = true) => {
     if (!mainChar) return
     setCreating(true); setError('')
     try {
-      let personaId = personaCharId
-      if (!personaId && newPersona) {
-        const p = await api.post('/api/characters', {
-          name: newPersona.name, gender: newPersona.gender, additionalInfo: newPersona.additionalInfo,
-          collectionId: col.id,
-        })
-        personaId = p.id
-      }
-      const chosen = openings[openingIdx]?.content
-      const resp = await api.post('/api/conversations', {
+      const resp = await createCenterChat({
+        collectionId: col.id,
         title: col.title,
-        characterIds: aiCharIds,
-        mode: aiCharIds.length > 1 ? 'multiStory' : 'story',
-        personaCharacterId: personaId,
-        ...(col.description ? { scenarioDescription: col.description } : {}),
-        ...(chosen !== undefined ? { openingMessage: chosen } : {}),
+        aiCharIds,
+        personaCharId,
+        newPersona,
+        flipPlaceholders: flip,
+        opening: openings[openingIdx]?.content,
+        extras: { ...(col.description ? { scenarioDescription: col.description } : {}) },
       })
       router.push(`/conversations/${resp.id}`)
-    } catch (e: any) {
-      setError('채팅방 생성 실패: ' + e.message); setCreating(false)
-    }
+    } catch (e: any) { setError('채팅방 생성 실패: ' + e.message); setCreating(false) }
   }
 
   return (
@@ -190,7 +191,7 @@ export default function ZetaPlotDetailPage() {
           loading={creating}
           defaultSettings={personaDefaults}
           onCancel={() => { setPersonaOpen(false); setCreating(false) }}
-          onSelect={(charId, newPersona) => handlePersonaSelect(charId, newPersona)}
+          onSelect={handlePersonaSelect}
         />
       )}
 
