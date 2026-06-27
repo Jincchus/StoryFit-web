@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
-import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
+import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
+import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
+import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -41,6 +43,9 @@ export default function ChubCharDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [isEditingOpening, setIsEditingOpening] = useState(false)
   const [editContent, setEditContent] = useState('')
+  const [chatModeOpen, setChatModeOpen] = useState(false)
+  const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
+  const [standalone, setStandalone] = useState<PersonaCandidate[]>([])
   const [userDisplayName, setUserDisplayName] = useState('나')
   const [translating, setTranslating] = useState(false)
 
@@ -77,6 +82,12 @@ export default function ChubCharDetailPage() {
   })
 
   useEffect(() => {
+    api.get('/api/characters?unassigned=true')
+      .then((list: any[]) => setStandalone(list.map((c: any) => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl ?? null }))))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     api.get('/api/user/settings')
       .then((data: any) => {
         if (data.displayName) setUserDisplayName(data.displayName)
@@ -95,20 +106,36 @@ export default function ChubCharDetailPage() {
     }
   }, [col])
 
+  const startChat = () => {
+    if (!col) return
+    if (col.characters.length > 1) {
+      setChatModeOpen(true)
+    } else {
+      setPendingAiCharIds(col.characters[0] ? [col.characters[0].id] : null)
+      setPersonaOpen(true)
+    }
+  }
+
   const handleCtaClick = () => {
     if (existingConvs.length > 0) {
       setShowNewChatConfirm(true)
     } else {
-      setPersonaOpen(true)
+      startChat()
     }
   }
 
   if (!col) return <div className="chub-empty">불러오는 중...</div>
 
   const mainChar = col.characters[0]
+  const aiCharIds = pendingAiCharIds ?? (mainChar ? [mainChar.id] : [])
   const tagline = col.description ?? ''
   const openings = getOpenings(mainChar)
   const opening = openings[openingIdx]?.content ?? ''
+  const personaCandidates = buildPersonaCandidates({
+    collectionChars: col.characters.map(c => ({ id: c.id, name: c.name, gender: '', avatarUrl: c.avatarUrl })),
+    standaloneCards: standalone,
+    aiCharIds,
+  })
 
   const handleSaveEdit = async () => {
     if (!mainChar || !col) return
@@ -128,32 +155,22 @@ export default function ChubCharDetailPage() {
     }
   }
 
-  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
+  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = true) => {
     if (!mainChar) return
     setCreating(true); setError('')
     try {
-      let personaId = personaCharId
-      if (!personaId && newPersona) {
-        const p = await api.post('/api/characters', {
-          name: newPersona.name, gender: newPersona.gender, additionalInfo: newPersona.additionalInfo,
-          collectionId: col.id,
-        })
-        personaId = p.id
-      }
-      const resp = await api.post('/api/conversations', {
+      const resp = await createCenterChat({
+        collectionId: col.id,
         title: col.title,
-        characterIds: [mainChar.id],
-        mode: 'story',
-        personaCharacterId: personaId,
-        statsEnabled: true,
-        statsConfig: [{ name: '호감도', value: 50, min: 0, max: 100 }],
-        suggestRepliesEnabled: true,
-        ...(opening.trim() ? { openingMessage: opening } : {}),
+        aiCharIds,
+        personaCharId,
+        newPersona,
+        flipPlaceholders: flip,
+        opening: opening || undefined,
+        extras: {},
       })
       router.push(`/conversations/${resp.id}`)
-    } catch (e: any) {
-      setError('채팅방 생성 실패: ' + e.message); setCreating(false)
-    }
+    } catch (e: any) { setError('채팅방 생성 실패: ' + e.message); setCreating(false) }
   }
 
   return (
@@ -171,18 +188,26 @@ export default function ChubCharDetailPage() {
           message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
           confirmLabel="새 대화 시작"
           confirmVariant="primary"
-          onConfirm={() => { setShowNewChatConfirm(false); setPersonaOpen(true) }}
+          onConfirm={() => { setShowNewChatConfirm(false); startChat() }}
           onCancel={() => setShowNewChatConfirm(false)}
+        />
+      )}
+
+      {chatModeOpen && (
+        <ChatModeModal
+          characters={col.characters.map(c => ({ id: c.id, name: c.name, avatarUrl: c.avatarUrl }))}
+          onClose={() => setChatModeOpen(false)}
+          onPick={(ids) => { setPendingAiCharIds(ids); setChatModeOpen(false); setPersonaOpen(true) }}
         />
       )}
 
       {personaOpen && (
         <WhifPersonaModal
-          candidates={[]}
+          candidates={personaCandidates}
           loading={creating}
           defaultSettings=""
           onCancel={() => { setPersonaOpen(false); setCreating(false) }}
-          onSelect={(charId, newPersona) => handlePersonaSelect(charId, newPersona)}
+          onSelect={handlePersonaSelect}
         />
       )}
 
@@ -213,6 +238,8 @@ export default function ChubCharDetailPage() {
                       <button className="chub-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--c-surface-2)', padding: '4px 8px', fontSize: 11 }}
                         onClick={() => router.push(`/characters/${mainChar.id}/edit?isChub=true`)}>✏ 캐릭터</button>
                     )}
+                    <button className="chub-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--c-surface-2)', padding: '4px 8px', fontSize: 11 }}
+                      onClick={() => router.push(`/characters/new?isChub=true&collectionId=${col.id}`)}>+ 캐릭터 등록</button>
                   </div>
                 </div>
               </div>
