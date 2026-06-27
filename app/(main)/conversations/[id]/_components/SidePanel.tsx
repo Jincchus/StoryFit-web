@@ -392,6 +392,27 @@ export default function SidePanel({
         <div className="tiny muted" style={{ marginTop: 4 }}>ON이면 시간·장소를 과감히 건너뛰고 사건을 여러 단계 진행시켜 빠르게 전개합니다.</div>
       </div>
 
+      <div className="side-section" hidden={tab !== 'ai'}>
+        <div className="spread" style={{ alignItems: 'center' }}>
+          <div className="label" style={{ marginBottom: 0 }}>🔞 성인 합의 게이팅</div>
+          <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={(conv as any).adultGatingEnabled ?? true}
+              onChange={async e => {
+                const checked = e.target.checked
+                try {
+                  await api.patch(`/api/conversations/${convId}`, { adultGatingEnabled: checked })
+                  setConv(c => c ? ({ ...c, adultGatingEnabled: checked } as any) : c)
+                } catch { setToast('설정 저장에 실패했습니다') }
+              }}
+            />
+            <span className="tiny">{((conv as any).adultGatingEnabled ?? true) ? 'ON' : 'OFF'}</span>
+          </label>
+        </div>
+        <div className="tiny muted" style={{ marginTop: 4 }}>ON이면 성애 장면 진입에 합의·맥락 전제를 둡니다. OFF면 진입 게이팅을 해제합니다(모델 자체 안전선은 유지).</div>
+      </div>
+
       <div className="side-section" hidden={tab !== 'memory'}>
         <button className="acc-toggle" onClick={() => setPanelOpen(o => ({ ...o, bookmark: !o.bookmark }))}>
           <span>🔖 북마크</span>
