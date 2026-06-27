@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { fixJosa, replaceDisplayPlaceholders } from '@/lib/josa'
-import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
+import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
+import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
+import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -41,7 +43,16 @@ export default function MeltingCharDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [isEditingOpening, setIsEditingOpening] = useState(false)
   const [editContent, setEditContent] = useState('')
+  const [chatModeOpen, setChatModeOpen] = useState(false)
+  const [pendingAiCharIds, setPendingAiCharIds] = useState<string[] | null>(null)
+  const [standalone, setStandalone] = useState<PersonaCandidate[]>([])
   const [userDisplayName, setUserDisplayName] = useState('나')
+
+  useEffect(() => {
+    api.get('/api/characters?unassigned=true')
+      .then((list: any[]) => setStandalone(list.map((c: any) => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl ?? null }))))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     api.get('/api/user/settings')
@@ -70,11 +81,21 @@ export default function MeltingCharDetailPage() {
     }
   }, [col])
 
+  const startChat = () => {
+    if (!col) return
+    if (col.characters.length > 1) {
+      setChatModeOpen(true)
+    } else {
+      setPendingAiCharIds(col.characters[0] ? [col.characters[0].id] : null)
+      setPersonaOpen(true)
+    }
+  }
+
   const handleCtaClick = () => {
     if (existingConvs.length > 0) {
       setShowNewChatConfirm(true)
     } else {
-      setPersonaOpen(true)
+      startChat()
     }
   }
 
@@ -82,9 +103,15 @@ export default function MeltingCharDetailPage() {
 
   const meta = col.meltingMeta ?? {}
   const mainChar = col.characters[0]
+  const aiCharIds = pendingAiCharIds ?? (mainChar ? [mainChar.id] : [])
   const tagline = meta.publicTagline ?? col.description ?? ''
   const openings = getOpenings(mainChar)
   const opening = openings[openingIdx]?.content ?? ''
+  const personaCandidates = buildPersonaCandidates({
+    collectionChars: col.characters.map(c => ({ id: c.id, name: c.name, gender: '', avatarUrl: c.avatarUrl })),
+    standaloneCards: standalone,
+    aiCharIds,
+  })
 
   const parsedUserSettings = meta.userSettings || (() => {
     const match = mainChar?.additionalInfo?.match(/\[유저 기본 설정\]\n([\s\S]*?)(?:\n\n\[|$)/)
@@ -151,32 +178,22 @@ export default function MeltingCharDetailPage() {
     }
   }
 
-  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
+  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = true) => {
     if (!mainChar) return
     setCreating(true); setError('')
     try {
-      let personaId = personaCharId
-      if (!personaId && newPersona) {
-        const p = await api.post('/api/characters', {
-          name: newPersona.name, gender: newPersona.gender, additionalInfo: newPersona.additionalInfo,
-          collectionId: col.id,
-        })
-        personaId = p.id
-      }
-      const resp = await api.post('/api/conversations', {
+      const resp = await createCenterChat({
+        collectionId: col.id,
         title: col.title,
-        characterIds: [mainChar.id],
-        mode: 'story',
-        personaCharacterId: personaId,
-        statsEnabled: true,
-        statsConfig: [{ name: '호감도', value: 50, min: 0, max: 100 }],
-        suggestRepliesEnabled: true,
-        ...(opening.trim() ? { openingMessage: opening } : {}),
+        aiCharIds,
+        personaCharId,
+        newPersona,
+        flipPlaceholders: flip,
+        opening: opening || undefined,
+        extras: {},
       })
       router.push(`/conversations/${resp.id}`)
-    } catch (e: any) {
-      setError('채팅방 생성 실패: ' + e.message); setCreating(false)
-    }
+    } catch (e: any) { setError('채팅방 생성 실패: ' + e.message); setCreating(false) }
   }
 
   return (
@@ -194,18 +211,26 @@ export default function MeltingCharDetailPage() {
           message="이미 진행 중인 대화방이 있습니다. 새로운 대화방을 만드시겠습니까? (기존 대화방은 하단의 진행 중인 대화 목록에서 이어갈 수 있습니다.)"
           confirmLabel="새 대화 시작"
           confirmVariant="primary"
-          onConfirm={() => { setShowNewChatConfirm(false); setPersonaOpen(true) }}
+          onConfirm={() => { setShowNewChatConfirm(false); startChat() }}
           onCancel={() => setShowNewChatConfirm(false)}
+        />
+      )}
+
+      {chatModeOpen && (
+        <ChatModeModal
+          characters={col.characters.map(c => ({ id: c.id, name: c.name, avatarUrl: c.avatarUrl }))}
+          onClose={() => setChatModeOpen(false)}
+          onPick={(ids) => { setPendingAiCharIds(ids); setChatModeOpen(false); setPersonaOpen(true) }}
         />
       )}
 
       {personaOpen && (
         <WhifPersonaModal
-          candidates={[]}
+          candidates={personaCandidates}
           loading={creating}
           defaultSettings={parsedUserSettings}
           onCancel={() => { setPersonaOpen(false); setCreating(false) }}
-          onSelect={(charId, newPersona) => handlePersonaSelect(charId, newPersona)}
+          onSelect={handlePersonaSelect}
         />
       )}
 
@@ -242,6 +267,16 @@ export default function MeltingCharDetailPage() {
                 {col.tags.map(t => <span key={t} className="melting-chip">#{t}</span>)}
               </div>
             )}
+          </div>
+
+          <div className="melting-section" style={{ paddingTop: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="melting-section-title" style={{ margin: 0 }}>캐릭터</h2>
+              <button className="melting-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--m-surface-2)' }}
+                onClick={() => router.push(`/characters/new?isMelting=true&collectionId=${col.id}`)}>
+                + 캐릭터 등록
+              </button>
+            </div>
           </div>
 
           {mainChar?.additionalInfo?.trim() && (
