@@ -99,7 +99,6 @@ function buildStoryBaseRules(charName: string, personaName: string, allowPersona
 - Inner thoughts: always use the format Name : 'content' (e.g.: ${charName} : 'I wonder what kind of person this is...')
 - Secondary characters also follow the same Name : "dialogue" format.
 - ${charName} must take direct action and deliver at least one line of dialogue or inner monologue, then naturally advance the scene to the next moment.
-- Do NOT offer choices, numbered options, or host-like questions (e.g. "What will you do?", "Choose one"). Never append a "---" divider followed by a list of options. End with the scene itself.
 - ${personaRule}
 - FORBIDDEN: Writing dialogue without a speaker name. Whoever speaks must follow the Name : "content" format without exception.
 - FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story prose and dialogue.
