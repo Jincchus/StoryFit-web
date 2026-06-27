@@ -7,6 +7,7 @@ import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPerso
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
+import ChatModeModal from '@/components/ui/ChatModeModal'
 import { useDisplayName } from '@/lib/useDisplayName'
 import { getOpenings } from '@/lib/openings'
 import type { Opening } from '@/types'
@@ -176,28 +177,11 @@ export default function ZetaPlotDetailPage() {
       )}
 
       {chatModeOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setChatModeOpen(false)}>
-          <div className="win" style={{ minWidth: 260, maxWidth: 320 }} onClick={e => e.stopPropagation()}>
-            <div className="win-title">
-              <div className="win-title-l"><span>대화 방식 선택</span></div>
-              <div className="win-controls"><button onClick={() => setChatModeOpen(false)}>×</button></div>
-            </div>
-            <div className="win-body vstack" style={{ gap: 8 }}>
-              <button className="btn primary" style={{ textAlign: 'left' }}
-                onClick={() => { setPendingAiCharIds(col!.characters.map(c => c.id)); setChatModeOpen(false); setPersonaOpen(true) }}>
-                👥 다중 대화 (전체 캐릭터 {col.characters.length}명)
-              </button>
-              <div className="tiny muted" style={{ marginTop: 4 }}>1:1 대화 상대 선택</div>
-              {col.characters.map(c => (
-                <button key={c.id} className="btn ghost" style={{ textAlign: 'left' }}
-                  onClick={() => { setPendingAiCharIds([c.id]); setChatModeOpen(false); setPersonaOpen(true) }}>
-                  👤 {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <ChatModeModal
+          characters={col.characters.map(c => ({ id: c.id, name: c.name, avatarUrl: c.avatarUrl }))}
+          onClose={() => setChatModeOpen(false)}
+          onPick={(ids) => { setPendingAiCharIds(ids); setChatModeOpen(false); setPersonaOpen(true) }}
+        />
       )}
 
       {personaOpen && (
