@@ -123,9 +123,7 @@ export default function WhifExplorePage() {
   const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
   const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
   const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const tagGroups = buildTagGroups((tab === 'universes' ? universes : characters).flatMap(item => item.tags ?? []), tagConfig)
   const counts = tab === 'universes' ? viewCounts(universes) : viewCounts(characters, isCharCompleted)
-  const tCounts = tab === 'universes' ? tagCounts(universes) : tagCounts(characters)
   // 성별 필터는 캐릭터 탭에서만 (개별 캐릭터라 멀티 없음)
   const genderBuckets = (() => {
     if (tab !== 'characters') return [] as { key: string; label: string; count: number }[]
@@ -133,22 +131,27 @@ export default function WhifExplorePage() {
     characters.forEach(c => { const b = genderBucket(c.gender); cnt.set(b, (cnt.get(b) ?? 0) + 1) })
     return (['male', 'female', 'none'] as const).filter(b => cnt.has(b)).map(b => ({ key: b, label: CARD_GENDER_LABEL[b], count: cnt.get(b)! }))
   })()
+  // 태그 목록·카운트는 현재 탭의 뷰+성별+검색 적용 base 기준(태그 제외) — 진행중 탭이면 진행중 카드 태그만.
+  const uniTagBase = universes.filter(u =>
+    (view === 'favorites' ? isFav('collection', u.id)
+    : view === 'completed' ? u.completed
+    : view === 'waiting' ? !u.started
+    : !u.completed && !!u.started) && matchesQuery(u.title, u.tags)
+  )
+  const charTagBase = characters.filter(c =>
+    (view === 'favorites' ? isFav('character', c.id)
+    : view === 'completed' ? isCharCompleted(c)
+    : view === 'waiting' ? !c.started
+    : !isCharCompleted(c) && !!c.started) && matchesQuery(c.name, c.tags) && (genderFilter === 'all' || genderBucket(c.gender) === genderFilter)
+  )
+  const tagGroups = buildTagGroups((tab === 'universes' ? uniTagBase : charTagBase).flatMap(item => item.tags ?? []), tagConfig)
+  const tCounts = tab === 'universes' ? tagCounts(uniTagBase) : tagCounts(charTagBase)
   const visibleUniverses = sortByOption(
-    universes.filter(u =>
-      (view === 'favorites' ? isFav('collection', u.id)
-      : view === 'completed' ? u.completed
-      : view === 'waiting' ? !u.started
-      : !u.completed && !!u.started) && matchesTag(u.tags) && matchesQuery(u.title, u.tags)
-    ),
+    uniTagBase.filter(u => matchesTag(u.tags)),
     sortUniverses, u => u.title, u => u.createdAt ?? '', u => u.lastActivityAt ?? u.createdAt ?? '', randomSeed
   )
   const visibleCharacters = sortByOption(
-    characters.filter(c =>
-      (view === 'favorites' ? isFav('character', c.id)
-      : view === 'completed' ? isCharCompleted(c)
-      : view === 'waiting' ? !c.started
-      : !isCharCompleted(c) && !!c.started) && matchesTag(c.tags) && matchesQuery(c.name, c.tags) && (genderFilter === 'all' || genderBucket(c.gender) === genderFilter)
-    ),
+    charTagBase.filter(c => matchesTag(c.tags)),
     sortCharacters, c => c.name, c => c.createdAt ?? '', undefined, randomSeed
   )
 
@@ -228,7 +231,7 @@ export default function WhifExplorePage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="whif-chip" accentVar="--w-accent" counts={tCounts} />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="whif-chip" accentVar="--w-accent" counts={tCounts} storageKey="whif_tagcollapse" />
         </>
       )}
 
