@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { replacePlaceholders, buildStorySystemPrompt, matchLorebook } from './systemPrompt'
+import { replacePlaceholders, buildStorySystemPrompt, buildMultiStorySystemPrompt, matchLorebook } from './systemPrompt'
 import type { Character, LorebookEntry } from '@/types'
 
 describe('replacePlaceholders', () => {
@@ -128,5 +128,16 @@ describe('응답 길이 min/max', () => {
   it('레거시 문자열 length는 무시(출력 없음)', () => {
     const out = buildStorySystemPrompt({ character, styleConfig: { length: '짧게' } as any })
     expect(out).not.toContain('응답 길이')
+  })
+})
+
+describe('멀티 base 선택지 허용', () => {
+  const chars = [
+    { name: 'A', kind: 'custom', safetyLevel: 'standard', defaultAI: 'gemini' },
+    { name: 'B', kind: 'custom', safetyLevel: 'standard', defaultAI: 'gemini' },
+  ] as any
+  it('멀티 base에 선택지 금지 문구가 없다', () => {
+    const out = buildMultiStorySystemPrompt({ characters: chars })
+    expect(out).not.toContain('Do NOT offer choices')
   })
 })

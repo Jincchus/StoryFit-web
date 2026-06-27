@@ -256,7 +256,6 @@ All characters interact naturally in each scene — decide who speaks, acts, or 
 - Inner thoughts: always use the format Name : 'content'
 - ANY of the following characters may speak or act in each response: ${charNames}
 - At least one character must take direct action or deliver dialogue, then naturally advance the scene.
-- Do NOT offer choices, numbered options, or host-like questions. Never append a "---" divider followed by a list of options. End with the scene itself.
 - ${personaRule}
 - FORBIDDEN: Writing dialogue without a speaker name.
 - FORBIDDEN: Outputting tags, categories, genre labels, keywords, or any metadata (e.g. a line like "태그: 성애, 신뢰" or "성애, 신뢰") anywhere — especially at the start of the response. Write only the story.
