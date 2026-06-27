@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
-import WhifPersonaModal, { type NewPersonaData } from '@/components/ui/WhifPersonaModal'
+import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
+import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
+import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { getOpenings } from '@/lib/openings'
@@ -33,7 +35,7 @@ export default function CharacterDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const [char, setChar] = useState<Character | null>(null)
-  const [personaCandidates, setPersonaCandidates] = useState<Character[]>([])
+  const [standalone, setStandalone] = useState<PersonaCandidate[]>([])
   const [openingIdx, setOpeningIdx] = useState(0)
   const [personaOpen, setPersonaOpen] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -44,6 +46,12 @@ export default function CharacterDetailPage() {
   const [isEditingOpening, setIsEditingOpening] = useState(false)
   const [editContent, setEditContent] = useState('')
   const userName = useDisplayName()
+
+  useEffect(() => {
+    api.get('/api/characters?unassigned=true')
+      .then((list: any[]) => setStandalone(list.map((c: any) => ({ id: c.id, name: c.name, gender: c.gender || '', avatarUrl: c.avatarUrl ?? null }))))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     setChar(null)
@@ -61,15 +69,10 @@ export default function CharacterDetailPage() {
     api.get(`/api/characters/${id}`).then(setChar).catch(() => {})
   })
 
-  const handleCtaClick = async () => {
+  const handleCtaClick = () => {
     if (existingConvs.length > 0) {
       setShowNewChatConfirm(true)
     } else {
-      if (char?.collection?.id && personaCandidates.length === 0) {
-        api.get(`/api/characters?isWhif=true&collectionId=${char.collection.id}`)
-          .then((list: Character[]) => setPersonaCandidates(list.filter(c => c.id !== char.id)))
-          .catch(() => {})
-      }
       setPersonaOpen(true)
     }
   }
@@ -102,27 +105,24 @@ export default function CharacterDetailPage() {
   const nsfw = char.safetyLevel === 'relaxed'
   const relatedImgs = (char.relatedImages ?? []).filter(u => !getYouTubeId(u))
   const relatedVideo = (char.relatedImages ?? []).find(u => getYouTubeId(u))
+  const personaCandidates = buildPersonaCandidates({
+    collectionChars: [],
+    standaloneCards: standalone,
+    aiCharIds: [char.id],
+  })
 
-  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData) => {
+  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = true) => {
     setCreating(true); setError('')
     try {
-      let personaId = personaCharId
-      if (!personaId && newPersona) {
-        const p = await api.post('/api/characters', {
-          name: newPersona.name,
-          gender: newPersona.gender,
-          additionalInfo: newPersona.additionalInfo,
-          ...(char.collection?.id ? { collectionId: char.collection.id } : {}),
-        })
-        personaId = p.id
-      }
-      const chosen = openings[openingIdx]?.content
-      const resp = await api.post('/api/conversations', {
+      const resp = await createCenterChat({
+        collectionId: char.collection?.id ?? '',
         title: char.name,
-        characterIds: [char.id],
-        mode: 'story',
-        personaCharacterId: personaId,
-        ...(chosen !== undefined ? { openingMessage: chosen } : {}),
+        aiCharIds: [char.id],
+        personaCharId,
+        newPersona,
+        flipPlaceholders: flip,
+        opening: openings[openingIdx]?.content,
+        extras: {},
       })
       router.push(`/conversations/${resp.id}`)
     } catch (e: any) {
@@ -144,10 +144,10 @@ export default function CharacterDetailPage() {
 
       {personaOpen && (
         <WhifPersonaModal
-          candidates={personaCandidates as any}
+          candidates={personaCandidates}
           loading={creating}
           onCancel={() => { setPersonaOpen(false); setCreating(false) }}
-          onSelect={(charId, newPersona) => handlePersonaSelect(charId, newPersona)}
+          onSelect={handlePersonaSelect}
         />
       )}
 
@@ -161,6 +161,7 @@ export default function CharacterDetailPage() {
             <button className="whif-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
             <div style={{ position: 'absolute', top: 12, right: 8, display: 'flex', gap: 8 }}>
               <button className="whif-iconbtn" style={{ color: 'var(--w-accent)' }} onClick={() => router.push(`/characters/${id}/edit`)}>✏ 정보 수정</button>
+              <button className="whif-iconbtn" onClick={() => router.push(`/characters/new?isWhif=true${char.collection?.id ? `&collectionId=${char.collection.id}` : ''}`)}>+ 캐릭터 등록</button>
               <button className="whif-iconbtn" style={{ color: '#ff6b8a' }} onClick={handleDelete}>삭제</button>
             </div>
           </div>
