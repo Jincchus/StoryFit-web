@@ -240,10 +240,20 @@ export default function TingleListPage() {
 
   const colsByType = cols.filter(c => detectTingleType(c.sourceUrl).type === typeTab)
   const counts = viewCounts(colsByType)
-  const tagGroups = buildTagGroups(colsByType.flatMap(c => c.tags ?? []), tagConfig)
-  const tCounts = tagCounts(colsByType)
   // 성별 필터는 캐릭터 타입탭에서만
   const genderBuckets = typeTab === 'character' ? availableGenderBuckets(colsByType) : []
+  // 태그 목록·카운트는 뷰+성별+검색 적용 base 기준(태그 제외) — 진행중 탭이면 진행중 카드 태그만.
+  const tingleViewMatch = (c: TingleCol) => view === 'favorites' ? isFav('collection', c.id)
+    : view === 'completed' ? c.completed
+    : view === 'waiting' ? !c.started
+    : !c.completed && !!c.started
+  const tagBase = colsByType.filter(c =>
+    tingleViewMatch(c)
+    && (typeTab !== 'character' || genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter)
+    && matchesQuery(c)
+  )
+  const tagGroups = buildTagGroups(tagBase.flatMap(c => c.tags ?? []), tagConfig)
+  const tCounts = tagCounts(tagBase)
 
   const typeCounts = {
     character: cols.filter(c => detectTingleType(c.sourceUrl).type === 'character').length,
@@ -252,15 +262,7 @@ export default function TingleListPage() {
   }
 
   const visible = sortByOption(
-    cols.filter(c => {
-      const viewMatch = view === 'favorites' ? isFav('collection', c.id)
-        : view === 'completed' ? c.completed
-        : view === 'waiting' ? !c.started
-        : !c.completed && !!c.started
-      const typeMatch = detectTingleType(c.sourceUrl).type === typeTab
-      const genderMatch = typeTab !== 'character' || genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter
-      return viewMatch && typeMatch && matchesQuery(c) && matchesTag(c.tags ?? []) && genderMatch
-    }),
+    tagBase.filter(c => matchesTag(c.tags ?? [])),
     sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
   )
 
@@ -465,7 +467,7 @@ export default function TingleListPage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="tingle-chip" accentVar="--tg-accent" counts={tCounts} />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="tingle-chip" accentVar="--tg-accent" counts={tCounts} storageKey="tg_tagcollapse" />
         </>
       )}
 
