@@ -7,6 +7,10 @@ import { useFavorites } from '@/lib/useFavorites'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { useDisplayName } from '@/lib/useDisplayName'
+import TagFilterBar from '@/components/ui/TagFilterBar'
+import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
+import { tagCounts } from '@/lib/centerCounts'
+import { cardGenderBucket, availableGenderBuckets, type GenderBucket } from '@/lib/cardGender'
 
 interface Col {
   id: string
@@ -19,7 +23,7 @@ interface Col {
   started?: boolean
   createdAt?: string
   lastActivityAt?: string
-  characters: { id: string; name: string; avatarUrl: string | null }[]
+  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null }[]
 }
 
 type ViewTab = 'active' | 'waiting' | 'completed' | 'favorites'
@@ -63,10 +67,13 @@ export default function AllCentersPage() {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [selectedCenters, setSelectedCenters] = useState<string[]>([])
+  const [genderFilter, setGenderFilter] = useState<GenderBucket | 'all'>('all')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
   const { isFav, toggleFav } = useFavorites()
   const scrollRef = useRef<HTMLDivElement>(null)
   const userName = useDisplayName()
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedCenters, randomSeed], scrollRef)
+  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedCenters, genderFilter, selectedTags, randomSeed], scrollRef)
 
   useEffect(() => {
     setView((sessionStorage.getItem('all_view') as ViewTab) || 'active')
@@ -75,6 +82,7 @@ export default function AllCentersPage() {
       .then(setCols)
       .catch(() => {})
       .finally(() => setLoading(false))
+    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
 
   const handleView = (v: ViewTab) => { setView(v); sessionStorage.setItem('all_view', v) }
@@ -84,22 +92,40 @@ export default function AllCentersPage() {
   }
   const toggleCenter = (key: string) =>
     setSelectedCenters(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedCenters([]) } return !o })
+  const toggleTag = (tag: string) =>
+    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedCenters([]); setGenderFilter('all'); setSelectedTags([]) } return !o })
 
   const matchesCenter = (url: string) => selectedCenters.length === 0 || selectedCenters.some(k => CENTERS.find(c => c.key === k)?.match(url))
   const matchesQuery = (c: Col) => {
     const q = query.trim().toLowerCase()
-    return !q || c.title.toLowerCase().includes(q) || c.tags?.some(t => t.toLowerCase().includes(q))
+    if (!q) return true
+    return c.title.toLowerCase().includes(q)
+      || (c.tags?.some(t => t.toLowerCase().includes(q)) ?? false)
+      || (c.description?.toLowerCase().includes(q) ?? false)
+      || c.characters.some(ch => ch.name.toLowerCase().includes(q))
   }
+  const matchesGender = (c: Col) => genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter
+  const matchesTags = (c: Col) => selectedTags.length === 0 || selectedTags.every(t => (c.tags ?? []).includes(t))
+
+  // 뷰탭 → 센터칩까지 적용한 기준 집합. 성별/태그의 노출 옵션·카운트는 여기서 자기 자신을 제외하고 좁힌다.
+  const viewCenterBase = cols.filter(c =>
+    (view === 'favorites' ? isFav('collection', c.id)
+    : view === 'completed' ? c.completed
+    : view === 'waiting' ? !c.started
+    : !c.completed && !!c.started) &&
+    matchesCenter(c.sourceUrl)
+  )
+
+  // 성별 옵션: 뷰+센터+검색 기준 (성별 자신 제외)
+  const genderBuckets = availableGenderBuckets(viewCenterBase.filter(matchesQuery))
+  // 태그 옵션·카운트: 뷰+센터+성별+검색 기준 (태그 자신 제외)
+  const tagBase = viewCenterBase.filter(c => matchesGender(c) && matchesQuery(c))
+  const tagGroups = buildTagGroups(tagBase.flatMap(c => c.tags ?? []), tagConfig)
+  const tCounts = tagCounts(tagBase)
 
   const filtered = sortByOption(
-    cols.filter(c =>
-      (view === 'favorites' ? isFav('collection', c.id)
-      : view === 'completed' ? c.completed
-      : view === 'waiting' ? !c.started
-      : !c.completed && !!c.started) &&
-      matchesCenter(c.sourceUrl) && matchesQuery(c)
-    ),
+    viewCenterBase.filter(c => matchesGender(c) && matchesQuery(c) && matchesTags(c)),
     sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
   )
 
@@ -170,6 +196,43 @@ export default function AllCentersPage() {
               >{c.label}</button>
             ))}
           </div>
+          {/* 성별 필터 */}
+          {genderBuckets.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setGenderFilter('all')}
+                style={{
+                  appearance: 'none', border: 'none', cursor: 'pointer', borderRadius: 999,
+                  padding: '3px 10px', fontSize: 11, fontWeight: 600,
+                  background: genderFilter === 'all' ? 'var(--accent)' : 'var(--pane)',
+                  color: genderFilter === 'all' ? '#fff' : 'var(--ink-soft)',
+                  outline: genderFilter === 'all' ? 'none' : '1px solid var(--hairline)',
+                }}
+              >전체</button>
+              {genderBuckets.map(g => (
+                <button key={g.key}
+                  onClick={() => setGenderFilter(g.key)}
+                  style={{
+                    appearance: 'none', border: 'none', cursor: 'pointer', borderRadius: 999,
+                    padding: '3px 10px', fontSize: 11, fontWeight: 600,
+                    background: genderFilter === g.key ? 'var(--accent)' : 'var(--pane)',
+                    color: genderFilter === g.key ? '#fff' : 'var(--ink-soft)',
+                    outline: genderFilter === g.key ? 'none' : '1px solid var(--hairline)',
+                  }}
+                >{g.label} <span style={{ opacity: 0.55 }}>{g.count}</span></button>
+              ))}
+            </div>
+          )}
+          {/* 태그 필터 */}
+          <TagFilterBar
+            groups={tagGroups}
+            selected={selectedTags}
+            onToggle={toggleTag}
+            onClear={() => setSelectedTags([])}
+            chipClass="chip"
+            accentVar="--accent"
+            counts={tCounts}
+          />
         </div>
       )}
 
@@ -182,7 +245,7 @@ export default function AllCentersPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 14px', color: 'var(--ink-soft)', fontSize: 13 }}>
-            {query || selectedCenters.length > 0 ? '검색 결과가 없습니다.' : view === 'favorites' ? '즐겨찾기한 항목이 없습니다.' : view === 'completed' ? '완결한 항목이 없습니다.' : view === 'waiting' ? '대기 중인 항목이 없습니다.' : '진행 중인 항목이 없습니다.'}
+            {query || selectedCenters.length > 0 || genderFilter !== 'all' || selectedTags.length > 0 ? '검색 결과가 없습니다.' : view === 'favorites' ? '즐겨찾기한 항목이 없습니다.' : view === 'completed' ? '완결한 항목이 없습니다.' : view === 'waiting' ? '대기 중인 항목이 없습니다.' : '진행 중인 항목이 없습니다.'}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, paddingTop: 10 }}>
