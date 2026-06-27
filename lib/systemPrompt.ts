@@ -30,6 +30,7 @@ interface BuildSystemPromptParams {
   styleConfig?: StyleConfig | null
   plotSection?: string
   allowPersonaDialogue?: boolean
+  flipPersonaPlaceholders?: boolean
 }
 
 function buildStyleSection(s: StyleConfig): string {
@@ -131,6 +132,7 @@ export function buildStorySystemPrompt({
   styleConfig,
   plotSection,
   allowPersonaDialogue = false,
+  flipPersonaPlaceholders = true,
 }: BuildSystemPromptParams): string {
   const personaName = personaCharacter?.name ?? '나'
   const parts: string[] = []
@@ -144,7 +146,9 @@ export function buildStorySystemPrompt({
   if (personaCharacter) {
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
     const personaInfo = personaCharacter.additionalInfo
-      ? replacePlaceholders(personaCharacter.additionalInfo, character.name, personaCharacter.name)
+      ? (flipPersonaPlaceholders
+          ? replacePlaceholders(personaCharacter.additionalInfo, character.name, personaCharacter.name)
+          : replacePlaceholders(personaCharacter.additionalInfo, personaCharacter.name, character.name))
       : ''
     parts.push(`[유저 역할]\n이름: ${personaCharacter.name}${tagLine}${personaInfo ? `\n${personaInfo}` : ''}`)
   }
@@ -199,6 +203,7 @@ export interface MultiStoryPromptParams {
   styleConfig?: StyleConfig | null
   plotSection?: string
   allowPersonaDialogue?: boolean
+  flipPersonaPlaceholders?: boolean
 }
 
 export function buildMultiStorySystemPrompt({
@@ -219,6 +224,7 @@ export function buildMultiStorySystemPrompt({
   styleConfig,
   plotSection,
   allowPersonaDialogue = false,
+  flipPersonaPlaceholders = true,
 }: MultiStoryPromptParams): string {
   const personaName = personaCharacter?.name ?? '나'
   const charNames = characters.map(c => c.name).join(', ')
@@ -257,8 +263,11 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
 
   if (personaCharacter) {
     const tagLine = personaCharacter.tags?.length ? `\n태그: ${personaCharacter.tags.join(', ')}` : ''
+    const charNamesArr = characters.map(c => c.name)
     const personaInfo = personaCharacter.additionalInfo
-      ? replacePlaceholders(personaCharacter.additionalInfo, characters.map(c => c.name).join(', '), personaCharacter.name)
+      ? (flipPersonaPlaceholders
+          ? replacePlaceholders(personaCharacter.additionalInfo, charNamesArr.join(', '), personaCharacter.name)
+          : replacePlaceholders(personaCharacter.additionalInfo, personaCharacter.name, charNamesArr))
       : ''
     parts.push(`[${personaName} 설정]${tagLine}${personaInfo ? `\n${personaInfo}` : ''}`)
   }

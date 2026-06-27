@@ -64,6 +64,21 @@ describe('프롬프트 조립 순서 — 정적 프리픽스 유지 (implicit ca
   })
 })
 
+describe('페르소나 치환 토글(flipPersonaPlaceholders)', () => {
+  const persona = { name: '민수', additionalInfo: '{{char}}는 {{user}}를 짝사랑하는 소꿉친구다' }
+  const character = { name: '지영', kind: 'custom', safetyLevel: 'standard', defaultAI: 'gemini' } as any
+
+  it('flip ON(기본): {{char}}→페르소나, {{user}}→AI캐릭터', () => {
+    const out = buildStorySystemPrompt({ character, personaCharacter: persona })
+    expect(out).toContain('민수는 지영을 짝사랑하는 소꿉친구다')
+  })
+
+  it('flip OFF: {{char}}→AI캐릭터, {{user}}→페르소나', () => {
+    const out = buildStorySystemPrompt({ character, personaCharacter: persona, flipPersonaPlaceholders: false })
+    expect(out).toContain('지영은 민수를 짝사랑하는 소꿉친구다')
+  })
+})
+
 describe('matchLorebook', () => {
   const entry = (keyword: string[], over: Partial<LorebookEntry> = {}): LorebookEntry => ({
     id: 'lb-1',
