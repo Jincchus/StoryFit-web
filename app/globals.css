@@ -1114,7 +1114,8 @@ body[data-crt="on"]::after{
 .whif-card{ background:var(--w-surface); border:1px solid var(--w-line); border-radius:var(--w-radius);
   overflow:hidden; cursor:pointer; display:flex; flex-direction:column; }
 .whif-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--w-surface-2); display:block; }
-.whif-card-body{ padding:10px; display:flex; flex-direction:column; gap:4px; }
+.whif-card-body{ padding:10px; display:flex; flex-direction:column; gap:4px;
+  height:100px; box-sizing:border-box; overflow:hidden; }
 .whif-card-title{ font-size:13px; font-weight:700; color:var(--w-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .whif-card-sub{ font-size:11px; color:var(--w-ink-soft); }
@@ -1546,7 +1547,8 @@ body[data-crt="on"]::after{
 .tingle-card{ background:var(--tg-surface); border:1px solid var(--tg-line); border-radius:var(--tg-radius);
   overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
 .tingle-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--tg-surface-2); display:block; }
-.tingle-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.tingle-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px;
+  height:104px; box-sizing:border-box; overflow:hidden; }
 .tingle-card-title{ font-size:13px; font-weight:800; color:var(--tg-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .tingle-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }

@@ -1,31 +1,16 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { sortByOption, type SortOption } from '@/lib/listSort'
-import { useScrollRestore } from '@/lib/useScrollRestore'
-import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
-import { useFavorites } from '@/lib/useFavorites'
-import { viewCounts, tagCounts } from '@/lib/centerCounts'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { useDisplayName } from '@/lib/useDisplayName'
 import TagFilterBar from '@/components/ui/TagFilterBar'
-import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
-import { cardGenderBucket, availableGenderBuckets } from '@/lib/cardGender'
+import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
+import { useCenterList } from '@/lib/useCenterList'
+import type { CenterListItem } from '@/lib/centerListSelect'
 
-interface TingleCol {
-  id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
-  sourceUrl: string
-  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null }[]
-  completed?: boolean; started?: boolean; createdAt?: string; lastActivityAt?: string
-}
-
-interface TingleField {
-  key: string; label: string; value: string; order: number; removed?: boolean
-}
-interface TingleOpening {
-  id: string; title: string; content: string; removed?: boolean
-}
+interface TingleField { key: string; label: string; value: string; order: number; removed?: boolean }
+interface TingleOpening { id: string; title: string; content: string; removed?: boolean }
 interface TinglePreview {
   type: 'character' | 'universe' | 'scene'
   url: string; name: string; gender: string; coverImageUrl: string
@@ -42,13 +27,12 @@ function detectTingleType(sourceUrl: string): { type: TingleType; label: string;
   return { type: 'character', label: '캐릭터', color: '#ff5776' }
 }
 
-function detailPath(col: TingleCol) {
-  if (col.sourceUrl.includes('/universes/')) return `/tingle/universes/${col.id}`
-  if (col.sourceUrl.includes('/scenes/')) return `/tingle/scenes/${col.id}`
-  return `/tingle/characters/${col.id}`
+function detailPath(sourceUrl: string, id: string) {
+  if (sourceUrl.includes('/universes/')) return `/tingle/universes/${id}`
+  if (sourceUrl.includes('/scenes/')) return `/tingle/scenes/${id}`
+  return `/tingle/characters/${id}`
 }
 
-type ViewTab = 'active' | 'waiting' | 'completed' | 'favorites'
 type TypeTab = 'character' | 'universe' | 'scene'
 
 interface LikedPersona {
@@ -58,74 +42,43 @@ interface LikedPersona {
 
 export default function TingleListPage() {
   const router = useRouter()
-  const [cols, setCols] = useState<TingleCol[]>([])
-  const [view, setView] = useState<ViewTab>('active')
+  const userName = useDisplayName()
   const [typeTab, setTypeTab] = useState<TypeTab>('character')
-  const { isFav, toggleFav } = useFavorites()
-  const [loading, setLoading] = useState(true)
-  const [hasMore, setHasMore] = useState(false)
-  const [fetchingMore, setFetchingMore] = useState(false)
+
+  const typeFilter = useCallback(
+    (items: CenterListItem[]) => items.filter(c => detectTingleType(c.sourceUrl ?? '').type === typeTab),
+    [typeTab],
+  )
+  const {
+    items, loading, error,
+    view, setView, sort, setSort, query, setQuery,
+    selectedTags, toggleTag, clearTags, genderFilter, setGenderFilter,
+    searchOpen, toggleSearch,
+    counts, tagGroups, tCounts, genderBuckets, visibleChars,
+    isFav, toggleFav, scrollRef, refresh,
+  } = useCenterList({ indexQuery: 'isTingle=true', storagePrefix: 'tingle', mapItems: typeFilter })
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
-  const [sort, setSort] = useState<SortOption>('latest')
-  const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
-  const [query, setQuery] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
   const [likedPanel, setLikedPanel] = useState(false)
   const [likedList, setLikedList] = useState<LikedPersona[]>([])
   const [likedSelected, setLikedSelected] = useState<Set<string>>(new Set())
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg] = useState('')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [genderFilter, setGenderFilter] = useState<string>('all')
-  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
-  const userName = useDisplayName()
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
   useEffect(() => {
     setEditMode(localStorage.getItem('tg_edit') === '1')
-    setSort((localStorage.getItem('tg_sort') as SortOption) || 'latest')
-    setView((sessionStorage.getItem('tg_view') as ViewTab) || 'active')
     const stored = sessionStorage.getItem('tg_type') as TypeTab
     setTypeTab(stored === 'character' || stored === 'universe' || stored === 'scene' ? stored : 'character')
-    fetchData()
-    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
 
-  const handleSort = (v: SortOption) => {
-    setSort(v); localStorage.setItem('tg_sort', v)
-    if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
+  const handleTypeTab = (v: TypeTab) => {
+    setTypeTab(v); setGenderFilter('all'); sessionStorage.setItem('tg_type', v)
+    if (scrollRef.current) scrollRef.current.scrollTop = 0
   }
-  const handleView = (v: ViewTab) => { setView(v); sessionStorage.setItem('tg_view', v) }
-  const handleTypeTab = (v: TypeTab) => { setTypeTab(v); setGenderFilter('all'); sessionStorage.setItem('tg_type', v) }
-
-  const FETCH_SIZE = 60
-
-  const fetchData = async () => {
-    setLoading(true)
-    setHasMore(false)
-    try {
-      const data: TingleCol[] = await api.get(`/api/collections?isTingle=true&limit=${FETCH_SIZE}`)
-      setCols(data)
-      setHasMore(data.length === FETCH_SIZE)
-    } finally { setLoading(false) }
-  }
-
-  const loadMore = async () => {
-    if (fetchingMore || !hasMore) return
-    setFetchingMore(true)
-    try {
-      const data: TingleCol[] = await api.get(`/api/collections?isTingle=true&limit=${FETCH_SIZE}&offset=${cols.length}`)
-      setCols(prev => [...prev, ...data])
-      setHasMore(data.length === FETCH_SIZE)
-    } catch {} finally { setFetchingMore(false) }
-  }
-
-  const scrollRef = useScrollRestore(`tg_scroll_${view}_${typeTab}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, randomSeed, typeTab, selectedTags, genderFilter], scrollRef, 30, loadMore)
 
   const importTingleUrl = async (url: string) => {
     if (url.includes('tingle.chat')) {
@@ -156,25 +109,20 @@ export default function TingleListPage() {
     const failed: string[] = []
     for (let i = 0; i < urls.length; i++) {
       setMsg(`가져오는 중... (${i + 1}/${urls.length})`)
-      try {
-        await importTingleUrl(urls[i])
-        ok++
-      } catch (e: any) {
-        failed.push(urls[i])
-        setMsg(`⚠ ${urls[i]} — ${e.message}`)
-      }
+      try { await importTingleUrl(urls[i]); ok++ }
+      catch (e: any) { failed.push(urls[i]); setMsg(`⚠ ${urls[i]} — ${e.message}`) }
     }
     setImporting(false)
     if (ok > 0) setImportUrl(failed.length > 0 ? importUrl : '')
     setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.join(', ')} 실패` : `✓ ${ok}개 가져왔습니다`)
     if (failed.length === 0) setMenuOpen(false)
-    await fetchData()
+    await refresh()
   }
 
   const handleLikedScan = async () => {
     setMenuOpen(false)
     setLikedPanel(true)
-    if (likedList.length > 0) return  // 이미 스캔 결과 있으면 재사용
+    if (likedList.length > 0) return
     setScanning(true); setScanMsg('팅글 전체 스캔 중...')
     try {
       const res = await api.get('/api/tingle/liked-scan')
@@ -204,20 +152,13 @@ export default function TingleListPage() {
     const failed: string[] = []
     for (let i = 0; i < targets.length; i++) {
       setMsg(`가져오는 중... (${i + 1}/${targets.length})`)
-      try {
-        await importTingleUrl(targets[i].sourceUrl)
-        ok++
-      } catch {
-        failed.push(targets[i].name)
-      }
+      try { await importTingleUrl(targets[i].sourceUrl); ok++ }
+      catch { failed.push(targets[i].name) }
     }
     setImporting(false)
     setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.join(', ')} 실패` : `✓ ${ok}개 가져왔습니다`)
-    if (failed.length === 0) {
-      setLikedPanel(false)
-      setLikedSelected(new Set())
-    }
-    await fetchData()
+    if (failed.length === 0) { setLikedPanel(false); setLikedSelected(new Set()) }
+    await refresh()
   }
 
   const toggleEditMode = () => {
@@ -227,50 +168,60 @@ export default function TingleListPage() {
 
   const deleteCol = async (id: string) => {
     if (!confirm('이 항목을 삭제할까요?')) return
-    await api.delete(`/api/collections/${id}`); await fetchData()
+    await api.delete(`/api/collections/${id}`); await refresh()
   }
-
-  const matchesQuery = (c: TingleCol) => {
-    const q = query.trim().toLowerCase()
-    return !q || c.title.toLowerCase().includes(q) || c.tags?.some(t => t.toLowerCase().includes(q))
-  }
-
-  const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
-  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-
-  const colsByType = cols.filter(c => detectTingleType(c.sourceUrl).type === typeTab)
-  const counts = viewCounts(colsByType)
-  // 성별 필터는 캐릭터 타입탭에서만
-  const genderBuckets = typeTab === 'character' ? availableGenderBuckets(colsByType) : []
-  // 태그 목록·카운트는 뷰+성별+검색 적용 base 기준(태그 제외) — 진행중 탭이면 진행중 카드 태그만.
-  const tingleViewMatch = (c: TingleCol) => view === 'favorites' ? isFav('collection', c.id)
-    : view === 'completed' ? c.completed
-    : view === 'waiting' ? !c.started
-    : !c.completed && !!c.started
-  const tagBase = colsByType.filter(c =>
-    tingleViewMatch(c)
-    && (typeTab !== 'character' || genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter)
-    && matchesQuery(c)
-  )
-  const tagGroups = buildTagGroups(tagBase.flatMap(c => c.tags ?? []), tagConfig)
-  const tCounts = tagCounts(tagBase)
 
   const typeCounts = {
-    character: cols.filter(c => detectTingleType(c.sourceUrl).type === 'character').length,
-    universe: cols.filter(c => detectTingleType(c.sourceUrl).type === 'universe').length,
-    scene: cols.filter(c => detectTingleType(c.sourceUrl).type === 'scene').length,
+    character: items.filter(c => detectTingleType(c.sourceUrl ?? '').type === 'character').length,
+    universe: items.filter(c => detectTingleType(c.sourceUrl ?? '').type === 'universe').length,
+    scene: items.filter(c => detectTingleType(c.sourceUrl ?? '').type === 'scene').length,
   }
+  const typeLabel = typeTab === 'character' ? '캐릭터' : typeTab === 'universe' ? '서사' : '테마'
 
-  const visible = sortByOption(
-    tagBase.filter(c => matchesTag(c.tags ?? [])),
-    sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
-  )
+  const renderCard = (c: CenterListItem) => {
+    const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
+    const type = detectTingleType(c.sourceUrl ?? '')
+    const charNames = c.characters.map(ch => ch.name)
+    const desc = c.description?.trim() ? replaceDisplayPlaceholders(c.description, userName, charNames) : ''
+    return (
+      <div key={c.id} className="tingle-card" style={{ position: 'relative' }}
+        onClick={() => !editMode && router.push(detailPath(c.sourceUrl ?? '', c.id))}>
+        {c.completed && (
+          <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--tg-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>
+        )}
+        {thumb
+          ? <img className="tingle-card-img" loading="lazy" decoding="async" src={thumb} alt="" />
+          : <div className="tingle-card-img" style={{ display: 'grid', placeItems: 'center', fontSize: 32 }}>🎭</div>
+        }
+        <div className="tingle-card-body">
+          <div className="tingle-card-title">{c.title}</div>
+          {desc && (
+            <div style={{ fontSize: 11, color: 'var(--tg-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{desc}</div>
+          )}
+          <div className="tingle-card-tags">
+            <span className="tingle-chip" style={{ background: type.color, color: '#fff', fontSize: 10 }}>{type.label}</span>
+            {c.tags?.slice(0, 2).map(t => (
+              <span key={t} className="tingle-chip">#{t}</span>
+            ))}
+          </div>
+        </div>
+        {editMode ? (
+          <button onClick={e => { e.stopPropagation(); deleteCol(c.id) }}
+            style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        ) : (
+          <button onClick={e => { e.stopPropagation(); toggleFav('collection', c.id) }}
+            aria-label="즐겨찾기"
+            style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)', border: 'none', color: isFav('collection', c.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', c.id) ? '★' : '☆'}</button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
       {/* 좋아요 목록 패널 */}
       {likedPanel && (() => {
-        const importable = likedList.filter(x => !cols.some(c => c.sourceUrl === x.sourceUrl))
+        const importable = likedList.filter(x => !items.some(c => c.sourceUrl === x.sourceUrl))
         const allSelected = importable.length > 0 && importable.every(x => likedSelected.has(x.id))
         const toggleAll = () => {
           if (allSelected) setLikedSelected(new Set())
@@ -281,7 +232,6 @@ export default function TingleListPage() {
             onClick={() => setLikedPanel(false)}>
             <div style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: 'var(--tg-bg)', borderRadius: '16px 16px 0 0' }}
               onClick={e => e.stopPropagation()}>
-              {/* 헤더 */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px', flexShrink: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--tg-ink)' }}>♥ 팅글 좋아요 목록</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -296,7 +246,6 @@ export default function TingleListPage() {
               {scanMsg && (
                 <div style={{ padding: '0 16px 6px', fontSize: 11, color: scanMsg.startsWith('⚠') ? '#ff6b8a' : 'var(--tg-ink-soft)', flexShrink: 0 }}>{scanMsg}</div>
               )}
-              {/* 전체선택 */}
               {!scanning && importable.length > 0 && (
                 <div style={{ padding: '0 16px 6px', flexShrink: 0 }}>
                   <button onClick={toggleAll}
@@ -305,7 +254,6 @@ export default function TingleListPage() {
                   </button>
                 </div>
               )}
-              {/* 목록 */}
               <div style={{ overflowY: 'auto', flex: 1, padding: '0 12px 8px' }}>
                 {scanning ? (
                   <div style={{ textAlign: 'center', padding: 32, color: 'var(--tg-ink-soft)', fontSize: 13 }}>스캔 중...</div>
@@ -314,13 +262,12 @@ export default function TingleListPage() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {likedList.map(item => {
-                      const alreadyImported = cols.some(c => c.sourceUrl === item.sourceUrl)
+                      const alreadyImported = items.some(c => c.sourceUrl === item.sourceUrl)
                       const checked = likedSelected.has(item.id)
                       return (
                         <div key={item.id}
                           onClick={() => !alreadyImported && toggleLikedSelect(item.id)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid var(--tg-line)', cursor: alreadyImported ? 'default' : 'pointer', opacity: alreadyImported ? 0.5 : 1 }}>
-                          {/* 체크박스 */}
                           <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${checked ? 'var(--tg-accent)' : 'var(--tg-line)'}`, background: checked ? 'var(--tg-accent)' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
                             {checked && <span style={{ fontSize: 12, color: '#fff', lineHeight: 1 }}>✓</span>}
                           </div>
@@ -344,7 +291,6 @@ export default function TingleListPage() {
                   </div>
                 )}
               </div>
-              {/* 하단 가져오기 버튼 */}
               {!scanning && likedSelected.size > 0 && (
                 <div style={{ padding: '10px 16px 20px', flexShrink: 0, borderTop: '1px solid var(--tg-line)' }}>
                   <button
@@ -428,7 +374,7 @@ export default function TingleListPage() {
               style={{ cursor: 'pointer', border: 'none', whiteSpace: 'nowrap',
                 background: view === v ? 'var(--tg-accent)' : 'var(--tg-surface-2)',
                 color: view === v ? '#fff' : 'var(--tg-ink-soft)' }}
-              onClick={() => handleView(v)}>
+              onClick={() => setView(v)}>
               {v === 'active' ? `진행 중 ${counts.active}`
                 : v === 'waiting' ? `대기 ${counts.waiting}`
                 : v === 'completed' ? `완결 ${counts.completed}`
@@ -442,7 +388,7 @@ export default function TingleListPage() {
               background: searchOpen ? 'var(--tg-accent)' : 'var(--tg-surface-2)',
               color: searchOpen ? '#fff' : 'var(--tg-ink-soft)' }}
             onClick={toggleSearch}>🔍</button>
-          <select className="field" style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }} value={sort} onChange={e => handleSort(e.target.value as SortOption)}>
+          <select className="field" style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }} value={sort} onChange={e => setSort(e.target.value as typeof sort)}>
             <option value="latest">최신순</option>
             <option value="oldest">오래된순</option>
             <option value="alpha">가나다순</option>
@@ -458,7 +404,7 @@ export default function TingleListPage() {
             <input className="field" style={{ fontSize: 12, width: '100%' }} placeholder="이름·태그로 검색"
               value={query} onChange={e => setQuery(e.target.value)} autoFocus />
           </div>
-          {genderBuckets.length > 1 && (
+          {typeTab === 'character' && genderBuckets.length > 1 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 16px 8px', alignItems: 'center' }}>
               <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }}>성별</span>
               <button className="tingle-chip" style={{ cursor: 'pointer', border: 'none', background: genderFilter === 'all' ? 'var(--tg-accent)' : 'var(--tg-surface-2)', color: genderFilter === 'all' ? '#fff' : 'var(--tg-ink-soft)' }} onClick={() => setGenderFilter('all')}>전체</button>
@@ -467,7 +413,7 @@ export default function TingleListPage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="tingle-chip" accentVar="--tg-accent" counts={tCounts} storageKey="tg_tagcollapse" />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={clearTags} chipClass="tingle-chip" accentVar="--tg-accent" counts={tCounts} storageKey="tg_tagcollapse" />
         </>
       )}
 
@@ -484,62 +430,31 @@ export default function TingleListPage() {
               </div>
             ))}
           </div>
-        ) : visible.length === 0 ? (
+        ) : error && items.length === 0 ? (
+          <div className="tingle-empty">{error}<br /><button className="tingle-chip" style={{ cursor:'pointer', border:'none', background:'var(--tg-accent)', color:'#fff', marginTop:8 }} onClick={() => refresh()}>다시 시도</button></div>
+        ) : visibleChars.length === 0 ? (
           <div className="tingle-empty">
             {query.trim() || selectedTags.length > 0
               ? '검색 결과가 없습니다.'
               : view === 'favorites' ? '즐겨찾기한 항목이 없습니다.'
               : view === 'completed' ? '완결한 항목이 없습니다.'
               : view === 'waiting' ? '대기 중인 항목이 없습니다.'
-              : cols.length === 0
-                ? `가져온 ${typeTab === 'character' ? '캐릭터' : typeTab === 'universe' ? '서사' : '테마'}가 없습니다.\n⋮ 메뉴에서 팅글 URL을 붙여넣고 📥 가져오기를 누르세요.\n(관리자 설정에서 인증 토큰 설정 필요)`
-                : `진행 중인 ${typeTab === 'character' ? '캐릭터' : typeTab === 'universe' ? '서사' : '테마'}가 없습니다.`}
+              : items.length === 0
+                ? `가져온 ${typeLabel}가 없습니다.\n⋮ 메뉴에서 팅글 URL을 붙여넣고 📥 가져오기를 누르세요.\n(관리자 설정에서 인증 토큰 설정 필요)`
+                : `진행 중인 ${typeLabel}가 없습니다.`}
           </div>
         ) : (
-          <div className="tingle-grid">
-            {visible.slice(0, count).map(c => {
-              const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
-              const type = detectTingleType(c.sourceUrl)
-              const charNames = c.characters.map(ch => ch.name)
-              const desc = c.description?.trim()
-                ? replaceDisplayPlaceholders(c.description, userName, charNames)
-                : ''
-              return (
-                <div key={c.id} className="tingle-card" style={{ position: 'relative' }}
-                  onClick={() => !editMode && router.push(detailPath(c))}>
-                  {c.completed && (
-                    <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--tg-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>
-                  )}
-                  {thumb
-                    ? <img className="tingle-card-img" loading="lazy" decoding="async" src={thumb} alt="" />
-                    : <div className="tingle-card-img" style={{ display: 'grid', placeItems: 'center', fontSize: 32 }}>🎭</div>
-                  }
-                  <div className="tingle-card-body">
-                    <div className="tingle-card-title">{c.title}</div>
-                    {desc && (
-                      <div style={{ fontSize: 11, color: 'var(--tg-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{desc}</div>
-                    )}
-                    <div className="tingle-card-tags">
-                      <span className="tingle-chip" style={{ background: type.color, color: '#fff', fontSize: 10 }}>{type.label}</span>
-                      {c.tags?.slice(0, 2).map(t => (
-                        <span key={t} className="tingle-chip">#{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                  {editMode ? (
-                    <button onClick={e => { e.stopPropagation(); deleteCol(c.id) }}
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)', border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                  ) : (
-                    <button onClick={e => { e.stopPropagation(); toggleFav('collection', c.id) }}
-                      aria-label="즐겨찾기"
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)', border: 'none', color: isFav('collection', c.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', c.id) ? '★' : '☆'}</button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          <VirtualCardGrid
+            items={visibleChars}
+            renderItem={renderCard}
+            scrollRef={scrollRef}
+            imageHeightRatio={4 / 3}
+            bodyHeight={104}
+            columns={2}
+            gap={12}
+            padX={16}
+          />
         )}
-        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   )

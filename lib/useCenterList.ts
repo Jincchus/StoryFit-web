@@ -11,9 +11,17 @@ type View = CenterListFilter['view']
 // 센터별 인덱스 전체 배열을 모듈 스코프에 캐시 → 클라 네비게이션(뒤로가기) 간 즉시 복원.
 const indexCache = new Map<string, CenterListItem[]>()
 
-export function useCenterList(opts: { indexQuery: string; storagePrefix: string }) {
-  const { indexQuery, storagePrefix } = opts
-  const cacheKey = indexQuery
+export function useCenterList(opts: {
+  indexQuery: string
+  storagePrefix: string
+  // 다른 엔드포인트(예: /api/characters)·즐겨찾기 타입·데이터 매퍼 — whif/tingle 등 다중 데이터/탭용.
+  endpoint?: string
+  appendIndexParam?: boolean // /api/collections는 &fields=index 부착, /api/characters는 미부착
+  favType?: 'collection' | 'character'
+  mapItems?: (raw: CenterListItem[]) => CenterListItem[] // select 전에 적용(원본 items는 그대로 반환)
+}) {
+  const { indexQuery, storagePrefix, endpoint = '/api/collections', appendIndexParam = true, favType = 'collection', mapItems } = opts
+  const cacheKey = `${endpoint}?${indexQuery}`
 
   const { isFav, toggleFav } = useFavorites()
   const [items, setItems] = useState<CenterListItem[]>(() => indexCache.get(cacheKey) ?? [])
@@ -56,14 +64,15 @@ export function useCenterList(opts: { indexQuery: string; storagePrefix: string 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
     try {
-      const data: CenterListItem[] = await api.get(`/api/collections?${indexQuery}&fields=index`)
+      const url = appendIndexParam ? `${endpoint}?${indexQuery}&fields=index` : `${endpoint}?${indexQuery}`
+      const data: CenterListItem[] = await api.get(url)
       indexCache.set(cacheKey, data); setItems(data); setError(null)
     } catch {
       if (!silent) setError('목록을 불러오지 못했습니다.')
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [indexQuery, cacheKey])
+  }, [endpoint, indexQuery, appendIndexParam, cacheKey])
 
   const refresh = useCallback(async () => { await load() }, [load])
 
@@ -104,10 +113,11 @@ export function useCenterList(opts: { indexQuery: string; storagePrefix: string 
     return !o
   }), [])
 
-  const favView = useCallback((id: string) => isFav('collection', id), [isFav])
+  const favView = useCallback((id: string) => isFav(favType, id), [isFav, favType])
+  const mapped = useMemo(() => (mapItems ? mapItems(items) : items), [items, mapItems])
   const { counts, tagGroups, tCounts, genderBuckets, visibleChars } = useMemo(
-    () => selectCenterList(items, { view, sort, query, selectedTags, genderFilter, randomSeed }, tagConfig, favView),
-    [items, view, sort, query, selectedTags, genderFilter, randomSeed, tagConfig, favView],
+    () => selectCenterList(mapped, { view, sort, query, selectedTags, genderFilter, randomSeed }, tagConfig, favView),
+    [mapped, view, sort, query, selectedTags, genderFilter, randomSeed, tagConfig, favView],
   )
 
   return {
