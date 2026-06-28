@@ -10,6 +10,7 @@ import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
+import { parseCommand, isBuiltinCommand, builtinFallbackKey, BUILTIN_FALLBACK, composeCommandDirective } from '@/lib/commands'
 import { logAiError } from '@/lib/errorLog'
 import { brokerStart, brokerFinish, brokerSetPhase } from '@/lib/streamBroker'
 import { applyLightFixes, needsResponseRevision } from '@/lib/responseControl'
@@ -77,87 +78,59 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const character = conv.characters[0]?.character
   if (!character) return NextResponse.json({ error: '캐릭터 정보가 없습니다.' }, { status: 400 })
 
+  // 커맨드 → AI 생성 경로에서 쓸 값(빌트인 폴백/커스텀). null이면 일반 채팅.
+  let commandDirective: string | null = null
+  let commandTagName: string | null = null
+
   // ── 커맨드 처리 (확장형 커맨드 엔진) ──────────────────────────────────────
   const trimmedInput = content.trim()
-  if (trimmedInput.startsWith('!')) {
-    const prevMsg = conv.messages[conv.messages.length - 1] ?? null
+  const parsedCmd = parseCommand(trimmedInput)
+  if (parsedCmd) {
+    const cmd = parsedCmd.name.toLowerCase()
+    let replyText: string | null = null // 결정적 즉시 응답. null이면 AI 생성 경로.
 
-    // 유저 메시지 저장
-    const userMsg = await prisma.message.create({
-      data: {
-        conversationId: params.id,
-        role: 'user',
-        content: trimmedInput,
-        chapter: conv.chapter,
-        isSelected: true,
-        parentId: prevMsg?.id ?? null,
-      },
-    })
-
-    let replyText = ''
-    const cmd = trimmedInput.slice(1).toLowerCase().split(/\s+/)[0] // '!호감도' -> '호감도'
-
-    if (cmd === '상태창' || cmd === '정보' || cmd === 'status') {
-      // 1. 종합 상태창
-      replyText = '### 📊 현재 상태창\n\n'
-      replyText += getStatsMarkdown(conv.statsConfig, conv.statsEnabled)
-      replyText += '\n### 🎒 소지품 (인벤토리)\n\n'
-      replyText += getInventoryMarkdown(conv.inventory, conv.inventoryEnabled)
-      if (conv.statusTimeline) {
-        replyText += `\n### 🎬 현재 상황\n${conv.statusTimeline}\n`
-      }
-    }
-    else if (cmd === '스탯' || cmd === '능력치' || cmd === 'stats' || cmd === '호감도' || cmd === '관계') {
-      // 2. 스탯만 출력
-      replyText = '### 📊 능력치 및 관계 스탯\n\n'
-      replyText += getStatsMarkdown(conv.statsConfig, conv.statsEnabled)
-    }
-    else if (cmd === '인벤토리' || cmd === '소지품' || cmd === '인벤' || cmd === 'inventory') {
-      // 3. 인벤토리만 출력
-      replyText = '### 🎒 소지품 (인벤토리)\n\n'
-      replyText += getInventoryMarkdown(conv.inventory, conv.inventoryEnabled)
-    }
-    else if (cmd === '상황' || cmd === '씬' || cmd === 'scene' || cmd === '타임라인') {
-      // 4. 현재 상황(타임라인)만 출력
-      replyText = '### 🎬 현재 씬 상황\n\n'
-      if (conv.statusTimeline) {
-        replyText += conv.statusTimeline
+    if (isBuiltinCommand(parsedCmd.name)) {
+      commandTagName = parsedCmd.name
+      // 1) 결정적 빌트인 출력 시도(데이터 있을 때). 빈 데이터면 det=null → 폴백.
+      const det = buildBuiltinReply(cmd, conv)
+      if (det !== null) {
+        replyText = det
       } else {
-        replyText += '*현재 요약된 상황 정보가 없습니다. 대화를 진행하면 자동으로 요약됩니다.*\n'
+        // 2) 빈 상태계 커맨드 → AI 폴백
+        const fk = builtinFallbackKey(parsedCmd.name)
+        if (fk) {
+          const extra = parsedCmd.args ? `\n추가 지시: ${parsedCmd.args}` : ''
+          commandDirective = `[시스템 커맨드: ${parsedCmd.name}]\n${BUILTIN_FALLBACK[fk]}${extra}\n\n응답은 마크다운 형식으로 작성하라.`
+        } else {
+          replyText = '*표시할 정보가 없습니다.*'
+        }
+      }
+    } else {
+      // 3) 커스텀 커맨드 조회
+      const uc = await prisma.userCommand.findUnique({
+        where: { userId_name: { userId, name: parsedCmd.name } },
+      })
+      if (uc) {
+        commandTagName = parsedCmd.name
+        commandDirective = composeCommandDirective(parsedCmd.name, uc.instruction, parsedCmd.args)
+      } else {
+        commandTagName = parsedCmd.name
+        replyText = `⚠️ **알 수 없는 명령어입니다.**\n사용 가능한 명령어를 보려면 **\`!도움말\`**을 입력해 주세요.`
       }
     }
-    else if (cmd === '도움말' || cmd === '명령어' || cmd === 'help') {
-      // 5. 도움말 출력
-      replyText = `### ⚙️ StoryFit 시스템 명령어 도움말
 
-대화창에 아래 명령어를 입력하면 AI 비용 없이 즉시 게임 정보를 조회할 수 있습니다.
-
-* **\`!상태창\`** (또는 \`!정보\`) : 스탯, 인벤토리, 현재 상황을 모두 보여줍니다.
-* **\`!스탯\`** (또는 \`!호감도\`, \`!관계\`) : 캐릭터와의 관계 및 스탯만 확인합니다.
-* **\`!인벤토리\`** (또는 \`!소지품\`) : 가방 속 아이템 목록을 보여줍니다.
-* **\`!상황\`** (또는 \`!타임라인\`) : 현재 씬의 시간대, 장소, 의상 등의 상황 요약을 봅니다.
-* **\`!도움말\`** : 이 명령어 매뉴얼을 불러옵니다.`
+    // 결정적 즉시 응답 경로
+    if (replyText !== null) {
+      const prevMsg = conv.messages[conv.messages.length - 1] ?? null
+      const userMsg = await prisma.message.create({
+        data: { conversationId: params.id, role: 'user', content: trimmedInput, chapter: conv.chapter, isSelected: true, parentId: prevMsg?.id ?? null },
+      })
+      const assistantMsg = await prisma.message.create({
+        data: { conversationId: params.id, role: 'assistant', content: replyText, aiModel: 'system', chapter: conv.chapter, isSelected: true, isStreaming: false, parentId: userMsg.id, commandName: commandTagName },
+      })
+      return NextResponse.json({ messageId: assistantMsg.id }, { status: 200 })
     }
-    else {
-      // 알 수 없는 명령어
-      replyText = `⚠️ **알 수 없는 명령어입니다.**\n사용 가능한 명령어를 보려면 **\`!도움말\`**을 입력해 주세요.`
-    }
-
-    // assistant 메시지로 즉시 저장
-    const assistantMsg = await prisma.message.create({
-      data: {
-        conversationId: params.id,
-        role: 'assistant',
-        content: replyText,
-        aiModel: 'system',
-        chapter: conv.chapter,
-        isSelected: true,
-        isStreaming: false,
-        parentId: userMsg.id,
-      },
-    })
-
-    return NextResponse.json({ messageId: assistantMsg.id }, { status: 200 })
+    // 그 외(commandDirective != null): early-return 없이 아래 일반 생성 흐름으로 진행.
   }
   // ────────────────────────────────────────────────────────────────────────
 
@@ -230,6 +203,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     adultGating: conv.adultGatingEnabled ?? true,
   })
 
+  const finalSystemPrompt = commandDirective ? `${systemPrompt}\n\n${commandDirective}` : systemPrompt
+
   const enrichMode = conv.enrichInputMode ?? false
   // 스토리/멀티스토리 모드면 항상 본문에 4지선다 포함 — 단일 호출로 본문+선택지를 함께 생성
   // (별도 /suggestions API 호출 없이 클라이언트가 본문에서 파싱해 버튼으로 렌더)
@@ -249,6 +224,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       isSelected: true,
       isStreaming: true,
       parentId: userMsg.id,
+      commandName: commandTagName,
     },
   })
 
@@ -261,7 +237,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     userId,
     conv,
     character: buildCharParam(character),
-    systemPrompt,
+    systemPrompt: finalSystemPrompt,
     history,
   }).catch(err => console.error('[chat:async] uncaught error:', err))
 
@@ -404,4 +380,53 @@ function getInventoryMarkdown(inventory: any, enabled: boolean): string {
     return md
   }
   return '*소지품이 없거나 인벤토리가 비활성화되어 있습니다.*\n'
+}
+
+function isStatsEmpty(conv: any): boolean {
+  return !conv.statsEnabled || !Array.isArray(conv.statsConfig) || conv.statsConfig.length === 0
+}
+function isInventoryEmpty(conv: any): boolean {
+  return !conv.inventoryEnabled || !Array.isArray(conv.inventory) || conv.inventory.length === 0
+}
+function isSceneEmpty(conv: any): boolean {
+  return !conv.statusTimeline || !String(conv.statusTimeline).trim()
+}
+
+// 결정적 빌트인 출력. 상태계는 데이터 없으면 null(→ AI 폴백). 도움말/알수없음은 항상 문자열.
+function buildBuiltinReply(cmd: string, conv: any): string | null {
+  if (cmd === '상태창' || cmd === '정보' || cmd === 'status') {
+    if (isStatsEmpty(conv) && isInventoryEmpty(conv) && isSceneEmpty(conv)) return null
+    let t = '### 📊 현재 상태창\n\n'
+    t += getStatsMarkdown(conv.statsConfig, conv.statsEnabled)
+    t += '\n### 🎒 소지품 (인벤토리)\n\n'
+    t += getInventoryMarkdown(conv.inventory, conv.inventoryEnabled)
+    if (conv.statusTimeline) t += `\n### 🎬 현재 상황\n${conv.statusTimeline}\n`
+    return t
+  }
+  if (cmd === '스탯' || cmd === '능력치' || cmd === 'stats' || cmd === '호감도' || cmd === '관계') {
+    if (isStatsEmpty(conv)) return null
+    return '### 📊 능력치 및 관계 스탯\n\n' + getStatsMarkdown(conv.statsConfig, conv.statsEnabled)
+  }
+  if (cmd === '인벤토리' || cmd === '소지품' || cmd === '인벤' || cmd === 'inventory') {
+    if (isInventoryEmpty(conv)) return null
+    return '### 🎒 소지품 (인벤토리)\n\n' + getInventoryMarkdown(conv.inventory, conv.inventoryEnabled)
+  }
+  if (cmd === '상황' || cmd === '씬' || cmd === 'scene' || cmd === '타임라인') {
+    if (isSceneEmpty(conv)) return null
+    return '### 🎬 현재 씬 상황\n\n' + conv.statusTimeline
+  }
+  if (cmd === '도움말' || cmd === '명령어' || cmd === 'help') {
+    return `### ⚙️ StoryFit 시스템 명령어 도움말
+
+대화창에 아래 명령어를 입력하면 AI 비용 없이 즉시 게임 정보를 조회할 수 있습니다.
+
+* **\`!상태창\`** (또는 \`!정보\`) : 스탯, 인벤토리, 현재 상황을 모두 보여줍니다.
+* **\`!스탯\`** (또는 \`!호감도\`, \`!관계\`) : 캐릭터와의 관계 및 스탯만 확인합니다.
+* **\`!인벤토리\`** (또는 \`!소지품\`) : 가방 속 아이템 목록을 보여줍니다.
+* **\`!상황\`** (또는 \`!타임라인\`) : 현재 씬의 시간대, 장소, 의상 등의 상황 요약을 봅니다.
+* **\`!도움말\`** : 이 명령어 매뉴얼을 불러옵니다.
+
+> 💡 설정창의 **내 커맨드**에서 나만의 AI 커맨드(예: \`!에타\`)를 만들 수 있습니다.`
+  }
+  return '⚠️ **알 수 없는 명령어입니다.**'
 }
