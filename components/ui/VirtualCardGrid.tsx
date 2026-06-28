@@ -22,6 +22,8 @@ export default function VirtualCardGrid<T>({
   const gridRef = useRef<HTMLDivElement>(null)
 
   // 레이아웃 단계에서 측정 → 첫 페인트부터 총높이/윈도우가 정확.
+  // ResizeObserver로 컨테이너 크기 변화(특히 뒤로가기 재마운트 시 0→실제크기)를 감지해 재측정 →
+  // 측정 시점에 컨테이너가 0이어도 크기가 잡히면 자동 복구(빈 리스트 회귀 방지).
   useLayoutEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -29,7 +31,9 @@ export default function VirtualCardGrid<T>({
     read()
     el.addEventListener('scroll', read, { passive: true })
     window.addEventListener('resize', read)
-    return () => { el.removeEventListener('scroll', read); window.removeEventListener('resize', read) }
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(read) : null
+    ro?.observe(el)
+    return () => { el.removeEventListener('scroll', read); window.removeEventListener('resize', read); ro?.disconnect() }
   }, [scrollRef])
 
   // 실제 렌더된 첫 카드 높이 측정 → border 등 계산 오차 보정
