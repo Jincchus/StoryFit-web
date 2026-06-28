@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 
 export type FavType = 'collection' | 'character'
@@ -12,9 +12,9 @@ export function useFavorites() {
       .catch(() => {})
   }, [])
 
-  const isFav = (type: FavType, id: string) => favs.has(`${type}:${id}`)
+  const isFav = useCallback((type: FavType, id: string) => favs.has(`${type}:${id}`), [favs])
 
-  const toggleFav = (type: FavType, id: string) => {
+  const toggleFav = useCallback((type: FavType, id: string) => {
     const key = `${type}:${id}`
     const has = favs.has(key)
     setFavs(prev => {
@@ -32,7 +32,7 @@ export function useFavorites() {
         return next
       })
     })
-  }
+  }, [favs])
 
   return { isFav, toggleFav }
 }

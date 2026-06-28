@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from './api'
 import { useFavorites } from './useFavorites'
 import { selectCenterList, type CenterListItem, type CenterListFilter } from './centerListSelect'
@@ -18,6 +18,7 @@ export function useCenterList(opts: { indexQuery: string; storagePrefix: string 
   const { isFav, toggleFav } = useFavorites()
   const [items, setItems] = useState<CenterListItem[]>(() => indexCache.get(cacheKey) ?? [])
   const [loading, setLoading] = useState(() => !indexCache.has(cacheKey))
+  const [error, setError] = useState<string | null>(null)
   const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
 
   // 필터 상태 (초기값은 sessionStorage 복원)
@@ -30,7 +31,6 @@ export function useCenterList(opts: { indexQuery: string; storagePrefix: string 
   const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
 
   const scrollRef = useRef<HTMLDivElement>(null)
-  const restored = useRef(false)
 
   // 초기 상태 복원 + 인덱스 fetch (캐시 있으면 즉시 사용)
   useEffect(() => {
@@ -48,17 +48,21 @@ export function useCenterList(opts: { indexQuery: string; storagePrefix: string 
       }
     } catch {}
     api.get('/api/center-tags').then(setTagConfig).catch(() => {})
-    if (!indexCache.has(cacheKey)) void load()
+    const hadCache = indexCache.has(cacheKey)
+    void load(hadCache) // 캐시 있으면 silent 재검증, 없으면 일반 로드(스피너)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const data: CenterListItem[] = await api.get(`/api/collections?${indexQuery}&fields=index`)
-      indexCache.set(cacheKey, data)
-      setItems(data)
-    } finally { setLoading(false) }
+      indexCache.set(cacheKey, data); setItems(data); setError(null)
+    } catch {
+      if (!silent) setError('목록을 불러오지 못했습니다.')
+    } finally {
+      if (!silent) setLoading(false)
+    }
   }, [indexQuery, cacheKey])
 
   const refresh = useCallback(async () => { await load() }, [load])
@@ -69,23 +73,23 @@ export function useCenterList(opts: { indexQuery: string; storagePrefix: string 
     sessionStorage.setItem(`${storagePrefix}_filter`, JSON.stringify({ query, selectedTags, genderFilter, searchOpen, randomSeed }))
   }, [query, selectedTags, genderFilter, searchOpen, randomSeed, storagePrefix])
 
-  // 스크롤 위치 저장 + 복원 (전체 항목이 메모리에 있으므로 가상화 총높이가 정확 → 복원 신뢰성 높음)
+  // 스크롤 위치 저장 (뷰별 키)
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    const onScroll = () => sessionStorage.setItem(`${storagePrefix}_scroll`, String(el.scrollTop))
+    const onScroll = () => sessionStorage.setItem(`${storagePrefix}_scroll_${view}`, String(el.scrollTop))
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
-  }, [storagePrefix])
+  }, [view, storagePrefix])
 
+  // 스크롤 복원 (뷰 전환·로드 완료 시 해당 뷰 저장값 또는 0)
   useEffect(() => {
-    if (loading || restored.current) return
+    if (loading) return
     const el = scrollRef.current
     if (!el) return
-    const saved = sessionStorage.getItem(`${storagePrefix}_scroll`)
-    if (saved) requestAnimationFrame(() => { el.scrollTop = parseInt(saved, 10) })
-    restored.current = true
-  }, [loading, storagePrefix])
+    const saved = sessionStorage.getItem(`${storagePrefix}_scroll_${view}`)
+    requestAnimationFrame(() => { el.scrollTop = saved ? parseInt(saved, 10) : 0 })
+  }, [view, loading, storagePrefix])
 
   // 핸들러
   const setView = useCallback((v: View) => setViewState(v), [])
@@ -100,15 +104,14 @@ export function useCenterList(opts: { indexQuery: string; storagePrefix: string 
     return !o
   }), [])
 
-  const { counts, tagGroups, tCounts, genderBuckets, visibleChars } = selectCenterList(
-    items,
-    { view, sort, query, selectedTags, genderFilter, randomSeed },
-    tagConfig,
-    (id: string) => isFav('collection', id),
+  const favView = useCallback((id: string) => isFav('collection', id), [isFav])
+  const { counts, tagGroups, tCounts, genderBuckets, visibleChars } = useMemo(
+    () => selectCenterList(items, { view, sort, query, selectedTags, genderFilter, randomSeed }, tagConfig, favView),
+    [items, view, sort, query, selectedTags, genderFilter, randomSeed, tagConfig, favView],
   )
 
   return {
-    items, loading,
+    items, loading, error,
     view, setView, sort, setSort, query, setQuery,
     selectedTags, toggleTag, clearTags, genderFilter, setGenderFilter,
     searchOpen, toggleSearch, randomSeed,

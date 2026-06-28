@@ -11,7 +11,7 @@ import type { CenterListItem } from '@/lib/centerListSelect'
 export default function LoveydoveyListPage() {
   const router = useRouter()
   const {
-    items, loading,
+    items, loading, error,
     view, setView, sort, setSort, query, setQuery,
     selectedTags, toggleTag, clearTags, genderFilter, setGenderFilter,
     searchOpen, toggleSearch,
@@ -185,6 +185,8 @@ export default function LoveydoveyListPage() {
               </div>
             ))}
           </div>
+        ) : error && items.length === 0 ? (
+          <div className="lovey-empty">{error}<br /><button className="lovey-chip" style={{ cursor:'pointer', border:'none', background:'var(--l-accent)', color:'#fff', marginTop:8 }} onClick={() => refresh()}>다시 시도</button></div>
         ) : visibleChars.length === 0 ? (
           selectedTags.length > 0 || query.trim()
             ? <div className="lovey-empty">검색 결과가 없습니다.</div>
