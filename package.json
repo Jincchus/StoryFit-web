@@ -23,7 +23,9 @@
     "next": "14.2.29",
     "puppeteer-core": "^24.43.1",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
