@@ -102,6 +102,9 @@ body[data-art="dark"] .shell{ border-color: var(--line); }
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overflow:hidden}
+/* 센터 리스트 카드 그리드: 전체 렌더하되 화면 밖 카드는 브라우저가 렌더/레이아웃 스킵.
+   미지원 브라우저(구형 iOS 등)에서는 무시되어 일반 렌더로 동작(기능 정상). */
+.vcg-grid > *{ content-visibility:auto; contain-intrinsic-size:auto 340px; }
 body{
   font-family: var(--font-body);
   color: var(--ink);
