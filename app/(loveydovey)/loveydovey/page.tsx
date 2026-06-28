@@ -71,7 +71,7 @@ export default function LoveydoveyListPage() {
         <div className="lovey-card-body">
           <div className="lovey-card-title">{c.title}</div>
           {c.description?.trim() && (
-            <div style={{ fontSize: 11, color: 'var(--l-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+            <div style={{ fontSize: 11, color: 'var(--l-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
               {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
             </div>
           )}

@@ -124,7 +124,7 @@ export default function ZetaListPage() {
             </div>
           )}
           {blurb && (
-            <div style={{ fontSize: 11, color: 'var(--z-ink-soft)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+            <div style={{ fontSize: 11, color: 'var(--z-ink-soft)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
               {replaceDisplayPlaceholders(blurb, userName, mainChar?.name ?? '')}
             </div>
           )}

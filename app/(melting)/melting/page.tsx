@@ -126,7 +126,7 @@ export default function MeltingListPage() {
         <div className="melting-card-body">
           <div className="melting-card-title">{c.title}</div>
           {c.description?.trim() && (
-            <div style={{ fontSize: 11, color: 'var(--m-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+            <div style={{ fontSize: 11, color: 'var(--m-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
               {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
             </div>
           )}
