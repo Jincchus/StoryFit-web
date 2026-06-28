@@ -1436,7 +1436,8 @@ body[data-crt="on"]::after{
 .bc-card{ background:var(--b-surface); border:1px solid var(--b-line); border-radius:var(--b-radius);
   overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
 .bc-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--b-surface-2); display:block; }
-.bc-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.bc-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px;
+  height:104px; box-sizing:border-box; overflow:hidden; }
 .bc-card-title{ font-size:13px; font-weight:800; color:var(--b-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .bc-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
