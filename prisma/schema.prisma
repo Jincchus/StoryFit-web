@@ -28,6 +28,7 @@ model User {
   conversations Conversation[]
   characterCollections CharacterCollection[]
   promptPresets PromptPreset[]
+  userCommands  UserCommand[]
   pushTokens    PushToken[]
 }
 
@@ -253,12 +254,26 @@ model Message {
   inventoryDelta Json?
   statsDelta     Json?
   bookmarked     Boolean      @default(false)
+  commandName    String?
   chapter        Int          @default(1)
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])
   @@index([conversationId, isSelected, isStreaming])
   @@index([conversationId, chapter])
+}
+
+model UserCommand {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  instruction String
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, name])
+  @@index([userId])
 }
 
 model AdminLog {
