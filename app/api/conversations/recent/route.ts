@@ -10,10 +10,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const limit = Math.min(20, Math.max(1, parseInt(searchParams.get('limit') ?? '3') || 3))
 
-  // 1) 경량: 모든 노드(root+분기)의 스레드 키·시각만
+  // 1) 경량: 모든 노드(root+분기)의 스레드 키·시각·archived만.
+  //    완결(루트 archived) 스레드 제외는 pickLatestNodeIdsPerThread가 처리하므로 archived도 함께 조회한다.
   const nodes = await prisma.conversation.findMany({
-    where: { userId, isArchived: false, mode: { not: 'assistant' } },
-    select: { id: true, rootConversationId: true, updatedAt: true },
+    where: { userId, mode: { not: 'assistant' } },
+    select: { id: true, rootConversationId: true, updatedAt: true, isArchived: true },
   })
   const ids = pickLatestNodeIdsPerThread(nodes, limit)
   if (ids.length === 0) return NextResponse.json([])
