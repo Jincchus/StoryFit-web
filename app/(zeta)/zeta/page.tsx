@@ -3,113 +3,37 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
-import { sortByOption, type SortOption } from '@/lib/listSort'
-import { useScrollRestore } from '@/lib/useScrollRestore'
-import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
-import { getOpenings } from '@/lib/openings'
 import TagFilterBar from '@/components/ui/TagFilterBar'
-import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
-import { cardGenderBucket, availableGenderBuckets } from '@/lib/cardGender'
-import { useFavorites } from '@/lib/useFavorites'
-import { viewCounts, tagCounts } from '@/lib/centerCounts'
+import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
+import { useCenterList } from '@/lib/useCenterList'
 import { useDisplayName } from '@/lib/useDisplayName'
-import type { Opening } from '@/types'
+import type { CenterListItem } from '@/lib/centerListSelect'
 import type { LikedPlot } from '@/app/api/zeta/liked-scan/route'
-
-interface Plot {
-  id: string; title: string; coverImageUrl: string; tags: string[]
-  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null; openingMessage: string; openingMessages?: Opening[] }[]
-  lorebookTitles?: string[]
-  zetaMeta?: any
-  completed?: boolean
-  started?: boolean
-  createdAt?: string
-  lastActivityAt?: string
-}
 
 export default function ZetaListPage() {
   const router = useRouter()
-  const [plots, setPlots] = useState<Plot[]>([])
-  const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
-  const { isFav, toggleFav } = useFavorites()
+  const {
+    items, loading, error,
+    view, setView, sort, setSort, query, setQuery,
+    selectedTags, toggleTag, clearTags, genderFilter, setGenderFilter,
+    searchOpen, toggleSearch,
+    counts, tagGroups, tCounts, genderBuckets, visibleChars,
+    isFav, toggleFav, scrollRef, refresh,
+  } = useCenterList({ indexQuery: 'isZeta=true', storagePrefix: 'zeta' })
   const userName = useDisplayName()
-  const [loading, setLoading] = useState(true)
-  const [hasMore, setHasMore] = useState(false)
-  const [fetchingMore, setFetchingMore] = useState(false)
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
-  const [sort, setSort] = useState<SortOption>('latest')
-  const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [query, setQuery] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
-  const [genderFilter, setGenderFilter] = useState<string>('all')
   const [likedPanel, setLikedPanel] = useState(false)
   const [likedList, setLikedList] = useState<LikedPlot[]>([])
   const [likedSelected, setLikedSelected] = useState<Set<string>>(new Set())
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg] = useState('')
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
-  useEffect(() => {
-    setEditMode(localStorage.getItem('zeta_edit') === '1')
-    setSort((localStorage.getItem('zeta_sort') as SortOption) || 'latest')
-    setView((sessionStorage.getItem('zeta_view') as typeof view) || 'active')
-    fetchData()
-    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
-  }, [])
-
-  const handleSort = (v: SortOption) => {
-    setSort(v); localStorage.setItem('zeta_sort', v)
-    if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
-  }
-
-  const handleView = (v: typeof view) => {
-    setView(v); sessionStorage.setItem('zeta_view', v)
-  }
-
-  const FETCH_SIZE = 60
-
-  const fetchData = async () => {
-    setLoading(true)
-    setHasMore(false)
-    try {
-      const data: Plot[] = await api.get(`/api/collections?isZeta=true&limit=${FETCH_SIZE}`)
-      setPlots(data)
-      setHasMore(data.length === FETCH_SIZE)
-    } finally { setLoading(false) }
-  }
-
-  const loadMore = async () => {
-    if (fetchingMore || !hasMore) return
-    setFetchingMore(true)
-    try {
-      const data: Plot[] = await api.get(`/api/collections?isZeta=true&limit=${FETCH_SIZE}&offset=${plots.length}`)
-      setPlots(prev => [...prev, ...data])
-      setHasMore(data.length === FETCH_SIZE)
-    } catch {} finally { setFetchingMore(false) }
-  }
-
-  const scrollRef = useScrollRestore(`zeta_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, genderFilter, randomSeed], scrollRef, 30, loadMore)
-
-  const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
-  const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
-  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const viewMatch = (p: Plot) => view === 'favorites' ? isFav('collection', p.id)
-    : view === 'completed' ? p.completed
-    : view === 'waiting' ? !p.started
-    : !p.completed && !!p.started
-  // 태그 목록·카운트는 뷰+성별+검색 적용 base 기준(태그 자신 제외) — 진행중 탭이면 진행중 카드 태그만.
-  const tagBase = plots.filter(p => viewMatch(p) && (genderFilter === 'all' || cardGenderBucket(p.characters) === genderFilter) && matchesQuery(p.title, p.tags))
-  const tagGroups = buildTagGroups(tagBase.flatMap(p => p.tags ?? []), tagConfig)
-  const counts = viewCounts(plots)
-  const tCounts = tagCounts(tagBase)
-  const genderBuckets = availableGenderBuckets(plots)
+  useEffect(() => { setEditMode(localStorage.getItem('zeta_edit') === '1') }, [])
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
@@ -125,7 +49,7 @@ export default function ZetaListPage() {
     setImportUrl(failed.join(String.fromCharCode(10)))
     setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.length}개 실패 — 다시 가져오기로 재시도` : `✓ ${ok}개 가져왔습니다`)
     if (failed.length === 0) setMenuOpen(false)
-    await fetchData()
+    await refresh()
     setImporting(false)
   }
 
@@ -169,25 +93,63 @@ export default function ZetaListPage() {
     setImporting(false)
     setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.join(', ')} 실패` : `✓ ${ok}개 가져왔습니다`)
     if (failed.length === 0) { setLikedPanel(false); setLikedSelected(new Set()) }
-    await fetchData()
+    await refresh()
   }
 
   const createPlot = async () => {
     const title = prompt('새 플롯 이름'); if (!title?.trim()) return
     await api.post('/api/collections', { title: title.trim(), sourceUrl: `https://zeta-ai.io/local/${Date.now()}` })
-    setMenuOpen(false); await fetchData()
+    setMenuOpen(false); await refresh()
   }
 
   const deletePlot = async (id: string) => {
     if (!confirm('이 플롯과 소속 캐릭터를 삭제할까요?')) return
-    await api.delete(`/api/collections/${id}`); await fetchData()
+    await api.delete(`/api/collections/${id}`); await refresh()
+  }
+
+  const renderCard = (p: CenterListItem) => {
+    const mainChar = p.characters.find(c => c.name === p.title) ?? p.characters[0]
+    const thumb = p.coverImageUrl || mainChar?.avatarUrl || ''
+    const blurb = p.zetaMeta?.shortDescription || p.description || ''
+    return (
+      <div key={p.id} className="zeta-card"
+        onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>
+        {p.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: '#8b5cf6', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
+        {thumb ? <img className="zeta-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="zeta-card-img" />}
+        <div className="zeta-card-body">
+          <div className="zeta-card-title">{p.title}</div>
+          {p.tags?.length > 0 && (
+            <div className="zeta-card-tags">
+              {p.tags.slice(0, 3).map(t => <span key={t} className="zeta-chip">#{t}</span>)}
+            </div>
+          )}
+          {blurb && (
+            <div style={{ fontSize: 11, color: 'var(--z-ink-soft)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              {replaceDisplayPlaceholders(blurb, userName, mainChar?.name ?? '')}
+            </div>
+          )}
+        </div>
+        {editMode ? (
+          <button onClick={e => { e.stopPropagation(); deletePlot(p.id) }}
+            style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
+              border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
+              cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        ) : (
+          <button onClick={e => { e.stopPropagation(); toggleFav('collection', p.id) }}
+            aria-label="즐겨찾기"
+            style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
+              border: 'none', color: isFav('collection', p.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
+              cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', p.id) ? '★' : '☆'}</button>
+        )}
+      </div>
+    )
   }
 
   return (
     <>
       {/* 좋아요 목록 패널 */}
       {likedPanel && (() => {
-        const importable = likedList.filter(x => !plots.some(p => (p as any).sourceUrl?.includes(x.id)))
+        const importable = likedList.filter(x => !items.some(p => p.sourceUrl?.includes(x.id)))
         const allSelected = importable.length > 0 && importable.every(x => likedSelected.has(x.id))
         const toggleAll = () => allSelected ? setLikedSelected(new Set()) : setLikedSelected(new Set(importable.map(x => x.id)))
         return (
@@ -291,10 +253,10 @@ export default function ZetaListPage() {
 
       <div className="zeta-tabs" style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('active')}>진행 중 <span style={{ opacity: 0.55 }}>{counts.active}</span></button>
-          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('waiting')}>대기 <span style={{ opacity: 0.55 }}>{counts.waiting}</span></button>
-          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('completed')}>완결 <span style={{ opacity: 0.55 }}>{counts.completed}</span></button>
-          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => handleView('favorites')}>★ 즐겨찾기</button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'active' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('active')}>진행 중 <span style={{ opacity: 0.55 }}>{counts.active}</span></button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('waiting')}>대기 <span style={{ opacity: 0.55 }}>{counts.waiting}</span></button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'completed' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('completed')}>완결 <span style={{ opacity: 0.55 }}>{counts.completed}</span></button>
+          <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--z-accent)' : 'var(--z-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--z-ink-soft)' }} onClick={() => setView('favorites')}>★ 즐겨찾기</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button className="zeta-chip" style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--z-accent)' : 'var(--z-surface-2)', color: searchOpen ? '#fff' : 'var(--z-ink-soft)' }} onClick={toggleSearch}>🔍 검색</button>
@@ -302,7 +264,7 @@ export default function ZetaListPage() {
             className="field"
             style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }}
             value={sort}
-            onChange={e => handleSort(e.target.value as SortOption)}
+            onChange={e => setSort(e.target.value as typeof sort)}
           >
             <option value="latest">최신순</option>
             <option value="oldest">오래된순</option>
@@ -334,17 +296,12 @@ export default function ZetaListPage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="zeta-chip" accentVar="--z-accent" counts={tCounts} storageKey="zeta_tagcollapse" />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={clearTags} chipClass="zeta-chip" accentVar="--z-accent" counts={tCounts} storageKey="zeta_tagcollapse" />
         </>
       )}
 
       <div className="zeta-scroll" ref={scrollRef}>
-        {(() => {
-          const visiblePlots = sortByOption(
-            tagBase.filter(p => matchesTag(p.tags)),
-            sort, p => p.title, p => p.createdAt ?? '', p => p.lastActivityAt ?? p.createdAt ?? '', randomSeed
-          )
-          return loading ? (
+        {loading ? (
           <div className="zeta-grid">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="zeta-card">
@@ -356,7 +313,9 @@ export default function ZetaListPage() {
               </div>
             ))}
           </div>
-        ) : visiblePlots.length === 0 ? (
+        ) : error && items.length === 0 ? (
+          <div className="zeta-empty">{error}<br /><button className="zeta-chip" style={{ cursor:'pointer', border:'none', background:'var(--z-accent)', color:'#fff', marginTop:8 }} onClick={() => refresh()}>다시 시도</button></div>
+        ) : visibleChars.length === 0 ? (
           selectedTags.length > 0 || query.trim()
             ? <div className="zeta-empty">검색 결과가 없습니다.</div>
           : view === 'favorites'
@@ -365,57 +324,21 @@ export default function ZetaListPage() {
             ? <div className="zeta-empty">완결한 작품이 없습니다.</div>
             : view === 'waiting'
               ? <div className="zeta-empty">대기 중인 작품이 없습니다.</div>
-              : plots.length === 0
+              : items.length === 0
                 ? <div className="zeta-empty">가져온 플롯이 없습니다<br />⋮ 메뉴에서 zeta-ai.io 플롯 URL로 가져오세요.</div>
                 : <div className="zeta-empty">진행 중인 작품이 없습니다.</div>
         ) : (
-          <div className="zeta-grid">
-            {visiblePlots.slice(0, count).map(p => {
-              const mainChar = p.characters.find(c => c.name === p.title) ?? p.characters[0]
-              const thumb = p.coverImageUrl || mainChar?.avatarUrl || ''
-              const blurb = (p.zetaMeta as any)?.shortDescription || getOpenings(mainChar)[0]?.content || ''
-              return (
-                <div key={p.id} className="zeta-card"
-                  onClick={() => !editMode && router.push(`/zeta/plots/${p.id}`)}>
-                  {p.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: '#8b5cf6', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="zeta-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="zeta-card-img" />}
-                  <div className="zeta-card-body">
-                    <div className="zeta-card-title">{p.title}</div>
-                    {p.tags?.length > 0 && (
-                      <div className="zeta-card-tags">
-                        {p.tags.slice(0, 3).map(t => <span key={t} className="zeta-chip">#{t}</span>)}
-                      </div>
-                    )}
-                    {p.lorebookTitles && p.lorebookTitles.length > 0 && (
-                      <div className="zeta-card-tags">
-                        {p.lorebookTitles.slice(0, 3).map(t => <span key={t} className="zeta-chip">📒 {t}</span>)}
-                      </div>
-                    )}
-                    {blurb && (
-                      <div style={{ fontSize: 11, color: 'var(--z-ink-soft)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {replaceDisplayPlaceholders(blurb, userName, mainChar?.name ?? '')}
-                      </div>
-                    )}
-                  </div>
-                  {editMode ? (
-                    <button onClick={e => { e.stopPropagation(); deletePlot(p.id) }}
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
-                        border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
-                        cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                  ) : (
-                    <button onClick={e => { e.stopPropagation(); toggleFav('collection', p.id) }}
-                      aria-label="즐겨찾기"
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
-                        border: 'none', color: isFav('collection', p.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
-                        cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', p.id) ? '★' : '☆'}</button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-          )
-        })()}
-        <div ref={sentinelRef} style={{ height: 1 }} />
+          <VirtualCardGrid
+            items={visibleChars}
+            renderItem={renderCard}
+            scrollRef={scrollRef}
+            imageHeightRatio={4 / 3}
+            bodyHeight={104}
+            columns={2}
+            gap={12}
+            padX={16}
+          />
+        )}
       </div>
     </>
   )

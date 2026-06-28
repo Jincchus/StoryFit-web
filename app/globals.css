@@ -1167,7 +1167,8 @@ body[data-crt="on"]::after{
 .zeta-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--z-surface-2); display:block; }
 .zeta-card-badge{ position:absolute; top:8px; left:8px; background:rgba(0,0,0,.6); color:#fff;
   font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; display:flex; align-items:center; gap:3px; }
-.zeta-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.zeta-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px;
+  height:104px; box-sizing:border-box; overflow:hidden; }
 .zeta-card-title{ font-size:13px; font-weight:800; color:var(--z-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .zeta-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
@@ -1221,7 +1222,8 @@ body[data-crt="on"]::after{
 .melting-card{ background:var(--m-surface); border:1px solid var(--m-line); border-radius:var(--m-radius);
   overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
 .melting-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--m-surface-2); display:block; }
-.melting-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.melting-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px;
+  height:104px; box-sizing:border-box; overflow:hidden; }
 .melting-card-title{ font-size:13px; font-weight:800; color:var(--m-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .melting-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }

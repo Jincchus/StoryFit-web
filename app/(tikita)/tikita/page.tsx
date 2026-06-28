@@ -70,9 +70,9 @@ export default function TikitaListPage() {
         {thumb ? <img className="tikita-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="tikita-card-img" />}
         <div className="tikita-card-body">
           <div className="tikita-card-title">{c.title}</div>
-          {c.description?.trim() && (
+          {(c.tikitaMeta?.tagline || c.description)?.trim() && (
             <div style={{ fontSize: 11, color: 'var(--t-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-              {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
+              {replaceDisplayPlaceholders(c.tikitaMeta?.tagline || c.description || '', '나', c.characters?.[0]?.name ?? '')}
             </div>
           )}
           {c.tags?.length > 0 && (

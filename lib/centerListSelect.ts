@@ -8,6 +8,7 @@ import { availableGenderBuckets, cardGenderBucket } from './cardGender'
 export interface CenterListItem {
   id: string
   title: string
+  sourceUrl?: string
   coverImageUrl?: string
   description?: string
   tags: string[]
@@ -16,6 +17,10 @@ export interface CenterListItem {
   completed?: boolean
   started?: boolean
   characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null }[]
+  // 센터별 메타(passthrough) — index에 포함. zeta: shortDescription, tikita: tagline 등.
+  zetaMeta?: any
+  meltingMeta?: any
+  tikitaMeta?: any
 }
 
 export interface CenterListFilter {

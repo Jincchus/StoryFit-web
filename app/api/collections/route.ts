@@ -52,7 +52,8 @@ export async function GET(req: NextRequest) {
       coverImageUrl: true,
       description: true,
       tags: true,
-      ...(isIndex ? {} : { zetaMeta: true, meltingMeta: true, tikitaMeta: true }),
+      // 메타는 index에도 포함 — zeta(shortDescription)·tikita(tagline) 카드가 사용.
+      zetaMeta: true, meltingMeta: true, tikitaMeta: true,
       characters: {
         select: isIndex
           ? { id: true, name: true, avatarUrl: true, gender: true }

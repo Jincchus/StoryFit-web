@@ -2,95 +2,36 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { sortByOption, type SortOption } from '@/lib/listSort'
-import { useScrollRestore } from '@/lib/useScrollRestore'
-import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import TagFilterBar from '@/components/ui/TagFilterBar'
-import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
-import { cardGenderBucket, availableGenderBuckets } from '@/lib/cardGender'
-import { useFavorites } from '@/lib/useFavorites'
-import { viewCounts, tagCounts } from '@/lib/centerCounts'
+import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
+import { useCenterList } from '@/lib/useCenterList'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
+import type { CenterListItem } from '@/lib/centerListSelect'
 import type { LikedCharacter } from '@/app/api/melting/liked-scan/route'
-
-interface MChar {
-  id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
-  sourceUrl: string
-  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null }[]
-  completed?: boolean
-  started?: boolean
-  createdAt?: string
-  lastActivityAt?: string
-}
 
 export default function MeltingListPage() {
   const router = useRouter()
-  const [chars, setChars] = useState<MChar[]>([])
-  const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
-  const { isFav, toggleFav } = useFavorites()
-  const [loading, setLoading] = useState(true)
-  const [hasMore, setHasMore] = useState(false)
-  const [fetchingMore, setFetchingMore] = useState(false)
+  const {
+    items, loading, error,
+    view, setView, sort, setSort, query, setQuery,
+    selectedTags, toggleTag, clearTags, genderFilter, setGenderFilter,
+    searchOpen, toggleSearch,
+    counts, tagGroups, tCounts, genderBuckets, visibleChars,
+    isFav, toggleFav, scrollRef, refresh,
+  } = useCenterList({ indexQuery: 'isMelting=true', storagePrefix: 'melting' })
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
-  const [sort, setSort] = useState<SortOption>('latest')
-  const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [query, setQuery] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
   const [likedPanel, setLikedPanel] = useState(false)
   const [likedList, setLikedList] = useState<LikedCharacter[]>([])
   const [likedSelected, setLikedSelected] = useState<Set<string>>(new Set())
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg] = useState('')
-  const [genderFilter, setGenderFilter] = useState<string>('all')
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
-  useEffect(() => {
-    setEditMode(localStorage.getItem('melting_edit') === '1')
-    setSort((localStorage.getItem('melting_sort') as SortOption) || 'latest')
-    setView((sessionStorage.getItem('melting_view') as typeof view) || 'active')
-    fetchData()
-    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
-  }, [])
-
-  const handleSort = (v: SortOption) => {
-    setSort(v); localStorage.setItem('melting_sort', v)
-    if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
-  }
-
-  const handleView = (v: typeof view) => {
-    setView(v); sessionStorage.setItem('melting_view', v)
-  }
-
-  const FETCH_SIZE = 60
-
-  const fetchData = async () => {
-    setLoading(true)
-    setHasMore(false)
-    try {
-      const data: MChar[] = await api.get(`/api/collections?isMelting=true&limit=${FETCH_SIZE}`)
-      setChars(data)
-      setHasMore(data.length === FETCH_SIZE)
-    } finally { setLoading(false) }
-  }
-
-  const loadMore = async () => {
-    if (fetchingMore || !hasMore) return
-    setFetchingMore(true)
-    try {
-      const data: MChar[] = await api.get(`/api/collections?isMelting=true&limit=${FETCH_SIZE}&offset=${chars.length}`)
-      setChars(prev => [...prev, ...data])
-      setHasMore(data.length === FETCH_SIZE)
-    } catch {} finally { setFetchingMore(false) }
-  }
-
-  const scrollRef = useScrollRestore(`melting_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, genderFilter, randomSeed], scrollRef, 30, loadMore)
+  useEffect(() => { setEditMode(localStorage.getItem('melting_edit') === '1') }, [])
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
@@ -106,7 +47,7 @@ export default function MeltingListPage() {
     setImportUrl(failed.join(String.fromCharCode(10)))
     setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.length}개 실패 — 다시 가져오기로 재시도` : `✓ ${ok}개 가져왔습니다`)
     if (failed.length === 0) setMenuOpen(false)
-    await fetchData()
+    await refresh()
     setImporting(false)
   }
 
@@ -156,7 +97,7 @@ export default function MeltingListPage() {
       setLikedPanel(false)
       setLikedSelected(new Set())
     }
-    await fetchData()
+    await refresh()
   }
 
   const toggleEditMode = () => {
@@ -167,38 +108,55 @@ export default function MeltingListPage() {
   const createCharacter = async () => {
     const title = prompt('새 캐릭터 이름'); if (!title?.trim()) return
     await api.post('/api/collections', { title: title.trim(), sourceUrl: `https://melting.chat/local/${Date.now()}` })
-    setMenuOpen(false); await fetchData()
+    setMenuOpen(false); await refresh()
   }
 
   const deleteChar = async (id: string) => {
     if (!confirm('이 캐릭터를 삭제할까요?')) return
-    await api.delete(`/api/collections/${id}`); await fetchData()
+    await api.delete(`/api/collections/${id}`); await refresh()
   }
 
-  const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
-  const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
-  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const counts = viewCounts(chars)
-  const genderBuckets = availableGenderBuckets(chars)
-  const matchesGender = (c: MChar) => genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter
-  const viewMatch = (c: MChar) => view === 'favorites' ? isFav('collection', c.id)
-    : view === 'completed' ? c.completed
-    : view === 'waiting' ? !c.started
-    : !c.completed && !!c.started
-  // 태그 목록·카운트는 뷰+성별+검색 적용 base 기준(태그 제외) — 진행중 탭이면 진행중 카드 태그만.
-  const tagBase = chars.filter(c => viewMatch(c) && matchesGender(c) && matchesQuery(c.title, c.tags))
-  const tagGroups = buildTagGroups(tagBase.flatMap(c => c.tags ?? []), tagConfig)
-  const tCounts = tagCounts(tagBase)
-  const visibleChars = sortByOption(
-    tagBase.filter(c => matchesTag(c.tags)),
-    sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
-  )
+  const renderCard = (c: CenterListItem) => {
+    const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
+    return (
+      <div key={c.id} className="melting-card" style={{ position: 'relative' }}
+        onClick={() => !editMode && router.push(`/melting/characters/${c.id}`)}>
+        {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--m-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
+        {thumb ? <img className="melting-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="melting-card-img" />}
+        <div className="melting-card-body">
+          <div className="melting-card-title">{c.title}</div>
+          {c.description?.trim() && (
+            <div style={{ fontSize: 11, color: 'var(--m-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
+            </div>
+          )}
+          {c.tags?.length > 0 && (
+            <div className="melting-card-tags">
+              {c.tags.slice(0, 3).map(t => <span key={t} className="melting-chip">#{t}</span>)}
+            </div>
+          )}
+        </div>
+        {editMode ? (
+          <button onClick={e => { e.stopPropagation(); deleteChar(c.id) }}
+            style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
+              border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
+              cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        ) : (
+          <button onClick={e => { e.stopPropagation(); toggleFav('collection', c.id) }}
+            aria-label="즐겨찾기"
+            style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
+              border: 'none', color: isFav('collection', c.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
+              cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', c.id) ? '★' : '☆'}</button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
       {/* 좋아요 목록 패널 */}
       {likedPanel && (() => {
-        const importable = likedList.filter(x => !chars.some(c => c.sourceUrl === x.sourceUrl))
+        const importable = likedList.filter(x => !items.some(c => c.sourceUrl === x.sourceUrl))
         const allSelected = importable.length > 0 && importable.every(x => likedSelected.has(x.id))
         const toggleAll = () => {
           if (allSelected) setLikedSelected(new Set())
@@ -239,7 +197,7 @@ export default function MeltingListPage() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {likedList.map(item => {
-                      const alreadyImported = chars.some(c => c.sourceUrl === item.sourceUrl)
+                      const alreadyImported = items.some(c => c.sourceUrl === item.sourceUrl)
                       const checked = likedSelected.has(item.id)
                       return (
                         <div key={item.id}
@@ -310,10 +268,10 @@ export default function MeltingListPage() {
 
       <div style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('active')}>진행 중 <span style={{ opacity: 0.55 }}>{counts.active}</span></button>
-          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('waiting')}>대기 <span style={{ opacity: 0.55 }}>{counts.waiting}</span></button>
-          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('completed')}>완결 <span style={{ opacity: 0.55 }}>{counts.completed}</span></button>
-          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => handleView('favorites')}>★ 즐겨찾기</button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'active' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('active')}>진행 중 <span style={{ opacity: 0.55 }}>{counts.active}</span></button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('waiting')}>대기 <span style={{ opacity: 0.55 }}>{counts.waiting}</span></button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'completed' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('completed')}>완결 <span style={{ opacity: 0.55 }}>{counts.completed}</span></button>
+          <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--m-accent)' : 'var(--m-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--m-ink-soft)' }} onClick={() => setView('favorites')}>★ 즐겨찾기</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button className="melting-chip" style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--m-accent)' : 'var(--m-surface-2)', color: searchOpen ? '#fff' : 'var(--m-ink-soft)' }} onClick={toggleSearch}>🔍 검색</button>
@@ -321,7 +279,7 @@ export default function MeltingListPage() {
             className="field"
             style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }}
             value={sort}
-            onChange={e => handleSort(e.target.value as SortOption)}
+            onChange={e => setSort(e.target.value as typeof sort)}
           >
             <option value="latest">최신순</option>
             <option value="oldest">오래된순</option>
@@ -353,7 +311,7 @@ export default function MeltingListPage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="melting-chip" accentVar="--m-accent" counts={tCounts} storageKey="melting_tagcollapse" />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={clearTags} chipClass="melting-chip" accentVar="--m-accent" counts={tCounts} storageKey="melting_tagcollapse" />
         </>
       )}
 
@@ -370,6 +328,8 @@ export default function MeltingListPage() {
               </div>
             ))}
           </div>
+        ) : error && items.length === 0 ? (
+          <div className="melting-empty">{error}<br /><button className="melting-chip" style={{ cursor:'pointer', border:'none', background:'var(--m-accent)', color:'#fff', marginTop:8 }} onClick={() => refresh()}>다시 시도</button></div>
         ) : visibleChars.length === 0 ? (
           selectedTags.length > 0 || query.trim()
             ? <div className="melting-empty">검색 결과가 없습니다.</div>
@@ -379,49 +339,21 @@ export default function MeltingListPage() {
             ? <div className="melting-empty">완결한 캐릭터가 없습니다.</div>
             : view === 'waiting'
               ? <div className="melting-empty">대기 중인 캐릭터가 없습니다.</div>
-              : chars.length === 0
+              : items.length === 0
                 ? <div className="melting-empty">가져온 캐릭터가 없습니다<br />⋮ 메뉴에서 melting.chat 캐릭터 URL로 가져오세요.</div>
                 : <div className="melting-empty">진행 중인 캐릭터가 없습니다.</div>
         ) : (
-          <div className="melting-grid">
-            {visibleChars.slice(0, count).map(c => {
-              const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
-              return (
-                <div key={c.id} className="melting-card" style={{ position: 'relative' }}
-                  onClick={() => !editMode && router.push(`/melting/characters/${c.id}`)}>
-                  {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--m-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="melting-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="melting-card-img" />}
-                  <div className="melting-card-body">
-                    <div className="melting-card-title">{c.title}</div>
-                    {c.description?.trim() && (
-                      <div style={{ fontSize: 11, color: 'var(--m-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
-                      </div>
-                    )}
-                    {c.tags?.length > 0 && (
-                      <div className="melting-card-tags">
-                        {c.tags.slice(0, 3).map(t => <span key={t} className="melting-chip">#{t}</span>)}
-                      </div>
-                    )}
-                  </div>
-                  {editMode ? (
-                    <button onClick={e => { e.stopPropagation(); deleteChar(c.id) }}
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
-                        border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
-                        cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                  ) : (
-                    <button onClick={e => { e.stopPropagation(); toggleFav('collection', c.id) }}
-                      aria-label="즐겨찾기"
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
-                        border: 'none', color: isFav('collection', c.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
-                        cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', c.id) ? '★' : '☆'}</button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          <VirtualCardGrid
+            items={visibleChars}
+            renderItem={renderCard}
+            scrollRef={scrollRef}
+            imageHeightRatio={4 / 3}
+            bodyHeight={104}
+            columns={2}
+            gap={12}
+            padX={16}
+          />
         )}
-        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   )
