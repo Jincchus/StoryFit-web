@@ -1,4 +1,4 @@
-export interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null; inputTokens?: number; outputTokens?: number; bookmarked?: boolean; createdAt?: string; chapter?: number }
+export interface Msg { id: string; role: string; content: string; aiModel?: string; branchCount?: number; branchIndex?: number; siblingIds?: string[]; parentId?: string | null; characterId?: string | null; inputTokens?: number; outputTokens?: number; bookmarked?: boolean; createdAt?: string; chapter?: number; commandName?: string | null }
 export type { ChapterAnchor } from '@/lib/chapters'
 export interface PlotOutlineData {
   totalChapters: number

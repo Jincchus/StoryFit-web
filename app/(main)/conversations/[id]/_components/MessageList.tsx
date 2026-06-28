@@ -5,6 +5,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { parseNovelBlocks } from '@/lib/parseBlocks'
 import PixelAvatar from '@/components/ui/PixelAvatar'
 import MessageBlocks from '@/components/ui/MessageBlocks'
+import MarkdownText from '@/components/ui/MarkdownText'
 import NovelScene from '@/components/ui/NovelScene'
 import { parseStoryChoices, isSamePerson, type Msg, type Conv, type ConvChar, type BranchInfo } from '../_lib/chatShared'
 import { chapterLabel, deriveChapterBoundaries } from '@/lib/chapters'
@@ -178,6 +179,11 @@ export default function MessageList({
                   onSaveOnly={c => saveEditOnly(c, m.id)}
                   onCancel={() => setEditingId(null)}
                 />
+              </div>
+            ) : m.commandName ? (
+              /* ── 커맨드 응답: 마크다운 ── */
+              <div className="seq-block seq-left">
+                <MarkdownText text={processedContent} />
               </div>
             ) : blocks.length > 0 ? (
               /* ── AI 메시지: 블록 순서대로 ── */
