@@ -86,7 +86,7 @@ export default function HomePage() {
   useEffect(() => {
     setIsAdmin(getIsAdmin())
     if (!localStorage.getItem('sf_onboarded')) setShowGuide(true)
-    api.get('/api/conversations')
+    api.get('/api/conversations/recent?limit=3')
       .then((convs: RecentConv[]) => {
         const sorted = [...(convs ?? [])].sort(
           (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
