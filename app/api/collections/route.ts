@@ -35,13 +35,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(basic)
   }
 
+  const isIndex = searchParams.get('fields') === 'index'
+
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
   const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0
 
   const collections = await prisma.characterCollection.findMany({
     where: whereClause,
     orderBy: { createdAt: 'desc' },
-    ...(limit ? { take: limit, skip: offset } : {}),
+    ...(isIndex ? {} : (limit ? { take: limit, skip: offset } : {})),
     select: {
       id: true,
       title: true,
@@ -50,15 +52,17 @@ export async function GET(req: NextRequest) {
       coverImageUrl: true,
       description: true,
       tags: true,
-      zetaMeta: true,
-      meltingMeta: true,
-      tikitaMeta: true,
-      characters: { select: { id: true, name: true, avatarUrl: true, gender: true, openingMessage: true, openingMessages: true } },
+      ...(isIndex ? {} : { zetaMeta: true, meltingMeta: true, tikitaMeta: true }),
+      characters: {
+        select: isIndex
+          ? { id: true, name: true, avatarUrl: true, gender: true }
+          : { id: true, name: true, avatarUrl: true, gender: true, openingMessage: true, openingMessages: true },
+      },
     },
   })
 
   const collectionIds = collections.map(c => c.id)
-  const lorebooks = collectionIds.length > 0
+  const lorebooks = (!isIndex && collectionIds.length > 0)
     ? await prisma.lorebook.findMany({
         where: { collectionId: { in: collectionIds } },
         select: { collectionId: true, keyword: true },
@@ -107,12 +111,16 @@ export async function GET(req: NextRequest) {
   const result = collections.map(c => {
     const convMap = convsByCollection.get(c.id)
     const counts = aggregateCounts(convMap ? Array.from(convMap.values()) : [])
-    return {
+    const base = {
       ...c,
-      lorebookTitles: lorebookTitlesByCollection.get(c.id) ?? [],
       completed: isCompleted(counts),
       started: counts.activeCount + counts.archivedCount > 0,
       lastActivityAt: lastActivityByCollection.get(c.id) ?? c.createdAt,
+    }
+    if (isIndex) return base
+    return {
+      ...base,
+      lorebookTitles: lorebookTitlesByCollection.get(c.id) ?? [],
       characters: c.characters.map(ch => ({ ...ch, hasArchived: archivedCharIds.has(ch.id) })),
     }
   })
