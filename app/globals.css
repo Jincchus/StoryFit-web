@@ -1386,7 +1386,8 @@ body[data-crt="on"]::after{
 .lovey-card{ background:var(--l-surface); border:1px solid var(--l-line); border-radius:var(--l-radius);
   overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
 .lovey-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--l-surface-2); display:block; }
-.lovey-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.lovey-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px;
+  height:104px; box-sizing:border-box; overflow:hidden; }
 .lovey-card-title{ font-size:13px; font-weight:800; color:var(--l-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .lovey-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
