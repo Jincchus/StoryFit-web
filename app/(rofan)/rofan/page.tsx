@@ -2,88 +2,30 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { sortByOption, type SortOption } from '@/lib/listSort'
-import { useScrollRestore } from '@/lib/useScrollRestore'
-import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import TagFilterBar from '@/components/ui/TagFilterBar'
-import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
-import { cardGenderBucket, availableGenderBuckets } from '@/lib/cardGender'
-import { useFavorites } from '@/lib/useFavorites'
-import { viewCounts, tagCounts } from '@/lib/centerCounts'
+import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
+import { useCenterList } from '@/lib/useCenterList'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
-
-interface RChar {
-  id: string; title: string; coverImageUrl: string; tags: string[]; description?: string
-  characters: { id: string; name: string; avatarUrl: string | null; gender?: string | null }[]
-  completed?: boolean
-  started?: boolean
-  createdAt?: string
-  lastActivityAt?: string
-}
+import type { CenterListItem } from '@/lib/centerListSelect'
 
 export default function RofanListPage() {
   const router = useRouter()
-  const [chars, setChars] = useState<RChar[]>([])
-  const [view, setView] = useState<'active' | 'waiting' | 'completed' | 'favorites'>('active')
-  const { isFav, toggleFav } = useFavorites()
-  const [loading, setLoading] = useState(true)
-  const [hasMore, setHasMore] = useState(false)
-  const [fetchingMore, setFetchingMore] = useState(false)
+  const {
+    items, loading, error,
+    view, setView, sort, setSort, query, setQuery,
+    selectedTags, toggleTag, clearTags, genderFilter, setGenderFilter,
+    searchOpen, toggleSearch,
+    counts, tagGroups, tCounts, genderBuckets, visibleChars,
+    isFav, toggleFav, scrollRef, refresh,
+  } = useCenterList({ indexQuery: 'isRofan=true', storagePrefix: 'rofan' })
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
-  const [sort, setSort] = useState<SortOption>('latest')
-  const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [query, setQuery] = useState('')
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
-  const [genderFilter, setGenderFilter] = useState<string>('all')
-  const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedTags([]); setGenderFilter('all') } return !o })
 
-  useEffect(() => {
-    setEditMode(localStorage.getItem('rofan_edit') === '1')
-    setSort((localStorage.getItem('rofan_sort') as SortOption) || 'latest')
-    setView((sessionStorage.getItem('rofan_view') as typeof view) || 'active')
-    fetchData()
-    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
-  }, [])
-
-  const handleSort = (v: SortOption) => {
-    setSort(v); localStorage.setItem('rofan_sort', v)
-    if (v === 'random') setRandomSeed(Math.floor(Math.random() * 1e9))
-  }
-
-  const handleView = (v: typeof view) => {
-    setView(v); sessionStorage.setItem('rofan_view', v)
-  }
-
-  const FETCH_SIZE = 60
-
-  const fetchData = async () => {
-    setLoading(true)
-    setHasMore(false)
-    try {
-      const data: RChar[] = await api.get(`/api/collections?isRofan=true&limit=${FETCH_SIZE}`)
-      setChars(data)
-      setHasMore(data.length === FETCH_SIZE)
-    } finally { setLoading(false) }
-  }
-
-  const loadMore = async () => {
-    if (fetchingMore || !hasMore) return
-    setFetchingMore(true)
-    try {
-      const data: RChar[] = await api.get(`/api/collections?isRofan=true&limit=${FETCH_SIZE}&offset=${chars.length}`)
-      setChars(prev => [...prev, ...data])
-      setHasMore(data.length === FETCH_SIZE)
-    } catch {} finally { setFetchingMore(false) }
-  }
-
-  const scrollRef = useScrollRestore(`rofan_scroll_${view}`, !loading)
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedTags, genderFilter, randomSeed], scrollRef, 30, loadMore)
+  useEffect(() => { setEditMode(localStorage.getItem('rofan_edit') === '1') }, [])
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
@@ -99,7 +41,7 @@ export default function RofanListPage() {
     setImportUrl(failed.join(String.fromCharCode(10)))
     setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.length}개 실패 — 다시 가져오기로 재시도` : `✓ ${ok}개 가져왔습니다`)
     if (failed.length === 0) setMenuOpen(false)
-    await fetchData()
+    await refresh()
     setImporting(false)
   }
 
@@ -111,31 +53,49 @@ export default function RofanListPage() {
   const createCharacter = async () => {
     const title = prompt('새 캐릭터 이름'); if (!title?.trim()) return
     await api.post('/api/collections', { title: title.trim(), sourceUrl: `https://rofan.ai/local/${Date.now()}` })
-    setMenuOpen(false); await fetchData()
+    setMenuOpen(false); await refresh()
   }
 
   const deleteChar = async (id: string) => {
     if (!confirm('이 캐릭터를 삭제할까요?')) return
-    await api.delete(`/api/collections/${id}`); await fetchData()
+    await api.delete(`/api/collections/${id}`); await refresh()
   }
 
-  const matchesTag = (tags: string[]) => selectedTags.length === 0 || selectedTags.every(t => tags.includes(t))
-  const matchesQuery = (title: string, tags: string[] = []) => { const q = query.trim().toLowerCase(); return !q || title.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) }
-  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const counts = viewCounts(chars)
-  const genderBuckets = availableGenderBuckets(chars)
-  const viewMatch = (c: typeof chars[number]) => view === 'favorites' ? isFav('collection', c.id)
-    : view === 'completed' ? c.completed
-    : view === 'waiting' ? !c.started
-    : !c.completed && !!c.started
-  // 태그 목록·카운트는 뷰+성별+검색 적용 base 기준(태그 제외) — 진행중 탭이면 진행중 카드 태그만.
-  const tagBase = chars.filter(c => viewMatch(c) && (genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter) && matchesQuery(c.title, c.tags))
-  const tagGroups = buildTagGroups(tagBase.flatMap(c => c.tags ?? []), tagConfig)
-  const tCounts = tagCounts(tagBase)
-  const visibleChars = sortByOption(
-    tagBase.filter(c => matchesTag(c.tags)),
-    sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
-  )
+  const renderCard = (c: CenterListItem) => {
+    const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
+    return (
+      <div key={c.id} className="rofan-card" style={{ position: 'relative' }}
+        onClick={() => !editMode && router.push(`/rofan/characters/${c.id}`)}>
+        {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--r-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
+        {thumb ? <img className="rofan-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="rofan-card-img" />}
+        <div className="rofan-card-body">
+          <div className="rofan-card-title">{c.title}</div>
+          {c.description?.trim() && (
+            <div style={{ fontSize: 11, color: 'var(--r-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
+            </div>
+          )}
+          {c.tags?.length > 0 && (
+            <div className="rofan-card-tags">
+              {c.tags.slice(0, 3).map(t => <span key={t} className="rofan-chip">#{t}</span>)}
+            </div>
+          )}
+        </div>
+        {editMode ? (
+          <button onClick={e => { e.stopPropagation(); deleteChar(c.id) }}
+            style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
+              border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
+              cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        ) : (
+          <button onClick={e => { e.stopPropagation(); toggleFav('collection', c.id) }}
+            aria-label="즐겨찾기"
+            style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
+              border: 'none', color: isFav('collection', c.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
+              cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', c.id) ? '★' : '☆'}</button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -165,10 +125,10 @@ export default function RofanListPage() {
 
       <div style={{ display: 'flex', gap: 6, padding: '8px 16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: view === 'active' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => handleView('active')}>진행 중 <span style={{ opacity: 0.55 }}>{counts.active}</span></button>
-          <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => handleView('waiting')}>대기 <span style={{ opacity: 0.55 }}>{counts.waiting}</span></button>
-          <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: view === 'completed' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => handleView('completed')}>완결 <span style={{ opacity: 0.55 }}>{counts.completed}</span></button>
-          <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => handleView('favorites')}>★ 즐겨찾기</button>
+          <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'active' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: view === 'active' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => setView('active')}>진행 중 <span style={{ opacity: 0.55 }}>{counts.active}</span></button>
+          <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'waiting' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: view === 'waiting' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => setView('waiting')}>대기 <span style={{ opacity: 0.55 }}>{counts.waiting}</span></button>
+          <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'completed' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: view === 'completed' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => setView('completed')}>완결 <span style={{ opacity: 0.55 }}>{counts.completed}</span></button>
+          <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: view === 'favorites' ? 'var(--r-accent)' : 'var(--r-surface-2)', color: view === 'favorites' ? '#fff' : 'var(--r-ink-soft)' }} onClick={() => setView('favorites')}>★ 즐겨찾기</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button className="rofan-chip" style={{ cursor: 'pointer', border: 'none', background: searchOpen ? 'var(--r-accent)' : 'var(--r-surface-2)', color: searchOpen ? '#fff' : 'var(--r-ink-soft)' }} onClick={toggleSearch}>🔍 검색</button>
@@ -176,7 +136,7 @@ export default function RofanListPage() {
             className="field"
             style={{ fontSize: 11, padding: '2px 6px', width: 'auto' }}
             value={sort}
-            onChange={e => handleSort(e.target.value as SortOption)}
+            onChange={e => setSort(e.target.value as typeof sort)}
           >
             <option value="latest">최신순</option>
             <option value="oldest">오래된순</option>
@@ -208,7 +168,7 @@ export default function RofanListPage() {
               ))}
             </div>
           )}
-          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="rofan-chip" accentVar="--r-accent" counts={tCounts} storageKey="rofan_tagcollapse" />
+          <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={clearTags} chipClass="rofan-chip" accentVar="--r-accent" counts={tCounts} storageKey="rofan_tagcollapse" />
         </>
       )}
 
@@ -225,6 +185,8 @@ export default function RofanListPage() {
               </div>
             ))}
           </div>
+        ) : error && items.length === 0 ? (
+          <div className="rofan-empty">{error}<br /><button className="rofan-chip" style={{ cursor:'pointer', border:'none', background:'var(--r-accent)', color:'#fff', marginTop:8 }} onClick={() => refresh()}>다시 시도</button></div>
         ) : visibleChars.length === 0 ? (
           selectedTags.length > 0 || query.trim()
             ? <div className="rofan-empty">검색 결과가 없습니다.</div>
@@ -234,49 +196,21 @@ export default function RofanListPage() {
             ? <div className="rofan-empty">완결한 캐릭터가 없습니다.</div>
             : view === 'waiting'
               ? <div className="rofan-empty">대기 중인 캐릭터가 없습니다.</div>
-              : chars.length === 0
+              : items.length === 0
                 ? <div className="rofan-empty">가져온 캐릭터가 없습니다<br />⋮ 메뉴에서 rofan.ai 캐릭터 URL로 가져오세요.</div>
                 : <div className="rofan-empty">진행 중인 캐릭터가 없습니다.</div>
         ) : (
-          <div className="rofan-grid">
-            {visibleChars.slice(0, count).map(c => {
-              const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
-              return (
-                <div key={c.id} className="rofan-card" style={{ position: 'relative' }}
-                  onClick={() => !editMode && router.push(`/rofan/characters/${c.id}`)}>
-                  {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--r-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
-                  {thumb ? <img className="rofan-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="rofan-card-img" />}
-                  <div className="rofan-card-body">
-                    <div className="rofan-card-title">{c.title}</div>
-                    {c.description?.trim() && (
-                      <div style={{ fontSize: 11, color: 'var(--r-ink-soft)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {replaceDisplayPlaceholders(c.description, '나', c.characters?.[0]?.name ?? '')}
-                      </div>
-                    )}
-                    {c.tags?.length > 0 && (
-                      <div className="rofan-card-tags">
-                        {c.tags.slice(0, 3).map(t => <span key={t} className="rofan-chip">#{t}</span>)}
-                      </div>
-                    )}
-                  </div>
-                  {editMode ? (
-                    <button onClick={e => { e.stopPropagation(); deleteChar(c.id) }}
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.7)',
-                        border: 'none', color: '#ff6b8a', borderRadius: 999, width: 24, height: 24,
-                        cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                  ) : (
-                    <button onClick={e => { e.stopPropagation(); toggleFav('collection', c.id) }}
-                      aria-label="즐겨찾기"
-                      style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)',
-                        border: 'none', color: isFav('collection', c.id) ? '#ffd24a' : '#fff', borderRadius: 999, width: 24, height: 24,
-                        cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isFav('collection', c.id) ? '★' : '☆'}</button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          <VirtualCardGrid
+            items={visibleChars}
+            renderItem={renderCard}
+            scrollRef={scrollRef}
+            imageHeightRatio={4 / 3}
+            bodyHeight={104}
+            columns={2}
+            gap={12}
+            padX={16}
+          />
         )}
-        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   )

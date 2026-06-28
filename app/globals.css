@@ -1287,7 +1287,8 @@ body[data-crt="on"]::after{
 .chub-card{ background:var(--c-surface); border:1px solid var(--c-line); border-radius:var(--c-radius);
   overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
 .chub-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--c-surface-2); display:block; }
-.chub-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.chub-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px;
+  height:104px; box-sizing:border-box; overflow:hidden; }
 .chub-card-title{ font-size:13px; font-weight:800; color:var(--c-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .chub-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
@@ -1337,7 +1338,8 @@ body[data-crt="on"]::after{
 .rofan-card{ background:var(--r-surface); border:1px solid var(--r-line); border-radius:var(--r-radius);
   overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
 .rofan-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--r-surface-2); display:block; }
-.rofan-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.rofan-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px;
+  height:104px; box-sizing:border-box; overflow:hidden; }
 .rofan-card-title{ font-size:13px; font-weight:800; color:var(--r-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .rofan-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
@@ -1486,7 +1488,8 @@ body[data-crt="on"]::after{
 .tikita-card{ background:var(--t-surface); border:1px solid var(--t-line); border-radius:var(--t-radius);
   overflow:hidden; cursor:pointer; display:flex; flex-direction:column; position:relative; }
 .tikita-card-img{ width:100%; aspect-ratio:3/4; object-fit:cover; background:var(--t-surface-2); display:block; }
-.tikita-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+.tikita-card-body{ padding:10px; display:flex; flex-direction:column; gap:6px;
+  height:104px; box-sizing:border-box; overflow:hidden; }
 .tikita-card-title{ font-size:13px; font-weight:800; color:var(--t-ink); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .tikita-card-tags{ display:flex; flex-wrap:wrap; gap:4px; }
