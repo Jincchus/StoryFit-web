@@ -23,7 +23,7 @@ export function parseBabechatUrl(url: string): string {
 }
 
 // 액세스 토큰 만료 시 refresh 토큰으로 새 액세스 토큰 발급 후 저장.
-async function refreshAccessToken(): Promise<string> {
+export async function refreshAccessToken(): Promise<string> {
   const refresh = await getConfig('babechat_refresh_token')
   if (!refresh) throw new Error('babechat 액세스 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력하세요.')
   const res = await fetch(`${API}/auth/token/refresh?refresh_token=${encodeURIComponent(refresh)}`, {
