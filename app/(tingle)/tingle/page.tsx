@@ -8,6 +8,7 @@ import TagFilterBar from '@/components/ui/TagFilterBar'
 import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
 import { useCenterList } from '@/lib/useCenterList'
 import type { CenterListItem } from '@/lib/centerListSelect'
+import LikedImportSheet from '@/components/ui/LikedImportSheet'
 
 interface TingleField { key: string; label: string; value: string; order: number; removed?: boolean }
 interface TingleOpening { id: string; title: string; content: string; removed?: boolean }
@@ -136,13 +137,6 @@ export default function TingleListPage() {
     }
   }
 
-  const toggleLikedSelect = (id: string) => {
-    setLikedSelected(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
 
   const handleLikedImport = async () => {
     const targets = likedList.filter(x => likedSelected.has(x.id))
@@ -219,92 +213,22 @@ export default function TingleListPage() {
 
   return (
     <>
-      {/* 좋아요 목록 패널 */}
-      {likedPanel && (() => {
-        const importable = likedList.filter(x => !items.some(c => c.sourceUrl === x.sourceUrl))
-        const allSelected = importable.length > 0 && importable.every(x => likedSelected.has(x.id))
-        const toggleAll = () => {
-          if (allSelected) setLikedSelected(new Set())
-          else setLikedSelected(new Set(importable.map(x => x.id)))
-        }
-        return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-            onClick={() => setLikedPanel(false)}>
-            <div style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: 'var(--tg-bg)', borderRadius: '16px 16px 0 0' }}
-              onClick={e => e.stopPropagation()}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 8px', flexShrink: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--tg-ink)' }}>♥ 팅글 좋아요 목록</div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <button onClick={() => { setLikedList([]); setLikedSelected(new Set()); handleLikedScan() }}
-                    style={{ appearance: 'none', border: '1px solid var(--tg-line)', background: 'var(--tg-surface)', color: 'var(--tg-ink-soft)', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer' }}>
-                    새로고침
-                  </button>
-                  <button onClick={() => setLikedPanel(false)}
-                    style={{ appearance: 'none', border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--tg-ink-soft)' }}>✕</button>
-                </div>
-              </div>
-              {scanMsg && (
-                <div style={{ padding: '0 16px 6px', fontSize: 11, color: scanMsg.startsWith('⚠') ? '#ff6b8a' : 'var(--tg-ink-soft)', flexShrink: 0 }}>{scanMsg}</div>
-              )}
-              {!scanning && importable.length > 0 && (
-                <div style={{ padding: '0 16px 6px', flexShrink: 0 }}>
-                  <button onClick={toggleAll}
-                    style={{ appearance: 'none', border: '1px solid var(--tg-line)', background: 'var(--tg-surface)', color: 'var(--tg-ink-soft)', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
-                    {allSelected ? '전체 해제' : `전체 선택 (${importable.length}개)`}
-                  </button>
-                </div>
-              )}
-              <div style={{ overflowY: 'auto', flex: 1, padding: '0 12px 8px' }}>
-                {scanning ? (
-                  <div style={{ textAlign: 'center', padding: 32, color: 'var(--tg-ink-soft)', fontSize: 13 }}>스캔 중...</div>
-                ) : likedList.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 32, color: 'var(--tg-ink-soft)', fontSize: 13 }}>좋아요한 캐릭터가 없습니다.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {likedList.map(item => {
-                      const alreadyImported = items.some(c => c.sourceUrl === item.sourceUrl)
-                      const checked = likedSelected.has(item.id)
-                      return (
-                        <div key={item.id}
-                          onClick={() => !alreadyImported && toggleLikedSelect(item.id)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: '1px solid var(--tg-line)', cursor: alreadyImported ? 'default' : 'pointer', opacity: alreadyImported ? 0.5 : 1 }}>
-                          <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${checked ? 'var(--tg-accent)' : 'var(--tg-line)'}`, background: checked ? 'var(--tg-accent)' : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-                            {checked && <span style={{ fontSize: 12, color: '#fff', lineHeight: 1 }}>✓</span>}
-                          </div>
-                          {item.coverImageUrl
-                            ? <img src={item.coverImageUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
-                            : <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--tg-surface-2)', display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0 }}>🎭</div>
-                          }
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--tg-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
-                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 3 }}>
-                              {item.isAdult && <span style={{ fontSize: 9, fontWeight: 700, background: '#ff5776', color: '#fff', padding: '1px 4px', borderRadius: 3 }}>성인</span>}
-                              {item.tags.slice(0, 2).map(t => (
-                                <span key={t} style={{ fontSize: 9, color: 'var(--tg-ink-soft)', background: 'var(--tg-surface-2)', padding: '1px 5px', borderRadius: 10 }}>#{t}</span>
-                              ))}
-                            </div>
-                          </div>
-                          {alreadyImported && <span style={{ fontSize: 11, color: '#4ade80', flexShrink: 0 }}>✓ 완료</span>}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-              {!scanning && likedSelected.size > 0 && (
-                <div style={{ padding: '10px 16px 20px', flexShrink: 0, borderTop: '1px solid var(--tg-line)' }}>
-                  <button
-                    disabled={importing}
-                    onClick={handleLikedImport}
-                    style={{ width: '100%', appearance: 'none', border: 'none', background: 'var(--tg-accent)', color: '#fff', borderRadius: 10, padding: '13px 0', fontSize: 14, cursor: 'pointer', fontWeight: 700 }}>
-                    {importing ? msg || '가져오는 중...' : `📥 선택한 ${likedSelected.size}개 가져오기`}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
+      <LikedImportSheet
+        open={likedPanel}
+        onClose={() => setLikedPanel(false)}
+        title="♥ 팅글 좋아요 목록"
+        prefix="tg"
+        items={likedList}
+        scanning={scanning}
+        scanMsg={scanMsg}
+        onRescan={() => { setLikedList([]); setLikedSelected(new Set()); handleLikedScan() }}
+        alreadyImported={x => items.some(c => c.sourceUrl === x.sourceUrl)}
+        selected={likedSelected}
+        onChangeSelected={setLikedSelected}
+        importing={importing}
+        importProgress={msg}
+        onImport={handleLikedImport}
+      />
 
       <div className="tingle-header" style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
