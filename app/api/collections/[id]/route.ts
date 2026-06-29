@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const collection = await prisma.characterCollection.findFirst({
     where: { id: params.id, userId },
     include: {
-      characters: true,
+      characters: { orderBy: { createdAt: 'asc' } },
     },
   })
 

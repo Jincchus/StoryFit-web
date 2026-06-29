@@ -42,7 +42,6 @@ export async function createCenterChat(args: {
       name: args.newPersona.name,
       gender: args.newPersona.gender,
       additionalInfo: args.newPersona.additionalInfo,
-      collectionId: args.collectionId,
     })
     personaId = p.id
   }
