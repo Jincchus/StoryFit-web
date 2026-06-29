@@ -23,6 +23,19 @@ interface RofanTag { tag_name?: string }
 
 const GENDER_MAP: Record<string, string> = { male: '남성', female: '여성' }
 
+// rofan 설정 필드(char_persona/worldview/creator_message 등)는 <br>·<span>·<a> 같은 HTML을 담는다.
+// <br>·블록 닫는 태그는 줄바꿈으로, 나머지 태그는 제거, 엔티티는 디코드한다.
+function stripHtml(html?: string | null): string {
+  return String(html || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 // URL에서 캐릭터 UUID 추출. 형식: rofan.ai/character/{uuid}
 export function parseRofanUrl(url: string): string {
   const m = url.match(/\/character\/([0-9a-fA-F-]{36})/)
@@ -46,11 +59,15 @@ export function assembleRofan(pageProps: any): AssembledResult {
     ? (pageProps.botTags as RofanTag[]).map((t) => String(t?.tag_name ?? '').trim()).filter(Boolean)
     : []
 
+  const persona = stripHtml(bot.char_persona)
+  const world = stripHtml(bot.worldview)
+  const userRole = stripHtml(bot.userPersona)
+  const creatorMemo = stripHtml(bot.creator_message)
   const additionalInfo = [
-    bot.char_persona?.trim(),
-    bot.worldview?.trim() && `[세계관]\n${bot.worldview.trim()}`,
-    bot.userPersona?.trim() && `[유저 역할]\n${bot.userPersona.trim()}`,
-    bot.creator_message?.trim() && `[제작자 메모]\n${bot.creator_message.trim()}`,
+    persona || undefined,
+    world && `[세계관]\n${world}`,
+    userRole && `[유저 역할]\n${userRole}`,
+    creatorMemo && `[제작자 메모]\n${creatorMemo}`,
   ]
     .filter(Boolean)
     .join('\n\n')
@@ -71,7 +88,7 @@ export function assembleRofan(pageProps: any): AssembledResult {
     gender: GENDER_MAP[String(bot.gender)] ?? '',
     tags,
     additionalInfo,
-    openingMessage: bot.first_message?.trim() ?? '',
+    openingMessage: stripHtml(bot.first_message),
     exampleDialogues: '',
     avatarUrl: bot.char_image || publicAssets[0] || undefined,
     relatedImages: relatedImages.length > 0 ? relatedImages : undefined,
@@ -79,7 +96,7 @@ export function assembleRofan(pageProps: any): AssembledResult {
 
   return {
     characters: [character],
-    scenarioDescription: bot.summary?.trim() ?? '',
+    scenarioDescription: stripHtml(bot.summary),
     tags,
     title: character.name,
     safetyLevel: bot.nsfw ? 'relaxed' : 'standard',
