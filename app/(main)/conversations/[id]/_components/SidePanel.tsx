@@ -5,6 +5,7 @@ import PixelAvatar from '@/components/ui/PixelAvatar'
 import ModelPill from '@/components/ui/ModelPill'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import type { Character } from '@/types'
+import CommandGuide from '@/components/ui/CommandGuide'
 import { useLorebook } from '../_hooks/useLorebook'
 import { useMemoryPanel } from '../_hooks/useMemoryPanel'
 import type { Conv, ConvChar, LbEntry, BranchInfo } from '../_lib/chatShared'
@@ -37,6 +38,21 @@ export default function SidePanel({
   const display = (text: string) => replaceDisplayPlaceholders(text, personaName, charNames)
   const [panelOpen, setPanelOpen] = useState<Record<string, boolean>>({ memory: true, lorebook: false, branch: false, style: false, persona: false })
   const [infoTip, setInfoTip] = useState<string | null>(null)
+
+  const [cmds, setCmds] = useState<{ id: string; name: string; instruction: string; description: string }[]>([])
+  const [cmdName, setCmdName] = useState('')
+  const [cmdInstr, setCmdInstr] = useState('')
+  const [cmdDesc, setCmdDesc] = useState('')
+  const [cmdMsg, setCmdMsg] = useState('')
+  const loadCmds = () => { api.get('/api/commands').then(setCmds).catch(() => {}) }
+  useEffect(() => { loadCmds() }, [])
+  const saveCmd = async () => {
+    try {
+      await api.post('/api/commands', { name: cmdName, instruction: cmdInstr, description: cmdDesc })
+      setCmdName(''); setCmdInstr(''); setCmdDesc(''); setCmdMsg('✓ 추가됨'); loadCmds()
+    } catch (e: any) { setCmdMsg(`⚠ ${e.message ?? '실패'}`) }
+  }
+  const delCmd = async (id: string) => { if (!confirm('이 커맨드를 삭제할까요?')) return; await api.delete(`/api/commands/${id}`); loadCmds() }
 
   const {
     lorebooks, lorebookAdd, setLorebookAdd,
@@ -290,6 +306,30 @@ export default function SidePanel({
           ))}
         </div>
         )}
+      </div>
+
+      <div className="side-section" hidden={tab !== 'basic'}>
+        <div className="label">내 커맨드</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
+          나만의 AI 커맨드를 만들면 채팅에서 <code>!이름</code>으로 실행됩니다.
+        </div>
+        {cmds.map(c => (
+          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 13 }}>!{c.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description || c.instruction}</div>
+            </div>
+            <button onClick={() => delCmd(c.id)} style={{ flexShrink: 0, background: 'none', border: 'none', color: '#ff6b8a', cursor: 'pointer', fontSize: 14 }}>✕</button>
+          </div>
+        ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+          <input className="field" placeholder="이름 (예: 에타)" value={cmdName} onChange={e => setCmdName(e.target.value)} />
+          <div style={{ display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 700 }}>지시문 <CommandGuide /></div>
+          <textarea className="field" rows={3} placeholder="현재 상황을 확인해 ... 마크다운으로 작성하라" value={cmdInstr} onChange={e => setCmdInstr(e.target.value)} style={{ resize: 'vertical', fontSize: 12 }} />
+          <input className="field" placeholder="설명(선택, 자동완성에 표시)" value={cmdDesc} onChange={e => setCmdDesc(e.target.value)} />
+          <button className="btn" onClick={saveCmd} disabled={!cmdName.trim() || !cmdInstr.trim()}>+ 커맨드 추가</button>
+          {cmdMsg && <div style={{ fontSize: 11, color: cmdMsg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{cmdMsg}</div>}
+        </div>
       </div>
 
       <div className="side-section" hidden={tab !== 'world'}>

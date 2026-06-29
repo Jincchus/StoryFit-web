@@ -116,8 +116,15 @@ export default function ChatPage() {
   const [showCommandMenu, setShowCommandMenu] = useState(false)
   const [commandQuery, setCommandQuery] = useState('')
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0)
+  const [userCmds, setUserCmds] = useState<{ name: string; desc: string }[]>([])
+  useEffect(() => {
+    api.get('/api/commands')
+      .then((cs: { name: string; description: string }[]) =>
+        setUserCmds(cs.map(c => ({ name: `!${c.name}`, desc: c.description || '내 커맨드' }))))
+      .catch(() => {})
+  }, [])
 
-  const filteredCommands = COMMANDS.filter(cmd =>
+  const filteredCommands = [...COMMANDS, ...userCmds].filter(cmd =>
     cmd.name.toLowerCase().startsWith(commandQuery.toLowerCase())
   )
 
