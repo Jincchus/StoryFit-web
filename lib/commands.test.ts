@@ -60,4 +60,10 @@ describe('validateCommandName', () => {
   it('정상 이름은 null', () => {
     expect(validateCommandName('에타')).toBeNull()
   })
+  it('20자 초과는 에러', () => {
+    expect(validateCommandName('가'.repeat(21))).not.toBeNull()
+  })
+  it('허용되지 않는 문자(예: 하이픈)는 에러', () => {
+    expect(validateCommandName('에타-1')).not.toBeNull()
+  })
 })

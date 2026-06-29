@@ -300,7 +300,7 @@ export default function MessageList({
             )}
 
             {/* ── 본문 4지선다 선택지 버튼 (단일 호출로 받은 본문 내 선택지를 파싱해 렌더) ── */}
-            {isStoryOrMulti && !isYou && isLast && !typing && storyParsed && storyParsed.choices.length > 0 && (
+            {isStoryOrMulti && !isYou && isLast && !typing && storyParsed && storyParsed.choices.length > 0 && !m.commandName && (
               <div className="vstack" style={{ gap: 5, marginTop: 8, paddingLeft: 4 }}>
                 {storyParsed.choices.map((choice, i) => (
                   <div key={i} className="hstack" style={{ gap: 4, alignItems: 'stretch' }}>

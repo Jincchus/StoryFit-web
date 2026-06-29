@@ -205,10 +205,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const finalSystemPrompt = commandDirective ? `${systemPrompt}\n\n${commandDirective}` : systemPrompt
 
+  const isCommandGen = commandDirective != null
+
   const enrichMode = conv.enrichInputMode ?? false
   // 스토리/멀티스토리 모드면 항상 본문에 4지선다 포함 — 단일 호출로 본문+선택지를 함께 생성
   // (별도 /suggestions API 호출 없이 클라이언트가 본문에서 파싱해 버튼으로 렌더)
-  const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
+  // 커맨드 생성은 4지선다 제외 — 마크다운 응답과 충돌 방지
+  const allowChoices = (conv.mode === 'story' || conv.mode === 'multiStory') && !isCommandGen
   const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charNames)
     + (diceResult ? diceInstruction(diceResult) : '')
   const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices, enrichMode)
@@ -239,13 +242,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     character: buildCharParam(character),
     systemPrompt: finalSystemPrompt,
     history,
+    isCommandGen,
   }).catch(err => console.error('[chat:async] uncaught error:', err))
 
   return NextResponse.json({ messageId: assistantMsg.id }, { status: 202 })
 }
 
 async function generateAsync({
-  convId, msgId, userId, conv, character, systemPrompt, history,
+  convId, msgId, userId, conv, character, systemPrompt, history, isCommandGen,
 }: {
   convId: string
   msgId: string
@@ -254,6 +258,7 @@ async function generateAsync({
   character: any
   systemPrompt: string
   history: GeminiTurn[]
+  isCommandGen: boolean
 }) {
   const prevAssistantText = [...history].reverse().find(m => m.role === 'model')?.parts[0].text ?? ''
   const gen: GenConfig = {
@@ -276,7 +281,7 @@ async function generateAsync({
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText)
 
     const enrichMode = conv.enrichInputMode ?? false
-    const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
+    const allowChoices = (conv.mode === 'story' || conv.mode === 'multiStory') && !isCommandGen
     const revisionOptions = {
       allowChoices,
       forbiddenChoiceNames: [],
@@ -287,7 +292,7 @@ async function generateAsync({
 
     cleanText = applyLightFixes(cleanText, revisionOptions)
 
-    if (needsResponseRevision(cleanText, revisionOptions)) {
+    if (!isCommandGen && needsResponseRevision(cleanText, revisionOptions)) {
       brokerSetPhase(msgId, 'revising')
       const revised = await streamRevision({
         gen,
@@ -321,23 +326,25 @@ async function generateAsync({
 
     triggerMemorySummarization(convId, [character.tags?.join(', '), character.additionalInfo].filter(Boolean).join('\n')).catch(err => console.error('[memorySummarization] trigger 실패:', err))
 
-    if (conv.mode === 'story' || conv.mode === 'multiStory') {
-      triggerStoryEvaluation({
-        convId,
-        msgId,
-        userMsg: history[history.length - 1]?.parts[0].text ?? '',
-        aiMsg: cleanText,
-        currentTimeline: conv.statusTimeline ?? '',
-        currentStats: Array.isArray(conv.statsConfig) ? conv.statsConfig as any : null,
-        currentInventory: Array.isArray(conv.inventory) ? conv.inventory as any : null,
-        statsEnabled: conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0,
-        inventoryEnabled: conv.inventoryEnabled && Array.isArray(conv.inventory),
-        autoChapterEnabled: conv.autoChapterEnabled,
-        plotOutline: parsePlotOutline(conv.plotOutline),
-        currentChapter: conv.chapter,
-      })
-    } else {
-      triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '', conv.autoChapterEnabled)
+    if (!isCommandGen) {
+      if (conv.mode === 'story' || conv.mode === 'multiStory') {
+        triggerStoryEvaluation({
+          convId,
+          msgId,
+          userMsg: history[history.length - 1]?.parts[0].text ?? '',
+          aiMsg: cleanText,
+          currentTimeline: conv.statusTimeline ?? '',
+          currentStats: Array.isArray(conv.statsConfig) ? conv.statsConfig as any : null,
+          currentInventory: Array.isArray(conv.inventory) ? conv.inventory as any : null,
+          statsEnabled: conv.statsEnabled && Array.isArray(conv.statsConfig) && conv.statsConfig.length > 0,
+          inventoryEnabled: conv.inventoryEnabled && Array.isArray(conv.inventory),
+          autoChapterEnabled: conv.autoChapterEnabled,
+          plotOutline: parsePlotOutline(conv.plotOutline),
+          currentChapter: conv.chapter,
+        })
+      } else {
+        triggerStateTracking(convId, history[history.length - 1]?.parts[0].text ?? '', cleanText, conv.statusTimeline ?? '', conv.autoChapterEnabled)
+      }
     }
     brokerFinish(msgId)
   } catch (err: any) {

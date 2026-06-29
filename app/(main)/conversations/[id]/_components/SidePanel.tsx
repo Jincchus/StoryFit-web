@@ -52,7 +52,11 @@ export default function SidePanel({
       setCmdName(''); setCmdInstr(''); setCmdDesc(''); setCmdMsg('✓ 추가됨'); loadCmds()
     } catch (e: any) { setCmdMsg(`⚠ ${e.message ?? '실패'}`) }
   }
-  const delCmd = async (id: string) => { if (!confirm('이 커맨드를 삭제할까요?')) return; await api.delete(`/api/commands/${id}`); loadCmds() }
+  const delCmd = async (id: string) => {
+    if (!confirm('이 커맨드를 삭제할까요?')) return
+    try { await api.delete(`/api/commands/${id}`); loadCmds() }
+    catch (e: any) { setCmdMsg(`⚠ ${e?.message ?? '삭제 실패'}`) }
+  }
 
   const {
     lorebooks, lorebookAdd, setLorebookAdd,
