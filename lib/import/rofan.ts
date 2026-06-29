@@ -17,6 +17,7 @@ interface RofanBot {
   creator_message?: string
   summary?: string
   nsfw?: boolean
+  userPersona?: string
 }
 interface RofanTag { tag_name?: string }
 
@@ -48,6 +49,7 @@ export function assembleRofan(pageProps: any): AssembledResult {
   const additionalInfo = [
     bot.char_persona?.trim(),
     bot.worldview?.trim() && `[세계관]\n${bot.worldview.trim()}`,
+    bot.userPersona?.trim() && `[유저 역할]\n${bot.userPersona.trim()}`,
     bot.creator_message?.trim() && `[제작자 메모]\n${bot.creator_message.trim()}`,
   ]
     .filter(Boolean)
