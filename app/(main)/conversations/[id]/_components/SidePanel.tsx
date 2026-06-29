@@ -6,6 +6,7 @@ import ModelPill from '@/components/ui/ModelPill'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import type { Character } from '@/types'
 import CommandGuide from '@/components/ui/CommandGuide'
+import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import { useLorebook } from '../_hooks/useLorebook'
 import { useMemoryPanel } from '../_hooks/useMemoryPanel'
 import type { Conv, ConvChar, LbEntry, BranchInfo } from '../_lib/chatShared'
@@ -251,6 +252,24 @@ export default function SidePanel({
               </div>
               <div style={{ fontSize: 10, fontWeight: 700 }}>{cc.character.name}</div>
             </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="side-section" hidden={tab !== 'basic'}>
+        <div className="label">비밀설정</div>
+        <div className="vstack" style={{ gap: 2 }}>
+          {conv.characters.map(cc => (
+            <SecretSettingsBlock
+              key={cc.character.id}
+              characterId={cc.character.id}
+              value={cc.character.secretSettings ?? ''}
+              userName={personaName}
+              charNames={charNames}
+              editable={!cc.character.isPreset}
+              label={conv.characters.length > 1 ? `비밀설정 — ${cc.character.name}` : '비밀설정'}
+              onSaved={next => setConv(c => c ? { ...c, characters: c.characters.map(x => x.character.id === cc.character.id ? { character: { ...x.character, secretSettings: next } } : x) } : c)}
+            />
           ))}
         </div>
       </div>

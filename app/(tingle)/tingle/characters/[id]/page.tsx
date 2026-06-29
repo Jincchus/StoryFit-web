@@ -9,6 +9,7 @@ import ChatModeModal from '@/components/ui/ChatModeModal'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import NovelText from '@/components/ui/NovelText'
+import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import TingleCardPreviewSheet from '@/components/ui/TingleCardPreviewSheet'
 import { getOpenings } from '@/lib/openings'
 import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
@@ -20,7 +21,7 @@ interface TingleCol {
   id: string; title: string; coverImageUrl: string; description?: string; tags: string[]
   sourceUrl: string
   tingleMeta?: { type: string; fields: TingleField[]; openings: any[] }
-  characters: { id: string; name: string; avatarUrl: string | null; gender?: string; additionalInfo: string; openingMessage: string; openingMessages?: any[] }[]
+  characters: { id: string; name: string; avatarUrl: string | null; gender?: string; additionalInfo: string; secretSettings?: string; openingMessage: string; openingMessages?: any[] }[]
 }
 
 function formatDate(s?: string) {
@@ -378,6 +379,17 @@ export default function TingleCharacterDetailPage() {
               </div>
             </div>
           ) : null}
+
+          {mainChar && (
+            <SecretSettingsBlock
+              className="tingle-section"
+              characterId={mainChar.id}
+              value={mainChar.secretSettings ?? ''}
+              userName={userName}
+              charNames={charNames}
+              onSaved={next => setCol(prev => prev ? { ...prev, characters: prev.characters.map(ch => ch.id === mainChar.id ? { ...ch, secretSettings: next } : ch) } : prev)}
+            />
+          )}
 
           {openings.length > 0 && (
             <div className="tingle-section" style={{ paddingTop: 0 }}>

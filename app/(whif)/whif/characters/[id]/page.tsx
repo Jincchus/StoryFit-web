@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
 import NovelText from '@/components/ui/NovelText'
+import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { getOpenings } from '@/lib/openings'
 import { useDisplayName } from '@/lib/useDisplayName'
@@ -20,7 +21,7 @@ function formatDate(s?: string) {
 
 interface Character {
   id: string; name: string; gender: string; avatarUrl: string | null; tags: string[]
-  additionalInfo: string; openingMessage: string; safetyLevel: string
+  additionalInfo: string; secretSettings?: string; openingMessage: string; safetyLevel: string
   openingMessages?: Opening[]; collection?: { id: string; title: string } | null
   relatedImages?: string[]
 }
@@ -185,6 +186,15 @@ export default function CharacterDetailPage() {
               <p style={{ color: 'var(--w-ink-soft)', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }}>{replaceDisplayPlaceholders(char.additionalInfo, userName, char.name)}</p>
             </div>
           )}
+
+          <SecretSettingsBlock
+            className="whif-section"
+            characterId={char.id}
+            value={char.secretSettings ?? ''}
+            userName={userName}
+            charNames={char.name}
+            onSaved={next => setChar(c => c ? { ...c, secretSettings: next } : c)}
+          />
 
           {/* 시작 상황 */}
           {openings.length > 0 && (

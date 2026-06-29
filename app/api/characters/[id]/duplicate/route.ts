@@ -20,6 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         avatarUrl: source.avatarUrl,
         tags: source.tags,
         additionalInfo: source.additionalInfo,
+        secretSettings: source.secretSettings,
         exampleDialogues: source.exampleDialogues,
         openingMessage: source.openingMessage,
         openingMessages: (source.openingMessages ?? undefined) as any,

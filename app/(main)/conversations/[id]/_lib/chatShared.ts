@@ -7,7 +7,7 @@ export interface PlotOutlineData {
   chapters: { index: number; title: string; goal: string; events: string[]; transition: string }[]
   source?: 'tikita' | 'ai'
 }
-export interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string; gender?: string; tags: string[]; additionalInfo: string; exampleDialogues: string; openingMessage?: string; isPreset: boolean } }
+export interface ConvChar { character: { id: string; name: string; kind: string; avatarUrl?: string; gender?: string; tags: string[]; additionalInfo: string; secretSettings?: string; exampleDialogues: string; openingMessage?: string; isPreset: boolean } }
 export interface Conv {
   id: string; title: string; mode: string; currentAI: string; chatModel?: string | null; coreMemory: string; statusTimeline: string; scenarioDescription: string; branchDescription: string
   statsEnabled: boolean; statsConfig: { name: string; value: number; min: number; max: number }[] | null

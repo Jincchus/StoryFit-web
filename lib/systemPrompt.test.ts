@@ -62,6 +62,22 @@ describe('프롬프트 조립 순서 — 정적 프리픽스 유지 (implicit ca
     expect(prompt.indexOf('[캐릭터 설정]')).toBeLessThan(prompt.indexOf('[현재 스탯]'))
     expect(prompt.indexOf('[현재 스탯]')).toBeLessThan(prompt.indexOf('[현재 인벤토리]'))
   })
+
+  it('비밀설정(secretSettings)은 캐릭터 블록 안에 포함되고 플레이스홀더가 치환된다', () => {
+    const prompt = buildStorySystemPrompt({
+      character: { ...character, secretSettings: '[OOC] {{user}}의 정체는 첩자다.' },
+      personaCharacter: { name: '민수' },
+    })
+    expect(prompt).toContain('[비밀설정]')
+    expect(prompt).toContain('민수의 정체는 첩자다.')
+    // 정적 캐릭터 블록 안(예시 대화 앞)에 위치
+    expect(prompt.indexOf('[비밀설정]')).toBeLessThan(prompt.indexOf('[예시 대화]'))
+  })
+
+  it('secretSettings가 없으면 [비밀설정] 블록은 포함되지 않는다', () => {
+    const prompt = buildStorySystemPrompt({ character })
+    expect(prompt).not.toContain('[비밀설정]')
+  })
 })
 
 describe('페르소나 치환 토글(flipPersonaPlaceholders)', () => {

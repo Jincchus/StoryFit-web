@@ -142,6 +142,7 @@ model Character {
   avatarUrl           String?
   tags                String[]  @default([])
   additionalInfo      String    @default("")
+  secretSettings      String    @default("") // 비설/비밀설정(숨김 OOC). 카드·채팅 양쪽에서 접힘 표시·인라인 편집, 프롬프트 포함.
   exampleDialogues    String    @default("")
   openingMessage      String    @default("")
   openingMessages     Json?

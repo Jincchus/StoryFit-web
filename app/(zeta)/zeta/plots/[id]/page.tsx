@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
 import NovelText from '@/components/ui/NovelText'
+import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import ChatModeModal from '@/components/ui/ChatModeModal'
@@ -15,7 +16,7 @@ import type { Opening } from '@/types'
 import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 
 interface Char {
-  id: string; name: string; avatarUrl: string | null; additionalInfo: string
+  id: string; name: string; avatarUrl: string | null; additionalInfo: string; secretSettings?: string
   gender?: string
   openingMessage: string; openingMessages?: Opening[]
 }
@@ -246,6 +247,14 @@ export default function ZetaPlotDetailPage() {
                           {replaceDisplayPlaceholders(c.additionalInfo, userName, c.name)}
                         </div>
                       )}
+                      <SecretSettingsBlock
+                        characterId={c.id}
+                        value={c.secretSettings ?? ''}
+                        userName={userName}
+                        charNames={col.characters.map(x => x.name)}
+                        label={col.characters.length > 1 ? `비밀설정 — ${c.name}` : '비밀설정'}
+                        onSaved={next => setCol(prev => prev ? { ...prev, characters: prev.characters.map(ch => ch.id === c.id ? { ...ch, secretSettings: next } : ch) } : prev)}
+                      />
                     </div>
                   </div>
                 ))}
