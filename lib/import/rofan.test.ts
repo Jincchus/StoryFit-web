@@ -68,4 +68,33 @@ describe('assembleRofan', () => {
   it('이름 없으면 throw', () => {
     expect(() => assembleRofan({ oriBotDetail: {} })).toThrow()
   })
+
+  it('char_secrets를 secretSettings 필드로 분리하고 HTML을 정리한다', () => {
+    const c = assembleRofan({
+      ...pageProps,
+      oriBotDetail: {
+        ...pageProps.oriBotDetail,
+        char_secrets: '[OOC: 숨김]<br /><br />첫 줄.<br />둘째 줄.',
+      },
+    }).characters[0]
+    expect(c.secretSettings).toBe('[OOC: 숨김]\n\n첫 줄.\n둘째 줄.')
+    expect(c.additionalInfo).not.toContain('OOC')
+  })
+
+  it('secretSettings의 #FFC200 유저 스팬을 {{user}}로 역치환한다', () => {
+    const c = assembleRofan({
+      ...pageProps,
+      oriBotDetail: {
+        ...pageProps.oriBotDetail,
+        char_secrets: '등장인물: <span style="color:#FFC200; font-weight:500; font-style:italic; ">허니</span>',
+      },
+    }).characters[0]
+    expect(c.secretSettings).toContain('등장인물: {{user}}')
+    expect(c.secretSettings).not.toContain('허니')
+  })
+
+  it('char_secrets 없으면 secretSettings는 undefined', () => {
+    const c = assembleRofan(pageProps).characters[0]
+    expect(c.secretSettings).toBeUndefined()
+  })
 })

@@ -81,7 +81,8 @@ const FEATURE_SECTIONS: FeatureSection[] = [
     items: [
       { emoji: '🔗', label: 'URL 붙여넣기 가져오기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle 센터의 캐릭터/스토리 URL을 각 센터 ⋮ 메뉴에 붙여넣으면 캐릭터·첫 장면·설정을 자동으로 가져옵니다.' },
       { emoji: '🧩', label: 'Chub 외국 센터', desc: 'chub.ai의 외국 캐릭터 카드를 원문(영어) 그대로 즉시 가져옵니다. 상세 화면의 "🌐 한국어로 번역" 버튼을 누르면 AI(Gemini)가 설명·도입부·예시대화를 번역하며, "🔤 원문" 버튼으로 다시 되돌릴 수 있습니다(태그는 가져올 때 한글로 정규화, 이름은 원문 유지).' },
-      { emoji: '💗', label: 'rofanai 국내 센터', desc: 'rofan.ai의 로맨스 판타지 캐릭터를 가져옵니다. 캐릭터 페이지 URL(/character/...)을 붙여넣으면 설정·세계관·첫 장면·태그를 자동으로 가져옵니다(한국어라 번역 없음).' },
+      { emoji: '💗', label: 'rofanai 국내 센터', desc: 'rofan.ai의 로맨스 판타지 캐릭터를 가져옵니다. 캐릭터 페이지 URL(/character/...)을 붙여넣으면 설정·세계관·첫 장면·태그를 자동으로 가져옵니다(한국어라 번역 없음). 비설(숨김 설정)은 관리자 설정에 rofan 세션 쿠키가 등록돼 있을 때만 함께 가져와 [비밀설정]으로 저장됩니다.' },
+      { emoji: '🔒', label: '비밀설정 (숨김 설정)', desc: '화면에는 접힌 상태로 표시되지만 AI 프롬프트에는 항상 포함되는 숨김 캐릭터 설정입니다. 센터 카드와 채팅 설정창 양쪽에서 펼쳐 보고 ✏ 수정으로 바로 편집할 수 있으며, 한쪽에서 고치면 같은 캐릭터를 보는 다른 쪽에도 반영됩니다.' },
       { emoji: '💞', label: 'loveydovey (메타데이터)', desc: 'loveydovey.ai 캐릭터 URL을 붙여넣으면 이름·한줄소개·장르·이미지 등 메타데이터를 가져옵니다. (상세 설정·첫 장면은 비공개라 직접 입력해야 합니다.)' },
       { emoji: '🩵', label: 'babechat 국내 센터', desc: 'babechat.ai 캐릭터 URL을 붙여넣으면 설정·도입부·태그를 가져옵니다. 로그인이 필요한 센터라 관리자 설정에서 인증 토큰을 먼저 등록해야 합니다(만료 시 자동 갱신).' },
       { emoji: '💫', label: 'tingle 국내 센터', desc: 'tingle.chat의 캐릭터·서사·테마 URL을 붙여넣으면 설정·도입부·첫 장면·태그를 가져옵니다. URL 형식: /chat/characters/{id}(캐릭터), /chat/universes/{id}(서사), /chat/scenes/{id}(테마). 로그인이 필요해 관리자 설정에서 Firebase JWT 인증 토큰을 먼저 등록해야 합니다(1시간 만료 시 재등록).' },

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PixelAvatar from '@/components/ui/PixelAvatar'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
+import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 
 export interface CharacterCardData {
   id: string
@@ -12,6 +13,7 @@ export interface CharacterCardData {
   kind?: string
   tags: string[]
   additionalInfo: string
+  secretSettings?: string
   exampleDialogues: string
   openingMessage?: string
   isPreset: boolean
@@ -74,6 +76,17 @@ export default function CharacterCardModal({ character, onClose, personaName }: 
             {character.additionalInfo ? display(character.additionalInfo) : <span className="muted">설정 없음</span>}
           </div>
         </div>
+
+        {!character.isPreset && (
+          <div style={{ marginBottom: 12 }}>
+            <SecretSettingsBlock
+              characterId={character.id}
+              value={character.secretSettings ?? ''}
+              userName={personaName ?? '나'}
+              charNames={character.name}
+            />
+          </div>
+        )}
 
         {character.openingMessage && (
           <div className="vstack" style={{ gap: 4, marginBottom: 12 }}>

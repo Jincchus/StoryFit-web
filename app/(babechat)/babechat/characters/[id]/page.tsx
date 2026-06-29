@@ -8,6 +8,7 @@ import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type N
 import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
+import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { getOpenings } from '@/lib/openings'
@@ -21,7 +22,7 @@ function formatDate(s?: string) {
 }
 
 interface Char {
-  id: string; name: string; avatarUrl: string | null; additionalInfo: string
+  id: string; name: string; avatarUrl: string | null; additionalInfo: string; secretSettings?: string
   openingMessage: string; openingMessages?: Opening[]; tags: string[]
 }
 interface Collection {
@@ -224,6 +225,17 @@ export default function BabechatCharDetailPage() {
               <h2 className="bc-section-title">상세 설정</h2>
               <MeltingMarkdown text={replaceDisplayPlaceholders(mainChar.additionalInfo, userDisplayName, mainChar.name)} />
             </div>
+          )}
+
+          {mainChar && (
+            <SecretSettingsBlock
+              className="bc-section"
+              characterId={mainChar.id}
+              value={mainChar.secretSettings ?? ''}
+              userName={userDisplayName}
+              charNames={col.characters.map(c => c.name)}
+              onSaved={next => setCol(c => c ? { ...c, characters: c.characters.map(ch => ch.id === mainChar.id ? { ...ch, secretSettings: next } : ch) } : c)}
+            />
           )}
 
           <div className="bc-section" style={{ paddingTop: 0 }}>

@@ -29,6 +29,7 @@ export interface Character {
   avatarUrl?: string
   tags: string[]
   additionalInfo: string
+  secretSettings?: string
   exampleDialogues: string
   openingMessage?: string
   safetyLevel: SafetyLevel

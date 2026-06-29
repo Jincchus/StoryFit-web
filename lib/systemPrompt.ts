@@ -79,6 +79,13 @@ function buildCharLines(character: Character, personaName?: string): string {
       : character.additionalInfo.trim()
     lines.push(info)
   }
+  // 비밀설정(secretSettings): UI에선 숨김/접힘이지만 프롬프트에는 항상 포함한다. 캐릭터 블록 안에 둬 고정 순서·캐싱을 유지.
+  if (character.secretSettings?.trim()) {
+    const secret = personaName
+      ? replacePlaceholders(character.secretSettings.trim(), personaName, character.name)
+      : character.secretSettings.trim()
+    lines.push(`[비밀설정]\n${secret}`)
+  }
   return lines.join('\n')
 }
 

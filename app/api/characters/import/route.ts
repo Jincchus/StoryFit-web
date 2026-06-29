@@ -178,6 +178,7 @@ async function runImport(captured: Captured, url: string, userId: string) {
           tags: isImmersive ? (c.tags ?? []) : result.tags,
           relatedImages: c.relatedImages ?? [],
           additionalInfo: c.additionalInfo,
+          secretSettings: c.secretSettings ?? '',
           exampleDialogues: c.exampleDialogues,
           openingMessage: c.openingMessage,
           openingMessages: c.openingMessages ? (c.openingMessages as any) : undefined,

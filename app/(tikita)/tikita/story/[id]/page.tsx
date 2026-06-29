@@ -7,6 +7,7 @@ import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
 import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
+import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { useDisplayName } from '@/lib/useDisplayName'
@@ -19,7 +20,7 @@ function formatDate(s?: string) {
 }
 
 interface Char {
-  id: string; name: string; avatarUrl: string | null; additionalInfo: string
+  id: string; name: string; avatarUrl: string | null; additionalInfo: string; secretSettings?: string
   openingMessage: string; tags: string[]; relatedImages?: string[]
 }
 interface Collection {
@@ -317,6 +318,14 @@ export default function TikitaStoryDetailPage() {
                         <NovelText text={replaceDisplayPlaceholders(c.additionalInfo, userName, charNames)} />
                       </div>
                     )}
+                    <SecretSettingsBlock
+                      characterId={c.id}
+                      value={c.secretSettings ?? ''}
+                      userName={userName}
+                      charNames={charNames}
+                      label={col.characters.length > 1 ? `비밀설정 — ${c.name}` : '비밀설정'}
+                      onSaved={next => setCol(prev => prev ? { ...prev, characters: prev.characters.map(ch => ch.id === c.id ? { ...ch, secretSettings: next } : ch) } : prev)}
+                    />
                   </div>
                 ))}
               </div>
