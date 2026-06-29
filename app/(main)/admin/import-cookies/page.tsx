@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'rofan_session_cookie', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -85,6 +85,8 @@ export default function AdminImportCookiesPage() {
   const [tingleApiKeyUpdatedAt, setTingleApiKeyUpdatedAt] = useState<string | null>(null)
   const [zetaToken, setZetaToken] = useState('')
   const [zetaTokenUpdatedAt, setZetaTokenUpdatedAt] = useState<string | null>(null)
+  const [rofanCookie, setRofanCookie] = useState('')
+  const [rofanCookieUpdatedAt, setRofanCookieUpdatedAt] = useState<string | null>(null)
   const [tingleOpen, setTingleOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -109,6 +111,8 @@ export default function AdminImportCookiesPage() {
       setTingleApiKeyUpdatedAt(data.tingle_firebase_api_key?.updatedAt ?? null)
       setZetaToken(data.zeta_token?.value ?? '')
       setZetaTokenUpdatedAt(data.zeta_token?.updatedAt ?? null)
+      setRofanCookie(data.rofan_session_cookie?.value ?? '')
+      setRofanCookieUpdatedAt(data.rofan_session_cookie?.updatedAt ?? null)
     }).catch(() => {})
   }
 
@@ -128,6 +132,7 @@ export default function AdminImportCookiesPage() {
         tingle_refresh_token: tingleRefresh,
         tingle_firebase_api_key: tingleApiKey,
         zeta_token: zetaToken,
+        rofan_session_cookie: rofanCookie,
       })
       setSaved(true)
       load()
@@ -205,6 +210,15 @@ export default function AdminImportCookiesPage() {
               value={zetaToken}
               onChange={setZetaToken}
               updatedAt={zetaTokenUpdatedAt}
+            />
+
+            <CookieField
+              label="로판 세션 쿠키 (rofan.ai) — 좋아요 스캔용"
+              hint={'rofan.ai 로그인 후 개발자도구 → Application → Cookies → __Secure-next-auth.session-token 값을 복사해 붙여넣으세요.\n토큰 값만 넣어도 되고, 쿠키 전체 문자열을 넣어도 됩니다.'}
+              placeholder="__Secure-next-auth.session-token=eyJ... 또는 값만"
+              value={rofanCookie}
+              onChange={setRofanCookie}
+              updatedAt={rofanCookieUpdatedAt}
             />
 
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>

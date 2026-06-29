@@ -8,6 +8,8 @@ import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
 import { useCenterList } from '@/lib/useCenterList'
 import { useDisplayName } from '@/lib/useDisplayName'
 import type { CenterListItem } from '@/lib/centerListSelect'
+import LikedImportSheet from '@/components/ui/LikedImportSheet'
+import type { LikedItem } from '@/lib/likedScan'
 
 interface Character {
   id: string; name: string; avatarUrl: string | null; gender?: string | null
@@ -63,6 +65,41 @@ export default function WhifExplorePage() {
 
   const handleTab = (v: typeof tab) => { setTab(v); sessionStorage.setItem('whif_tab', v) }
   const refreshAll = async () => { await Promise.all([uniHook.refresh(), charHook.refresh()]) }
+
+  const [likedPanel, setLikedPanel] = useState(false)
+  const [likedList, setLikedList] = useState<LikedItem[]>([])
+  const [likedSelected, setLikedSelected] = useState<Set<string>>(new Set())
+  const [scanning, setScanning] = useState(false)
+  const [scanMsg, setScanMsg] = useState('')
+
+  const handleLikedScan = async () => {
+    setMenuOpen(false); setLikedPanel(true)
+    if (likedList.length > 0) return
+    setScanning(true); setScanMsg('whif 좋아요 목록 스캔 중...')
+    try {
+      const res = await api.get('/api/whif/liked-scan')
+      setLikedList(res.liked ?? [])
+      setScanMsg(`♥ 캐릭터 ${res.characters ?? 0} · 세계관 ${res.universes ?? 0}개 발견`)
+    } catch (e: any) { setScanMsg(`⚠ ${e?.message ?? '스캔 실패'}`) }
+    finally { setScanning(false) }
+  }
+
+  const handleLikedImport = async () => {
+    const targets = likedList.filter(x => likedSelected.has(x.id))
+    if (targets.length === 0 || importing) return
+    setImporting(true); setMsg('')
+    let ok = 0
+    const failed: string[] = []
+    for (let i = 0; i < targets.length; i++) {
+      setMsg(`가져오는 중... (${i + 1}/${targets.length})`)
+      try { await api.post('/api/characters/import', { url: targets[i].sourceUrl }); ok++ }
+      catch { failed.push(targets[i].name) }
+    }
+    setImporting(false)
+    setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.join(', ')} 실패` : `✓ ${ok}개 가져왔습니다`)
+    if (failed.length === 0) { setLikedPanel(false); setLikedSelected(new Set()) }
+    await refreshAll()
+  }
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
@@ -174,6 +211,22 @@ export default function WhifExplorePage() {
 
   return (
     <>
+      <LikedImportSheet
+        open={likedPanel}
+        onClose={() => setLikedPanel(false)}
+        title="♥ whif 좋아요 목록"
+        prefix="w"
+        items={likedList}
+        scanning={scanning}
+        scanMsg={scanMsg}
+        onRescan={() => { setLikedList([]); setLikedSelected(new Set()); setScanMsg(''); handleLikedScan() }}
+        alreadyImported={x => uniHook.items.some(u => u.sourceUrl === x.sourceUrl)}
+        selected={likedSelected}
+        onChangeSelected={setLikedSelected}
+        importing={importing}
+        importProgress={msg}
+        onImport={handleLikedImport}
+      />
       <div className="whif-header" style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button className="whif-iconbtn" aria-label="홈으로" onClick={() => router.push('/')}>🏠</button>
@@ -188,6 +241,7 @@ export default function WhifExplorePage() {
                 style={{ background: 'var(--w-accent)', borderRadius: 8, color: '#fff', textAlign: 'center' }}
                 disabled={importing} onClick={handleImport}>{importing ? '가져오는 중...' : '📥 가져오기'}</button>
             </div>
+            <button className="whif-menu-item" onClick={handleLikedScan}>♥ 좋아요 목록</button>
             <button className="whif-menu-item" onClick={createUniverse}>+ 새 작품 만들기</button>
             <button className="whif-menu-item" onClick={toggleEditMode}>
               {editMode ? '✓ 편집 모드 끄기' : '✏ 편집 모드 켜기'}
