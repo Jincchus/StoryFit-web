@@ -101,4 +101,5 @@ export interface TingleRawData {
   linked?: TingleRawData[]  // 캐릭터에 연결된 서사/테마
   isLinked?: boolean        // linked[]에서 온 자동 연결 항목
   lorebooks?: { keyword: string[]; content: string; priority?: number }[]
+  relatedImages?: string[]  // 공개 트리거 이미지(감정/상황별 추가 이미지)
 }

@@ -73,6 +73,44 @@ describe('assembleBabechat', () => {
     expect(c.openingMessage).toContain('메시지')
   })
 
+  it('도입부의 인라인 img:[코드] 토큰을 제거한다', () => {
+    const withImg = {
+      ...data,
+      startingScenarios: [],
+      initialTitle: '기본',
+      initialAction: 'img:[2raut]\n트럭에 치였다\n\nimg:[2q1fa]\n여신이 나타난다',
+      initialMessage: 'img:[dm3k0]\n\n"안녕"',
+    }
+    const c = assembleBabechat(withImg).characters[0]
+    expect(c.openingMessage).not.toContain('img:[')
+    expect(c.openingMessage).toContain('트럭에 치였다')
+    expect(c.openingMessage).toContain('여신이 나타난다')
+    expect(c.openingMessage).toContain('"안녕"')
+    expect(c.openingMessage).not.toMatch(/\n{3,}/) // 토큰 자리에 빈 줄만 남지 않음
+  })
+
+  it('profileImages 갤러리를 relatedImages로(order 정렬·hidden 제외)', () => {
+    const withGallery = {
+      ...data,
+      profileImages: {
+        여신: { url: 'https://img/g2.webp', order: 2, hidden: false },
+        트럭: { url: 'https://img/g1.webp', order: 1, hidden: false },
+        비밀: { url: 'https://img/hidden.webp', order: 3, hidden: true },
+      },
+    }
+    const c = assembleBabechat(withGallery).characters[0]
+    expect(c.relatedImages).toEqual(['https://img/g1.webp', 'https://img/g2.webp'])
+  })
+
+  it('profileImages 없으면 emotionImages로 폴백', () => {
+    const c = assembleBabechat({ ...data, emotionImages: { 기쁨: 'https://img/e1.webp' } }).characters[0]
+    expect(c.relatedImages).toEqual(['https://img/e1.webp'])
+  })
+
+  it('갤러리 없으면 relatedImages 미설정', () => {
+    expect(assembleBabechat(data).characters[0].relatedImages).toBeUndefined()
+  })
+
   it('이름 없으면 throw', () => {
     expect(() => assembleBabechat({})).toThrow()
   })

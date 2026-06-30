@@ -90,6 +90,7 @@ function buildCapturedFromPreview(previewData: TingleRawData): Captured {
         openingMessages: openingMessagesArr.length > 1 ? openingMessagesArr : undefined,
         exampleDialogues,
         avatarUrl: coverImageUrl || undefined,
+        ...(previewData.relatedImages?.length ? { relatedImages: previewData.relatedImages } : {}),
       }],
       scenarioDescription,
       tags,

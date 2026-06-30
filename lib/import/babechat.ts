@@ -48,6 +48,39 @@ async function fetchCharacter(id: string, token: string): Promise<Response> {
 
 const GENDER_MAP: Record<string, string> = { male: '남성', female: '여성' }
 
+// 도입부 본문의 인라인 이미지 토큰(img:[코드])을 제거한다.
+// 토큰의 짧은 코드는 emotionImages/profileImages 키와 직접 매핑되지 않아, 평문으로 두면 "img:[xxx]"가 그대로 노출돼 깨진다.
+function stripImgTokens(text: string): string {
+  return text
+    .replace(/img:\[[^\]]*\]/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+// 감정/추가 이미지 갤러리 → 공개 url 목록. profileImages(order·hidden 포함)를 우선,
+// 없으면 emotionImages(키→url 맵)로 폴백. hidden:true는 제외, order로 정렬.
+function galleryUrls(d: any): string[] {
+  const out: { url: string; order: number }[] = []
+  const pi = d?.profileImages
+  if (pi && typeof pi === 'object') {
+    for (const v of Object.values<any>(pi)) {
+      if (v && typeof v === 'object' && !v.hidden && typeof v.url === 'string') {
+        out.push({ url: v.url, order: Number(v.order ?? 0) })
+      }
+    }
+  }
+  if (out.length === 0 && d?.emotionImages && typeof d.emotionImages === 'object') {
+    for (const u of Object.values<any>(d.emotionImages)) {
+      if (typeof u === 'string') out.push({ url: u, order: 0 })
+    }
+  }
+  return out
+    .sort((a, b) => a.order - b.order)
+    .map((x) => x.url)
+    .filter((u) => /^https?:\/\//.test(u))
+}
+
 // API 응답 → AssembledResult (순수 함수, 테스트 대상).
 export function assembleBabechat(d: any): AssembledResult {
   const name = String(d?.name ?? '').trim()
@@ -76,7 +109,7 @@ export function assembleBabechat(d: any): AssembledResult {
     : [{ initialTitle: d.initialTitle, initialAction: d.initialAction, initialMessage: d.initialMessage }]
   const openingMessages = scenarios
     .map((s: any, i: number) => {
-      const content = [String(s.initialAction ?? '').trim(), String(s.initialMessage ?? '').trim()]
+      const content = [stripImgTokens(String(s.initialAction ?? '')), stripImgTokens(String(s.initialMessage ?? ''))]
         .filter(Boolean)
         .join('\n\n')
       return { id: String(i), title: String(s.initialTitle ?? '').trim() || `도입부 ${i + 1}`, content }
@@ -85,6 +118,7 @@ export function assembleBabechat(d: any): AssembledResult {
 
   const tags = arr(d.tags)
   const image = String(d.mainImage || d.profileImage || d.thumbnailImage || '').trim()
+  const gallery = galleryUrls(d)
 
   const character: AssembledCharacter = {
     name,
@@ -95,6 +129,7 @@ export function assembleBabechat(d: any): AssembledResult {
     openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
     exampleDialogues: '',
     avatarUrl: String(d.profileImage || image || '').trim() || undefined,
+    ...(gallery.length ? { relatedImages: gallery } : {}),
   }
 
   return {

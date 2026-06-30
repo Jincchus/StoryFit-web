@@ -827,6 +827,43 @@ export async function captureMelting(url: string): Promise<Captured> {
   }
 }
 
+// 팅글 worldBook → 로어북. 실제 응답 필드는 publicContent/title이며 개별 keyword가 없다.
+// isHideContent:true면 제작자가 내용을 비공개로 둬 서버가 publicContent를 비워 내려주므로 제외.
+// 키워드가 없으므로 title을 키워드로 사용한다(title 없으면 트리거 불가라 스킵).
+function mapTingleWorldBooks(data: any): { keyword: string[]; content: string; priority?: number }[] {
+  const wbs = Array.isArray(data?.worldBooks) ? data.worldBooks : []
+  const out: { keyword: string[]; content: string; priority?: number }[] = []
+  for (const wb of wbs) {
+    if (wb?.isHideContent) continue
+    const content = String(wb?.publicContent ?? wb?.content ?? '').trim()
+    const title = String(wb?.title ?? wb?.name ?? '').trim()
+    if (!content || !title) continue
+    out.push({ keyword: [title], content, priority: Number(wb?.priority ?? 0) })
+  }
+  return out
+}
+
+// 공개 트리거 이미지(감정/상황별 추가 이미지) → url 목록. locked=false로 공개분만, displayOrder 정렬.
+async function fetchTinglePublicTriggerImages(personaId: string, authToken: string): Promise<string[]> {
+  try {
+    const res = await fetch(
+      `https://api.tingle.chat/my/trigger-images?isActive=true&personaId=${personaId}&order=-isDefault,displayOrder&limit=1000&locked=false`,
+      { headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' } },
+    )
+    if (!res.ok) return []
+    const json = await res.json().catch(() => ({}))
+    const results = Array.isArray(json?.results) ? json.results : []
+    const imgs: { url: string; order: number }[] = []
+    for (const r of results) {
+      const url = String(r?.staticUnlockUrl ?? '').trim()
+      if (/^https?:\/\//.test(url)) imgs.push({ url, order: Number(r?.displayOrder ?? 0) })
+    }
+    return imgs.sort((a, b) => a.order - b.order).map((x) => x.url)
+  } catch {
+    return []
+  }
+}
+
 export async function captureTingle(url: string): Promise<Captured> {
   const m = url.match(/tingle\.chat\/chat\/(universes|scenes|characters)\/(\d+)/)
   if (!m) throw new Error('올바른 팅글 URL이 아닙니다. /chat/universes/, /chat/scenes/, /chat/characters/ 형식이어야 합니다.')
@@ -883,11 +920,46 @@ export async function captureTingle(url: string): Promise<Captured> {
     const backgroundDetails = String(data.backgroundDetails ?? '')
     const creatorComment = data.creatorComment ?? ''
 
+    // composite 캐릭터의 구조화 필드(unified엔 없음) — raw/preview 경로와 동일하게 수집한다.
+    const job = String(data.job ?? '').trim()
+    const personality = String(data.personality ?? '').trim()
+    const speakingStyle = String(data.speakingStyle ?? '').trim()
+    const favorites = String(data.favorites ?? '').trim()
+    const otherDetails = String(data.otherDetails ?? '').trim()
+
+    // 연결된 서사(universe)/테마(scene) 보강 + worldBook 로어북 수집(캐릭터 + 서사).
+    const lorebooks: { keyword: string[]; content: string; priority?: number }[] = [...mapTingleWorldBooks(data)]
+    let linkedRelations = ''
+    let sceneInfo = ''
+    if (data.universe?.id) {
+      try {
+        const u = await fetchTingleData(`https://tingle.chat/chat/universes/${data.universe.id}`)
+        linkedRelations = [
+          ...(Array.isArray(u.data.relationships) ? u.data.relationships : []),
+          ...(Array.isArray(u.data.privateRelationships) ? u.data.privateRelationships : []),
+        ].filter(Boolean).join('\n')
+        for (const lb of mapTingleWorldBooks(u.data)) lorebooks.push(lb)
+      } catch {}
+    }
+    if (data.scene?.id) {
+      try {
+        const s = await fetchTingleData(`https://tingle.chat/chat/scenes/${data.scene.id}`)
+        sceneInfo = [s.data.introduction, s.data.timeFrame && `[시간대] ${s.data.timeFrame}`, s.data.otherDetails]
+          .filter(Boolean).join('\n\n')
+      } catch {}
+    }
+
     const additionalInfo = [
       introduction,
       age,
+      job && `직업: ${job}`,
+      personality && `■ 성격\n${personality}`,
+      speakingStyle && `■ 말투\n${speakingStyle}`,
+      favorites && `■ 좋아하는 것\n${favorites}`,
       characterDetails,
       backgroundDetails,
+      otherDetails,
+      sceneInfo && `[세계관]\n${sceneInfo}`,
       creatorComment && `[제작자 메모]\n${creatorComment}`,
     ].filter(Boolean).join('\n\n')
 
@@ -902,9 +974,10 @@ export async function captureTingle(url: string): Promise<Captured> {
       .filter((o: any) => o.content.trim().length > 0)
 
     const openingMessage = openingMessages[0]?.content ?? data.firstMessage ?? ''
+    const relatedImages = await fetchTinglePublicTriggerImages(id, authToken)
 
-    console.log(`[tingle-import] characters ok — id=${id} name=${name} openings=${openingMessages.length}`)
-    return {
+    console.log(`[tingle-import] characters ok — id=${id} name=${name} openings=${openingMessages.length} lorebooks=${lorebooks.length} images=${relatedImages.length}`)
+    const result: Captured = {
       sections: [],
       title: name,
       imageUrl: coverImageUrl,
@@ -917,8 +990,9 @@ export async function captureTingle(url: string): Promise<Captured> {
           additionalInfo,
           openingMessage,
           openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
-          exampleDialogues: '',
+          exampleDialogues: linkedRelations,
           avatarUrl: coverImageUrl || undefined,
+          ...(relatedImages.length ? { relatedImages } : {}),
         }],
         scenarioDescription: introduction,
         tags,
@@ -926,6 +1000,8 @@ export async function captureTingle(url: string): Promise<Captured> {
         coverImageUrl,
       },
     }
+    if (lorebooks.length > 0) result.lorebooks = lorebooks
+    return result
   }
 
   if (type === 'universes') {
@@ -935,14 +1011,7 @@ export async function captureTingle(url: string): Promise<Captured> {
     const privateRelationships = Array.isArray(data.privateRelationships) ? data.privateRelationships : []
     const exampleDialogues = [...relationships, ...privateRelationships].filter(Boolean).join('\n')
 
-    const worldBooks = Array.isArray(data.worldBooks) ? data.worldBooks : []
-    const lorebooks = worldBooks
-      .map((wb: any) => ({
-        keyword: [wb.keyword ?? wb.keywords ?? wb.name ?? ''].flat().filter(Boolean),
-        content: String(wb.content ?? ''),
-        priority: wb.priority ?? 0,
-      }))
-      .filter((wb: any) => wb.keyword.length > 0 && wb.content)
+    const lorebooks = mapTingleWorldBooks(data)
 
     console.log(`[tingle-import] universes ok — id=${id} name=${name} worldBooks=${lorebooks.length}`)
     const result: Captured = {
@@ -1125,7 +1194,16 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
       } catch {}
     }
 
-    return { type: 'character', url, name: data.name ?? '캐릭터', gender: data.gender ?? '', coverImageUrl, tags, safetyLevel, fields, openings, ...(linked.length > 0 ? { linked } : {}) }
+    // 캐릭터 레벨 worldBook(로어북) + 공개 트리거 이미지 갤러리
+    const charLorebooks = mapTingleWorldBooks(data)
+    const relatedImages = await fetchTinglePublicTriggerImages(id, authToken)
+
+    return {
+      type: 'character', url, name: data.name ?? '캐릭터', gender: data.gender ?? '', coverImageUrl, tags, safetyLevel, fields, openings,
+      ...(linked.length > 0 ? { linked } : {}),
+      ...(charLorebooks.length > 0 ? { lorebooks: charLorebooks } : {}),
+      ...(relatedImages.length > 0 ? { relatedImages } : {}),
+    }
   }
 
   if (type === 'universes') {
@@ -1152,14 +1230,7 @@ export async function captureTingleRaw(url: string): Promise<TingleRawData> {
     }
 
     // worldBooks → lorebooks
-    const worldBooks = Array.isArray(data.worldBooks) ? data.worldBooks : []
-    const loreEntries = worldBooks
-      .map((wb: any) => ({
-        keyword: [wb.keyword ?? wb.keywords ?? wb.name ?? ''].flat().filter(Boolean) as string[],
-        content: String(wb.content ?? ''),
-        priority: wb.priority ?? 0,
-      }))
-      .filter((wb: any) => wb.keyword.length > 0 && wb.content.trim())
+    const loreEntries = mapTingleWorldBooks(data)
 
     return {
       type: 'universe', url, name: data.name ?? '서사', gender: '', coverImageUrl, tags, safetyLevel, fields, openings: [],
