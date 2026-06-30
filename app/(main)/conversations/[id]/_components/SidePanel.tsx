@@ -45,18 +45,14 @@ export default function SidePanel({
   const [cmdInstr, setCmdInstr] = useState('')
   const [cmdDesc, setCmdDesc] = useState('')
   const [cmdMsg, setCmdMsg] = useState('')
+  const [cmdAddOpen, setCmdAddOpen] = useState(false)
   const loadCmds = () => { api.get('/api/commands').then(setCmds).catch(() => {}) }
   useEffect(() => { loadCmds() }, [])
   const saveCmd = async () => {
     try {
       await api.post('/api/commands', { name: cmdName, instruction: cmdInstr, description: cmdDesc })
-      setCmdName(''); setCmdInstr(''); setCmdDesc(''); setCmdMsg('✓ 추가됨'); loadCmds()
+      setCmdName(''); setCmdInstr(''); setCmdDesc(''); setCmdMsg(''); setCmdAddOpen(false); loadCmds()
     } catch (e: any) { setCmdMsg(`⚠ ${e.message ?? '실패'}`) }
-  }
-  const delCmd = async (id: string) => {
-    if (!confirm('이 커맨드를 삭제할까요?')) return
-    try { await api.delete(`/api/commands/${id}`); loadCmds() }
-    catch (e: any) { setCmdMsg(`⚠ ${e?.message ?? '삭제 실패'}`) }
   }
 
   const {
@@ -333,27 +329,36 @@ export default function SidePanel({
       </div>
 
       <div className="side-section" hidden={tab !== 'basic'}>
-        <div className="label">내 커맨드</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="label">내 커맨드</div>
+          <button className="btn ghost" style={{ fontSize: 9, padding: '1px 6px' }} onClick={() => { setCmdAddOpen(o => !o); setCmdMsg('') }}>
+            {cmdAddOpen ? '취소' : '+ 새 커맨드'}
+          </button>
+        </div>
         <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
-          나만의 AI 커맨드를 만들면 채팅에서 <code>!이름</code>으로 실행됩니다.
+          나만의 AI 커맨드를 만들면 채팅에서 <code>!이름</code>으로 실행됩니다. 저장된 커맨드를 누르면 펼쳐서 수정·삭제할 수 있어요.
         </div>
-        {cmds.map(c => (
-          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 13 }}>!{c.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description || c.instruction}</div>
+
+        {cmdAddOpen && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10, padding: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
+            <input className="field" placeholder="이름 (예: 에타)" value={cmdName} onChange={e => setCmdName(e.target.value)} />
+            <div style={{ display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 700 }}>지시문 <CommandGuide /></div>
+            <textarea className="field" rows={3} placeholder="현재 상황을 확인해 ... 마크다운으로 작성하라" value={cmdInstr} onChange={e => setCmdInstr(e.target.value)} style={{ resize: 'vertical', fontSize: 12 }} />
+            <input className="field" placeholder="설명(선택, 자동완성에 표시)" value={cmdDesc} onChange={e => setCmdDesc(e.target.value)} />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn primary" style={{ fontSize: 11, padding: '3px 12px' }} onClick={saveCmd} disabled={!cmdName.trim() || !cmdInstr.trim()}>저장</button>
+              <button className="btn ghost" style={{ fontSize: 11, padding: '3px 12px' }} onClick={() => { setCmdAddOpen(false); setCmdName(''); setCmdInstr(''); setCmdDesc(''); setCmdMsg('') }}>취소</button>
             </div>
-            <button onClick={() => delCmd(c.id)} style={{ flexShrink: 0, background: 'none', border: 'none', color: '#ff6b8a', cursor: 'pointer', fontSize: 14 }}>✕</button>
+            {cmdMsg && <div style={{ fontSize: 11, color: cmdMsg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{cmdMsg}</div>}
           </div>
+        )}
+
+        {cmds.length === 0 && !cmdAddOpen && (
+          <div className="tiny muted" style={{ padding: '6px 2px' }}>아직 만든 커맨드가 없습니다. 오른쪽 위 "+ 새 커맨드"로 추가하세요.</div>
+        )}
+        {cmds.map(c => (
+          <CommandRow key={c.id} cmd={c} onChanged={loadCmds} />
         ))}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-          <input className="field" placeholder="이름 (예: 에타)" value={cmdName} onChange={e => setCmdName(e.target.value)} />
-          <div style={{ display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 700 }}>지시문 <CommandGuide /></div>
-          <textarea className="field" rows={3} placeholder="현재 상황을 확인해 ... 마크다운으로 작성하라" value={cmdInstr} onChange={e => setCmdInstr(e.target.value)} style={{ resize: 'vertical', fontSize: 12 }} />
-          <input className="field" placeholder="설명(선택, 자동완성에 표시)" value={cmdDesc} onChange={e => setCmdDesc(e.target.value)} />
-          <button className="btn" onClick={saveCmd} disabled={!cmdName.trim() || !cmdInstr.trim()}>+ 커맨드 추가</button>
-          {cmdMsg && <div style={{ fontSize: 11, color: cmdMsg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{cmdMsg}</div>}
-        </div>
       </div>
 
       <div className="side-section" hidden={tab !== 'world'}>
@@ -1038,6 +1043,61 @@ function LorebookEditForm({ entry, onSave, onCancel }: { entry: LbEntry; onSave:
           onClick={() => onSave({ keyword: keywords.split(',').map(k => k.trim()).filter(Boolean), content, priority, scanDepth })}>저장</button>
         <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={onCancel}>취소</button>
       </div>
+    </div>
+  )
+}
+
+// 내 커맨드: 아코디언 행(펼쳐서 수정·삭제). 헤더 클릭 → 펼침, 펼친 상태에서 인라인 편집.
+function CommandRow({ cmd, onChanged }: {
+  cmd: { id: string; name: string; instruction: string; description: string }
+  onChanged: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState(cmd.name)
+  const [instr, setInstr] = useState(cmd.instruction)
+  const [desc, setDesc] = useState(cmd.description)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const save = async () => {
+    if (!name.trim() || !instr.trim()) return
+    setBusy(true); setMsg('')
+    try {
+      await api.patch(`/api/commands/${cmd.id}`, { name, instruction: instr, description: desc })
+      setMsg('✓ 저장됨'); onChanged()
+    } catch (e: any) { setMsg(`⚠ ${e?.message ?? '저장 실패'}`) }
+    finally { setBusy(false) }
+  }
+  const del = async () => {
+    if (!confirm(`!${cmd.name} 커맨드를 삭제할까요?`)) return
+    setBusy(true)
+    try { await api.delete(`/api/commands/${cmd.id}`); onChanged() }
+    catch (e: any) { setMsg(`⚠ ${e?.message ?? '삭제 실패'}`); setBusy(false) }
+  }
+
+  return (
+    <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, marginBottom: 6, overflow: 'hidden' }}>
+      <button onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 10px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'inherit' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>!{cmd.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cmd.description || cmd.instruction}</div>
+        </div>
+        <span style={{ flexShrink: 0, color: 'var(--muted)', fontSize: 11 }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 10px 10px' }}>
+          <input className="field" placeholder="이름" value={name} onChange={e => setName(e.target.value)} />
+          <div style={{ display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 700 }}>지시문 <CommandGuide /></div>
+          <textarea className="field" rows={3} placeholder="지시문" value={instr} onChange={e => setInstr(e.target.value)} style={{ resize: 'vertical', fontSize: 12 }} />
+          <input className="field" placeholder="설명(선택)" value={desc} onChange={e => setDesc(e.target.value)} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn primary" style={{ fontSize: 11, padding: '3px 12px' }} onClick={save} disabled={busy || !name.trim() || !instr.trim()}>저장</button>
+            <button className="btn ghost" style={{ fontSize: 11, padding: '3px 12px', color: '#ff6b8a', borderColor: '#ff6b8a' }} onClick={del} disabled={busy}>삭제</button>
+          </div>
+          {msg && <div style={{ fontSize: 11, color: msg.startsWith('✓') ? '#4ade80' : '#ff6b8a' }}>{msg}</div>}
+        </div>
+      )}
     </div>
   )
 }
