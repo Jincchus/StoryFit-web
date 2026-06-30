@@ -54,6 +54,7 @@ export interface ResponseRevisionOptions {
   requiredBodyNames?: string[]
   personaName?: string
   enrichMode?: boolean
+  allowPersonaDialogue?: boolean
 }
 
 function escapeRegExp(value: string): string {
@@ -182,6 +183,7 @@ export function needsResponseRevision(text: string, options: boolean | ResponseR
   const requiredBodyNames = typeof options === 'boolean' ? [] : options.requiredBodyNames ?? []
   const personaName = typeof options === 'boolean' ? undefined : options.personaName
   const enrichMode = typeof options === 'boolean' ? false : !!options.enrichMode
+  const allowPersonaDialogue = typeof options === 'boolean' ? false : !!options.allowPersonaDialogue
 
   const trimmed = text.trim()
   if (!trimmed) return false
@@ -190,7 +192,7 @@ export function needsResponseRevision(text: string, options: boolean | ResponseR
 
   if (!enrichMode) {
     if (USER_CONTROL_PATTERNS.some(pattern => pattern.test(trimmed))) return true
-    if (personaName) {
+    if (personaName && !allowPersonaDialogue) {
       const escapedPersona = escapeRegExp(personaName)
       const bodyBlock = getBodyBlock(trimmed)
       const personaDialoguePattern = new RegExp(`(?:^|\\n)\\s*${escapedPersona}\\s*:`, 'u')

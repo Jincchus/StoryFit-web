@@ -288,6 +288,7 @@ async function generateAsync({
       requiredBodyNames: [],
       personaName: conv.personaCharacter?.name || conv.user?.displayName || '나',
       enrichMode,
+      allowPersonaDialogue: conv.personaAutoMode ?? false,
     }
 
     cleanText = applyLightFixes(cleanText, revisionOptions)
