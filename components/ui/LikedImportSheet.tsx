@@ -29,6 +29,7 @@ export default function LikedImportSheet({
   const v = (name: string) => `var(--${prefix}-${name})`
 
   const importable = items.filter(x => !alreadyImported(x))
+  const doneCount = items.length - importable.length
   const allSelected = importable.length > 0 && importable.every(x => selected.has(x.id))
   const toggle = (id: string) => {
     const next = new Set(selected)
@@ -64,6 +65,11 @@ export default function LikedImportSheet({
             </button>
           </div>
         )}
+        {!scanning && doneCount > 0 && (
+          <div style={{ padding: '0 16px 8px', fontSize: 11, color: v('ink-soft'), flexShrink: 0, lineHeight: 1.4 }}>
+            이미 가져온 항목(✓ 완료)을 탭하면 비어 있는 칸만 원본으로 채워 업데이트합니다.
+          </div>
+        )}
         <div style={{ overflowY: 'auto', flex: 1, padding: '0 12px 8px' }}>
           {scanning ? (
             <div style={{ textAlign: 'center', padding: 32, color: v('ink-soft'), fontSize: 13 }}>스캔 중...</div>
@@ -76,8 +82,8 @@ export default function LikedImportSheet({
                 const checked = selected.has(item.id)
                 return (
                   <div key={item.id}
-                    onClick={() => !done && toggle(item.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: `1px solid ${v('line')}`, cursor: done ? 'default' : 'pointer', opacity: done ? 0.5 : 1 }}>
+                    onClick={() => toggle(item.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', borderBottom: `1px solid ${v('line')}`, cursor: 'pointer', opacity: done && !checked ? 0.6 : 1 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${checked ? v('accent') : v('line')}`, background: checked ? v('accent') : 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
                       {checked && <span style={{ fontSize: 12, color: '#fff', lineHeight: 1 }}>✓</span>}
                     </div>
@@ -94,7 +100,11 @@ export default function LikedImportSheet({
                         ))}
                       </div>
                     </div>
-                    {done && <span style={{ fontSize: 11, color: '#4ade80', flexShrink: 0 }}>✓ 완료</span>}
+                    {done && (
+                      <span style={{ fontSize: 11, color: checked ? v('accent') : '#4ade80', flexShrink: 0 }}>
+                        {checked ? '↻ 업데이트' : '✓ 완료'}
+                      </span>
+                    )}
                   </div>
                 )
               })}

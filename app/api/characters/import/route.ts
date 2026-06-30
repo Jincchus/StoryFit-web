@@ -121,11 +121,47 @@ async function runImport(captured: Captured, url: string, userId: string) {
     select: { id: true, conversationId: true, characters: { select: { id: true }, take: 1 } },
   })
   if (existing) {
+    // 이미 가져온 카드: 재가져오기 시 '빈 필드만' 원본 값으로 채운다(backfill).
+    // 사용자가 편집한 값은 보존하고, 비어 있던 칸(예: 원본에 나중에 추가된 비밀설정)만 메운다.
+    // assembledResult가 있는(결정적·AI 분류 불필요) 센터에 한해 수행해 추가 비용을 만들지 않는다.
+    let backfilled = 0
+    const freshChars = captured.assembledResult?.characters
+    if (freshChars?.length) {
+      const existingChars = await prisma.character.findMany({
+        where: { collectionId: existing.id },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true, gender: true, tags: true, additionalInfo: true, secretSettings: true,
+          exampleDialogues: true, openingMessage: true, avatarUrl: true, relatedImages: true,
+        },
+      })
+      for (let i = 0; i < existingChars.length && i < freshChars.length; i++) {
+        const ec = existingChars[i]
+        const fc = freshChars[i]
+        const data: Record<string, unknown> = {}
+        const fillStr = (key: keyof typeof ec, cur: string | null | undefined, next: string | undefined) => {
+          if (!cur?.trim() && next?.trim()) data[key] = next.trim()
+        }
+        fillStr('secretSettings', ec.secretSettings, fc.secretSettings)
+        fillStr('additionalInfo', ec.additionalInfo, fc.additionalInfo)
+        fillStr('exampleDialogues', ec.exampleDialogues, fc.exampleDialogues)
+        fillStr('openingMessage', ec.openingMessage, fc.openingMessage)
+        fillStr('gender', ec.gender, fc.gender)
+        if (!ec.avatarUrl && fc.avatarUrl) data.avatarUrl = fc.avatarUrl
+        if ((ec.tags?.length ?? 0) === 0 && (fc.tags?.length ?? 0) > 0) data.tags = fc.tags
+        if ((ec.relatedImages?.length ?? 0) === 0 && (fc.relatedImages?.length ?? 0) > 0) data.relatedImages = fc.relatedImages
+        if (Object.keys(data).length > 0) {
+          await prisma.character.update({ where: { id: ec.id }, data })
+          backfilled++
+        }
+      }
+    }
     return {
       characterId: existing.characters[0]?.id ?? null,
       conversationId: existing.conversationId ?? '',
       collectionId: existing.id,
       alreadyExists: true,
+      backfilled,
     }
   }
 
