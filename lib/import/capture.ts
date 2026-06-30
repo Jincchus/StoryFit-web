@@ -57,7 +57,7 @@ function cleanWhifText(text: string): string {
 // 환경변수 방식은 컨테이너 재배포가 있어야 반영되는데, 멜팅 세션은 약 30분마다 만료되어
 // 사실상 갱신이 불가능했다 — DB 조회로 바꿔 재배포 없이 바로 반영되도록 한다.
 export async function getGlobalConfigValue(
-  key: 'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token'
+  key: 'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token'
 ): Promise<string> {
   const config = await prisma.globalConfig.findUnique({ where: { key } })
   return config?.value?.trim() ?? ''
@@ -122,6 +122,7 @@ async function renderWhifPageText(url: string): Promise<{
     character?: any
     universe?: any
     universeCharacters?: any[]
+    lorebooks?: { keyword: string[]; content: string }[]
   }
 }> {
   const browser = await puppeteer.launch({
@@ -134,7 +135,7 @@ async function renderWhifPageText(url: string): Promise<{
     const page = await browser.newPage()
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
 
-    const apiData: { character?: any; universe?: any; universeCharacters?: any[] } = {}
+    const apiData: { character?: any; universe?: any; universeCharacters?: any[]; lorebooks?: { keyword: string[]; content: string }[] } = {}
 
     await page.setRequestInterception(true)
     page.on('request', (request) => {
@@ -160,6 +161,9 @@ async function renderWhifPageText(url: string): Promise<{
     })
 
     const sessionCookie = await getGlobalConfigValue('whif_session_cookie')
+    // 공개 로어북(키워드북)은 GetChatRoom에만 들어있어 채팅방을 생성해야 읽을 수 있다.
+    // CreateChatRoom은 userPersonaId가 필요 — import 계정의 페르소나 id를 DB에 저장해 사용한다.
+    const whifPersonaId = await getGlobalConfigValue('whif_persona_id')
     if (sessionCookie) {
       if (sessionCookie.includes('eyJ') || sessionCookie.startsWith('Bearer ')) {
         const token = sessionCookie.replace(/^Bearer\s+/i, '').trim()
@@ -279,6 +283,81 @@ async function renderWhifPageText(url: string): Promise<{
       }
     }
 
+    // 공개 로어북(키워드북) 수집: 일회용 채팅방을 만들어 GetChatRoom에서만 노출되는 lores를 읽는다.
+    // 페르소나 id가 없거나 어떤 단계가 실패하면 로어북만 건너뛰고 본 import는 그대로 진행한다.
+    if (whifPersonaId) {
+      try {
+        const normChar = (c: any) => c?.character || c
+        const mainCharId = apiData.character
+          ? normChar(apiData.character)?.id
+          : normChar(apiData.universeCharacters?.[0])?.id
+        if (mainCharId) {
+          const lores = await page.evaluate(async (charId, personaId) => {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+            try {
+              const raw = localStorage.getItem('sb-beizfkcdgqkvhqcqvtwk-auth-token')
+              const token = raw ? JSON.parse(raw)?.access_token : null
+              if (token) headers['Authorization'] = `Bearer ${token}`
+            } catch {}
+            const base = 'https://whif-gateway-298335711332.asia-northeast3.run.app/whif.bff.v1.ChatRoomService'
+            // 1) 로어북을 읽기 위한 일회용 채팅방 생성 (relation은 비워도 방 생성에는 지장 없음)
+            const createRes = await fetch(`${base}/CreateChatRoom`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                characterId: charId,
+                title: '로어북 가져오기',
+                promptMode: 8,
+                userPersonaId: personaId,
+                relationScores: JSON.stringify({ active_relation_type: [], score: [] }),
+              }),
+            })
+            const created = await createRes.json().catch(() => ({}))
+            const roomId = created?.chatRoom?.id || created?.id
+            if (!roomId) return [] as { name: string; content: string }[]
+            // 2) 방 상세 — character.universe.lorebook(세계관) + character.dataJson(캐릭터)에 lores가 있다
+            const getRes = await fetch(`${base}/GetChatRoom`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ id: roomId }),
+            })
+            const room = await getRes.json().catch(() => ({}))
+            const ch = room?.chatRoom?.character || {}
+            const out: { name: string; content: string }[] = []
+            const collect = (arr: any) => {
+              if (!Array.isArray(arr)) return
+              for (const l of arr) {
+                // 비공개(is_public===false)는 서버가 내용을 안 주지만 방어적으로 한 번 더 거른다
+                if (l && l.is_public !== false && l.content && l.name) {
+                  out.push({ name: String(l.name).trim(), content: String(l.content).trim() })
+                }
+              }
+            }
+            collect(ch?.universe?.lorebook?.lores)
+            try { collect(JSON.parse(ch?.dataJson || '{}')?.lorebook?.lores) } catch {}
+            return out
+          }, mainCharId, whifPersonaId)
+
+          // name+content 기준 중복 제거 후 우리 로어북 형식으로 매핑.
+          // WHIF 플레이어 뷰엔 trigger_strings가 없으므로 name을 키워드로 사용한다.
+          const seen = new Set<string>()
+          const mapped: { keyword: string[]; content: string }[] = []
+          for (const l of lores) {
+            const key = `${l.name} ${l.content}`
+            if (seen.has(key)) continue
+            seen.add(key)
+            mapped.push({ keyword: [l.name], content: l.content })
+          }
+          if (mapped.length > 0) {
+            apiData.lorebooks = mapped
+            console.log('[whif-import] lorebook entries:', mapped.length)
+          }
+        }
+      } catch (e: any) {
+        console.error('[whif-import] lorebook fetch failed:', e?.message)
+      }
+    }
+
     await page.waitForFunction(
       () => document.body.innerText.replace(/\s+/g, ' ').trim().length > 150,
       { timeout: 10000 }
@@ -394,6 +473,11 @@ export async function captureWhif(url: string): Promise<Captured> {
         additionalInfo = `${roleInfo}\n\n${additionalInfo}`
       }
 
+      // 창작자 노트(c.note): 플레이 안내·필수 기재사항 등. 공개 필드인데 누락됐어서 소개 끝에 합친다.
+      if (typeof c.note === 'string' && c.note.trim()) {
+        additionalInfo = `${additionalInfo}\n\n[창작자 노트]\n${c.note.trim()}`.trim()
+      }
+
       // 다중 도입부를 구조화된 배열로 저장 (텍스트 덤프 대신)
       const openingMessages = firstMessages
         .filter((m: any) => m.text)
@@ -445,8 +529,12 @@ export async function captureWhif(url: string): Promise<Captured> {
       }
     })
 
-    // WHIF Lorebook (Encyclopedia) 추출
-    const lorebooks: { keyword: string[]; content: string; priority?: number }[] = []
+    // WHIF Lorebook 추출.
+    // 1순위: GetChatRoom으로 수집한 공개 키워드북(apiData.lorebooks) — 현재 WHIF의 실제 로어 소스.
+    // 폴백: 구 구조(encyclopediaEntries 등)가 남아있을 경우를 위해 그대로 둔다.
+    const lorebooks: { keyword: string[]; content: string; priority?: number }[] = [
+      ...(apiData.lorebooks ?? []),
+    ]
     const whifEntries = universe.encyclopediaEntries || universe.encyclopedia || universe.knowledges || []
     if (Array.isArray(whifEntries)) {
       for (const entry of whifEntries) {

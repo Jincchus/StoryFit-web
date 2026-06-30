@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'rofan_session_cookie', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'rofan_session_cookie', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -69,6 +69,8 @@ function NicknameField({
 export default function AdminImportCookiesPage() {
   const [whifCookie, setWhifCookie] = useState('')
   const [whifUpdatedAt, setWhifUpdatedAt] = useState<string | null>(null)
+  const [whifPersonaId, setWhifPersonaId] = useState('')
+  const [whifPersonaUpdatedAt, setWhifPersonaUpdatedAt] = useState<string | null>(null)
   const [meltingCookie, setMeltingCookie] = useState('')
   const [meltingUpdatedAt, setMeltingUpdatedAt] = useState<string | null>(null)
   const [meltingNickname, setMeltingNickname] = useState('')
@@ -95,6 +97,8 @@ export default function AdminImportCookiesPage() {
     api.get('/api/admin/import-cookies').then((data: CookieData) => {
       setWhifCookie(data.whif_session_cookie?.value ?? '')
       setWhifUpdatedAt(data.whif_session_cookie?.updatedAt ?? null)
+      setWhifPersonaId(data.whif_persona_id?.value ?? '')
+      setWhifPersonaUpdatedAt(data.whif_persona_id?.updatedAt ?? null)
       setMeltingCookie(data.melting_session_cookie?.value ?? '')
       setMeltingUpdatedAt(data.melting_session_cookie?.updatedAt ?? null)
       setMeltingNickname(data.melting_session_nickname?.value ?? '')
@@ -124,6 +128,7 @@ export default function AdminImportCookiesPage() {
     try {
       await api.patch('/api/admin/import-cookies', {
         whif_session_cookie: whifCookie,
+        whif_persona_id: whifPersonaId,
         melting_session_cookie: meltingCookie,
         melting_session_nickname: meltingNickname,
         babechat_access_token: babechatAccess,
@@ -165,6 +170,15 @@ export default function AdminImportCookiesPage() {
               value={whifCookie}
               onChange={setWhifCookie}
               updatedAt={whifUpdatedAt}
+            />
+
+            <NicknameField
+              label="WHIF 페르소나 ID (공개 키워드북 가져오기용)"
+              hint={'WHIF 공개 키워드북(로어북)은 채팅방을 만들어야만 읽을 수 있고, 채팅방 생성에는 페르소나가 필요합니다.\n위 WHIF 계정의 페르소나 id를 넣어두면, 가져오기 시 일회용 채팅방을 만들어 공개 로어북을 함께 수집합니다.\n\n찾는 법: 캐릭터와 채팅을 시작한 뒤 개발자도구 → Network → ChatRoomService/CreateChatRoom(또는 GetChatRoom) 요청 → Payload의 userPersonaId 값을 복사.\n비워두면 로어북 수집만 건너뛰고 나머지 가져오기는 정상 동작합니다.'}
+              placeholder="예: 06776b4c-5941-4d63-96f3-b6ce91331be6"
+              value={whifPersonaId}
+              onChange={setWhifPersonaId}
+              updatedAt={whifPersonaUpdatedAt}
             />
 
             <CookieField

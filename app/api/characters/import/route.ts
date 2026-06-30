@@ -149,13 +149,36 @@ async function runImport(captured: Captured, url: string, userId: string) {
         fillStr('gender', ec.gender, fc.gender)
         if (!ec.avatarUrl && fc.avatarUrl) data.avatarUrl = fc.avatarUrl
         if ((ec.tags?.length ?? 0) === 0 && (fc.tags?.length ?? 0) > 0) data.tags = fc.tags
-        if ((ec.relatedImages?.length ?? 0) === 0 && (fc.relatedImages?.length ?? 0) > 0) data.relatedImages = fc.relatedImages
+        // 이미지 갤러리는 '빈 칸'이 아니라 '원본이 더 많으면 교체' — 과거에 일부만 잡혔던 카드를 보강한다.
+        if ((fc.relatedImages?.length ?? 0) > (ec.relatedImages?.length ?? 0)) data.relatedImages = fc.relatedImages
         if (Object.keys(data).length > 0) {
           await prisma.character.update({ where: { id: ec.id }, data })
           backfilled++
         }
       }
     }
+    // 로어북 백필: 처음 가져올 땐 로어가 없었다가(예: 페르소나 미설정) 나중에 수집된 경우.
+    // 컬렉션에 로어북이 하나도 없을 때만 추가해 사용자가 편집/삭제한 로어를 덮어쓰지 않는다.
+    if (captured.lorebooks?.length) {
+      const existingLoreCount = await prisma.lorebook.count({ where: { collectionId: existing.id } })
+      if (existingLoreCount === 0) {
+        await Promise.all(
+          captured.lorebooks.map((entry) =>
+            prisma.lorebook.create({
+              data: {
+                collectionId: existing.id,
+                keyword: entry.keyword,
+                content: entry.content,
+                priority: entry.priority ?? 0,
+                conversationId: null,
+              },
+            })
+          )
+        )
+        backfilled += captured.lorebooks.length
+      }
+    }
+
     return {
       characterId: existing.characters[0]?.id ?? null,
       conversationId: existing.conversationId ?? '',
