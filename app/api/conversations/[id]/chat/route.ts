@@ -10,7 +10,7 @@ import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
-import { parseCommand, isBuiltinCommand, builtinFallbackKey, BUILTIN_FALLBACK, composeCommandDirective } from '@/lib/commands'
+import { parseCommand, isBuiltinCommand, builtinFallbackKey, BUILTIN_FALLBACK, composeCommandDirective, COMMAND_ISOLATION_PREAMBLE } from '@/lib/commands'
 import { logAiError } from '@/lib/errorLog'
 import { brokerStart, brokerFinish } from '@/lib/streamBroker'
 import { applyLightFixes } from '@/lib/responseControl'
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const fk = builtinFallbackKey(parsedCmd.name)
         if (fk) {
           const extra = parsedCmd.args ? `\n추가 지시: ${parsedCmd.args}` : ''
-          commandDirective = `[시스템 커맨드: ${parsedCmd.name}]\n${BUILTIN_FALLBACK[fk]}${extra}\n\n응답은 마크다운 형식으로 작성하라.`
+          commandDirective = `[시스템 커맨드: ${parsedCmd.name}]\n${COMMAND_ISOLATION_PREAMBLE}\n\n지시: ${BUILTIN_FALLBACK[fk]}${extra}`
         } else {
           replyText = '*표시할 정보가 없습니다.*'
         }

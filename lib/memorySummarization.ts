@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { generateText } from '@/lib/ai/gemini'
 import { generateEmbedding } from '@/lib/embedding'
+import { replacePlaceholders } from '@/lib/systemPrompt'
 
 const SUMMARIZE_EVERY = 10
 
@@ -95,7 +96,21 @@ export async function triggerMemorySummarization(
     })
     if (messages.length < SUMMARIZE_EVERY) return
 
-    const summary = await summarizeMessages(messages, characterSystemPrompt)
+    // 메시지 원본에 남아있는 {{user}}/{{char}} 플레이스홀더를 페르소나명·캐릭터명으로 치환한 뒤 요약한다.
+    // (요약기는 DB 원본 content를 쓰므로, 치환하지 않으면 메모리에 "{{user}}"가 그대로 박힌다.)
+    const convInfo = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: {
+        personaCharacter: { select: { name: true } },
+        user: { select: { displayName: true } },
+        characters: { select: { character: { select: { name: true } } } },
+      },
+    })
+    const personaName = convInfo?.personaCharacter?.name || convInfo?.user?.displayName || '나'
+    const charNames = (convInfo?.characters ?? []).map(c => c.character.name)
+    const cleanMessages = messages.map(m => ({ ...m, content: replacePlaceholders(m.content, personaName, charNames) }))
+
+    const summary = await summarizeMessages(cleanMessages, characterSystemPrompt)
     // 빈 요약(안전 차단·일시 오류 등)은 저장하지 않는다 — 다음 트리거에 재시도.
     // (저장하면 빈 장기 메모리가 생기고, 카운트에 잡혀 그 구간이 영구 누락됨)
     if (!summary.trim()) {

@@ -38,10 +38,11 @@ describe('builtinFallbackKey', () => {
 describe('composeCommandDirective', () => {
   it('지시문+인자+마크다운 지시를 합성', () => {
     const d = composeCommandDirective('에타', '게시글 작성', '오늘 위주')
-    expect(d).toContain('[사용자 커맨드: 에타]')
+    expect(d).toContain('[시스템 커맨드: 에타]')
     expect(d).toContain('게시글 작성')
     expect(d).toContain('추가 지시: 오늘 위주')
     expect(d).toContain('마크다운')
+    expect(d).toContain('이어가지 마라') // RP 이어쓰기 억제 머리말
   })
   it('인자 없으면 추가 지시 줄 없음', () => {
     expect(composeCommandDirective('에타', '게시글 작성', '')).not.toContain('추가 지시:')

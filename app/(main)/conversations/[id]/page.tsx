@@ -117,12 +117,13 @@ export default function ChatPage() {
   const [commandQuery, setCommandQuery] = useState('')
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0)
   const [userCmds, setUserCmds] = useState<{ name: string; desc: string }[]>([])
-  useEffect(() => {
+  const loadUserCmds = useCallback(() => {
     api.get('/api/commands')
       .then((cs: { name: string; description: string }[]) =>
         setUserCmds(cs.map(c => ({ name: `!${c.name}`, desc: c.description || '내 커맨드' }))))
       .catch(() => {})
   }, [])
+  useEffect(() => { loadUserCmds() }, [loadUserCmds])
 
   const filteredCommands = [...COMMANDS, ...userCmds].filter(cmd =>
     cmd.name.toLowerCase().startsWith(commandQuery.toLowerCase())
@@ -148,6 +149,7 @@ export default function ChatPage() {
     el.style.height = Math.min(el.scrollHeight, 120) + 'px'
     const val = el.value
     if (val.startsWith('!') && !val.includes(' ')) {
+      if (!showCommandMenu) loadUserCmds() // 메뉴 열릴 때 최신 커맨드 목록 반영(사이드패널에서 방금 만든 것 포함)
       setShowCommandMenu(true)
       setCommandQuery(val)
     } else {
