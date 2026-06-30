@@ -183,7 +183,6 @@ async function regenerateAsync({
       allowChoices,
       forbiddenChoiceNames: [],
       requiredBodyNames: [],
-      personaName: conv.personaCharacter?.name || conv.user?.displayName || '나',
       enrichMode,
     }
 

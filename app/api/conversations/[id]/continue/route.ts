@@ -175,7 +175,6 @@ async function continueAsync({
       allowChoices: false,
       forbiddenChoiceNames: [],
       requiredBodyNames: [],
-      personaName,
     })
 
     if (!cleanText) {
