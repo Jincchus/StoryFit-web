@@ -78,7 +78,8 @@ export default function SidePanel({
     memories, memoryError, promoting,
     selectedMemoryIds, expandedPromotedIds,
     handleDeleteMemory, handlePromoteMemories, handleUnpromoteMemory,
-    toggleMemorySelect, toggleExpandPromoted,
+    toggleMemorySelect, toggleExpandPromoted, toggleSelectAllUnpromoted,
+    hasUnpromoted, allUnpromotedSelected,
   } = useMemoryPanel(convId, setToast, applyServerCoreMemory)
 
   const handleTitleSave = async () => {
@@ -740,6 +741,13 @@ export default function SidePanel({
         </button>
         {panelOpen.longmem && <>
           <div className="tiny muted" style={{ marginBottom: 6, marginTop: 4 }}>10턴마다 자동 요약 · 선택 후 핵심메모리로 올릴 수 있습니다.</div>
+        {hasUnpromoted && (
+          <button
+            className="btn ghost"
+            style={{ fontSize: 10, padding: '3px 8px', width: '100%', marginBottom: 6 }}
+            onClick={toggleSelectAllUnpromoted}
+          >{allUnpromotedSelected ? '☐ 전체 해제' : '☑ 전체 선택 (미등록 항목)'}</button>
+        )}
         {selectedMemoryIds.size > 0 && (
           <button
             className="btn primary"

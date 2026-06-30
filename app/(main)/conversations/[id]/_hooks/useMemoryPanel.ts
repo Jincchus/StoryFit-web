@@ -4,6 +4,9 @@ import { api } from '@/lib/api'
 
 interface MemoryEntry { id: string; summary: string; createdAt: string; promoted: boolean }
 
+// 한 번에 핵심 메모리로 올릴 수 있는 최대 개수 — promote API의 상한과 일치시킨다.
+const PROMOTE_LIMIT = 20
+
 export function useMemoryPanel(
   convId: string,
   setToast: (msg: string) => void,
@@ -66,6 +69,23 @@ export function useMemoryPanel(
     })
   }
 
+  // 전체선택: 아직 핵심메모리로 올리지 않은(체크박스로 열려 있는) 항목을 한 번에 선택한다.
+  // 이미 전부 선택돼 있으면 전체 해제. promote 상한(20)을 넘으면 앞에서부터 상한까지만 선택한다.
+  const toggleSelectAllUnpromoted = () => {
+    const unpromoted = memories.filter(m => !m.promoted)
+    if (unpromoted.length === 0) return
+    const targetIds = unpromoted.slice(0, PROMOTE_LIMIT).map(m => m.id)
+    const allSelected = targetIds.every(id => selectedMemoryIds.has(id))
+    if (allSelected) {
+      setSelectedMemoryIds(new Set())
+      return
+    }
+    if (unpromoted.length > PROMOTE_LIMIT) {
+      setToast(`한 번에 최대 ${PROMOTE_LIMIT}개까지 올릴 수 있어 처음 ${PROMOTE_LIMIT}개만 선택했습니다`)
+    }
+    setSelectedMemoryIds(new Set(targetIds))
+  }
+
   const toggleExpandPromoted = (id: string) => {
     setExpandedPromotedIds(prev => {
       const next = new Set(prev)
@@ -74,10 +94,15 @@ export function useMemoryPanel(
     })
   }
 
+  const unpromotedTargets = memories.filter(m => !m.promoted).slice(0, PROMOTE_LIMIT)
+  const hasUnpromoted = unpromotedTargets.length > 0
+  const allUnpromotedSelected = hasUnpromoted && unpromotedTargets.every(m => selectedMemoryIds.has(m.id))
+
   return {
     memories, memoryError, promoting,
     selectedMemoryIds, expandedPromotedIds,
     handleDeleteMemory, handlePromoteMemories, handleUnpromoteMemory,
-    toggleMemorySelect, toggleExpandPromoted,
+    toggleMemorySelect, toggleExpandPromoted, toggleSelectAllUnpromoted,
+    hasUnpromoted, allUnpromotedSelected,
   }
 }
