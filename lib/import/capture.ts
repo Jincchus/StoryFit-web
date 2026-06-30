@@ -415,6 +415,23 @@ export async function captureWhif(url: string): Promise<Captured> {
           .map((item: any) => String(item.url))
       } catch {}
 
+      // 캐릭터 이미지 풀(c.images): 포토카드 등 갤러리 이미지. 기존엔 본문 인라인 {{img::slug}}
+      // 치환용으로만 써서 갤러리에 누락됐다 — relatedContentJson과 합쳐 카드에 모두 노출한다.
+      // 같은 이미지를 다른 사이즈로 중복 표시하지 않도록 마지막 경로 세그먼트(사이즈)를 떼고 dedup.
+      const galleryImages = Array.isArray(c.images)
+        ? c.images.map((img: any) => typeof img?.imageUrl === 'string' ? img.imageUrl.replace(/\/[^/]+$/, '/public') : '').filter(Boolean)
+        : []
+      const seenImg = new Set<string>()
+      const normImg = (u: string) => u.replace(/\/[^/]+$/, '')
+      const mergedImages: string[] = []
+      for (const u of [...relatedImages, ...galleryImages]) {
+        const key = normImg(u)
+        if (seenImg.has(key)) continue
+        seenImg.add(key)
+        mergedImages.push(u)
+      }
+      relatedImages = mergedImages
+
       return {
         name: c.name || '캐릭터',
         gender: c.gender || '',
