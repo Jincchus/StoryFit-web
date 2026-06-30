@@ -12,8 +12,8 @@ import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
 import { parseCommand, isBuiltinCommand, builtinFallbackKey, BUILTIN_FALLBACK, composeCommandDirective } from '@/lib/commands'
 import { logAiError } from '@/lib/errorLog'
-import { brokerStart, brokerFinish, brokerSetPhase } from '@/lib/streamBroker'
-import { applyLightFixes, needsResponseRevision } from '@/lib/responseControl'
+import { brokerStart, brokerFinish } from '@/lib/streamBroker'
+import { applyLightFixes } from '@/lib/responseControl'
 import {
   conversationContextInclude,
   buildCharParam,
@@ -21,7 +21,6 @@ import {
   buildModeSystemPrompt,
   buildGeminiHistory,
   streamToMessage,
-  streamRevision,
   type GenConfig,
   type GeminiTurn,
 } from '@/lib/chatPipeline'
@@ -280,30 +279,8 @@ async function generateAsync({
 
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText)
 
-    const enrichMode = conv.enrichInputMode ?? false
     const allowChoices = (conv.mode === 'story' || conv.mode === 'multiStory') && !isCommandGen
-    const revisionOptions = {
-      allowChoices,
-      forbiddenChoiceNames: [],
-      requiredBodyNames: [],
-      enrichMode,
-    }
-
-    cleanText = applyLightFixes(cleanText, revisionOptions)
-
-    if (!isCommandGen && needsResponseRevision(cleanText, revisionOptions)) {
-      brokerSetPhase(msgId, 'revising')
-      const revised = await streamRevision({
-        gen,
-        temperature: Math.min(Number(character.temperature ?? conv.temperature ?? 0.9), 0.75),
-        systemPrompt,
-        history,
-        firstDraft: cleanText,
-        revisionOptions,
-        signal: bgAbort.signal,
-      }).catch(() => '')
-      if (revised.trim()) cleanText = deduplicatePreviousContent(stripAnalysisPreamble(revised), prevAssistantText)
-    }
+    cleanText = applyLightFixes(cleanText, allowChoices)
 
     if (!cleanText) {
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens: result.inputTokens, outputTokens: result.outputTokens })

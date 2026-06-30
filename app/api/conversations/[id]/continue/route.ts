@@ -171,11 +171,7 @@ async function continueAsync({
     clearTimeout(timeoutId)
 
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText)
-    cleanText = applyLightFixes(cleanText, {
-      allowChoices: false,
-      forbiddenChoiceNames: [],
-      requiredBodyNames: [],
-    })
+    cleanText = applyLightFixes(cleanText, false)
 
     if (!cleanText) {
       logAiError({ userId, conversationId: convId, provider: conv.currentAI, mode: conv.mode, errorType: 'empty_response', inputTokens: result.inputTokens, outputTokens: result.outputTokens })

@@ -42,23 +42,6 @@ const CHOICE_PATTERNS = [
   /(?:^|\n)\s*(?:1|①)[\).\s]/,
 ]
 
-const USER_CONTROL_PATTERNS = [
-  /당신은\s+[^.?!\n]*(?:했다|하였다|말했다|느꼈다|생각했다|결심했다|고개를|손을|걸음을)/,
-  /너는\s+[^.?!\n]*(?:했다|하였다|말했다|느꼈다|생각했다|결심했다|고개를|손을|걸음을)/,
-  /유저는\s+[^.?!\n]*(?:했다|하였다|말했다|느꼈다|생각했다|결심했다)/,
-]
-
-export interface ResponseRevisionOptions {
-  allowChoices?: boolean
-  forbiddenChoiceNames?: string[]
-  requiredBodyNames?: string[]
-  enrichMode?: boolean
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
 const SEP_LINE_RE = /^(-{3,}|\*{3,}|={3,})\s*$/
 const CHOICE_LINE_RE = /^(\d+[\.\)]|[①②③④⑤])/
 
@@ -89,38 +72,6 @@ export function parseStoryChoices(content: string): { body: string; choices: str
     .map(l => l.replace(/^[①②③④⑤][\s.]*/,'').replace(/^\d+[\.\)]\s*/, '').trim())
     .filter(Boolean)
   return { body, choices }
-}
-
-function getChoiceBlock(text: string): string {
-  const { choiceBlock } = splitStoryResponse(text)
-  return looksLikeChoiceBlock(choiceBlock) ? choiceBlock : ''
-}
-
-function getBodyBlock(text: string): string {
-  const { body, choiceBlock } = splitStoryResponse(text)
-  return looksLikeChoiceBlock(choiceBlock) ? body : text
-}
-
-function hasForbiddenChoiceSpeaker(text: string, names: string[] = []): boolean {
-  const choiceBlock = getChoiceBlock(text)
-  if (!choiceBlock.trim()) return false
-  return names
-    .map(name => name.trim())
-    .filter(Boolean)
-    .some(name => {
-      const escaped = escapeRegExp(name)
-      return new RegExp(`(?:^|\\n)\\s*(?:\\d+|[①②③④⑤])?[\\).\\s-]*${escaped}\\s*:`, 'u').test(choiceBlock)
-    })
-}
-
-function missesRequiredBodySpeaker(text: string, names: string[] = []): boolean {
-  const bodyBlock = getBodyBlock(text)
-  const requiredNames = names.map(name => name.trim()).filter(Boolean)
-  if (requiredNames.length === 0) return false
-  return requiredNames.some(name => {
-    const escaped = escapeRegExp(name)
-    return !new RegExp(`(?:^|\\n)\\s*${escaped}\\s*:`, 'u').test(bodyBlock)
-  })
 }
 
 function getEnrichTurnInstruction(allowChoices = false): string {
@@ -166,69 +117,11 @@ export function stripChoiceArtifacts(text: string): string {
   return lines.join('\n').trim()
 }
 
-export function applyLightFixes(text: string, options: boolean | ResponseRevisionOptions = false): string {
+export function applyLightFixes(text: string, options: boolean | { allowChoices?: boolean } = false): string {
   const allowChoices = typeof options === 'boolean' ? options : !!options.allowChoices
   const trimmed = text.trim()
   if (!allowChoices && CHOICE_PATTERNS.some(pattern => pattern.test(trimmed))) {
     return stripChoiceArtifacts(trimmed)
   }
   return trimmed
-}
-
-export function needsResponseRevision(text: string, options: boolean | ResponseRevisionOptions = false): boolean {
-  const allowChoices = typeof options === 'boolean' ? options : !!options.allowChoices
-  const forbiddenChoiceNames = typeof options === 'boolean' ? [] : options.forbiddenChoiceNames ?? []
-  const requiredBodyNames = typeof options === 'boolean' ? [] : options.requiredBodyNames ?? []
-  const enrichMode = typeof options === 'boolean' ? false : !!options.enrichMode
-
-  const trimmed = text.trim()
-  if (!trimmed) return false
-  if (allowChoices && hasForbiddenChoiceSpeaker(trimmed, forbiddenChoiceNames)) return true
-  if (allowChoices && missesRequiredBodySpeaker(trimmed, requiredBodyNames)) return true
-
-  if (!enrichMode) {
-    if (USER_CONTROL_PATTERNS.some(pattern => pattern.test(trimmed))) return true
-  }
-
-  return false
-}
-
-export function buildRevisionPrompt(badResponse: string, options: boolean | ResponseRevisionOptions = false): string {
-  const allowChoices = typeof options === 'boolean' ? options : !!options.allowChoices
-  const forbiddenChoiceNames = typeof options === 'boolean' ? [] : options.forbiddenChoiceNames ?? []
-  const requiredBodyNames = typeof options === 'boolean' ? [] : options.requiredBodyNames ?? []
-  const enrichMode = typeof options === 'boolean' ? false : !!options.enrichMode
-  const forbiddenNamesText = forbiddenChoiceNames.filter(Boolean).join(', ')
-  const requiredNamesText = requiredBodyNames.filter(Boolean).join(', ')
-
-  if (enrichMode) {
-    return `[Response Rewrite Request]
-The previous response was missing or had incorrect story mode choices.
-
-${STORY_RESPONSE_CONTROL_RULES}
-
-Rewrite keeping the same body content, but fix the choices section:
-- ${forbiddenNamesText ? `Do not include ${forbiddenNamesText}'s name, dialogue, or actions in the choices.` : "Present choices only as the user's next action or dialogue candidates."}
-- ${requiredNamesText ? `The body before the choices must include ${requiredNamesText}'s actions and dialogue.` : 'The AI character must act and speak in the body.'}
-- Output only the rewritten body+choices without any explanation.
-
-[Incorrect Response]
-${badResponse}`
-  }
-
-  return `[Response Rewrite Request]
-The previous response violated the app's response control rules or was too short.
-
-${getResponseControlRules(allowChoices)}
-
-Rewrite the incorrect response below as the natural next response for the same scene.
-- ${allowChoices ? "Maintain story mode choices, but write them only as the user's next action/dialogue candidates." : 'Remove any choices or host-like questions.'}
-- ${allowChoices && forbiddenNamesText ? `Do not include ${forbiddenNamesText}'s name, dialogue, or actions in the choices.` : 'Do not delegate AI character actions and dialogue to user choices.'}
-- ${allowChoices && requiredNamesText ? `The body before the choices must include ${requiredNamesText}'s actions and dialogue.` : 'Have the AI character act and speak directly in the body.'}
-- Do not confirm the user's actions/dialogue/emotions.
-- Write more richly with scene narration, character actions, and dialogue.
-- Output only the rewritten body without any explanation.
-
-[Incorrect Response]
-${badResponse}`
 }

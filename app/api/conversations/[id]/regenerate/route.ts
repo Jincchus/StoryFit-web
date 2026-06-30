@@ -10,8 +10,7 @@ import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
-import { needsResponseRevision } from '@/lib/responseControl'
-import { brokerStart, brokerFinish, brokerSetPhase } from '@/lib/streamBroker'
+import { brokerStart, brokerFinish } from '@/lib/streamBroker'
 import {
   conversationContextInclude,
   buildCharParam,
@@ -19,7 +18,6 @@ import {
   buildModeSystemPrompt,
   buildGeminiHistory,
   streamToMessage,
-  streamRevision,
   type GenConfig,
   type GeminiTurn,
 } from '@/lib/chatPipeline'
@@ -176,29 +174,6 @@ async function regenerateAsync({
     clearTimeout(timeoutId)
 
     let cleanText = deduplicatePreviousContent(stripAnalysisPreamble(state.fullText), prevAssistantText) || '[응답 없음]'
-
-    const enrichMode = conv.enrichInputMode ?? false
-    const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
-    const revisionOptions = {
-      allowChoices,
-      forbiddenChoiceNames: [],
-      requiredBodyNames: [],
-      enrichMode,
-    }
-
-    if (needsResponseRevision(cleanText, revisionOptions)) {
-      brokerSetPhase(msgId, 'revising')
-      const revised = await streamRevision({
-        gen,
-        temperature: Math.min(Number(character.temperature ?? conv.temperature ?? 0.9), 0.75),
-        systemPrompt,
-        history,
-        firstDraft: cleanText,
-        revisionOptions,
-        signal: bgAbort.signal,
-      }).catch(() => '')
-      if (revised.trim()) cleanText = deduplicatePreviousContent(stripAnalysisPreamble(revised), prevAssistantText) || cleanText
-    }
 
     await prisma.message.update({
       where: { id: msgId },
