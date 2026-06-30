@@ -52,9 +52,7 @@ export interface ResponseRevisionOptions {
   allowChoices?: boolean
   forbiddenChoiceNames?: string[]
   requiredBodyNames?: string[]
-  personaName?: string
   enrichMode?: boolean
-  allowPersonaDialogue?: boolean
 }
 
 function escapeRegExp(value: string): string {
@@ -181,9 +179,7 @@ export function needsResponseRevision(text: string, options: boolean | ResponseR
   const allowChoices = typeof options === 'boolean' ? options : !!options.allowChoices
   const forbiddenChoiceNames = typeof options === 'boolean' ? [] : options.forbiddenChoiceNames ?? []
   const requiredBodyNames = typeof options === 'boolean' ? [] : options.requiredBodyNames ?? []
-  const personaName = typeof options === 'boolean' ? undefined : options.personaName
   const enrichMode = typeof options === 'boolean' ? false : !!options.enrichMode
-  const allowPersonaDialogue = typeof options === 'boolean' ? false : !!options.allowPersonaDialogue
 
   const trimmed = text.trim()
   if (!trimmed) return false
@@ -192,14 +188,6 @@ export function needsResponseRevision(text: string, options: boolean | ResponseR
 
   if (!enrichMode) {
     if (USER_CONTROL_PATTERNS.some(pattern => pattern.test(trimmed))) return true
-    if (personaName && !allowPersonaDialogue) {
-      const escapedPersona = escapeRegExp(personaName)
-      const bodyBlock = getBodyBlock(trimmed)
-      const personaDialoguePattern = new RegExp(`(?:^|\\n)\\s*${escapedPersona}\\s*:`, 'u')
-      if (personaDialoguePattern.test(bodyBlock)) return true
-      const personaActionPattern = new RegExp(`${escapedPersona}(?:은|는|이|가)?\\s+[^.?!\\n]*(?:했다|하였다|말했다|느꼈다|생각했다|결심했다|고개를|손을|걸음을)`, 'u')
-      if (personaActionPattern.test(bodyBlock)) return true
-    }
   }
 
   return false
