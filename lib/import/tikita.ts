@@ -1,4 +1,4 @@
-import type { Captured, AssembledCharacter } from './types'
+import type { Captured, AssembledCharacter, PersonaPreset } from './types'
 
 // tikita.ai는 Supabase 백엔드(custom domain)를 쓰며, 공개 스토리는 anon 키로 REST 조회 가능하다.
 // anon 키는 클라이언트 번들에 박힌 공개값 — 교체 가능성에 대비해 환경변수로 덮어쓸 수 있게 한다.
@@ -10,6 +10,20 @@ function storageUrl(path?: string | null): string {
   if (!path) return ''
   if (/^https?:\/\//.test(path)) return path
   return `${TIKITA_BASE}/storage/v1/object/public/${path.replace(/^\/+/, '')}`
+}
+
+// story.template_personas → 제작자 페르소나 프리셋.
+function buildTikitaPersonaPresets(arr: any): PersonaPreset[] {
+  if (!Array.isArray(arr)) return []
+  const out: PersonaPreset[] = []
+  for (const p of arr) {
+    const name = String(p?.name ?? p?.title ?? '').trim()
+    const info = String(p?.description ?? p?.content ?? p?.intro ?? p?.persona_intro ?? p?.detail ?? '').trim()
+    if (!name || !info) continue
+    const img = storageUrl(p?.avatar_url ?? p?.image_url ?? p?.thumbnail_url)
+    out.push({ name: name.slice(0, 60), additionalInfo: info, avatarUrl: img || undefined })
+  }
+  return out
 }
 
 function mapGender(g?: string): string {
@@ -217,6 +231,7 @@ export async function captureTikita(url: string): Promise<Captured> {
       safetyLevel: story.is_adult ? 'relaxed' : 'standard',
       coverImageUrl: cover,
     },
+    ...(buildTikitaPersonaPresets(story.template_personas).length ? { personaPresets: buildTikitaPersonaPresets(story.template_personas) } : {}),
     tikitaMeta: {
       shortId,
       tagline: story.tagline ?? '',

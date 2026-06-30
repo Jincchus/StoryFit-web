@@ -14,6 +14,8 @@ export default function CharacterSection({ mode, char, importedChars, allChars, 
 }) {
   const [charOpen, setCharOpen] = useState(false)
   const [addCharOpen, setAddCharOpen] = useState(false)
+  // 페르소나 프리셋은 AI 캐릭터로 선택 불가(페르소나 피커 전용).
+  const selectable = allChars.filter(c => !c.isPersonaPreset)
 
   return (
     <section className="new-conv-section">
@@ -49,9 +51,9 @@ export default function CharacterSection({ mode, char, importedChars, allChars, 
             >+ 캐릭터 추가 {addCharOpen ? '▲' : '▼'}</button>
             {addCharOpen && (
               <div style={{ border: '1px solid var(--chrome-border)', background: 'var(--win-bg)', maxHeight: 200, overflowY: 'auto' }}>
-                {allChars.filter(c => !importedChars.some(ic => ic.id === c.id)).length === 0 ? (
+                {selectable.filter(c => !importedChars.some(ic => ic.id === c.id)).length === 0 ? (
                   <div className="tiny muted" style={{ padding: '8px 12px' }}>추가할 수 있는 캐릭터가 없습니다</div>
-                ) : allChars.filter(c => !importedChars.some(ic => ic.id === c.id)).map(c => (
+                ) : selectable.filter(c => !importedChars.some(ic => ic.id === c.id)).map(c => (
                   <div
                     key={c.id}
                     className="persona-option"
@@ -100,7 +102,7 @@ export default function CharacterSection({ mode, char, importedChars, allChars, 
           </div>
           {charOpen && (
             <div style={{ border: '1px solid var(--chrome-border)', background: 'var(--win-bg)', marginTop: 2, maxHeight: 200, overflowY: 'auto' }}>
-              {allChars.filter(c => c.id !== personaId).map(c => (
+              {selectable.filter(c => c.id !== personaId).map(c => (
                 <div
                   key={c.id}
                   className={`persona-option ${char?.id === c.id ? 'selected' : ''}`}

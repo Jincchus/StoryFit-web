@@ -291,6 +291,30 @@ async function runImport(captured: Captured, url: string, userId: string) {
     )
   }
 
+  // 제작자 페르소나 프리셋 → isPersonaPreset 캐릭터로 생성.
+  // 컬렉션에 소속시키지 않아(collectionId 없음) 캐릭터 그리드/컬렉션 뷰엔 안 보이고, 페르소나 피커에만 노출된다.
+  if (captured.personaPresets?.length) {
+    await Promise.all(
+      captured.personaPresets
+        .filter((p) => p.name?.trim() && p.additionalInfo?.trim())
+        .map((p) =>
+          prisma.character.create({
+            data: {
+              name: p.name.trim().slice(0, 100),
+              gender: '',
+              tags: (p.tags ?? []).slice(0, 20),
+              additionalInfo: p.additionalInfo.slice(0, 10000),
+              safetyLevel: result.safetyLevel || 'standard',
+              isPersonaPreset: true,
+              isAutoCreated: true,
+              creatorId: userId,
+              ...(p.avatarUrl ? { avatarUrl: p.avatarUrl } : {}),
+            },
+          })
+        )
+    )
+  }
+
   const firstChar = createdChars[0]
   return { characterId: firstChar?.id, conversationId: '', collectionId: collection.id }
 }

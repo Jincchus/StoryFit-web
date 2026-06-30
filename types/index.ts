@@ -39,6 +39,7 @@ export interface Character {
   thinkingBudget?: number
   isPreset: boolean
   isAutoCreated?: boolean
+  isPersonaPreset?: boolean
   collection?: CharacterCollection | null
   completed?: boolean
   hasArchived?: boolean

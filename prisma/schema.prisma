@@ -155,6 +155,7 @@ model Character {
   relatedImages       String[]  @default([])
   isPreset            Boolean   @default(false)
   isAutoCreated       Boolean   @default(false)
+  isPersonaPreset     Boolean   @default(false) // 제작자가 만든 플레이어 페르소나 프리셋(외부 센터 import). 캐릭터 그리드/AI선택엔 숨기고 페르소나 피커에만 노출.
   createdAt           DateTime  @default(now())
   creatorId           String?
   creator             User?     @relation(fields: [creatorId], references: [id])

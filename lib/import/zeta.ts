@@ -1,4 +1,4 @@
-import type { Captured, AssembledCharacter } from './types'
+import type { Captured, AssembledCharacter, PersonaPreset } from './types'
 
 export function normalizeGuest(text: string): string {
   return text.split('Guest').join('{{user}}')
@@ -64,6 +64,21 @@ function buildZetaOpenings(intros: any): { id: string; title: string; content: s
     .filter(o => o.content.trim().length > 0)
 }
 
+// plot.chatProfiles → 제작자 페르소나 프리셋. name은 "{{user}}"/뷰어 닉네임이라 신뢰 불가 →
+// summary(한 줄 요약)를 페르소나 이름으로, description을 본문으로 쓴다.
+export function buildZetaPersonaPresets(chatProfiles: any): PersonaPreset[] {
+  if (!Array.isArray(chatProfiles)) return []
+  const out: PersonaPreset[] = []
+  for (const p of chatProfiles) {
+    const summary = String(p?.summary ?? '').trim()
+    const description = normalizeGuest(String(p?.description ?? '').trim())
+    const name = (summary || description.split('\n')[0]).slice(0, 60).trim()
+    if (!name || !description) continue
+    out.push({ name, additionalInfo: description, avatarUrl: String(p?.imageUrl ?? '') || undefined })
+  }
+  return out
+}
+
 export function buildZetaCaptured(plot: any, canonicalUrl: string): Captured {
   const rawChars = Array.isArray(plot.characters) ? plot.characters : []
   const hashtags = Array.isArray(plot.hashtags) ? plot.hashtags : []
@@ -116,6 +131,7 @@ export function buildZetaCaptured(plot: any, canonicalUrl: string): Captured {
       safetyLevel,
       coverImageUrl: plot.imageUrl || '',
     },
+    ...(buildZetaPersonaPresets(plot.chatProfiles).length ? { personaPresets: buildZetaPersonaPresets(plot.chatProfiles) } : {}),
     zetaMeta: plot,
   }
 }

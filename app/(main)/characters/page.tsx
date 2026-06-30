@@ -85,7 +85,8 @@ export default function CharactersPage() {
   const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
 
   useEffect(() => {
-    api.get('/api/characters').then(data => { setCharacters(data); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
+    // 페르소나 프리셋(isPersonaPreset)은 캐릭터 라이브러리에 노출하지 않는다(페르소나 피커 전용).
+    api.get('/api/characters').then(data => { setCharacters(data.filter((c: Character) => !c.isPersonaPreset)); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
     api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
 
@@ -99,7 +100,7 @@ export default function CharactersPage() {
     try {
       const result = await api.post('/api/characters/import', { url: importUrl.trim() })
       const refreshed = await api.get('/api/characters')
-      setCharacters(refreshed)
+      setCharacters(refreshed.filter((c: Character) => !c.isPersonaPreset))
       const char = result.character ?? result
       dispatch({ type: 'selectChar', id: char.id })
       setImportUrl('')
@@ -223,7 +224,7 @@ export default function CharactersPage() {
     try {
       await api.post(`/api/characters/${id}/duplicate`, {})
       const refreshed = await api.get('/api/characters')
-      setCharacters(refreshed)
+      setCharacters(refreshed.filter((c: Character) => !c.isPersonaPreset))
       setView('active')
     } catch (e: any) {
       setError(e.message ?? '복제 중 오류가 발생했습니다.')

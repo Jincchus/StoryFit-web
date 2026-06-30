@@ -65,7 +65,7 @@ export default function PersonaSection({ mode, char, importedChars, allChars, pe
           {allChars.filter(c => mode === 'multiStory'
             ? !importedChars.some(ic => ic.id === c.id)
             : c.id !== char?.id
-          ).map(c => (
+          ).sort((a, b) => Number(!!b.isPersonaPreset) - Number(!!a.isPersonaPreset)).map(c => (
             <div
               key={c.id}
               className={`persona-option ${personaId === c.id ? 'selected' : ''}`}
@@ -78,7 +78,10 @@ export default function PersonaSection({ mode, char, importedChars, allChars, pe
                   : <span style={{fontSize:'18px', lineHeight:1}}>🎭</span>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 11 }}>{c.name}</div>
+                <div style={{ fontWeight: 700, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {c.name}
+                  {c.isPersonaPreset && <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--hot-pink)', border: '1px solid var(--hot-pink)', borderRadius: 3, padding: '0 3px', flexShrink: 0 }}>추천</span>}
+                </div>
                 <div className="tiny muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tags?.slice(0, 3).join(' · ')}</div>
               </div>
               {personaId === c.id && <span style={{ color: 'var(--hot-pink)', fontSize: 10, flexShrink: 0 }}>✓</span>}

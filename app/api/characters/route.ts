@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       id: true, name: true, gender: true, avatarUrl: true, tags: true,
       safetyLevel: true, temperature: true, frequencyPenalty: true,
       maxOutputTokens: true, thinkingBudget: true, defaultAI: true,
-      isPreset: true, isAutoCreated: true, createdAt: true,
+      isPreset: true, isAutoCreated: true, isPersonaPreset: true, createdAt: true,
       creatorId: true, collectionId: true,
       collection: { select: { id: true, title: true, sourceUrl: true } },
       conversations: {

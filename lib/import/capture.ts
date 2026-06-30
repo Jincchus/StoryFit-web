@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer-core'
 import { prisma } from '@/lib/prisma'
-import type { Captured, TingleRawData, TingleField } from './types'
+import type { Captured, TingleRawData, TingleField, PersonaPreset } from './types'
 import { buildZetaCaptured, extractZetaLorebookEntries } from './zeta'
 
 const INPUT_CAP = 40000  // 분류 출력이 작아져 입력 캡을 크게 상향 (잘림 방지)
@@ -640,6 +640,16 @@ async function resolveMeltingCharacterId(url: string): Promise<string> {
 // 문제로 자주 실패 → AI 분류기 폴백 → 비결정적), 캐릭터 API(`/api/characters/{id}`)를 세션
 // 쿠키와 함께 직접 호출하면 동일 구조의 JSON을 결정적으로 받을 수 있다(Zeta와 동일 방식).
 // 세션이 만료된 경우 폴백 없이 명확한 오류로 차단한다(쿠키 재입력 유도).
+// 멜팅 페르소나 객체 → 우리 페르소나 프리셋(방어적 필드 매핑).
+function meltingPersonaToPreset(p: any): PersonaPreset | null {
+  if (!p || typeof p !== 'object') return null
+  const name = String(p.name ?? p.title ?? '').trim()
+  const info = String(p.description ?? p.content ?? p.detail ?? p.persona ?? p.info ?? '').trim()
+  if (!name || !info) return null
+  const img = String(p.imageUrl ?? p.avatarUrl ?? p.profileImageUrl ?? p.image ?? '').trim()
+  return { name: name.slice(0, 60), additionalInfo: info, avatarUrl: /^https?:\/\//.test(img) ? img : undefined }
+}
+
 export async function captureMelting(url: string): Promise<Captured> {
   const characterId = await resolveMeltingCharacterId(url)
 
@@ -806,13 +816,31 @@ export async function captureMelting(url: string): Promise<Captured> {
     coverImageUrl,
   }
 
-  console.log(`[melting-import] ok — id=${characterId} name=${name} tags=${tags.length} openings=${openingMessages.length} safety=${safetyLevel}`)
+  // 제작자 페르소나 프리셋: bot.personas[] + 기본 페르소나(/default-persona) 합치기.
+  const personaPresets: PersonaPreset[] = []
+  for (const p of (Array.isArray(data.personas) ? data.personas : [])) {
+    const pp = meltingPersonaToPreset(p)
+    if (pp) personaPresets.push(pp)
+  }
+  try {
+    const dpRes = await fetch(`https://melting.chat/api/bots/${bot.id}/default-persona`, {
+      headers: { 'User-Agent': MELTING_UA, Accept: 'application/json', 'Accept-Language': 'ko-KR,ko;q=0.9', Cookie: sessionCookie },
+    })
+    if (dpRes.ok) {
+      const dp = await dpRes.json().catch(() => null)
+      const pp = meltingPersonaToPreset(dp?.json?.persona ?? dp?.persona ?? null)
+      if (pp && !personaPresets.some((x) => x.name === pp.name)) personaPresets.push(pp)
+    }
+  } catch { /* default-persona 실패는 무시 */ }
+
+  console.log(`[melting-import] ok — id=${characterId} name=${name} tags=${tags.length} openings=${openingMessages.length} personas=${personaPresets.length} safety=${safetyLevel}`)
 
   return {
     sections: [],
     title: name,
     imageUrl: profileImageUrl,
     assembledResult,
+    ...(personaPresets.length ? { personaPresets } : {}),
     meltingMeta: {
       ...bot,
       tags: data.tags ?? null,

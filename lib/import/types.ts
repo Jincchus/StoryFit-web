@@ -16,6 +16,16 @@ export interface Captured {
   meltingMeta?: any
   tikitaMeta?: any
   tingleMeta?: any
+  // 제작자가 만든 플레이어 페르소나 프리셋(Zeta chatProfiles / 멜팅 personas·default-persona / Tikita template_personas).
+  // runImport에서 isPersonaPreset 캐릭터로 생성된다.
+  personaPresets?: PersonaPreset[]
+}
+
+export interface PersonaPreset {
+  name: string
+  additionalInfo: string
+  avatarUrl?: string
+  tags?: string[]
 }
 
 // 번호 매긴 블록. text는 원본 부분문자열 그대로.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildZetaCaptured, normalizeGuest } from './zeta'
+import { buildZetaCaptured, normalizeGuest, buildZetaPersonaPresets } from './zeta'
 
 const PLOT = {
   id: '7672da02-d9df-42d1-ba70-894cd25f7369',
@@ -76,5 +76,25 @@ describe('buildZetaCaptured', () => {
     expect(op).toContain('{{user}}의 원룸')
     expect(op).toContain('어깨 좀 빌려줘')
     expect(op).toContain('\n\n')
+  })
+})
+
+describe('buildZetaPersonaPresets (chatProfiles → 페르소나)', () => {
+  it('summary를 이름으로, description을 본문으로(name "{{user}}"는 무시)', () => {
+    const r = buildZetaPersonaPresets([
+      { name: '{{user}}', summary: '거대한 땅에 떨어진 문명인 여자', description: '배를 탔다가 침몰하여 표류했다', imageUrl: 'https://img/p.png' },
+    ])
+    expect(r).toHaveLength(1)
+    expect(r[0].name).toBe('거대한 땅에 떨어진 문명인 여자')
+    expect(r[0].additionalInfo).toBe('배를 탔다가 침몰하여 표류했다')
+    expect(r[0].avatarUrl).toBe('https://img/p.png')
+  })
+  it('summary가 없으면 description 첫 줄을 이름으로', () => {
+    const r = buildZetaPersonaPresets([{ description: '첫 줄 요약\n둘째 줄' }])
+    expect(r[0].name).toBe('첫 줄 요약')
+  })
+  it('본문 없으면 제외, 배열 아니면 빈 배열', () => {
+    expect(buildZetaPersonaPresets([{ summary: '이름만' }])).toEqual([])
+    expect(buildZetaPersonaPresets(undefined)).toEqual([])
   })
 })
