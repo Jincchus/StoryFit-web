@@ -7,6 +7,7 @@ import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
 import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
+import ImageCarousel from '@/components/ui/ImageCarousel'
 import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
@@ -346,20 +347,11 @@ export default function TikitaStoryDetailPage() {
           {gallery.length > 0 && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
               <h2 className="tikita-section-title">이미지 갤러리 ({gallery.length})</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                {gallery.map((g, i) => (
-                  <div key={i} style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden', background: 'var(--t-surface-2)' }}>
-                    <img src={g.url} alt={g.description ?? ''} loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    {g.description && (
-                      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '3px 5px', fontSize: 9, lineHeight: 1.3,
-                        color: '#fff', background: 'linear-gradient(transparent, rgba(0,0,0,0.75))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {g.description}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <ImageCarousel
+                images={gallery.map(g => ({ url: g.url, description: g.description }))}
+                accent="var(--t-accent)"
+                line="var(--t-line)"
+              />
             </div>
           )}
 

@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
 import NovelText from '@/components/ui/NovelText'
+import ImageCarousel from '@/components/ui/ImageCarousel'
 import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { getOpenings } from '@/lib/openings'
@@ -40,7 +41,6 @@ export default function CharacterDetailPage() {
   const [personaOpen, setPersonaOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
-  const [imgIdx, setImgIdx] = useState(0)
   const [existingConvs, setExistingConvs] = useState<any[]>([])
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false)
   const [isEditingOpening, setIsEditingOpening] = useState(false)
@@ -241,40 +241,7 @@ export default function CharacterDetailPage() {
             <div className="whif-section" style={{ paddingTop: 0 }}>
               <h2 className="whif-section-title">관련 콘텐츠</h2>
               {relatedImgs.length > 0 && (
-                <div>
-                  <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12 }}>
-                    <img
-                      src={relatedImgs[imgIdx]}
-                      alt=""
-                      style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }}
-                    />
-                    {relatedImgs.length > 1 && (
-                      <>
-                        <button onClick={() => setImgIdx(i => (i - 1 + relatedImgs.length) % relatedImgs.length)}
-                          style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-                            background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '50%',
-                            width: 32, height: 32, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          ‹
-                        </button>
-                        <button onClick={() => setImgIdx(i => (i + 1) % relatedImgs.length)}
-                          style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                            background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '50%',
-                            width: 32, height: 32, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          ›
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  {relatedImgs.length > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
-                      {relatedImgs.map((_, i) => (
-                        <button key={i} onClick={() => setImgIdx(i)}
-                          style={{ width: i === imgIdx ? 18 : 6, height: 6, borderRadius: 3, border: 'none', cursor: 'pointer',
-                            background: i === imgIdx ? 'var(--w-accent)' : 'var(--w-line)', padding: 0, transition: 'all 0.2s' }} />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <ImageCarousel images={relatedImgs} aspectRatio="1/1" accent="var(--w-accent)" line="var(--w-line)" />
               )}
               {relatedVideo && (
                 <div style={{ marginTop: relatedImgs.length > 0 ? 14 : 0, borderRadius: 12, overflow: 'hidden', aspectRatio: '16/9' }}>

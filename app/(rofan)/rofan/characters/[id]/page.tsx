@@ -8,6 +8,7 @@ import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type N
 import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
+import ImageCarousel from '@/components/ui/ImageCarousel'
 import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
@@ -240,12 +241,7 @@ export default function RofanCharDetailPage() {
           {Array.isArray(mainChar?.relatedImages) && mainChar.relatedImages.length > 0 && (
             <div className="rofan-section" style={{ paddingTop: 0 }}>
               <h2 className="rofan-section-title">이미지 ({mainChar.relatedImages.length})</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                {mainChar.relatedImages.map((src, i) => (
-                  <img key={i} src={src} alt="" loading="lazy"
-                    style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: 8, display: 'block' }} />
-                ))}
-              </div>
+              <ImageCarousel images={mainChar.relatedImages} accent="var(--r-accent)" line="var(--r-line)" />
             </div>
           )}
 
