@@ -11,6 +11,13 @@ const TIME_ANCHOR_RULE =
   '"다음 날/이튿날"=Day +1, "며칠 후"=+3일 안팎, "일주일 후/뒤"=+7일, "한 달 후"=+30일, "N년 후"=+365N일 식으로 Day와 날짜를 함께 더한다. ' +
   '하룻밤을 보냈으면 최소 +1일. 같은 씬이라 시간이 거의 안 흘렀으면 시각만 갱신하고 Day는 유지. 절대 과거로 되돌리지 마라.'
 
+// 복장 상태 추적: "누가 뭘 입었나"만이 아니라, 벗은 옷의 위치까지 한 벌=한 곳으로 관리해
+// "이미 입은 옷을 또 줍는" 류의 모순을 막는다.
+const CLOTHING_STATE_RULE =
+  '- 복장은 인물별로 "착용 중"과 "벗어둔 것(+위치: 바닥·의자·가방 등)"을 구분해 적는다. 한 벌은 반드시 한 곳에만 존재한다: ' +
+  '벗으면 그 옷을 어디에 뒀는지 위치를 남기고, 다시 입으면 "벗어둔" 목록에서 그 옷을 삭제한다. ' +
+  '이미 다시 입은 옷을 누가 또 줍거나, 치운 옷이 다시 바닥에 생기는 모순을 만들지 마라.'
+
 // ── JSON 추출 헬퍼 ──────────────────────────────────────────────────────────
 
 function extractJson(raw: string): string {
@@ -114,7 +121,7 @@ ${statsSection}${inventorySection}
 {
   "stats": {},
   "inventory": { "add": [], "remove": [] },
-  "statusTimeline": "첫 줄은 '${TIME_ANCHOR_HINT}', 이어서 장소·동석인물·핵심상황·각 인물의 의상과 부상/신체 상태를 3~5줄 불릿으로 요약",
+  "statusTimeline": "첫 줄은 '${TIME_ANCHOR_HINT}', 이어서 장소·동석인물·핵심상황·각 인물의 복장(착용 중/벗어둔 것+위치)과 부상/신체 상태를 3~5줄 불릿으로 요약",
   "newChapter": false
 }
 
@@ -124,6 +131,7 @@ ${statsSection}${inventorySection}
 - statusTimeline: 반드시 작성. 이전 상태를 기반으로 이번 교환의 변화만 반영해 갱신. 이번 교환에서 언급되지 않은 항목(의상·부상·장소 등)은 이전 상태 그대로 유지
 ${TIME_ANCHOR_RULE}
 - 의상·부상·신체 변화(예: 옷을 갈아입음, 다침, 붕대를 감음, 흉터)는 명시적으로 회복·변경되기 전까지 반드시 유지
+${CLOTHING_STATE_RULE}
 ${chapterRule}`
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -221,7 +229,7 @@ AI 응답: ${clipMiddle(aiMsg, 1000, 500)}
 
 반환 형식 (JSON만, 설명 없이):
 {
-  "statusTimeline": "첫 줄은 '${TIME_ANCHOR_HINT}', 이어서 의상(누가 무엇을 입고 있는지)·장소·현재 상황을 불릿(•) 3~5줄로 요약.",
+  "statusTimeline": "첫 줄은 '${TIME_ANCHOR_HINT}', 이어서 복장(각자 착용 중/벗어둔 것+위치)·장소·현재 상황을 불릿(•) 3~5줄로 요약.",
   "newChapter": false
 }
 
@@ -229,6 +237,7 @@ AI 응답: ${clipMiddle(aiMsg, 1000, 500)}
 - 이 대화에서 변화가 없으면 이전 상태를 그대로 유지(단 시점 앵커 줄은 항상 유지)
 ${TIME_ANCHOR_RULE}
 - 의상이 바뀌었으면 반드시 새 의상으로 업데이트
+${CLOTHING_STATE_RULE}
 - 장소가 바뀌었으면 반드시 새 장소로 업데이트
 - newChapter: 장소·시간대가 근본적으로 전환(큰 시간 점프 또는 완전히 새로운 장소/상황으로 이동)됐을 때만 true, 아니면 false`
 
