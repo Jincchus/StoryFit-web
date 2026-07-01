@@ -218,7 +218,10 @@ export async function captureTikita(url: string): Promise<Captured> {
   const introText = story.intro_mode === 'html'
     ? stripHtml(story.intro_html)
     : (String(story.intro_md || '').trim() || stripHtml(story.intro_html))
-  const scenario = [String(story.world || '').trim(), introText].filter(Boolean).join('\n\n')
+  // detail_md는 스토리 레벨 시스템 설정(서술규칙·다른 등장인물·명령어·세계관)이므로 세계관(scenario)에 둔다.
+  // (캐릭터별 additionalInfo에 넣으면 캐릭터 수만큼 프롬프트에 중복됐다 — 4캐릭터면 ×4.)
+  const detailMdText = String(story.detail_md || '').trim()
+  const scenario = [String(story.world || '').trim(), detailMdText, introText].filter(Boolean).join('\n\n')
     || String(story.tagline || '').trim()
   const cover = storageUrl(story.thumbnail_url || story.story_thumbnail_url)
   const title = String(story.title || '').trim()
@@ -243,7 +246,7 @@ export async function captureTikita(url: string): Promise<Captured> {
     name: String(c.name || title || '캐릭터').slice(0, 100),
     gender: mapGender(c.gender),
     tags,
-    additionalInfo: [c.character_intro, story.detail_md].map((s: any) => String(s || '').trim()).filter(Boolean).join('\n\n'),
+    additionalInfo: String(c.character_intro || '').trim(), // 캐릭터 고유 설정만. detail_md는 세계관(scenario)으로 이동.
     openingMessage: i === 0 ? String(story.first_message || '') : '',
     exampleDialogues: '',
     avatarUrl: storageUrl(c.avatar_url) || (i === 0 ? cover : ''),

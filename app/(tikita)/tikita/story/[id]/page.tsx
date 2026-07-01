@@ -207,7 +207,8 @@ export default function TikitaStoryDetailPage() {
     if (!mainChar) return
     setCreating(true); setError('')
     try {
-      const scenarioText = buildScenarioText()
+      // detail_md(상세 안내 = 스토리 시스템 설정)를 세계관에 한 번 포함 — 캐릭터마다 중복되지 않게.
+      const scenarioText = [buildScenarioText(), detailMd].filter(Boolean).join('\n\n')
       const resp = await createCenterChat({
         collectionId: col.id,
         title: col.title,
