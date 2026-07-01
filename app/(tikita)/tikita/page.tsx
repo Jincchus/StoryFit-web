@@ -65,7 +65,7 @@ export default function TikitaListPage() {
     const thumb = c.coverImageUrl || c.characters[0]?.avatarUrl || ''
     return (
       <div key={c.id} className="tikita-card" style={{ position: 'relative' }}
-        onClick={() => !editMode && router.push(`/tikita/characters/${c.id}`)}>
+        onClick={() => !editMode && router.push(`/tikita/story/${c.id}`)}>
         {c.completed && <div style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 700, background: 'var(--t-accent)', color: '#fff', padding: '1px 5px', borderRadius: 3 }}>완결</div>}
         {thumb ? <img className="tikita-card-img" loading="lazy" decoding="async" src={thumb} alt="" /> : <div className="tikita-card-img" />}
         <div className="tikita-card-body">
