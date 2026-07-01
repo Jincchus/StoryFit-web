@@ -1,9 +1,10 @@
 'use client'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import Win from '@/components/ui/Win'
 import { PixelIcons } from '@/components/ui/PixelAvatar'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CharacterForm, { type CharFormData } from '@/components/ui/CharacterForm'
 
 function CharacterEditContent() {
@@ -24,6 +25,8 @@ function CharacterEditContent() {
   const [error, setError] = useState('')
   const [form, setForm] = useState<CharFormData | null>(null)
   const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
+  const initialOpeningRef = useRef('')
+  const [applyPrompt, setApplyPrompt] = useState<{ total: number; progressed: number } | null>(null)
 
   useEffect(() => {
     // 캐릭터를 먼저 받아 폼을 즉시 렌더한다(빠름). 컬렉션 목록은 드롭다운용 경량(id·title)으로
@@ -43,6 +46,7 @@ function CharacterEditContent() {
           : (c.openingMessage?.trim() ? [{ id: 'op-0', title: '도입부 1', content: c.openingMessage }] : []),
         collectionId: c.collection?.id ?? null,
       })
+      initialOpeningRef.current = (Array.isArray(c.openingMessages) && c.openingMessages.length ? c.openingMessages[0]?.content : c.openingMessage) ?? ''
       // 현재 소속 컬렉션은 먼저 단독으로 채워둔다(드롭다운이 비어도 현재 값은 보이게).
       if (c.collection) setCollections([{ id: c.collection.id, title: c.collection.title }])
     }).catch((e: any) => setFetchError(e.message))
@@ -88,34 +92,43 @@ function CharacterEditContent() {
     try {
       // 도입부: 첫 항목을 기본(openingMessage)으로 동기화, 빈 내용 항목은 제외.
       const cleanOpenings = (form.openingMessages ?? []).filter(o => o.content.trim())
+      const newOpening = cleanOpenings[0]?.content ?? ''
       await api.patch(`/api/characters/${id}`, {
         ...form,
-        openingMessage: cleanOpenings[0]?.content ?? '',
+        openingMessage: newOpening,
         openingMessages: cleanOpenings.length > 1 ? cleanOpenings : null,
       })
-      if (isWhif) {
-        router.push(form.collectionId ? `/whif/universes/${form.collectionId}` : '/whif')
-      } else if (isZeta) {
-        router.push(form.collectionId ? `/zeta/plots/${form.collectionId}` : '/zeta')
-      } else if (isMelting) {
-        router.push(form.collectionId ? `/melting/characters/${form.collectionId}` : '/melting')
-      } else if (isTikita) {
-        router.push(form.collectionId ? `/tikita/story/${form.collectionId}` : '/tikita')
-      } else if (isChub) {
-        router.push(form.collectionId ? `/chub/characters/${form.collectionId}` : '/chub')
-      } else if (isRofan) {
-        router.push(form.collectionId ? `/rofan/characters/${form.collectionId}` : '/rofan')
-      } else if (isLoveydovey) {
-        router.push(form.collectionId ? `/loveydovey/characters/${form.collectionId}` : '/loveydovey')
-      } else if (isBabechat) {
-        router.push(form.collectionId ? `/babechat/characters/${form.collectionId}` : '/babechat')
-      } else {
-        router.push('/characters')
+      // 도입부(첫 메시지)가 바뀌었고 이 캐릭터로 만든 기존 방이 있으면, 반영 여부를 물어본다.
+      if (newOpening && newOpening !== initialOpeningRef.current) {
+        try {
+          const s = await api.get(`/api/characters/${id}/apply-opening`)
+          if (s?.total > 0) { setApplyPrompt({ total: s.total, progressed: s.progressed ?? 0 }); setLoading(false); return }
+        } catch { /* 요약 실패 시 그냥 이동 */ }
       }
+      router.push(destUrl())
     } catch (e: any) {
       setError(e.message)
       setLoading(false)
     }
+  }
+
+  const destUrl = () => {
+    const cid = form?.collectionId
+    if (isWhif) return cid ? `/whif/universes/${cid}` : '/whif'
+    if (isZeta) return cid ? `/zeta/plots/${cid}` : '/zeta'
+    if (isMelting) return cid ? `/melting/characters/${cid}` : '/melting'
+    if (isTikita) return cid ? `/tikita/story/${cid}` : '/tikita'
+    if (isChub) return cid ? `/chub/characters/${cid}` : '/chub'
+    if (isRofan) return cid ? `/rofan/characters/${cid}` : '/rofan'
+    if (isLoveydovey) return cid ? `/loveydovey/characters/${cid}` : '/loveydovey'
+    if (isBabechat) return cid ? `/babechat/characters/${cid}` : '/babechat'
+    return '/characters'
+  }
+
+  const applyOpeningToRooms = async () => {
+    try { await api.post(`/api/characters/${id}/apply-opening`, {}) } catch { /* 실패해도 이동 */ }
+    setApplyPrompt(null)
+    router.push(destUrl())
   }
 
   const collectionLabel = isWhif ? '세계관' : isZeta ? '플롯' : isMelting ? '캐릭터' : isTikita ? '스토리' : isChub ? '캐릭터' : isRofan ? '캐릭터' : isLoveydovey ? '캐릭터' : isBabechat ? '캐릭터' : '컬렉션'
@@ -143,6 +156,23 @@ function CharacterEditContent() {
           <CharacterForm form={form} onChange={onChange} collections={collections} collectionLabel={collectionLabel} />
         </div>
       </div>
+      {applyPrompt && (
+        <ConfirmDialog
+          confirmLabel="기존 방에도 반영"
+          confirmVariant="primary"
+          message={
+            <span style={{ whiteSpace: 'pre-line' }}>
+              {`이 캐릭터로 만든 대화방 ${applyPrompt.total}개의 도입부(첫 메시지)를 방금 수정한 내용으로 교체할까요?`
+                + (applyPrompt.progressed > 0
+                  ? `\n\n⚠️ 그중 ${applyPrompt.progressed}개는 대화가 이미 진행됐습니다 — 첫 메시지를 바꾸면 흐름이 어색해질 수 있어 권장하지 않습니다.`
+                  : '')
+                + `\n\n(반영 안 함을 눌러도 새로 시작하는 대화방에는 자동 적용됩니다.)`}
+            </span>
+          }
+          onConfirm={applyOpeningToRooms}
+          onCancel={() => { setApplyPrompt(null); router.push(destUrl()) }}
+        />
+      )}
     </Win>
   )
 }
