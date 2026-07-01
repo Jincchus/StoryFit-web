@@ -150,6 +150,12 @@ export async function POST(req: NextRequest) {
   const secretSettings = String(body.secretSettings ?? '').slice(0, 10000)
   const exampleDialogues = String(body.exampleDialogues ?? '').slice(0, 20000)
   const openingMessage = String(body.openingMessage ?? '').slice(0, 5000)
+  // 다중 도입부(선택): {id,title,content} 배열. 2개 이상일 때만 저장.
+  const openingMessages = Array.isArray(body.openingMessages) && body.openingMessages.length > 1
+    ? body.openingMessages
+        .map((o: any, i: number) => ({ id: String(o?.id ?? `op-${i}`), title: String(o?.title ?? `도입부 ${i + 1}`).slice(0, 100), content: String(o?.content ?? '').slice(0, 5000) }))
+        .filter((o: any) => o.content.trim())
+    : undefined
 
   const avatarUrl: string | undefined = body.avatarUrl
     ? /^https?:\/\/.{1,2000}/.test(body.avatarUrl) || /^\/api\/uploads\//.test(body.avatarUrl) ? body.avatarUrl : undefined
@@ -170,6 +176,7 @@ export async function POST(req: NextRequest) {
       secretSettings,
       exampleDialogues,
       openingMessage,
+      ...(openingMessages && openingMessages.length > 1 ? { openingMessages } : {}),
       avatarUrl,
       safetyLevel,
       temperature,

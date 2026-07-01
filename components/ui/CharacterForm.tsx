@@ -7,6 +7,8 @@ import Toast from '@/components/ui/Toast'
 
 type AiStyle = 'eastern' | 'western'
 
+export interface OpeningItem { id: string; title: string; content: string }
+
 export interface CharFormData {
   name: string
   gender: string
@@ -15,6 +17,7 @@ export interface CharFormData {
   additionalInfo: string
   exampleDialogues: string
   openingMessage: string
+  openingMessages?: OpeningItem[]  // 다중 도입부(대화 시작 시 선택). 첫 항목이 기본.
   collectionId?: string | null
 }
 
@@ -81,6 +84,22 @@ export default function CharacterForm({ form, onChange, collections, collectionL
     } else {
       onChange('name', RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)])
     }
+  }
+
+  // 다중 도입부(openingMessages) CRUD — 첫 항목이 기본 도입부.
+  const openings = form.openingMessages ?? []
+  const setOpenings = (next: OpeningItem[]) => onChange('openingMessages', next)
+  const updateOpening = (i: number, patch: Partial<OpeningItem>) =>
+    setOpenings(openings.map((o, idx) => (idx === i ? { ...o, ...patch } : o)))
+  const addOpening = () =>
+    setOpenings([...openings, { id: `op-${Date.now()}`, title: `도입부 ${openings.length + 1}`, content: '' }])
+  const removeOpening = (i: number) => setOpenings(openings.filter((_, idx) => idx !== i))
+  const moveOpening = (i: number, dir: -1 | 1) => {
+    const j = i + dir
+    if (j < 0 || j >= openings.length) return
+    const arr = [...openings]
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    setOpenings(arr)
   }
 
   const toggleTag = (name: string) => {
@@ -276,18 +295,42 @@ export default function CharacterForm({ form, onChange, collections, collectionL
           />
         </div>
 
-        {/* 시작 메시지 */}
+        {/* 시작 메시지 (도입부 — 여러 개 가능) */}
         <div className="form-section">
-          <div className="form-section-title">시작 메시지 <span className="tiny muted">(선택)</span></div>
-          <div className="tiny muted" style={{ marginBottom: 6 }}>
-            대화가 시작될 때 캐릭터가 먼저 보내는 첫 메시지입니다. 비워두면 유저가 먼저 말을 겁니다.
+          <div className="spread" style={{ alignItems: 'center' }}>
+            <div className="form-section-title" style={{ marginBottom: 0 }}>시작 메시지 <span className="tiny muted">(도입부, 여러 개 가능)</span></div>
+            <button type="button" className="btn ghost" style={{ fontSize: 10 }} onClick={addOpening}>+ 도입부 추가</button>
           </div>
-          <textarea
-            className="field" rows={4}
-            placeholder={`예: *카페 창가 자리에 앉아 창밖을 바라보다 당신을 발견하고 살짝 눈이 마주친다.*\n"...오셨군요. 앉으세요."`}
-            value={form.openingMessage}
-            onChange={e => onChange('openingMessage', e.target.value)}
-          />
+          <div className="tiny muted" style={{ margin: '6px 0' }}>
+            대화 시작 시 유저가 도입부를 고릅니다. 맨 위(첫 번째)가 기본값입니다. 비워두면 유저가 먼저 말을 겁니다.
+          </div>
+          {openings.length === 0 && (
+            <div className="tiny muted" style={{ padding: '4px 0' }}>도입부가 없습니다. "+ 도입부 추가"로 만들 수 있어요.</div>
+          )}
+          <div className="vstack" style={{ gap: 8 }}>
+            {openings.map((op, i) => (
+              <div key={op.id} style={{ border: '1px solid var(--chrome-border)', borderRadius: 8, padding: 8 }}>
+                <div className="hstack" style={{ gap: 4, alignItems: 'center', marginBottom: 4 }}>
+                  <input
+                    className="field" style={{ flex: 1, fontSize: 11 }}
+                    placeholder={`도입부 ${i + 1} 제목`}
+                    value={op.title}
+                    onChange={e => updateOpening(i, { title: e.target.value })}
+                  />
+                  {i === 0 && <span className="tiny" style={{ color: 'var(--hot-pink)', flexShrink: 0 }}>기본</span>}
+                  <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} disabled={i === 0} onClick={() => moveOpening(i, -1)}>↑</button>
+                  <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '2px 6px' }} disabled={i === openings.length - 1} onClick={() => moveOpening(i, 1)}>↓</button>
+                  <button type="button" className="btn ghost" style={{ fontSize: 10, padding: '2px 6px', color: '#ff6b8a' }} onClick={() => removeOpening(i)}>삭제</button>
+                </div>
+                <textarea
+                  className="field" rows={4}
+                  placeholder={`예: *카페 창가 자리에 앉아 당신을 발견하고 눈이 마주친다.*\n"...오셨군요. 앉으세요."`}
+                  value={op.content}
+                  onChange={e => updateOpening(i, { content: e.target.value })}
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* 예시 대화 (퓨샷) */}

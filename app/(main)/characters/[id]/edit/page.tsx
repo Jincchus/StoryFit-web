@@ -37,6 +37,10 @@ function CharacterEditContent() {
         additionalInfo: c.additionalInfo ?? '',
         exampleDialogues: c.exampleDialogues ?? '',
         openingMessage: c.openingMessage ?? '',
+        // 다중 도입부: 저장된 배열 우선, 없으면 단일 도입부를 1개짜리로 승격.
+        openingMessages: Array.isArray(c.openingMessages) && c.openingMessages.length
+          ? c.openingMessages.map((o: any, i: number) => ({ id: String(o.id ?? `op-${i}`), title: String(o.title ?? `도입부 ${i + 1}`), content: String(o.content ?? '') }))
+          : (c.openingMessage?.trim() ? [{ id: 'op-0', title: '도입부 1', content: c.openingMessage }] : []),
         collectionId: c.collection?.id ?? null,
       })
       // 현재 소속 컬렉션은 먼저 단독으로 채워둔다(드롭다운이 비어도 현재 값은 보이게).
@@ -82,7 +86,13 @@ function CharacterEditContent() {
     setLoading(true)
     setError('')
     try {
-      await api.patch(`/api/characters/${id}`, form)
+      // 도입부: 첫 항목을 기본(openingMessage)으로 동기화, 빈 내용 항목은 제외.
+      const cleanOpenings = (form.openingMessages ?? []).filter(o => o.content.trim())
+      await api.patch(`/api/characters/${id}`, {
+        ...form,
+        openingMessage: cleanOpenings[0]?.content ?? '',
+        openingMessages: cleanOpenings.length > 1 ? cleanOpenings : null,
+      })
       if (isWhif) {
         router.push(form.collectionId ? `/whif/universes/${form.collectionId}` : '/whif')
       } else if (isZeta) {

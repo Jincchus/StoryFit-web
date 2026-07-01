@@ -24,7 +24,7 @@ function CharacterNewContent() {
   const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
   const [form, setForm] = useState<CharFormData>({
     name: '', gender: '', avatarUrl: '',
-    tags: [], additionalInfo: '', exampleDialogues: '', openingMessage: '',
+    tags: [], additionalInfo: '', exampleDialogues: '', openingMessage: '', openingMessages: [],
     collectionId: collectionIdParam || null,
   })
 
@@ -54,7 +54,12 @@ function CharacterNewContent() {
     setLoading(true)
     setError('')
     try {
-      await api.post('/api/characters', form)
+      const cleanOpenings = (form.openingMessages ?? []).filter(o => o.content.trim())
+      await api.post('/api/characters', {
+        ...form,
+        openingMessage: cleanOpenings[0]?.content ?? '',
+        openingMessages: cleanOpenings.length > 1 ? cleanOpenings : undefined,
+      })
       if (isWhifParam) {
         router.push(form.collectionId ? `/whif/universes/${form.collectionId}` : '/whif')
       } else if (isZetaParam) {
