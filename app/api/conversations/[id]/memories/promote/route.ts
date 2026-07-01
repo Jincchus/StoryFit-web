@@ -42,19 +42,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: '메모리를 찾을 수 없습니다.' }, { status: 404 })
   }
 
-  let condensed: string
+  let newCoreMemory: string
   if (memories.length === 1) {
-    condensed = memories[0].summary
+    // 단건은 요약을 그대로 이어붙임(통합할 게 없음).
+    const existing = conv.coreMemory.trim()
+    newCoreMemory = existing ? existing + '\n\n' + memories[0].summary : memories[0].summary
   } else {
     const firstChar = conv.characters[0]?.character
     const characterContext = firstChar
       ? [firstChar.tags?.join(', '), firstChar.additionalInfo].filter(Boolean).join('\n')
       : ''
-    condensed = await condenseForCoreMemory(memories.map(m => m.summary), conv.coreMemory, characterContext)
+    // condense가 [기존 핵심 기억]+[신규 요약]을 통합한 완성본을 반환 → 그대로 대체(중복 append 방지).
+    newCoreMemory = await condenseForCoreMemory(memories.map(m => m.summary), conv.coreMemory, characterContext)
   }
 
-  const existing = conv.coreMemory.trim()
-  const newCoreMemory = existing ? existing + '\n\n' + condensed : condensed
   const promotedIds = memories.map(m => m.id)
 
   await prisma.$transaction([

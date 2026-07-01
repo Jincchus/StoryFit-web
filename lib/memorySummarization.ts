@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { generateText } from '@/lib/ai/gemini'
 import { generateEmbedding } from '@/lib/embedding'
 import { replacePlaceholders } from '@/lib/systemPrompt'
+import { GEMINI_CHAT_MODEL } from '@/lib/constants'
 
 const SUMMARIZE_EVERY = 10
 
@@ -143,25 +144,30 @@ export async function triggerMemorySummarization(
   }
 }
 
-// 다중선택 승격 시: 선택 요약들을 '핵심 기억'으로 압축하는 user 프롬프트
+// 다중선택 승격 시: [기존 핵심 기억] + [새 요약]을 하나의 핵심 기억으로 통합·갱신하는 user 프롬프트.
+// (이어붙이기가 아니라 병합 — 중복 통합·모순 시 최신 우선. 매 턴 바뀌는 씬 상태는 statusTimeline이 담당하므로 제외.)
 export function buildCoreMemoryPrompt(summaries: string[], existingCoreMemory: string): string {
-  return `아래 대화 요약들을 '핵심 기억'으로 정리하세요.
+  return `아래 [기존 핵심 기억]과 [새 대화 요약]을 하나의 '핵심 기억'으로 통합·갱신하세요.
+결과는 기존을 대체하는 완성본입니다 — 기존 내용도 빠짐없이 반영하되, 신규와 합쳐 깔끔한 단일 문서로 만드세요.
 
-[지속 상태] — 지금도 유효한 것만, 사건 나열 없이:
-1. 인물 간 관계의 현재 상태와 변화 (예: 적대→신뢰, 연인이 됨, 비밀 공유)
-2. 누적된 감정의 결과 — 지금 서로에게 갖는 감정
-3. 절대 잊으면 안 되는 확정 사실 — 정체·비밀·약속·중요 설정/소지품
-4. 현재까지 확정된 외형·신체·능력 변화
-5. 현재 위치·상황 — 지금 어디서 무엇을 하는 중인지 + 그렇게 된 직접적 이유 (과정 나열 X, '현재 상태와 계기'만)
-6. 미해결 과제·현재 목표·예고된 위협 — 아직 끝나지 않은 일, 하려던 것, 다가오는 위험
+[담을 것 — 장기적으로 유효한 사실만, 카테고리별로]
+1. 관계: 인물쌍별 현재 관계 상태 (호칭·태도·신뢰도, 예: A→B 신뢰/연인/적대)
+2. 감정: 서로에게 갖는 누적 감정의 현재 결과
+3. 확정 사실: 정체·비밀(+누가 알고 누가 모르는지)·약속·계약·거래 조건·중요 설정/소지품
+4. 신체: 확정된 외형·신체·능력의 영구적 변화
+5. 미해결: 현재 목표·미해결 과제·예고된 위협·다가오는 약속(가능하면 시점/Day)
 
-규칙:
-- 모든 항목: 중복 제거, 추측 금지(요약에 명시된 것만), 각 항목 "•", 한국어.
-- 사실이 서로 모순되면 최신 정보를 우선한다.
-- 아래 '이미 적힌 핵심메모리'에 있는 내용은 반복하지 말 것:
+※ 현재 위치·자세·복장처럼 매 턴 바뀌는 씬 상태는 넣지 마라(그건 별도 상태창이 관리한다). 장기적으로 유효한 '계기·목표'만 남긴다.
+
+[통합 규칙]
+- 기존+신규 중복은 하나로 합치고, 모순되면 최신 정보를 채택해 낡은 값은 삭제한다(사실 자체는 잃지 않는다).
+- 추측 금지 — [기존 핵심 기억]·[새 대화 요약]에 명시된 것만 사용.
+- 각 항목은 "•"로 시작, 위 카테고리로 묶고, 해당 없는 카테고리는 생략. 반드시 한국어.
+
+[기존 핵심 기억]
 ${existingCoreMemory.trim() || '(없음)'}
 
-대화 요약들:
+[새 대화 요약]
 ${summaries.join('\n\n')}`
 }
 
@@ -171,9 +177,10 @@ export async function condenseForCoreMemory(
   characterContext: string,
 ): Promise<string> {
   const systemPrompt = `당신은 롤플레이 대화의 '핵심 기억' 정리 전문가입니다.
-핵심 기억은 AI가 대화 내내 절대 잊으면 안 되는 '지속 사실·관계 상태'와 '현재 상황·미해결 줄거리'입니다.
-캐릭터 설정: ${characterContext}`
-  return generateText(systemPrompt, buildCoreMemoryPrompt(summaries, existingCoreMemory), 4096, 'relaxed')
+핵심 기억은 AI가 대화 내내 절대 잊으면 안 되는 '지속 사실·관계 상태·정체/비밀·약속·미해결 줄거리'입니다(매 턴 바뀌는 현재 위치·복장 같은 씬 상태는 제외).
+여러 요약과 기존 핵심 기억을 통합해 중복 없는 최신 단일 문서로 만듭니다. 캐릭터 설정: ${characterContext}`
+  // 품질 크리티컬(판단·중복제거·모순해소) + 간헐/수동 호출 → pro 모델 + 동적 추론(-1), 출력 상향.
+  return generateText(systemPrompt, buildCoreMemoryPrompt(summaries, existingCoreMemory), 8192, 'relaxed', -1, GEMINI_CHAT_MODEL)
 }
 
 export async function compressCoreMemory(
