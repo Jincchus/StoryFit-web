@@ -3,6 +3,14 @@ import { generateText } from '@/lib/ai/gemini'
 import type { StatEntry, InventoryItem } from '@/types'
 import type { PlotOutline } from '@/lib/plotOutline'
 
+// 시간 경과 추적 앵커: statusTimeline 맨 앞에 절대 시점을 유지해 "어젯밤"류 오인식을 막는다.
+// (기존엔 상대적 시간대만 추적해, 큰 시간 점프 후 AI가 경과 시간을 잃어버렸다.)
+const TIME_ANCHOR_HINT = '• 시점: (이야기 내 현재 날짜·시각), Day N (이야기 시작을 Day 1로 한 누적 경과일)'
+const TIME_ANCHOR_RULE =
+  '- statusTimeline 첫 줄은 반드시 위 "• 시점:" 앵커여야 한다. 이전 상태의 시점을 읽어, 이번 교환에서 흐른 시간만큼 진행하라: ' +
+  '"다음 날/이튿날"=Day +1, "며칠 후"=+3일 안팎, "일주일 후/뒤"=+7일, "한 달 후"=+30일, "N년 후"=+365N일 식으로 Day와 날짜를 함께 더한다. ' +
+  '하룻밤을 보냈으면 최소 +1일. 같은 씬이라 시간이 거의 안 흘렀으면 시각만 갱신하고 Day는 유지. 절대 과거로 되돌리지 마라.'
+
 // ── JSON 추출 헬퍼 ──────────────────────────────────────────────────────────
 
 function extractJson(raw: string): string {
@@ -106,7 +114,7 @@ ${statsSection}${inventorySection}
 {
   "stats": {},
   "inventory": { "add": [], "remove": [] },
-  "statusTimeline": "현재 씬 상태를 4~6줄 불릿으로 요약 (장소·시간·동석인물·핵심상황·각 인물의 의상과 부상/신체 상태)",
+  "statusTimeline": "첫 줄은 '${TIME_ANCHOR_HINT}', 이어서 장소·동석인물·핵심상황·각 인물의 의상과 부상/신체 상태를 3~5줄 불릿으로 요약",
   "newChapter": false
 }
 
@@ -114,6 +122,7 @@ ${statsSection}${inventorySection}
 - stats: 변화 있는 스탯만 포함 (변화량 -10~+10 정수). 스탯 평가 대상 아니면 {}
 - inventory.add: 획득 아이템. inventory.remove: 소모·분실 아이템. 변화 없으면 빈 배열
 - statusTimeline: 반드시 작성. 이전 상태를 기반으로 이번 교환의 변화만 반영해 갱신. 이번 교환에서 언급되지 않은 항목(의상·부상·장소 등)은 이전 상태 그대로 유지
+${TIME_ANCHOR_RULE}
 - 의상·부상·신체 변화(예: 옷을 갈아입음, 다침, 붕대를 감음, 흉터)는 명시적으로 회복·변경되기 전까지 반드시 유지
 ${chapterRule}`
 
@@ -212,14 +221,14 @@ AI 응답: ${clipMiddle(aiMsg, 1000, 500)}
 
 반환 형식 (JSON만, 설명 없이):
 {
-  "statusTimeline": "현재 씬 상태를 불릿(•) 형식으로 3~5줄 요약. 반드시 포함: 시간대, 의상(누가 무엇을 입고 있는지), 장소, 현재 상황.",
+  "statusTimeline": "첫 줄은 '${TIME_ANCHOR_HINT}', 이어서 의상(누가 무엇을 입고 있는지)·장소·현재 상황을 불릿(•) 3~5줄로 요약.",
   "newChapter": false
 }
 
 규칙:
-- 이 대화에서 변화가 없으면 이전 상태를 그대로 유지
+- 이 대화에서 변화가 없으면 이전 상태를 그대로 유지(단 시점 앵커 줄은 항상 유지)
+${TIME_ANCHOR_RULE}
 - 의상이 바뀌었으면 반드시 새 의상으로 업데이트
-- 시간이 흘렀으면 반드시 새 시간대로 업데이트
 - 장소가 바뀌었으면 반드시 새 장소로 업데이트
 - newChapter: 장소·시간대가 근본적으로 전환(큰 시간 점프 또는 완전히 새로운 장소/상황으로 이동)됐을 때만 true, 아니면 false`
 
