@@ -1631,3 +1631,15 @@ body[data-art="dark"] .dice-fail   { color:#f87171 }
 .md-body table{ border-collapse:collapse; margin:0.5em 0; width:100%; }
 .md-body th,.md-body td{ border:1px solid rgba(255,255,255,0.15); padding:4px 8px; text-align:left; }
 .md-body a{ color:#7cc4ff; text-decoration:underline; }
+
+/* 커맨드 응답 공용 컴포넌트 — 모든 커맨드가 재사용(커맨드마다 CSS 추가 불필요).
+   지시문에서 class="sf-*"만 쓰면 앱이 모양을 고정 렌더한다. 허용 클래스는 MarkdownText의 sanitize allowlist와 일치. */
+.md-body .sf-bubble{ display:block; width:fit-content; max-width:80%; padding:8px 12px; margin:5px 0; border-radius:14px; font-size:14px; line-height:1.45; background:var(--pane,#2a2140); color:var(--ink,#eee); word-break:break-word; }
+.md-body .sf-bubble-left{ margin-right:auto; border-bottom-left-radius:4px; }
+.md-body .sf-bubble-right{ margin-left:auto; border-bottom-right-radius:4px; background:var(--accent,#7b5cff); color:#fff; }
+.md-body .sf-name{ font-size:11px; font-weight:700; opacity:0.65; margin:0 0 2px; }
+.md-body .sf-time{ font-size:10px; opacity:0.55; margin-top:3px; text-align:right; }
+.md-body .sf-card{ border:1px solid rgba(255,255,255,0.14); border-radius:10px; padding:10px 12px; margin:6px 0; background:rgba(255,255,255,0.04); }
+.md-body .sf-card-title{ font-weight:800; font-size:13px; margin-bottom:6px; opacity:0.92; }
+.md-body .sf-row{ display:flex; justify-content:space-between; gap:10px; padding:2px 0; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.md-body .sf-muted{ opacity:0.6; font-size:12px; }

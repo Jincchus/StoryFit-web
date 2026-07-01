@@ -15,12 +15,16 @@ const schema = {
     ...(defaultSchema.tagNames ?? []),
     'div', 'span', 'p', 'br', 'section', 'small', 'details', 'summary',
   ],
-  // 말풍선/상태창 스타일링에 필요한 inline style만 추가로 허용한다.
-  // class/className은 허용하지 않는다(앱 CSS 클래스 오용 방지). script·onclick·javascript: 등은
-  // defaultSchema가 계속 차단하므로 스크립트 실행 XSS는 막힌다.
+  // inline style + 공용 sf-* 클래스만 허용한다.
+  // className은 아래 화이트리스트 값만 통과(앱의 다른 CSS/기능 클래스 오용 방지).
+  // script·onclick·javascript: 등은 defaultSchema가 계속 차단하므로 스크립트 실행 XSS는 막힌다.
   attributes: {
     ...defaultSchema.attributes,
-    '*': [...(defaultSchema.attributes?.['*'] ?? []), 'style'],
+    '*': [
+      ...(defaultSchema.attributes?.['*'] ?? []),
+      'style',
+      ['className', 'sf-bubble', 'sf-bubble-left', 'sf-bubble-right', 'sf-name', 'sf-time', 'sf-card', 'sf-card-title', 'sf-row', 'sf-muted'],
+    ],
   },
 }
 
