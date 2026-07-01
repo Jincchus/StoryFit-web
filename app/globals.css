@@ -1643,3 +1643,17 @@ body[data-art="dark"] .dice-fail   { color:#f87171 }
 .md-body .sf-card-title{ font-weight:800; font-size:13px; margin-bottom:6px; opacity:0.92; }
 .md-body .sf-row{ display:flex; justify-content:space-between; gap:10px; padding:2px 0; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.06); }
 .md-body .sf-muted{ opacity:0.6; font-size:12px; }
+/* 게시판/댓글 (에타 등) */
+.md-body .sf-post{ border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:12px 14px; margin:8px 0; background:rgba(255,255,255,0.03); }
+.md-body .sf-post-title{ font-weight:800; font-size:15px; margin-bottom:4px; }
+.md-body .sf-post-meta{ font-size:11px; opacity:0.55; margin-bottom:8px; }
+.md-body .sf-post-body{ font-size:14px; line-height:1.6; white-space:pre-wrap; }
+.md-body .sf-comment{ padding:6px 0 6px 10px; margin-top:6px; border-left:2px solid rgba(255,255,255,0.15); font-size:13px; line-height:1.5; }
+.md-body .sf-comment-author{ font-weight:700; opacity:0.75; margin-right:6px; }
+/* 알림 · 태그 · 구분선 · 스탯바 */
+.md-body .sf-notice{ border:1px solid var(--accent,#7b5cff); border-radius:8px; padding:8px 12px; margin:6px 0; background:rgba(123,92,255,0.1); font-size:13px; }
+.md-body .sf-tag{ display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px; background:rgba(255,255,255,0.12); margin:0 3px 3px 0; }
+.md-body .sf-divider{ display:flex; align-items:center; gap:8px; margin:10px 0; font-size:11px; opacity:0.55; }
+.md-body .sf-divider::before,.md-body .sf-divider::after{ content:""; flex:1; height:1px; background:rgba(255,255,255,0.15); }
+.md-body .sf-bar{ height:10px; border-radius:999px; background:rgba(255,255,255,0.1); overflow:hidden; margin:4px 0; }
+.md-body .sf-bar-fill{ display:block; height:100%; border-radius:999px; background:var(--accent,#7b5cff); }

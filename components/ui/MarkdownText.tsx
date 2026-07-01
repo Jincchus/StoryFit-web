@@ -1,6 +1,7 @@
 'use client'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 
@@ -13,7 +14,7 @@ const schema = {
   // 말풍선 스타일링을 위해 style/class와 레이아웃 태그를 허용한다.
   tagNames: [
     ...(defaultSchema.tagNames ?? []),
-    'div', 'span', 'p', 'br', 'section', 'small', 'details', 'summary',
+    'div', 'span', 'p', 'br', 'section', 'small', 'details', 'summary', 'article',
   ],
   // inline style + 공용 sf-* 클래스만 허용한다.
   // className은 아래 화이트리스트 값만 통과(앱의 다른 CSS/기능 클래스 오용 방지).
@@ -23,7 +24,16 @@ const schema = {
     '*': [
       ...(defaultSchema.attributes?.['*'] ?? []),
       'style',
-      ['className', 'sf-bubble', 'sf-bubble-left', 'sf-bubble-right', 'sf-name', 'sf-time', 'sf-card', 'sf-card-title', 'sf-row', 'sf-muted'],
+      ['className',
+        // 메신저
+        'sf-bubble', 'sf-bubble-left', 'sf-bubble-right', 'sf-name', 'sf-time',
+        // 카드/상태창
+        'sf-card', 'sf-card-title', 'sf-row', 'sf-muted',
+        // 게시판/댓글
+        'sf-post', 'sf-post-title', 'sf-post-meta', 'sf-post-body', 'sf-comment', 'sf-comment-author',
+        // 알림·태그·구분선·스탯바
+        'sf-notice', 'sf-tag', 'sf-divider', 'sf-bar', 'sf-bar-fill',
+      ],
     ],
   },
 }
@@ -32,7 +42,7 @@ export default function MarkdownText({ text }: { text: string }) {
   return (
     <div className="md-body">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, schema]]}
       >
         {text}

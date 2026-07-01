@@ -24,10 +24,12 @@ export default function CommandGuide() {
           <div style={{ fontWeight: 700, margin: '10px 0 4px' }}>양식 고정 (말풍선·카드)</div>
           <div>매번 모양이 달라지지 않게 하려면, 아래 <b>고정 클래스</b>만 쓰라고 지시하세요(inline style 쓰지 말라고 명시):</div>
           <ul style={{ margin: '4px 0', paddingLeft: 16 }}>
-            <li><code>sf-bubble</code> + <code>sf-bubble-right</code>(나) / <code>sf-bubble-left</code>(상대) — 메신저 말풍선</li>
-            <li><code>sf-name</code>(이름) · <code>sf-time</code>(시간)</li>
-            <li><code>sf-card</code> + <code>sf-card-title</code> · <code>sf-row</code>(줄) · <code>sf-muted</code>(흐린 글씨) — 상태창/카드</li>
+            <li><b>메신저</b>: <code>sf-bubble</code> + <code>sf-bubble-right</code>(나)/<code>sf-bubble-left</code>(상대), <code>sf-name</code>, <code>sf-time</code></li>
+            <li><b>상태창/카드</b>: <code>sf-card</code> + <code>sf-card-title</code>, <code>sf-row</code>, <code>sf-muted</code></li>
+            <li><b>게시판/댓글</b>: <code>sf-post</code> + <code>sf-post-title</code>/<code>sf-post-meta</code>/<code>sf-post-body</code>, <code>sf-comment</code> + <code>sf-comment-author</code></li>
+            <li><b>기타</b>: <code>sf-notice</code>(알림), <code>sf-tag</code>(태그), <code>sf-divider</code>(구분선), <code>sf-bar</code>+<code>sf-bar-fill</code>(스탯바)</li>
           </ul>
+          <div className="sf-muted" style={{ fontSize: 11, opacity: 0.7 }}>· 줄바꿈은 엔터 1번이면 그대로 반영됩니다.</div>
           <div style={{ padding: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 6 }}>
             예) <b>!카톡</b> → "현재 상황을 카톡 대화처럼 출력하라. inline style 없이 다음 HTML 클래스만 써라: 내가 보낸 말은 <code>&lt;div class="sf-bubble sf-bubble-right"&gt;내용&lt;div class="sf-time"&gt;시간&lt;/div&gt;&lt;/div&gt;</code>, 상대는 <code>sf-bubble-left</code>. 색·여백은 지정하지 마라."
           </div>
