@@ -112,7 +112,7 @@ async function evalStory(opts: StoryEvalOptions): Promise<StoryEvalResult | null
 
   const plotChapter = opts.plotOutline?.chapters.find(c => c.index === (opts.currentChapter ?? 1))
   const chapterRule = plotChapter
-    ? `- newChapter: 현재 챕터의 목표가 달성되었을 때만 true. 현재 챕터 목표: "${plotChapter.goal}" / 전환 조건: "${plotChapter.transition}"`
+    ? `- newChapter: 현재 챕터의 목표와 핵심 사건이 지금까지의 전개에서 **실제로 이루어졌고** 전환 조건(완료 상태)이 충족됐을 때만 true. 아직 진행 중이거나 일부만 됐으면 false(감정·분위기가 무르익은 것만으로는 넘기지 마라). 목표: "${plotChapter.goal}" / 핵심 사건: "${(plotChapter.events ?? []).join(', ') || '(없음)'}" / 전환 조건: "${plotChapter.transition}"`
     : `- newChapter: 장소·시간대가 근본적으로 전환(큰 시간 점프 또는 완전히 새로운 장소/상황으로 이동)됐을 때만 true, 아니면 false`
 
   const systemPrompt = '당신은 인터랙티브 스토리의 상태 관리자입니다. 스토리 교환을 분석해 JSON만 반환합니다.'
