@@ -889,6 +889,51 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
   const resolvedChapters = Math.min(30, Math.max(2, typeof chapterCount === 'number' ? chapterCount : 6))
   const isTikita = outline?.source === 'tikita'
 
+  // 챕터 개별 편집(수동 보정) — 원문(플레이스홀더 포함) 그대로 편집한다.
+  const [editing, setEditing] = useState(false)
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [draft, setDraft] = useState<{ chapters: { title: string; goal: string; eventsText: string; transition: string }[]; ending: string }>({ chapters: [], ending: '' })
+  const label = isTikita ? '화' : '챕터'
+
+  const enterEdit = () => {
+    if (!outline) return
+    setDraft({
+      chapters: outline.chapters.map(c => ({ title: c.title, goal: c.goal, eventsText: (c.events ?? []).join('\n'), transition: c.transition })),
+      ending: outline.ending ?? '',
+    })
+    setEditing(true); setShowOutline(true)
+  }
+  const updateDraftCh = (i: number, patch: Partial<{ title: string; goal: string; eventsText: string; transition: string }>) =>
+    setDraft(d => ({ ...d, chapters: d.chapters.map((c, idx) => idx === i ? { ...c, ...patch } : c) }))
+  const addDraftCh = () =>
+    setDraft(d => ({ ...d, chapters: [...d.chapters, { title: `${d.chapters.length + 1}${label}`, goal: '', eventsText: '', transition: '' }] }))
+  const removeDraftCh = (i: number) => setDraft(d => ({ ...d, chapters: d.chapters.filter((_, idx) => idx !== i) }))
+  const moveDraftCh = (i: number, dir: -1 | 1) => setDraft(d => {
+    const j = i + dir; if (j < 0 || j >= d.chapters.length) return d
+    const arr = [...d.chapters]; [arr[i], arr[j]] = [arr[j], arr[i]]; return { ...d, chapters: arr }
+  })
+  const saveEdit = async () => {
+    if (savingEdit) return
+    setSavingEdit(true)
+    try {
+      const chapters = draft.chapters.map((c, i) => ({
+        index: i + 1,
+        title: c.title.trim() || `${i + 1}${label}`,
+        goal: c.goal.trim(),
+        events: c.eventsText.split('\n').map(s => s.trim()).filter(Boolean),
+        transition: c.transition.trim(),
+      }))
+      const result = await api.patch(`/api/conversations/${convId}/plot`, { chapters, ending: draft.ending.trim() })
+      setConv(c => c ? { ...c, plotOutline: result } : c)
+      setEditing(false)
+      setToast('설계도를 저장했습니다')
+    } catch (e: any) {
+      setToast(e.message ?? '저장에 실패했습니다')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   const handleGenerate = async () => {
     if (generating) return
     setGenerating(true)
@@ -981,12 +1026,42 @@ function PlotPanel({ convId, conv, setConv, setToast }: {
                 {generating ? '재설계 중...' : '↺ 재설계'}
               </button>
             )}
+            <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px' }} onClick={() => editing ? setEditing(false) : enterEdit()}>
+              {editing ? '✕ 편집 취소' : '✏ 편집'}
+            </button>
             <button className="btn danger" style={{ fontSize: 9, padding: '2px 7px' }} onClick={handleDelete}>
               {isTikita ? '✕ 추적 해제' : '✕ 삭제'}
             </button>
           </div>
 
-          {showOutline && (
+          {showOutline && editing && (
+            <div className="vstack" style={{ gap: 6 }}>
+              {draft.chapters.map((c, i) => (
+                <div key={i} style={{ padding: 6, borderRadius: 'var(--radius)', border: '1px solid var(--chrome-border)' }}>
+                  <div className="hstack" style={{ gap: 4, alignItems: 'center', marginBottom: 3 }}>
+                    <span className="tiny muted" style={{ flexShrink: 0 }}>{i + 1}{label}</span>
+                    <input className="field" style={{ flex: 1, fontSize: 10 }} placeholder="제목" value={c.title} onChange={e => updateDraftCh(i, { title: e.target.value })} />
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} disabled={i === 0} onClick={() => moveDraftCh(i, -1)}>↑</button>
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px' }} disabled={i === draft.chapters.length - 1} onClick={() => moveDraftCh(i, 1)}>↓</button>
+                    <button className="btn ghost" style={{ fontSize: 9, padding: '1px 5px', color: '#ff6b8a' }} onClick={() => removeDraftCh(i)}>✕</button>
+                  </div>
+                  <textarea className="field" rows={2} style={{ fontSize: 10 }} placeholder="목표 (이 화에서 이뤄야 할 것)" value={c.goal} onChange={e => updateDraftCh(i, { goal: e.target.value })} />
+                  <textarea className="field" rows={2} style={{ fontSize: 10, marginTop: 3 }} placeholder="핵심 사건 (줄바꿈으로 구분)" value={c.eventsText} onChange={e => updateDraftCh(i, { eventsText: e.target.value })} />
+                  <input className="field" style={{ fontSize: 10, marginTop: 3, width: '100%' }} placeholder="전환 조건 (다음 화로 넘어가는 확인 가능한 조건)" value={c.transition} onChange={e => updateDraftCh(i, { transition: e.target.value })} />
+                </div>
+              ))}
+              <button className="btn ghost" style={{ fontSize: 9, padding: '2px 7px', alignSelf: 'flex-start' }} onClick={addDraftCh}>+ {label} 추가</button>
+              <label className="tiny muted" style={{ display: 'block' }}>결말 방향
+                <textarea className="field" rows={2} style={{ fontSize: 10, marginTop: 2, width: '100%' }} value={draft.ending} onChange={e => setDraft(d => ({ ...d, ending: e.target.value }))} />
+              </label>
+              <div className="hstack" style={{ gap: 4 }}>
+                <button className="btn primary" style={{ fontSize: 10, padding: '3px 10px' }} disabled={savingEdit} onClick={saveEdit}>{savingEdit ? '저장 중...' : '저장'}</button>
+                <button className="btn ghost" style={{ fontSize: 10, padding: '3px 10px' }} onClick={() => setEditing(false)}>취소</button>
+              </div>
+              <div className="tiny muted">{'플레이스홀더({{user}}·{{char1}})는 그대로 두면 자동 치환됩니다.'}</div>
+            </div>
+          )}
+          {showOutline && !editing && (
             <div className="vstack" style={{ gap: 4 }}>
               {outline.chapters.map(ch => {
                 const isCurrent = ch.index === (conv.chapter ?? 1)

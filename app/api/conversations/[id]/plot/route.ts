@@ -51,7 +51,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const mode = body.mode === 'choice' ? 'choice' : 'auto'
 
   const conv = await prisma.conversation.findUnique({ where: { id: params.id }, select: { userId: true, plotOutline: true } })
   if (!conv || conv.userId !== userId) return NextResponse.json({ error: '대화를 찾을 수 없습니다.' }, { status: 404 })
@@ -59,9 +58,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const outline = parsePlotOutline(conv.plotOutline)
   if (!outline) return NextResponse.json({ error: '설계도가 없습니다.' }, { status: 400 })
 
-  const updated = { ...outline, mode }
-  await prisma.conversation.update({ where: { id: params.id }, data: { plotOutline: updated as unknown as Prisma.InputJsonValue } })
-  return NextResponse.json(updated)
+  let next = { ...outline }
+  if (body.mode === 'choice' || body.mode === 'auto') next.mode = body.mode
+
+  // 챕터 개별 편집(수동 보정): chapters 배열이 오면 검증 후 반영. Tikita 원작 에피소드도 재생성 없이 수정 가능.
+  if (Array.isArray(body.chapters)) {
+    if (body.chapters.length === 0) return NextResponse.json({ error: '챕터가 비었습니다.' }, { status: 400 })
+    const parsed = parsePlotOutline({
+      ...next,
+      chapters: body.chapters,
+      totalChapters: body.chapters.length,
+      ending: typeof body.ending === 'string' ? body.ending : next.ending,
+    })
+    if (!parsed) return NextResponse.json({ error: '챕터 형식이 올바르지 않습니다.' }, { status: 400 })
+    next = { ...parsed, mode: next.mode, source: outline.source }
+  } else if (typeof body.ending === 'string') {
+    next.ending = body.ending
+  }
+
+  await prisma.conversation.update({ where: { id: params.id }, data: { plotOutline: next as unknown as Prisma.InputJsonValue } })
+  return NextResponse.json(next)
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
