@@ -192,7 +192,7 @@ export function buildStorySystemPrompt({
 
   // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
   if (plotSection?.trim()) parts.push(plotSection)
-  if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}\n(위 상태가 [캐릭터 설정]의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술한다)`)
+  if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}\n(위 상태가 [캐릭터 설정]의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술하고, 각 인물은 자신이 아는 것만 알며(정보 비대칭) 위 배치·예정·감정 상태를 지켜 서술한다)`)
   if (statsConfig && statsConfig.length > 0) {
     const statsLines = statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')
     parts.push(`[현재 스탯]\n${statsLines}`)
@@ -319,7 +319,7 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
 
   // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
   if (plotSection?.trim()) parts.push(plotSection)
-  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}\n(위 상태가 각 캐릭터 설정의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술한다)`)
+  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}\n(위 상태가 각 캐릭터 설정의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술하고, 각 인물은 자신이 아는 것만 알며(정보 비대칭) 위 배치·예정·감정 상태를 지켜 서술한다)`)
   if (statsConfig && statsConfig.length > 0) {
     parts.push(`[현재 스탯]\n${statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')}`)
   }
