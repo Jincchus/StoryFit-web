@@ -27,6 +27,8 @@ export default function CommandGuide() {
             <li><b>메신저</b>: <code>sf-bubble</code> + <code>sf-bubble-right</code>(나)/<code>sf-bubble-left</code>(상대), <code>sf-name</code>, <code>sf-time</code></li>
             <li><b>상태창/카드</b>: <code>sf-card</code> + <code>sf-card-title</code>, <code>sf-row</code>, <code>sf-muted</code></li>
             <li><b>게시판/댓글</b>: <code>sf-post</code> + <code>sf-post-title</code>/<code>sf-post-meta</code>/<code>sf-post-body</code>, <code>sf-comment</code> + <code>sf-comment-author</code></li>
+            <li><b>일정표</b>: <code>sf-schedule</code> + <code>sf-schedule-item</code>(<code>sf-schedule-time</code>+<code>sf-schedule-desc</code>)</li>
+            <li><b>상담일지/보고서</b>: <code>sf-log</code> + <code>sf-log-head</code>, <code>sf-log-field</code>(<code>sf-log-label</code>+<code>sf-log-value</code>)</li>
             <li><b>기타</b>: <code>sf-notice</code>(알림), <code>sf-tag</code>(태그), <code>sf-divider</code>(구분선), <code>sf-bar</code>+<code>sf-bar-fill</code>(스탯바)</li>
           </ul>
           <div className="sf-muted" style={{ fontSize: 11, opacity: 0.7 }}>· 줄바꿈은 엔터 1번이면 그대로 반영됩니다.</div>

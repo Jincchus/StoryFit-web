@@ -33,6 +33,10 @@ const schema = {
         'sf-post', 'sf-post-title', 'sf-post-meta', 'sf-post-body', 'sf-comment', 'sf-comment-author',
         // 알림·태그·구분선·스탯바
         'sf-notice', 'sf-tag', 'sf-divider', 'sf-bar', 'sf-bar-fill',
+        // 일정표/캘린더
+        'sf-schedule', 'sf-schedule-item', 'sf-schedule-time', 'sf-schedule-desc',
+        // 상담일지/보고서
+        'sf-log', 'sf-log-head', 'sf-log-field', 'sf-log-label', 'sf-log-value',
       ],
     ],
   },

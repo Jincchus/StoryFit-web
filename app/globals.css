@@ -1657,3 +1657,14 @@ body[data-art="dark"] .dice-fail   { color:#f87171 }
 .md-body .sf-divider::before,.md-body .sf-divider::after{ content:""; flex:1; height:1px; background:rgba(255,255,255,0.15); }
 .md-body .sf-bar{ height:10px; border-radius:999px; background:rgba(255,255,255,0.1); overflow:hidden; margin:4px 0; }
 .md-body .sf-bar-fill{ display:block; height:100%; border-radius:999px; background:var(--accent,#7b5cff); }
+/* 일정표/캘린더 — 시간→내용 타임라인 */
+.md-body .sf-schedule{ display:flex; flex-direction:column; gap:3px; margin:6px 0; }
+.md-body .sf-schedule-item{ display:flex; gap:10px; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,0.03); align-items:baseline; }
+.md-body .sf-schedule-time{ flex-shrink:0; min-width:64px; font-weight:700; font-size:12px; color:var(--accent,#7b5cff); }
+.md-body .sf-schedule-desc{ flex:1; font-size:13px; line-height:1.5; }
+/* 상담일지/보고서 — 항목 라벨 + 내용 */
+.md-body .sf-log{ border:1px solid rgba(255,255,255,0.14); border-left:3px solid var(--accent,#7b5cff); border-radius:8px; padding:12px 14px; margin:8px 0; background:rgba(255,255,255,0.03); }
+.md-body .sf-log-head{ display:flex; justify-content:space-between; gap:8px; font-weight:800; font-size:14px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.1); }
+.md-body .sf-log-field{ margin:6px 0; }
+.md-body .sf-log-label{ font-size:11px; font-weight:700; opacity:0.6; margin-bottom:2px; }
+.md-body .sf-log-value{ font-size:13px; line-height:1.6; white-space:pre-wrap; }
