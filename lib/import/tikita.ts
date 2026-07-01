@@ -1,4 +1,42 @@
 import type { Captured, AssembledCharacter, PersonaPreset } from './types'
+import { generateText } from '@/lib/ai/gemini'
+
+// transition이 비었거나 문장 종결로 안 끝나면(잘림/불완전) 도출 대상으로 본다.
+function isWeakTransition(t: string): boolean {
+  const s = (t || '').trim()
+  if (s.length < 6) return true
+  return !/[다함음죠네요.!?]$/.test(s)
+}
+
+// 에피소드 본문(body_md)에서 진행 판정용 events(항상)·transition(필요 시)을 도출한다.
+// 실패하면 빈 결과를 반환해 원본을 그대로 유지한다. 플레이스홀더({{user}}/{{char1}})는 보존.
+async function deriveEpisodeStructure(
+  title: string, body: string, existingTransition: string, needTransition: boolean,
+): Promise<{ events: string[]; transition?: string }> {
+  const sys = '당신은 인터랙티브 스토리 에피소드 분석가입니다. JSON만 반환합니다.'
+  const user = `아래 에피소드 본문에서 진행 판정용 정보를 뽑아라.
+- events: 이 에피소드에서 실제로 일어나는 구체적 핵심 사건 2~3개 (본문에 명시된 것만)
+${needTransition ? '- transition: 다음 에피소드로 넘어가는 "겉으로 확인 가능한 완료 조건" 1문장 (감정·심리 상태 금지, 사건·행동·상태 변화로)' : ''}
+
+⚠️ {{user}}, {{char1}}, {{char2}} 같은 플레이스홀더는 절대 이름으로 바꾸지 말고 그대로 유지하라.
+
+제목: ${title}
+본문: ${body}
+${existingTransition ? `기존 전환조건(잘렸을 수 있음, 참고만): ${existingTransition}` : ''}
+
+반환(JSON만): {"events": ["..",".."]${needTransition ? ', "transition": ".."' : ''}}`
+  try {
+    const raw = await generateText(sys, user, 1024, 'relaxed')
+    const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] ?? '{}')
+    const events = Array.isArray(parsed.events)
+      ? parsed.events.map((s: any) => String(s).trim()).filter(Boolean).slice(0, 3)
+      : []
+    const transition = needTransition && typeof parsed.transition === 'string' ? parsed.transition.trim() : undefined
+    return { events, transition }
+  } catch {
+    return { events: [] }
+  }
+}
 
 // tikita.ai는 Supabase 백엔드(custom domain)를 쓰며, 공개 스토리는 anon 키로 REST 조회 가능하다.
 // anon 키는 클라이언트 번들에 박힌 공개값 — 교체 가능성에 대비해 환경변수로 덮어쓸 수 있게 한다.
@@ -159,9 +197,20 @@ export async function captureTikita(url: string): Promise<Captured> {
           events: [],
           transition: String(e.transition_condition || '').trim(),
         }))
+
+        // 빈 events(항상)·비었거나 잘린 transition을 본문에서 자동 도출 → 진행 판정 안정화.
+        // 실패해도 원본 유지(도출은 best-effort). 에피소드별 병렬.
+        await Promise.all(episodes.map(async (ep) => {
+          const needEvents = ep.events.length === 0 && ep.goal.length > 0
+          const needTransition = ep.goal.length > 0 && isWeakTransition(ep.transition)
+          if (!needEvents && !needTransition) return
+          const d = await deriveEpisodeStructure(ep.title, ep.goal, ep.transition, needTransition)
+          if (needEvents && d.events.length) ep.events = d.events
+          if (needTransition && d.transition) ep.transition = d.transition
+        }))
       }
     }
-  } catch { /* 에피소드 조회 실패 시 무시 — 단일 시작점으로 동작 */ }
+  } catch { /* 에피소드 조회/도출 실패 시 무시 — 단일 시작점으로 동작 */ }
 
   const tags: string[] = Array.from(new Set(
     [...(story.tags ?? []), ...(story.categories ?? [])].map((t: any) => String(t).trim()).filter(Boolean)
