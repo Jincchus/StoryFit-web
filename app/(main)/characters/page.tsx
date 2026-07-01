@@ -73,6 +73,7 @@ export default function CharactersPage() {
   const [deleting, setDeleting] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
+  const [personaView, setPersonaView] = useState(false) // 페르소나 프리셋 보기(편집/삭제용). 평소엔 그리드에서 숨김.
   const [duplicating, setDuplicating] = useState(false)
   const [roomFilter, setRoomFilter] = useState<string>('all')
   const [centerFilter, setCenterFilter] = useState<string>('all')
@@ -86,7 +87,7 @@ export default function CharactersPage() {
 
   useEffect(() => {
     // 페르소나 프리셋(isPersonaPreset)은 캐릭터 라이브러리에 노출하지 않는다(페르소나 피커 전용).
-    api.get('/api/characters').then(data => { setCharacters(data.filter((c: Character) => !c.isPersonaPreset)); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
+    api.get('/api/characters').then(data => { setCharacters(data); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
     api.get('/api/center-tags').then(setTagConfig).catch(() => {})
   }, [])
 
@@ -100,7 +101,7 @@ export default function CharactersPage() {
     try {
       const result = await api.post('/api/characters/import', { url: importUrl.trim() })
       const refreshed = await api.get('/api/characters')
-      setCharacters(refreshed.filter((c: Character) => !c.isPersonaPreset))
+      setCharacters(refreshed)
       const char = result.character ?? result
       dispatch({ type: 'selectChar', id: char.id })
       setImportUrl('')
@@ -119,12 +120,14 @@ export default function CharactersPage() {
 
   const selectedChar = characters.find(c => c.id === draft.charId)
 
-  // view(진행/대기/완결) 기준 1차 분류
+  // view(진행/대기/완결) 기준 1차 분류. 페르소나 보기면 프리셋만, 아니면 프리셋 제외.
   const viewBase = useMemo(() => {
-    if (view === 'completed') return characters.filter(c => c.completed)
-    if (view === 'waiting') return characters.filter(c => !c.completed && !c.started)
-    return characters.filter(c => !c.completed && c.started)
-  }, [characters, view])
+    const base = characters.filter(c => personaView ? c.isPersonaPreset : !c.isPersonaPreset)
+    if (personaView) return base // 페르소나 프리셋은 진행/대기/완결 구분 없이 전부
+    if (view === 'completed') return base.filter(c => c.completed)
+    if (view === 'waiting') return base.filter(c => !c.completed && !c.started)
+    return base.filter(c => !c.completed && c.started)
+  }, [characters, view, personaView])
 
   // 센터 필터 옵션 (이 view에 실제로 멤버가 있는 센터만, 카운트 포함)
   const availableCenters = useMemo(() => {
@@ -137,9 +140,9 @@ export default function CharactersPage() {
 
   // 센터 필터 적용 (완결 view는 센터 대신 방 필터를 쓰므로 그대로)
   const centerBase = useMemo(() => {
-    if (view === 'completed' || centerFilter === 'all') return viewBase
+    if (personaView || view === 'completed' || centerFilter === 'all') return viewBase
     return viewBase.filter(c => centerKeyOf(c) === centerFilter)
-  }, [viewBase, centerFilter, view])
+  }, [viewBase, centerFilter, view, personaView])
 
   // 성별 필터 옵션 (센터 필터 적용된 집합에서 버킷별 카운트)
   const availableGenders = useMemo(() => {
@@ -224,7 +227,7 @@ export default function CharactersPage() {
     try {
       await api.post(`/api/characters/${id}/duplicate`, {})
       const refreshed = await api.get('/api/characters')
-      setCharacters(refreshed.filter((c: Character) => !c.isPersonaPreset))
+      setCharacters(refreshed)
       setView('active')
     } catch (e: any) {
       setError(e.message ?? '복제 중 오류가 발생했습니다.')
@@ -328,11 +331,17 @@ export default function CharactersPage() {
           {(['active', 'waiting', 'completed'] as const).map(v => (
             <button
               key={v}
-              className={`btn ${view === v ? 'primary' : 'ghost'}`}
+              className={`btn ${!personaView && view === v ? 'primary' : 'ghost'}`}
               style={{ fontSize: 11, padding: '3px 10px' }}
-              onClick={() => { setView(v); setRoomFilter('all'); setCollectionFilter('all'); setCenterFilter('all'); setGenderFilter('all'); resetSearch(); exitSelect() }}
+              onClick={() => { setPersonaView(false); setView(v); setRoomFilter('all'); setCollectionFilter('all'); setCenterFilter('all'); setGenderFilter('all'); resetSearch(); exitSelect() }}
             >{v === 'active' ? '진행 중' : v === 'waiting' ? '대기' : '완결 캐릭터'}</button>
           ))}
+          <button
+            className={`btn ${personaView ? 'primary' : 'ghost'}`}
+            style={{ fontSize: 11, padding: '3px 10px' }}
+            title="가져온 제작자 페르소나 프리셋을 편집·삭제합니다"
+            onClick={() => { setPersonaView(v => !v); setView('active'); setRoomFilter('all'); setCollectionFilter('all'); setCenterFilter('all'); setGenderFilter('all'); resetSearch(); exitSelect() }}
+          >✨ 페르소나</button>
         </div>
 
         {error && <div className="tiny" style={{ color: '#ff6b8a', padding: '4px 0' }}>⚠ {error}</div>}
@@ -467,9 +476,14 @@ export default function CharactersPage() {
               완결한 캐릭터가 없습니다.<br />이어가려면 서재에서 꺼내세요.
             </div>
           )}
-          {view === 'waiting' && filteredCharacters.length === 0 && (
+          {view === 'waiting' && !personaView && filteredCharacters.length === 0 && (
             <div className="muted" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 16px', fontSize: 13 }}>
               대기 중인 캐릭터가 없습니다.<br />아직 대화를 시작하지 않은 캐릭터가 여기에 표시됩니다.
+            </div>
+          )}
+          {personaView && filteredCharacters.length === 0 && (
+            <div className="muted" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 16px', fontSize: 13 }}>
+              가져온 제작자 페르소나가 없습니다.<br />Zeta·멜팅·Tikita 카드를 가져오면 여기에 표시됩니다.
             </div>
           )}
           {visibleCharacters.map(c => {
@@ -567,7 +581,7 @@ export default function CharactersPage() {
             )
           })}
 
-          {view === 'active' && !selecting && (
+          {view === 'active' && !personaView && !selecting && (
             <div className="char-card" onClick={() => router.push('/characters/new')}>
               <div className="pic-wrap" style={{ borderStyle: 'dashed' }}>
                 <PixelAvatar kind="custom" size={72} />
