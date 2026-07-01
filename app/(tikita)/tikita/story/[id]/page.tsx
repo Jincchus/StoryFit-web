@@ -163,6 +163,14 @@ export default function TikitaStoryDetailPage() {
     (Array.isArray(meta.gallery) ? meta.gallery : []).filter((g: any) => !g.locked)
   const chatStarters: string[] = Array.isArray(meta.chatStarters) ? meta.chatStarters : []
   const detailMd: string = meta.detailMd ?? ''
+  // 캐릭터 상세설정 표시용: 카드 레벨 '상세 안내'(detailMd)와 겹치지 않게, 캐릭터 고유 부분만 남긴다.
+  // (import가 additionalInfo=[character_intro, detail_md]로 합쳐 저장해 화면에 중복 노출되던 것 해소.
+  //  AI 프롬프트용 원본 additionalInfo는 그대로 두고 표시만 정리.)
+  const charSettingText = (info?: string): string => {
+    const s = (info ?? '').trim()
+    if (detailMd && s.includes(detailMd)) return s.split(detailMd).join('').replace(/\n{3,}/g, '\n\n').trim()
+    return s
+  }
   const introHtmlText: string = meta.introHtmlText ?? ''
   const episodeTitles: string[] = (Array.isArray(meta.episodes) ? meta.episodes : [])
     .map((e: any, i: number) => `${i + 1}. ${e.title || ''}`)
@@ -298,25 +306,27 @@ export default function TikitaStoryDetailPage() {
                 </button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {col.characters.map((c, i) => (
+                {col.characters.map((c, i) => {
+                  const cInfo = charSettingText(c.additionalInfo)
+                  return (
                   <div key={c.id}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: c.additionalInfo?.trim() ? 'pointer' : 'default' }}
-                      onClick={() => c.additionalInfo?.trim() && setExpandedCharId(expandedCharId === c.id ? null : c.id)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: cInfo ? 'pointer' : 'default' }}
+                      onClick={() => cInfo && setExpandedCharId(expandedCharId === c.id ? null : c.id)}>
                       {c.avatarUrl
                         ? <img src={c.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                         : <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--t-line)', flexShrink: 0 }} />}
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontWeight: 700, color: 'var(--t-ink)' }}>{i + 1}. {c.name}</div>
-                        {c.additionalInfo?.trim() && (
+                        {cInfo && (
                           <div style={{ fontSize: 11, color: 'var(--t-ink-soft)', marginTop: 2 }}>
                             설정 {expandedCharId === c.id ? '접기 ▲' : '보기 ▼'}
                           </div>
                         )}
                       </div>
                     </div>
-                    {expandedCharId === c.id && c.additionalInfo?.trim() && (
+                    {expandedCharId === c.id && cInfo && (
                       <div className="tikita-intro-box" style={{ marginTop: 8 }}>
-                        <NovelText text={replaceDisplayPlaceholders(c.additionalInfo, userName, charNames)} />
+                        <NovelText text={replaceDisplayPlaceholders(cInfo, userName, charNames)} />
                       </div>
                     )}
                     <SecretSettingsBlock
@@ -328,7 +338,8 @@ export default function TikitaStoryDetailPage() {
                       onSaved={next => setCol(prev => prev ? { ...prev, characters: prev.characters.map(ch => ch.id === c.id ? { ...ch, secretSettings: next } : ch) } : prev)}
                     />
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
