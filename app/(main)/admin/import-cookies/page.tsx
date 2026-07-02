@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'rofan_session_cookie' | 'tikita_session_token', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'zeta_refresh_token' | 'rofan_session_cookie' | 'tikita_session_token', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -87,6 +87,8 @@ export default function AdminImportCookiesPage() {
   const [tingleApiKeyUpdatedAt, setTingleApiKeyUpdatedAt] = useState<string | null>(null)
   const [zetaToken, setZetaToken] = useState('')
   const [zetaTokenUpdatedAt, setZetaTokenUpdatedAt] = useState<string | null>(null)
+  const [zetaRefreshToken, setZetaRefreshToken] = useState('')
+  const [zetaRefreshTokenUpdatedAt, setZetaRefreshTokenUpdatedAt] = useState<string | null>(null)
   const [rofanCookie, setRofanCookie] = useState('')
   const [rofanCookieUpdatedAt, setRofanCookieUpdatedAt] = useState<string | null>(null)
   const [tikitaToken, setTikitaToken] = useState('')
@@ -117,6 +119,8 @@ export default function AdminImportCookiesPage() {
       setTingleApiKeyUpdatedAt(data.tingle_firebase_api_key?.updatedAt ?? null)
       setZetaToken(data.zeta_token?.value ?? '')
       setZetaTokenUpdatedAt(data.zeta_token?.updatedAt ?? null)
+      setZetaRefreshToken(data.zeta_refresh_token?.value ?? '')
+      setZetaRefreshTokenUpdatedAt(data.zeta_refresh_token?.updatedAt ?? null)
       setRofanCookie(data.rofan_session_cookie?.value ?? '')
       setRofanCookieUpdatedAt(data.rofan_session_cookie?.updatedAt ?? null)
       setTikitaToken(data.tikita_session_token?.value ?? '')
@@ -141,6 +145,7 @@ export default function AdminImportCookiesPage() {
         tingle_refresh_token: tingleRefresh,
         tingle_firebase_api_key: tingleApiKey,
         zeta_token: zetaToken,
+        zeta_refresh_token: zetaRefreshToken,
         rofan_session_cookie: rofanCookie,
         tikita_session_token: tikitaToken,
       })
@@ -223,12 +228,21 @@ export default function AdminImportCookiesPage() {
             />
 
             <CookieField
-              label="Zeta TOKEN (zeta-ai.io)"
-              hint={'브라우저에서 zeta-ai.io에 로그인한 뒤, 개발자도구 → Network 탭 → 임의 요청 클릭 → Headers → Cookie 항목에서 TOKEN= 뒤 값(eyJ...)을 복사해 붙여넣으세요.\n또는 Application → Cookies → TOKEN 항목의 값을 직접 복사할 수도 있습니다.\n⚠️ 7일마다 만료됩니다 — 스캔이 안 되면 이 화면에서 TOKEN을 재입력하세요.'}
+              label="Zeta TOKEN (zeta-ai.io) — access 토큰"
+              hint={'zeta-ai.io 로그인 후 개발자도구 → Application → Cookies → TOKEN 값(eyJ...)을 복사해 붙여넣으세요.\n⚠️ access 토큰은 수명이 약 30분으로 짧습니다 — 아래 REFRESH_TOKEN을 함께 등록하면 만료 시 자동 재발급되어 재입력이 필요 없습니다.'}
               placeholder="eyJhbGciOiJIUzM4NCJ9.eyJ1aWQiOi..."
               value={zetaToken}
               onChange={setZetaToken}
               updatedAt={zetaTokenUpdatedAt}
+            />
+
+            <CookieField
+              label="Zeta REFRESH_TOKEN (zeta-ai.io) — 자동 재발급용"
+              hint={'zeta-ai.io 로그인 후 개발자도구 → Application → Cookies → REFRESH_TOKEN 값을 복사해 붙여넣으세요.\n이 값이 있으면 access(TOKEN)가 만료될 때 자동으로 새 토큰을 발급받습니다. (약 7일마다 갱신 필요)'}
+              placeholder="4Zb0WCHOO..."
+              value={zetaRefreshToken}
+              onChange={setZetaRefreshToken}
+              updatedAt={zetaRefreshTokenUpdatedAt}
             />
 
             <CookieField

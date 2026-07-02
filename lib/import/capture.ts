@@ -57,13 +57,68 @@ function cleanWhifText(text: string): string {
 // 환경변수 방식은 컨테이너 재배포가 있어야 반영되는데, 멜팅 세션은 약 30분마다 만료되어
 // 사실상 갱신이 불가능했다 — DB 조회로 바꿔 재배포 없이 바로 반영되도록 한다.
 export async function getGlobalConfigValue(
-  key: 'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'tikita_session_token'
+  key: 'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'zeta_refresh_token' | 'tikita_session_token'
 ): Promise<string> {
   const config = await prisma.globalConfig.findUnique({ where: { key } })
   return config?.value?.trim() ?? ''
 }
 async function setGlobalConfigValue(key: string, value: string): Promise<void> {
   await prisma.globalConfig.upsert({ where: { key }, update: { value }, create: { key, value } })
+}
+
+// JWT payload의 exp(초) 추출. 파싱 실패 시 0.
+function jwtExpSeconds(token: string): number {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return 0
+    const json = JSON.parse(Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString())
+    return typeof json.exp === 'number' ? json.exp : 0
+  } catch { return 0 }
+}
+
+// zeta access 토큰 갱신. /api/v1/auth/refresh 는 access가 유효할 때만 echo — 만료 시 401.
+// 실제 갱신 메커니즘: zeta-ai.io 서버 미들웨어가 페이지 내비게이션 307 리다이렉트 응답에서
+// Set-Cookie: TOKEN=<new> 로 새 access를 발급한다(REFRESH_TOKEN 쿠키가 있을 때).
+async function refreshZetaToken(access: string, refresh: string): Promise<string> {
+  try {
+    const res = await fetch('https://zeta-ai.io/ko', {
+      method: 'GET',
+      redirect: 'manual',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html',
+        Cookie: `TOKEN=${access}; REFRESH_TOKEN=${refresh}`,
+      },
+    })
+    // Set-Cookie 헤더에서 TOKEN 값 추출 (Node 18.14+ getSetCookie() 배열 우선 사용)
+    const rawCookies: string[] = typeof (res.headers as any).getSetCookie === 'function'
+      ? (res.headers as any).getSetCookie() as string[]
+      : (res.headers.get('set-cookie') ?? '').split(/,(?=\s*\w+=)/)
+    for (const c of rawCookies) {
+      const m = c.trim().match(/^TOKEN=([^;]+)/)
+      if (m?.[1]) return m[1]
+    }
+    return ''
+  } catch { return '' }
+}
+
+// 유효한 zeta access 토큰을 반환. 만료 임박(<2분)/만료 시 refresh 토큰으로 재발급 후 저장.
+// refresh 토큰이 없으면 기존 access를 그대로 반환(만료면 호출부에서 401 → graceful).
+export async function getValidZetaToken(): Promise<string> {
+  const strip = (s: string) => s.replace(/^Bearer\s+/i, '').trim()
+  let access = strip(await getGlobalConfigValue('zeta_token'))
+  const refresh = strip(await getGlobalConfigValue('zeta_refresh_token'))
+  if (!refresh) return access
+  const now = Math.floor(Date.now() / 1000)
+  const exp = jwtExpSeconds(access)
+  if (!access || exp === 0 || exp - now < 120) {
+    const fresh = await refreshZetaToken(access, refresh)
+    if (fresh && fresh !== access) {
+      access = fresh
+      await setGlobalConfigValue('zeta_token', fresh)
+    }
+  }
+  return access
 }
 
 // Firebase refresh token으로 새 ID 토큰을 발급받아 DB에 저장 후 반환.
@@ -613,9 +668,47 @@ export async function captureZeta(url: string): Promise<Captured> {
     captured.lorebooks = lorebooks
   }
 
+  // ── 이미지 갤러리 보강(parity): /v1/plots는 단일 imageUrl만 줘서 상세 갤러리가 누락됐다.
+  //    캐릭터 이미지(v2, anon) → relatedImages / 플롯 이미지(v2, Bearer) → zetaMeta.gallery.
+  const imgHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'application/json', 'Accept-Language': 'ko-KR,ko;q=0.9',
+  }
+  const rawChars = Array.isArray(plot.characters) ? plot.characters : []
+  const outChars = captured.assembledResult?.characters ?? []
+  await Promise.all(outChars.map(async (ch, i) => {
+    const cid = rawChars[i]?.id
+    if (!cid) return
+    try {
+      const r = await fetch(`https://api.zeta-ai.io/v2/plots/${plotId}/characters/${cid}/images`, { headers: imgHeaders })
+      if (!r.ok) return
+      const j = await r.json()
+      const urls: string[] = (Array.isArray(j?.images) ? j.images : []).map((im: any) => im?.imageUrl).filter(Boolean)
+      if (urls.length) ch.relatedImages = Array.from(new Set([...(ch.relatedImages ?? []), ...urls]))
+    } catch { /* 이미지 보강 실패는 무시 */ }
+  }))
+  // 플롯 이미지 갤러리는 Bearer 필요(쿠키 아님) — 토큰 없거나 만료면 graceful skip.
+  // getValidZetaToken: access 만료 임박이면 refresh 토큰으로 자동 재발급.
+  let gallery: { url: string; aspectRatio?: number }[] = []
+  try {
+    const token = await getValidZetaToken()
+    if (token) {
+      const r = await fetch(`https://api.zeta-ai.io/v2/plots/${plotId}/images`, {
+        headers: { ...imgHeaders, Authorization: `Bearer ${token}` },
+      })
+      if (r.ok) {
+        const j = await r.json()
+        gallery = (Array.isArray(j?.images) ? j.images : [])
+          .map((im: any) => ({ url: String(im?.imageUrl || ''), aspectRatio: typeof im?.aspectRatio === 'number' ? im.aspectRatio : undefined }))
+          .filter((g: { url: string }) => g.url)
+      }
+    }
+  } catch { /* 플롯 갤러리 실패 무시 */ }
+
   captured.zetaMeta = {
     ...plot,
     interactionCount: 0,
+    ...(gallery.length ? { gallery } : {}),
   }
 
   return captured

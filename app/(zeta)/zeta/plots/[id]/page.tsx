@@ -6,6 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
 import NovelText from '@/components/ui/NovelText'
+import ImageCarousel from '@/components/ui/ImageCarousel'
 import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
@@ -18,7 +19,7 @@ import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 interface Char {
   id: string; name: string; avatarUrl: string | null; additionalInfo: string; secretSettings?: string
   gender?: string
-  openingMessage: string; openingMessages?: Opening[]
+  openingMessage: string; openingMessages?: Opening[]; relatedImages?: string[]
 }
 interface Collection {
   id: string; title: string; coverImageUrl: string; description: string; tags: string[]
@@ -127,6 +128,11 @@ export default function ZetaPlotDetailPage() {
   if (!col) return <div className="zeta-empty">불러오는 중...</div>
 
   const meta = col.zetaMeta ?? {}
+  // 이미지 갤러리: 플롯 이미지(zetaMeta.gallery, Bearer 가져옴) + 캐릭터 추가 이미지(relatedImages), url 중복 제거.
+  const galleryImages: { url: string }[] = [
+    ...(Array.isArray(meta.gallery) ? meta.gallery.map((g: any) => ({ url: String(g?.url || '') })) : []),
+    ...col.characters.flatMap(c => (c.relatedImages ?? []).map(url => ({ url }))),
+  ].filter((g, i, arr) => g.url && arr.findIndex(x => x.url === g.url) === i)
   const mainChar = col.characters.find(c => c.name === col.title) ?? col.characters[0]
   const aiCharIds = pendingAiCharIds ?? (mainChar ? [mainChar.id] : [])
   const personaCandidates = buildPersonaCandidates({
@@ -268,6 +274,13 @@ export default function ZetaPlotDetailPage() {
               <div className="zeta-intro-box">
                 <NovelText text={replaceDisplayPlaceholders(col.description ?? '', userName, mainChar?.name ?? '')} />
               </div>
+            </div>
+          )}
+
+          {galleryImages.length > 0 && (
+            <div className="zeta-section" style={{ paddingTop: 0 }}>
+              <h2 className="zeta-section-title">이미지 갤러리 ({galleryImages.length})</h2>
+              <ImageCarousel images={galleryImages} accent="var(--z-accent)" line="var(--z-line)" />
             </div>
           )}
 
