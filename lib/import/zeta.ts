@@ -46,19 +46,32 @@ export function extractZetaLorebookEntries(plot: any): { keyword: string[]; cont
   return entries
 }
 
+// 일부 플롯은 도입부에 CYOA 선택지(cyoaChoices.choices[])가 있다 —
+// 플레이어가 어떤 인물/입장으로 시작할지 고르는 첫 유저 대사 후보들.
+// 별도 선택 UI 없이, 도입부 본문 뒤에 후보 목록으로 붙여 정보 손실만 막는다.
+function buildZetaChoicesBlock(choices: any): string {
+  if (!Array.isArray(choices) || choices.length === 0) return ''
+  const lines = choices
+    .map((c: any) => String(c?.text ?? '').trim())
+    .filter(Boolean)
+    .map((text: string, i: number) => `${i + 1}. ${text}`)
+  return lines.length ? `[시작 선택지]\n${lines.join('\n')}` : ''
+}
+
 function buildZetaOpenings(intros: any): { id: string; title: string; content: string }[] {
   if (!Array.isArray(intros)) return []
   return intros
     .map((intro, idx) => {
       const messages = intro?.conversation?.messages ?? []
-      const content = (Array.isArray(messages) ? messages : [])
+      const parts = (Array.isArray(messages) ? messages : [])
         .map((m: any) => String(m?.content ?? ''))
         .filter(Boolean)
-        .join('\n\n')
+      const choicesBlock = buildZetaChoicesBlock(intro?.conversation?.cyoaChoices?.choices)
+      if (choicesBlock) parts.push(choicesBlock)
       return {
         id: `intro_${idx}`,
         title: idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`,
-        content: normalizeGuest(content),
+        content: normalizeGuest(parts.join('\n\n')),
       }
     })
     .filter(o => o.content.trim().length > 0)

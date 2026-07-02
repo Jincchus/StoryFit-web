@@ -79,6 +79,43 @@ describe('buildZetaCaptured', () => {
   })
 })
 
+describe('buildZetaCaptured (CYOA 선택지 있는 플롯)', () => {
+  const PLOT_WITH_CYOA = {
+    ...PLOT,
+    intros: [
+      {
+        conversation: {
+          messages: [
+            { type: 'text', content: '*문이 열렸다.*', senderType: 'BOT', senderId: '_NARRATOR_' },
+          ],
+          cyoaChoices: {
+            choices: [
+              { text: 'Guest는 서윤을 선택한다', title: '' },
+              { text: 'Guest는 태윤을 선택한다', title: '' },
+            ],
+          },
+        },
+      },
+    ],
+  }
+  const cap = buildZetaCaptured(PLOT_WITH_CYOA, 'https://zeta-ai.io/ko/plots/x/profile')
+
+  it('cyoaChoices가 도입부 뒤에 선택지 목록으로 붙고 Guest 치환됨', () => {
+    const op = cap.assembledResult!.characters[0].openingMessage
+    expect(op).toContain('*문이 열렸다.*')
+    expect(op).toContain('[시작 선택지]')
+    expect(op).toContain('1. {{user}}는 서윤을 선택한다')
+    expect(op).toContain('2. {{user}}는 태윤을 선택한다')
+  })
+
+  it('cyoaChoices가 null이면 선택지 블록 없음(기존 동작 유지)', () => {
+    const op = cap.assembledResult!.characters[0].openingMessage
+    const capNoChoices = buildZetaCaptured(PLOT, 'https://zeta-ai.io/ko/plots/x/profile')
+    expect(capNoChoices.assembledResult!.characters[0].openingMessage).not.toContain('[시작 선택지]')
+    expect(op).not.toBe(capNoChoices.assembledResult!.characters[0].openingMessage)
+  })
+})
+
 describe('buildZetaPersonaPresets (chatProfiles → 페르소나)', () => {
   it('summary를 이름으로, description을 본문으로(name "{{user}}"는 무시)', () => {
     const r = buildZetaPersonaPresets([
