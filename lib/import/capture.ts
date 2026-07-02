@@ -76,10 +76,11 @@ function jwtExpSeconds(token: string): number {
   } catch { return 0 }
 }
 
-// zeta access 토큰 갱신. /api/v1/auth/refresh 는 access가 유효할 때만 echo — 만료 시 401.
-// 실제 갱신 메커니즘: zeta-ai.io 서버 미들웨어가 페이지 내비게이션 307 리다이렉트 응답에서
-// Set-Cookie: TOKEN=<new> 로 새 access를 발급한다(REFRESH_TOKEN 쿠키가 있을 때).
-async function refreshZetaToken(access: string, refresh: string): Promise<string> {
+// zeta access 토큰 갱신.
+// ⚠️ TOKEN 쿠키를 같이 보내면 서버가 만료로 인식해 양쪽 모두 클리어 후 로그인 리다이렉트.
+//    REFRESH_TOKEN만 단독으로 보내야 새 TOKEN + 새 REFRESH_TOKEN을 307 Set-Cookie로 발급.
+//    REFRESH_TOKEN도 rotating이므로 새 값을 DB에 같이 저장.
+async function refreshZetaToken(_access: string, refresh: string): Promise<string> {
   try {
     const res = await fetch('https://zeta-ai.io/ko', {
       method: 'GET',
@@ -87,18 +88,22 @@ async function refreshZetaToken(access: string, refresh: string): Promise<string
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html',
-        Cookie: `TOKEN=${access}; REFRESH_TOKEN=${refresh}`,
+        Cookie: `REFRESH_TOKEN=${refresh}`,
       },
     })
-    // Set-Cookie 헤더에서 TOKEN 값 추출 (Node 18.14+ getSetCookie() 배열 우선 사용)
     const rawCookies: string[] = typeof (res.headers as any).getSetCookie === 'function'
       ? (res.headers as any).getSetCookie() as string[]
       : (res.headers.get('set-cookie') ?? '').split(/,(?=\s*\w+=)/)
+    let newAccess = ''
+    let newRefresh = ''
     for (const c of rawCookies) {
-      const m = c.trim().match(/^TOKEN=([^;]+)/)
-      if (m?.[1]) return m[1]
+      const tok = c.trim().match(/^TOKEN=([^;]+)/)
+      if (tok?.[1]) newAccess = tok[1]
+      const ref = c.trim().match(/^REFRESH_TOKEN=([^;]+)/)
+      if (ref?.[1]) newRefresh = ref[1]
     }
-    return ''
+    if (newRefresh) await setGlobalConfigValue('zeta_refresh_token', newRefresh)
+    return newAccess
   } catch { return '' }
 }
 
