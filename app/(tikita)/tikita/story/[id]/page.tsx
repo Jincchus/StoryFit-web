@@ -31,6 +31,14 @@ interface Collection {
 
 const WORLD_DEFAULTS = new Set(['ORGANIZATION', 'RULE', '세계관', 'STORY INTRO'])
 
+// 블록이 실제 대화(프롬프트)에 들어가는지 표시하는 배지 (B-1)
+const aiBadge = (
+  <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.3, padding: '2px 7px', borderRadius: 999, background: 'rgba(var(--t-accent-rgb, 180,100,255), .16)', color: 'var(--t-accent)', whiteSpace: 'nowrap', flexShrink: 0 }}>AI 전달</span>
+)
+const refBadge = (
+  <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 0.3, padding: '2px 7px', borderRadius: 999, background: 'var(--t-surface-2)', color: 'var(--t-ink-soft)', whiteSpace: 'nowrap', flexShrink: 0 }}>참고</span>
+)
+
 export default function TikitaStoryDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
@@ -58,6 +66,8 @@ export default function TikitaStoryDetailPage() {
   const [editingText, setEditingText] = useState('')
   const [worldSaving, setWorldSaving] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
+  const [worldOpen, setWorldOpen] = useState(false) // 무거운 세계관 편집: 기본 접힘 (B-1)
+  const [refOpen, setRefOpen] = useState(false)      // 참고 정보 그룹: 기본 접힘 (B-3)
 
   useEffect(() => {
     api.get('/api/characters?unassigned=true')
@@ -296,11 +306,21 @@ export default function TikitaStoryDetailPage() {
             )}
           </div>
 
+          {/* ───────── A. 대화에 들어가는 설정 (AI 전달) ───────── */}
+          <div style={{ borderTop: '6px solid var(--t-surface-2)' }}>
+            <div style={{ padding: '12px 16px 2px', display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--t-ink)' }}>대화에 들어가는 설정</span>
+              <span style={{ fontSize: 10, color: 'var(--t-accent)' }}>이 내용이 대화 AI에게 전달됩니다</span>
+            </div>
+
           {/* 등장인물 */}
           {col.characters.length > 0 && (
-            <div className="tikita-section" style={{ paddingTop: 0 }}>
+            <div className="tikita-section" style={{ paddingTop: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <h2 className="tikita-section-title" style={{ margin: 0 }}>등장인물 ({col.characters.length})</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <h2 className="tikita-section-title" style={{ margin: 0 }}>등장인물 ({col.characters.length})</h2>
+                  {aiBadge}
+                </div>
                 <button className="tikita-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--t-surface-2)' }}
                   onClick={() => router.push(`/characters/new?isTikita=true&collectionId=${col.id}`)}>
                   + 캐릭터 등록
@@ -345,41 +365,31 @@ export default function TikitaStoryDetailPage() {
             </div>
           )}
 
-          {showTopIllustrations && (
-            <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">일러스트</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {illustrations.map((src, i) => (
-                  <img key={i} src={src} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {gallery.length > 0 && (
-            <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">이미지 갤러리 ({gallery.length})</h2>
-              <ImageCarousel
-                images={gallery.map(g => ({ url: g.url, description: g.description }))}
-                accent="var(--t-accent)"
-                line="var(--t-line)"
-              />
-            </div>
-          )}
-
-          {/* 소개글 / 세계관 편집 */}
+          {/* 소개글 / 세계관 편집 — 무거워서 기본 접힘 (B-1) */}
           {(hasSections || hasIntroText) && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <h2 className="tikita-section-title" style={{ margin: 0 }}>
-                  소개글{hasSections ? ` (${sectionEntries.length}개 섹션)` : ''}
-                </h2>
-                <button className="btn primary" style={{ fontSize: 11, padding: '3px 10px' }}
-                  onClick={saveWorldSettings} disabled={worldSaving}>
-                  {worldSaving ? '저장 중...' : '저장'}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: worldOpen ? 10 : 0 }}>
+                <button
+                  onClick={() => setWorldOpen(o => !o)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ color: 'var(--t-ink-soft)', fontSize: 12 }}>{worldOpen ? '▲' : '▼'}</span>
+                  <h2 className="tikita-section-title" style={{ margin: 0 }}>소개글 · 세계관 편집</h2>
+                  {aiBadge}
+                  <span style={{ fontSize: 10, color: 'var(--t-ink-soft)', whiteSpace: 'nowrap' }}>
+                    {hasSections
+                      ? `${sectionEntries.length}개 섹션 · 세계관 ${Array.from(worldKeys).filter(k => k !== '__intro__' && !hiddenSections.has(k)).length}개`
+                      : (worldKeys.has('__intro__') ? '세계관 사용' : '미사용')}
+                  </span>
                 </button>
+                {worldOpen && (
+                  <button className="btn primary" style={{ fontSize: 11, padding: '3px 10px', flexShrink: 0 }}
+                    onClick={saveWorldSettings} disabled={worldSaving}>
+                    {worldSaving ? '저장 중...' : '저장'}
+                  </button>
+                )}
               </div>
 
+              {worldOpen && (<>
               {/* 섹션 없음 경고 */}
               {!hasSections && (
                 <div style={{ padding: '8px 10px', background: 'rgba(255,200,0,.08)', border: '1px solid rgba(255,200,0,.25)', borderRadius: 8, fontSize: 12, color: 'var(--t-ink-soft)', marginBottom: 8 }}>
@@ -506,32 +516,28 @@ export default function TikitaStoryDetailPage() {
                   })()
                 )}
               </div>
+              </>)}
             </div>
           )}
 
           {detailMd && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">상세 안내</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <h2 className="tikita-section-title" style={{ margin: 0 }}>상세 안내</h2>
+                {aiBadge}
+              </div>
               <div className="tikita-intro-box" style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7 }}>
                 {replaceDisplayPlaceholders(detailMd, userName, charNames)}
               </div>
             </div>
           )}
 
-          {episodeTitles.length > 0 && (
-            <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">에피소드 ({episodeTitles.length})</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {episodeTitles.map((t, i) => (
-                  <div key={i} style={{ fontSize: 13, color: 'var(--t-ink-soft)', padding: '4px 0', borderBottom: '1px solid var(--t-line)' }}>{replaceDisplayPlaceholders(t, userName, charNames)}</div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {opening.trim() && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>
-              <h2 className="tikita-section-title">첫 장면</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <h2 className="tikita-section-title" style={{ margin: 0 }}>첫 장면</h2>
+                {aiBadge}
+              </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
                 {!isEditingOpening && (
                   <button className="tikita-chip" style={{ border: 'none', cursor: 'pointer', background: 'var(--t-surface-2)' }}
@@ -564,7 +570,58 @@ export default function TikitaStoryDetailPage() {
               )}
             </div>
           )}
+          </div>
+          {/* ───────── /A ───────── */}
 
+          {/* ───────── B. 참고 정보 (대화 미포함) — 기본 접힘 (B-3) ───────── */}
+          {(showTopIllustrations || gallery.length > 0 || episodeTitles.length > 0) && (
+            <div style={{ borderTop: '6px solid var(--t-surface-2)' }}>
+              <button
+                onClick={() => setRefOpen(o => !o)}
+                style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--t-ink)' }}>참고 정보</span>
+                {refBadge}
+                <span style={{ fontSize: 10, color: 'var(--t-ink-soft)' }}>대화에는 포함되지 않습니다</span>
+                <span style={{ marginLeft: 'auto', color: 'var(--t-ink-soft)', fontSize: 12 }}>{refOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {refOpen && (<>
+                {showTopIllustrations && (
+                  <div className="tikita-section" style={{ paddingTop: 0 }}>
+                    <h2 className="tikita-section-title">일러스트</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {illustrations.map((src, i) => (
+                        <img key={i} src={src} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {gallery.length > 0 && (
+                  <div className="tikita-section" style={{ paddingTop: 0 }}>
+                    <h2 className="tikita-section-title">이미지 갤러리 ({gallery.length})</h2>
+                    <ImageCarousel
+                      images={gallery.map(g => ({ url: g.url, description: g.description }))}
+                      accent="var(--t-accent)"
+                      line="var(--t-line)"
+                    />
+                  </div>
+                )}
+
+                {episodeTitles.length > 0 && (
+                  <div className="tikita-section" style={{ paddingTop: 0 }}>
+                    <h2 className="tikita-section-title">에피소드 ({episodeTitles.length})</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {episodeTitles.map((t, i) => (
+                        <div key={i} style={{ fontSize: 13, color: 'var(--t-ink-soft)', padding: '4px 0', borderBottom: '1px solid var(--t-line)' }}>{replaceDisplayPlaceholders(t, userName, charNames)}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>)}
+            </div>
+          )}
+          {/* ───────── /B ───────── */}
 
           {existingConvs.length > 0 && (
             <div className="tikita-section" style={{ paddingTop: 0 }}>

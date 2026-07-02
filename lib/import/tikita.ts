@@ -148,6 +148,19 @@ function parseIntroSectionImages(html: string | null | undefined): Record<string
   return result
 }
 
+// 세계관이 아닌 '독자용/메타' 섹션 판별 — 패치노트·changelog·공지·추천플레이·크레딧·제작자 노트 등. (B-2)
+// 이런 섹션은 프롬프트(세계관)에서 제외하고, 상세페이지에서도 기본 숨김 처리한다.
+const NOISE_NAME_RE = /(패치|change\s*log|changelog|업데이트|업뎃|공지|notice|추천\s*플레이|플레이\s*가이드|크레딧|credit|저작권|제작자|creator|후원|스폰서|디스코드|discord|문의|버그|수정\s*사항|변경\s*사항|history)/i
+// 세계관성 섹션 이름 판별 — 이 목록에 걸리고 잡음이 아니면 기본 세계관으로 선택한다.
+const WORLD_NAME_RE = /(세계관|world|설정|배경|규칙|rule|조직|organization|세력|지역|역사|용어|시놉|synopsis|프롤로그|prologue|스토리|story|intro|도입)/i
+// 본문이 날짜 나열(YYYY.MM.DD 등)로 시작하면 changelog성 텍스트로 본다.
+function looksLikeChangelog(text: string): boolean {
+  return /\b20\d{2}\s*[.\-/]\s*\d{1,2}\s*[.\-/]\s*\d{1,2}\b/.test(text.slice(0, 160))
+}
+function isNoiseSection(name: string, text: string): boolean {
+  return NOISE_NAME_RE.test(name) || looksLikeChangelog(text)
+}
+
 export async function captureTikita(url: string): Promise<Captured> {
   const shortId = url.match(/\/story\/([A-Za-z0-9_-]+)/)?.[1]
   if (!shortId) throw new Error('Tikita 스토리 URL이 아닙니다 (/story/{id} 형식 필요)')
@@ -246,13 +259,28 @@ export async function captureTikita(url: string): Promise<Captured> {
   const tags: string[] = Array.from(new Set(
     [...(story.tags ?? []), ...(story.categories ?? [])].map((t: any) => String(t).trim()).filter(Boolean)
   ))
+  const introSections = parseIntroSections(story.intro_html)
+  const introSectionOrder = parseIntroSectionOrder(story.intro_html)
+  const introSectionImages = parseIntroSectionImages(story.intro_html)
+  // 섹션 분류(B-2): 잡음(패치노트·공지·추천플레이 등)은 숨기고, 세계관성 섹션만 프롬프트에 넣는다.
+  const sectionNames = introSectionOrder.length ? introSectionOrder : Object.keys(introSections)
+  const noiseNames = sectionNames.filter(n => isNoiseSection(n, introSections[n] || ''))
+  const noiseSet = new Set(noiseNames)
+  const worldNames = sectionNames.filter(n => !noiseSet.has(n) && WORLD_NAME_RE.test(n))
+
   const introText = story.intro_mode === 'html'
     ? stripHtml(story.intro_html)
     : (String(story.intro_md || '').trim() || stripHtml(story.intro_html))
   // detail_md는 스토리 레벨 시스템 설정(서술규칙·다른 등장인물·명령어·세계관)이므로 세계관(scenario)에 둔다.
   // (캐릭터별 additionalInfo에 넣으면 캐릭터 수만큼 프롬프트에 중복됐다 — 4캐릭터면 ×4.)
   const detailMdText = String(story.detail_md || '').trim()
-  const scenario = [String(story.world || '').trim(), detailMdText, introText].filter(Boolean).join('\n\n')
+  // 세계관(scenario)엔 world + detail_md + '세계관성 intro 섹션'만 넣는다. 패치노트·changelog·추천플레이 등 잡음 제외.
+  // 섹션 구분이 아예 없는 단순 도입부는 통짜 유지(잡음 위험 낮음). 섹션형은 세계관 섹션만(없으면 잡음 뺀 전체) 선별.
+  const scenarioIntro = sectionNames.length === 0
+    ? introText
+    : (worldNames.length ? worldNames : sectionNames.filter(n => !noiseSet.has(n)))
+        .map(n => introSections[n]).filter(Boolean).join('\n\n')
+  const scenario = [String(story.world || '').trim(), detailMdText, scenarioIntro].filter(Boolean).join('\n\n')
     || String(story.tagline || '').trim()
   const cover = storageUrl(story.thumbnail_url || story.story_thumbnail_url)
   const title = String(story.title || '').trim()
@@ -297,9 +325,6 @@ export async function captureTikita(url: string): Promise<Captured> {
   }
 
   const canonical = `https://tikita.ai/ko/story/${shortId}`
-  const introSections = parseIntroSections(story.intro_html)
-  const introSectionOrder = parseIntroSectionOrder(story.intro_html)
-  const introSectionImages = parseIntroSectionImages(story.intro_html)
 
   return {
     sections: [],
@@ -328,6 +353,9 @@ export async function captureTikita(url: string): Promise<Captured> {
       introSections,
       introSectionOrder,
       introSectionImages,
+      // B-2: 가져오기 시점의 세계관/숨김 기본값 — 상세페이지가 이 값을 초기 선택으로 사용한다.
+      ...(sectionNames.length && worldNames.length ? { worldSectionKeys: worldNames } : {}),
+      ...(noiseNames.length ? { hiddenSections: noiseNames } : {}),
       detailMd: String(story.detail_md || '').trim(),
       episodes,
       stats,
