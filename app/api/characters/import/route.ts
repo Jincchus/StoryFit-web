@@ -179,9 +179,9 @@ async function runImport(captured: Captured, url: string, userId: string) {
         backfilled += captured.lorebooks.length
       }
     }
-    // Tikita 에피소드 갱신: 재캡처 때 도출된 events/transition을 기존 컬렉션에도 반영.
+    // Tikita 에피소드/변수 갱신: 재캡처 때 도출된 events/transition·stats를 기존 컬렉션에도 반영.
     // tikitaMeta는 결정적 캡처(사용자 편집 대상 아님)라 최신본으로 덮어써도 안전.
-    if ((captured.tikitaMeta as any)?.episodes?.length) {
+    if ((captured.tikitaMeta as any)?.episodes?.length || (captured.tikitaMeta as any)?.stats?.length) {
       await prisma.characterCollection.update({
         where: { id: existing.id },
         data: { tikitaMeta: captured.tikitaMeta as any },

@@ -1,5 +1,7 @@
 import type { Captured, AssembledCharacter, PersonaPreset } from './types'
+import type { StatEntry } from '@/types'
 import { generateText } from '@/lib/ai/gemini'
+import { parseRangeStates } from '@/lib/statRanges'
 
 // transition이 비었거나 문장 종결로 안 끝나면(잘림/불완전) 도출 대상으로 본다.
 function isWeakTransition(t: string): boolean {
@@ -185,6 +187,8 @@ export async function captureTikita(url: string): Promise<Captured> {
   //    try/catch에 먹혀 조용히 0개가 됐었다(예시 10개 전부 누락). 실제 원본은 순차 에피소드로 진행.
   // → init_chat_session RPC는 anon으로 episodes[](id·title·body_md·display_order) 반환 → 이걸 소스로.
   let episodes: { index: number; title: string; goal: string; events: string[]; transition: string }[] = []
+  // 변수(게이지형 스탯) — 신뢰도/보호욕 등. init_chat_session의 variables[]에서 함께 가져온다.
+  let stats: StatEntry[] = []
   try {
     const icsRes = await fetch(`${TIKITA_BASE}/rest/v1/rpc/init_chat_session`, {
       method: 'POST',
@@ -194,6 +198,27 @@ export async function captureTikita(url: string): Promise<Captured> {
     if (icsRes.ok) {
       const ics = await icsRes.json()
       const s = Array.isArray(ics) ? ics[0] : ics
+
+      // 변수 → 우리 statsConfig 게이지. default_value=시작값, description=증감규칙, range_description=구간 상태.
+      const varRows = Array.isArray(s?.variables) ? s.variables : []
+      stats = [...varRows]
+        .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
+        .map((v: any) => {
+          const min = Number(v.min_value)
+          const max = Number(v.max_value)
+          const lo = Number.isFinite(min) ? min : 0
+          const hi = Number.isFinite(max) ? max : 100
+          const def = parseInt(String(v.default_value ?? ''), 10)
+          const value = Number.isFinite(def) ? Math.max(lo, Math.min(hi, def)) : Math.round((lo + hi) / 2)
+          return {
+            name: String(v.name || '').trim().slice(0, 40),
+            value, min: lo, max: hi,
+            changeRules: String(v.description || '').trim() || undefined,
+            rangeStates: parseRangeStates(v.range_description),
+          } as StatEntry
+        })
+        .filter(st => st.name && st.max > st.min)
+
       const epRows = Array.isArray(s?.episodes) ? s.episodes : []
       episodes = [...epRows]
         .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
@@ -305,6 +330,7 @@ export async function captureTikita(url: string): Promise<Captured> {
       introSectionImages,
       detailMd: String(story.detail_md || '').trim(),
       episodes,
+      stats,
       gallery,
       inlineIllustrations,
       creatorNickname,

@@ -10,6 +10,7 @@ import { retrieveRelevantMemories } from '@/lib/ragMemory'
 import { loadGlobalRules } from '@/lib/globalConfig'
 import { getPersonalRulesForConv } from '@/lib/promptPresets'
 import { parsePlotOutline, buildPlotSection } from '@/lib/plotOutline'
+import { activeRangeText, rangeLabel } from '@/lib/statRanges'
 import { parseCommand, isBuiltinCommand, builtinFallbackKey, BUILTIN_FALLBACK, composeCommandDirective, COMMAND_ISOLATION_PREAMBLE } from '@/lib/commands'
 import { logAiError } from '@/lib/errorLog'
 import { brokerStart, brokerFinish } from '@/lib/streamBroker'
@@ -344,10 +345,12 @@ function getStatsMarkdown(statsConfig: any, enabled: boolean): string {
   if (enabled && Array.isArray(statsConfig) && statsConfig.length > 0) {
     let md = '| 스탯명 | 수치 | 상태 |\n| :--- | :---: | :--- |\n'
     for (const stat of statsConfig) {
-      const pct = Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)
+      const pct = Math.max(0, Math.min(100, Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)))
       const filledCount = Math.round(pct / 10)
       const gauge = '▓'.repeat(filledCount) + '░'.repeat(10 - filledCount)
-      md += `| **${stat.name}** | ${stat.value} / ${stat.max} | \`${gauge}\` (${pct}%) |\n`
+      // 게이지형(구간 상태 보유) 스탯은 현재 값 구간의 라벨을 함께 표시.
+      const label = rangeLabel(activeRangeText(stat) || '')
+      md += `| **${stat.name}** | ${stat.value} / ${stat.max} | \`${gauge}\` (${pct}%)${label ? ` · ${label}` : ''} |\n`
     }
     return md
   }

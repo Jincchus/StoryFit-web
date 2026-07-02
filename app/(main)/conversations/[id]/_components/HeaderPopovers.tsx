@@ -1,4 +1,5 @@
 'use client'
+import { activeRangeText, rangeLabel } from '@/lib/statRanges'
 
 function renderBold(line: string): React.ReactNode {
   const parts = line.split(/(\*\*[^*]+\*\*)/g)
@@ -84,7 +85,7 @@ export function ScenarioPopover({ scenario, onClose }: {
 }
 
 export function StatsPopover({ statsConfig, onClose }: {
-  statsConfig: { name: string; value: number; min: number; max: number }[]
+  statsConfig: { name: string; value: number; min: number; max: number; rangeStates?: { lo: number; hi: number; text: string }[] }[]
   onClose: () => void
 }) {
   return (
@@ -99,12 +100,13 @@ export function StatsPopover({ statsConfig, onClose }: {
       <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 10 }}>📊 스탯</div>
       <div className="vstack" style={{ gap: 8 }}>
         {statsConfig.map(stat => {
-          const pct = Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)
+          const pct = Math.max(0, Math.min(100, Math.round(((stat.value - stat.min) / (stat.max - stat.min)) * 100)))
           const color = pct >= 70 ? 'var(--pink)' : pct >= 40 ? 'var(--lavender)' : 'var(--ink-soft)'
+          const label = rangeLabel(activeRangeText(stat) || '')
           return (
             <div key={stat.name}>
               <div className="spread" style={{ marginBottom: 3 }}>
-                <span className="tiny" style={{ fontWeight: 700 }}>{stat.name}</span>
+                <span className="tiny" style={{ fontWeight: 700 }}>{stat.name}{label ? <span className="muted" style={{ fontWeight: 400 }}> · {label}</span> : null}</span>
                 <span className="tiny muted">{stat.value} / {stat.max}</span>
               </div>
               <div style={{ height: 6, background: 'var(--chrome-border)', borderRadius: 3, overflow: 'hidden' }}>

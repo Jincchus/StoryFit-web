@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
 
   let convSourceUrl = body.sourceUrl ?? ''
   let tikitaPlotOutline: any = null
+  let tikitaStats: any[] | null = null
   let colDescription = ''
   if (collectionIds.length > 0) {
     const col = await prisma.characterCollection.findFirst({
@@ -85,6 +86,18 @@ export async function POST(req: NextRequest) {
         chapters: episodes,
         source: 'tikita',
       }
+    }
+    // tikita 변수(게이지형 스탯) — 새 방에 statsConfig로 주입(값은 default 시작값 그대로).
+    const tstats = (col?.tikitaMeta as any)?.stats
+    if (Array.isArray(tstats) && tstats.length > 0) {
+      tikitaStats = tstats.map((s: any) => ({
+        name: String(s.name ?? ''),
+        value: Number(s.value ?? 0),
+        min: Number(s.min ?? 0),
+        max: Number(s.max ?? 100),
+        ...(s.changeRules ? { changeRules: String(s.changeRules) } : {}),
+        ...(Array.isArray(s.rangeStates) && s.rangeStates.length ? { rangeStates: s.rangeStates } : {}),
+      }))
     }
   }
 
@@ -145,8 +158,9 @@ export async function POST(req: NextRequest) {
       maxOutputTokens: body.maxOutputTokens ?? settings?.defaultMaxOutputTokens ?? 8192,
       thinkingBudget: body.thinkingBudget ?? settings?.defaultThinkingBudget ?? 0,
       safetyLevel: body.safetyLevel ?? settings?.defaultSafetyLevel ?? 'standard',
-      statsEnabled: body.statsEnabled ?? false,
-      statsConfig: body.statsConfig ?? null,
+      // tikita 변수가 있으면(그리고 클라이언트가 스탯을 따로 지정하지 않았으면) 자동 활성화.
+      statsEnabled: body.statsEnabled ?? (tikitaStats ? true : false),
+      statsConfig: body.statsConfig ?? tikitaStats ?? null,
       inventoryEnabled: body.inventoryEnabled ?? false,
       inventory: body.inventoryEnabled ? ([] as any) : undefined,
       styleConfig: body.styleConfig ?? null,

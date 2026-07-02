@@ -1,5 +1,19 @@
-import type { Character, LorebookEntry, StyleConfig } from '@/types'
+import type { Character, LorebookEntry, StyleConfig, StatEntry } from '@/types'
 import { fixJosa, applyPersonaPlaceholders } from './josa'
+import { activeRangeText } from './statRanges'
+
+// [현재 스탯] 블록 렌더 — 게이지형(구간 상태 보유) 스탯은 현재 값에 해당하는 캐릭터 상태를 함께 노출.
+function renderStatsBlock(statsConfig: StatEntry[]): string {
+  const lines = statsConfig.map(s => {
+    const state = activeRangeText(s)
+    return state ? `${s.name}: ${s.value} / ${s.max} — 현재 상태: ${state}` : `${s.name}: ${s.value} / ${s.max}`
+  }).join('\n')
+  const hasRanges = statsConfig.some(s => Array.isArray(s.rangeStates) && s.rangeStates.length > 0)
+  const note = hasRanges
+    ? '\n(각 스탯의 "현재 상태"는 그 수치 구간에서 캐릭터가 취해야 할 태도·행동이다. 반드시 이 상태에 맞게 캐릭터를 연기하라. 수치가 바뀌면 상태도 그에 맞게 달라진다.)'
+    : ''
+  return `[현재 스탯]\n${lines}${note}`
+}
 
 function approxTokens(text: string): number {
   let tokens = 0
@@ -34,7 +48,7 @@ interface BuildSystemPromptParams {
   modeRules?: string
   personalRules?: string
   closingRules?: string
-  statsConfig?: { name: string; value: number; min: number; max: number }[]
+  statsConfig?: StatEntry[]
   inventory?: { name: string; qty: number; description?: string }[]
   styleConfig?: StyleConfig | null
   plotSection?: string
@@ -194,8 +208,7 @@ export function buildStorySystemPrompt({
   if (plotSection?.trim()) parts.push(plotSection)
   if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}\n(위 상태가 [캐릭터 설정]의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술하고, 각 인물은 자신이 아는 것만 알며(정보 비대칭) 위 배치·예정·감정 상태를 지켜 서술한다)`)
   if (statsConfig && statsConfig.length > 0) {
-    const statsLines = statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')
-    parts.push(`[현재 스탯]\n${statsLines}`)
+    parts.push(renderStatsBlock(statsConfig))
   }
   if (inventory && inventory.length > 0) {
     const invLines = inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')
@@ -224,7 +237,7 @@ export interface MultiStoryPromptParams {
   modeRules?: string
   personalRules?: string
   closingRules?: string
-  statsConfig?: { name: string; value: number; min: number; max: number }[]
+  statsConfig?: StatEntry[]
   inventory?: { name: string; qty: number; description?: string }[]
   styleConfig?: StyleConfig | null
   plotSection?: string
@@ -321,7 +334,7 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
   if (plotSection?.trim()) parts.push(plotSection)
   if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}\n(위 상태가 각 캐릭터 설정의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술하고, 각 인물은 자신이 아는 것만 알며(정보 비대칭) 위 배치·예정·감정 상태를 지켜 서술한다)`)
   if (statsConfig && statsConfig.length > 0) {
-    parts.push(`[현재 스탯]\n${statsConfig.map(s => `${s.name}: ${s.value} / ${s.max}`).join('\n')}`)
+    parts.push(renderStatsBlock(statsConfig))
   }
   if (inventory && inventory.length > 0) {
     parts.push(`[현재 인벤토리]\n${inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')}`)

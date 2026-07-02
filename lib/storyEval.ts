@@ -96,15 +96,24 @@ interface StoryEvalResult {
 }
 
 async function evalStory(opts: StoryEvalOptions): Promise<StoryEvalResult | null> {
-  const { stats: needsStats, inventory: needsInventory } = needsEval(
+  const { stats: needsStatsRaw, inventory: needsInventory } = needsEval(
     opts.userMsg, opts.aiMsg,
     opts.statsEnabled && (opts.currentStats?.length ?? 0) > 0,
     opts.inventoryEnabled,
   )
+  // 증감 규칙(changeRules)을 가진 게이지형 스탯(tikita 변수 등)은 키워드와 무관하게 매 턴 평가한다.
+  const hasRuleStats = opts.statsEnabled && (opts.currentStats?.some(s => !!s.changeRules) ?? false)
+  const needsStats = needsStatsRaw || hasRuleStats
 
   // 모두 스킵 조건일 때도 statusTimeline은 항상 갱신
   const statsSection = needsStats && opts.currentStats
-    ? `\n현재 스탯: ${opts.currentStats.map(s => `${s.name}(현재:${s.value})`).join(', ')}`
+    ? '\n현재 스탯:\n' + opts.currentStats.map(s => {
+        if (s.changeRules) {
+          const rules = s.changeRules.split('\n').map(l => l.trim()).filter(Boolean).map(l => `    ${l}`).join('\n')
+          return `- ${s.name} (현재 ${s.value}, 범위 ${s.min}~${s.max})\n  증감 규칙:\n${rules}`
+        }
+        return `- ${s.name}(현재:${s.value})`
+      }).join('\n')
     : ''
   const inventorySection = needsInventory && opts.currentInventory
     ? `\n현재 인벤토리: ${opts.currentInventory.length > 0 ? opts.currentInventory.map(i => `${i.name}(${i.qty}개)`).join(', ') : '없음'}`
@@ -134,7 +143,7 @@ ${statsSection}${inventorySection}
 }
 
 규칙:
-- stats: 변화 있는 스탯만 포함 (변화량 -10~+10 정수). 스탯 평가 대상 아니면 {}
+- stats: 변화 있는 스탯만 포함 (정수 delta). 증감 규칙이 있는 스탯은 그 규칙에 명시된 변화량을 그대로 적용하고, 규칙이 없는 스탯은 -10~+10 범위. 이번 교환에서 변화 없으면 {}
 - inventory.add: 획득 아이템. inventory.remove: 소모·분실 아이템. 변화 없으면 빈 배열
 - statusTimeline: 반드시 작성. 이전 상태를 기반으로 이번 교환의 변화만 반영해 갱신. 이번 교환에서 언급되지 않은 항목(의상·부상·장소 등)은 이전 상태 그대로 유지
 ${TIME_ANCHOR_RULE}

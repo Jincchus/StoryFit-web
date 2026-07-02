@@ -8,7 +8,11 @@ export interface StyleConfig {
   length?: { min?: number; max?: number } | null
   pace?: '빠름' | '보통' | '느림' | null
 }
-export type StatEntry = { name: string; value: number; min: number; max: number }
+// changeRules/rangeStates는 외부 센터(tikita 변수 등)에서 온 게이지형 스탯의 부가 정보.
+// changeRules: 언제 얼마만큼 증감하는지에 대한 규칙(상태 추적 프롬프트에 전달).
+// rangeStates: 값 구간별 캐릭터 상태 서술([현재 스탯]·상태창에서 현재 값에 해당하는 구간만 노출).
+export type StatRange = { lo: number; hi: number; text: string }
+export type StatEntry = { name: string; value: number; min: number; max: number; changeRules?: string; rangeStates?: StatRange[] }
 export type InventoryItem = { name: string; qty: number; description?: string }
 export type AIProvider = 'gemini'
 export type ConvMode = 'story' | 'multiStory' | 'assistant'
