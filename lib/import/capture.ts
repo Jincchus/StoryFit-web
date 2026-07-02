@@ -77,33 +77,24 @@ function jwtExpSeconds(token: string): number {
 }
 
 // zeta access 토큰 갱신.
-// ⚠️ TOKEN 쿠키를 같이 보내면 서버가 만료로 인식해 양쪽 모두 클리어 후 로그인 리다이렉트.
-//    REFRESH_TOKEN만 단독으로 보내야 새 TOKEN + 새 REFRESH_TOKEN을 307 Set-Cookie로 발급.
-//    REFRESH_TOKEN도 rotating이므로 새 값을 DB에 같이 저장.
-async function refreshZetaToken(_access: string, refresh: string): Promise<string> {
+// REFRESH_TOKEN 단독 페이지 내비게이션 방식은 익명(ano:true) 토큰만 발급 — 인증 API 사용 불가.
+// 유일한 인증 갱신 방법: TOKEN이 유효한 동안 /api/v1/auth/refresh 호출.
+// TOKEN 만료 후엔 갱신 불가 → 관리자 UI에서 재입력 필요.
+async function refreshZetaToken(access: string, refresh: string): Promise<string> {
   try {
-    const res = await fetch('https://zeta-ai.io/ko', {
-      method: 'GET',
-      redirect: 'manual',
+    const res = await fetch('https://zeta-ai.io/api/v1/auth/refresh?isForced=false', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html',
-        Cookie: `REFRESH_TOKEN=${refresh}`,
+        'Accept': 'application/json',
+        'Accept-Language': 'ko-KR,ko;q=0.9',
+        'Origin': 'https://zeta-ai.io',
+        'Referer': 'https://zeta-ai.io/',
+        Cookie: `TOKEN=${access}; REFRESH_TOKEN=${refresh}`,
       },
     })
-    const rawCookies: string[] = typeof (res.headers as any).getSetCookie === 'function'
-      ? (res.headers as any).getSetCookie() as string[]
-      : (res.headers.get('set-cookie') ?? '').split(/,(?=\s*\w+=)/)
-    let newAccess = ''
-    let newRefresh = ''
-    for (const c of rawCookies) {
-      const tok = c.trim().match(/^TOKEN=([^;]+)/)
-      if (tok?.[1]) newAccess = tok[1]
-      const ref = c.trim().match(/^REFRESH_TOKEN=([^;]+)/)
-      if (ref?.[1]) newRefresh = ref[1]
-    }
-    if (newRefresh) await setGlobalConfigValue('zeta_refresh_token', newRefresh)
-    return newAccess
+    if (!res.ok) return ''
+    const j = await res.json().catch(() => null)
+    return j?.success && typeof j.accessToken === 'string' ? j.accessToken : ''
   } catch { return '' }
 }
 
