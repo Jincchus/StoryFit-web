@@ -180,35 +180,41 @@ export async function captureTikita(url: string): Promise<Captured> {
     }
   } catch { /* 상세 실패 시 스토리 단일 캐릭터로 폴백 */ }
 
-  // 에피소드(챕터형 진행) — 크리에이터가 직접 설계한 순차 에피소드를 PlotChapter 형태로 변환
+  // 에피소드(챕터형 진행) — 크리에이터가 직접 설계한 순차 에피소드를 PlotChapter 형태로 변환.
+  // ⚠️ story_episodes REST는 RLS(is_story_confirmed_violation_for_non_owner)로 anon 401 →
+  //    try/catch에 먹혀 조용히 0개가 됐었다(예시 10개 전부 누락). 실제 원본은 순차 에피소드로 진행.
+  // → init_chat_session RPC는 anon으로 episodes[](id·title·body_md·display_order) 반환 → 이걸 소스로.
   let episodes: { index: number; title: string; goal: string; events: string[]; transition: string }[] = []
   try {
-    const epRes = await fetch(
-      `${TIKITA_BASE}/rest/v1/story_episodes?story_id=eq.${encodeURIComponent(story.id)}&select=*&order=display_order`,
-      { headers }
-    )
-    if (epRes.ok) {
-      const epRows = await epRes.json()
-      if (Array.isArray(epRows)) {
-        episodes = epRows.map((e: any, i: number) => ({
+    const icsRes = await fetch(`${TIKITA_BASE}/rest/v1/rpc/init_chat_session`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_story_id: story.id }),
+    })
+    if (icsRes.ok) {
+      const ics = await icsRes.json()
+      const s = Array.isArray(ics) ? ics[0] : ics
+      const epRows = Array.isArray(s?.episodes) ? s.episodes : []
+      episodes = [...epRows]
+        .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
+        .map((e: any, i: number) => ({
           index: i + 1,
           title: String(e.title || `${i + 1}화`).trim(),
           goal: String(e.body_md || '').trim(),
           events: [],
-          transition: String(e.transition_condition || '').trim(),
+          transition: '', // init_chat_session엔 transition_condition 없음 → 아래서 body_md로 도출.
         }))
 
-        // 빈 events(항상)·비었거나 잘린 transition을 본문에서 자동 도출 → 진행 판정 안정화.
-        // 실패해도 원본 유지(도출은 best-effort). 에피소드별 병렬.
-        await Promise.all(episodes.map(async (ep) => {
-          const needEvents = ep.events.length === 0 && ep.goal.length > 0
-          const needTransition = ep.goal.length > 0 && isWeakTransition(ep.transition)
-          if (!needEvents && !needTransition) return
-          const d = await deriveEpisodeStructure(ep.title, ep.goal, ep.transition, needTransition)
-          if (needEvents && d.events.length) ep.events = d.events
-          if (needTransition && d.transition) ep.transition = d.transition
-        }))
-      }
+      // 빈 events(항상)·비었거나 잘린 transition을 본문에서 자동 도출 → 진행 판정 안정화.
+      // 실패해도 원본 유지(도출은 best-effort). 에피소드별 병렬.
+      await Promise.all(episodes.map(async (ep) => {
+        const needEvents = ep.events.length === 0 && ep.goal.length > 0
+        const needTransition = ep.goal.length > 0 && isWeakTransition(ep.transition)
+        if (!needEvents && !needTransition) return
+        const d = await deriveEpisodeStructure(ep.title, ep.goal, ep.transition, needTransition)
+        if (needEvents && d.events.length) ep.events = d.events
+        if (needTransition && d.transition) ep.transition = d.transition
+      }))
     }
   } catch { /* 에피소드 조회/도출 실패 시 무시 — 단일 시작점으로 동작 */ }
 
