@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'rofan_session_cookie', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'rofan_session_cookie' | 'tikita_session_token', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -89,6 +89,8 @@ export default function AdminImportCookiesPage() {
   const [zetaTokenUpdatedAt, setZetaTokenUpdatedAt] = useState<string | null>(null)
   const [rofanCookie, setRofanCookie] = useState('')
   const [rofanCookieUpdatedAt, setRofanCookieUpdatedAt] = useState<string | null>(null)
+  const [tikitaToken, setTikitaToken] = useState('')
+  const [tikitaTokenUpdatedAt, setTikitaTokenUpdatedAt] = useState<string | null>(null)
   const [tingleOpen, setTingleOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -117,6 +119,8 @@ export default function AdminImportCookiesPage() {
       setZetaTokenUpdatedAt(data.zeta_token?.updatedAt ?? null)
       setRofanCookie(data.rofan_session_cookie?.value ?? '')
       setRofanCookieUpdatedAt(data.rofan_session_cookie?.updatedAt ?? null)
+      setTikitaToken(data.tikita_session_token?.value ?? '')
+      setTikitaTokenUpdatedAt(data.tikita_session_token?.updatedAt ?? null)
     }).catch(() => {})
   }
 
@@ -138,6 +142,7 @@ export default function AdminImportCookiesPage() {
         tingle_firebase_api_key: tingleApiKey,
         zeta_token: zetaToken,
         rofan_session_cookie: rofanCookie,
+        tikita_session_token: tikitaToken,
       })
       setSaved(true)
       load()
@@ -233,6 +238,15 @@ export default function AdminImportCookiesPage() {
               value={rofanCookie}
               onChange={setRofanCookie}
               updatedAt={rofanCookieUpdatedAt}
+            />
+
+            <CookieField
+              label="tikita 세션 토큰 (tikita.ai) — 좋아요 스캔용"
+              hint={'브라우저에서 tikita.ai에 로그인한 뒤 아래 방법으로 access_token을 복사해 붙여넣으세요.\n\n방법 A: 개발자도구 → Network 탭 → auth.tikita.ai 요청 클릭 → Headers → Authorization 헤더의 "Bearer " 뒤 토큰(eyJ...)을 복사.\n\n방법 B: 개발자도구 → Application/저장소 → Local Storage → https://tikita.ai → sb-auth-auth-token(.0) 항목 → base64- 뒤 문자열을 디코드한 JSON의 access_token 값.\n\n⚠️ 약 7일마다 만료됩니다 — 좋아요 스캔이 안 되면 이 화면에서 토큰을 교체하세요.'}
+              placeholder="eyJhbGciOiJIUzI1NiIsImtpZCI6..."
+              value={tikitaToken}
+              onChange={setTikitaToken}
+              updatedAt={tikitaTokenUpdatedAt}
             />
 
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
