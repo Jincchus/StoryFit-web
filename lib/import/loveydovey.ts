@@ -141,7 +141,13 @@ export function assembleLoveydovey(fields: any): AssembledResult {
   })()
 
   const image = str(top.chatbotImageUrl)
-  const relatedImages = optionalImageUrls(top.optionalChatbotImages)
+  // sceneBackgroundImageUrl(채팅 배경 이미지, 일부 캐릭터만 설정됨)도 갤러리에 포함 —
+  // 대표 이미지와 중복이면 제외.
+  const sceneBg = str(top.sceneBackgroundImageUrl)
+  const relatedImages = [
+    ...optionalImageUrls(top.optionalChatbotImages),
+    ...optionalImageUrls([sceneBg]).filter((u) => u !== image),
+  ].filter((u, i, arr) => arr.indexOf(u) === i)
 
   // 설정 본문 조립(라벨 블록). 구조화가 비면 characterSheet로 폴백.
   const parts: string[] = []

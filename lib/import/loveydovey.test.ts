@@ -117,4 +117,18 @@ describe('assembleLoveydovey', () => {
   it('이름 없으면 throw', () => {
     expect(() => assembleLoveydovey({})).toThrow()
   })
+
+  it('sceneBackgroundImageUrl을 relatedImages에 포함한다(대표 이미지와 다를 때만)', () => {
+    const withBg = { ...fields, sceneBackgroundImageUrl: { stringValue: 'https://img.lovey/bg.jpg' } }
+    expect(assembleLoveydovey(withBg).characters[0].relatedImages).toEqual(['https://img.lovey/bg.jpg'])
+  })
+
+  it('sceneBackgroundImageUrl이 대표 이미지와 같으면 중복 추가 안 함', () => {
+    const sameAsMain = { ...fields, sceneBackgroundImageUrl: fields.chatbotImageUrl }
+    expect(assembleLoveydovey(sameAsMain).characters[0].relatedImages).toBeUndefined()
+  })
+
+  it('sceneBackgroundImageUrl 없으면 relatedImages 미설정', () => {
+    expect(assembleLoveydovey(fields).characters[0].relatedImages).toBeUndefined()
+  })
 })
