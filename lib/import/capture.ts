@@ -581,31 +581,12 @@ export async function captureWhif(url: string): Promise<Captured> {
       }
     })
 
-    // WHIF Lorebook 추출.
-    // 1순위: GetChatRoom으로 수집한 공개 키워드북(apiData.lorebooks) — 현재 WHIF의 실제 로어 소스.
-    // 폴백: 구 구조(encyclopediaEntries 등)가 남아있을 경우를 위해 그대로 둔다.
+    // WHIF Lorebook 추출: GetChatRoom으로 수집한 공개 키워드북(apiData.lorebooks)이
+    // 유일한 소스 — 실측 확인(2026-07-03, whif-parity.md): universe 응답에
+    // encyclopediaEntries/encyclopedia/knowledges 같은 구조 자체가 더는 없음.
     const lorebooks: { keyword: string[]; content: string; priority?: number }[] = [
       ...(apiData.lorebooks ?? []),
     ]
-    const whifEntries = universe.encyclopediaEntries || universe.encyclopedia || universe.knowledges || []
-    if (Array.isArray(whifEntries)) {
-      for (const entry of whifEntries) {
-        const entryTitle = entry.title || entry.keyword || ''
-        const entryContent = entry.content || entry.body || ''
-        if (entryTitle && entryContent) {
-          const keywords = Array.isArray(entry.keywords)
-            ? entry.keywords
-            : typeof entry.keywords === 'string'
-              ? entry.keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
-              : [entryTitle]
-          lorebooks.push({
-            keyword: keywords.length > 0 ? keywords : [entryTitle],
-            content: entryContent,
-            priority: entry.priority || 0,
-          })
-        }
-      }
-    }
 
     const isNsfw = mainChar.isNsfw || mainChar.publicData?.isNsfw || universe.isNsfw || false
     const safetyLevel = isNsfw ? 'relaxed' : 'standard'
