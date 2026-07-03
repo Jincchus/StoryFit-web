@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { streamChat, stripAnalysisPreamble, sliceByTokenBudget, approxTokens, type StreamChatParams, type StreamResult } from '@/lib/ai'
+import { streamChat, stripAnalysisPreamble, approxTokens, type StreamChatParams, type StreamResult } from '@/lib/ai'
 import { buildStorySystemPrompt, buildMultiStorySystemPrompt } from '@/lib/systemPrompt'
 import { appendTurnControlInstruction } from '@/lib/responseControl'
 import { brokerPublish } from '@/lib/streamBroker'
@@ -31,11 +31,35 @@ export function buildCharParam<C extends { safetyLevel: string; defaultAI: strin
 // 분기 parentId 손상 등으로 다수 메시지가 null parent가 되면 여기서 폭주를 막는다.
 const OPENING_SCENE_TOKEN_CAP = 4000
 
+// 히스토리 창을 매 턴 뒤에서부터 재슬라이스하면 창 시작점이 턴마다 밀려 implicit cache
+// 프리픽스가 깨진다. 대신 앞에서부터 결정적으로 시뮬레이션: 누적이 high를 넘는 순간에만
+// 창 시작을 low 이하로 전진시킨다. 히스토리는 append-only라 같은 절단점이 매 턴 재현되고,
+// 절단이 일어나기 전까지 창 시작(=프리픽스)이 고정된다. 최소 창은 low로 기존 예산과 동일.
+export function sliceStableWindow<T extends { content: string }>(
+  messages: T[],
+  lowBudget = 5000,
+  highBudget = 9000,
+  minMessages = 2,
+): T[] {
+  const tokens = messages.map(m => approxTokens(m.content))
+  let start = 0
+  let total = 0
+  for (let i = 0; i < messages.length; i++) {
+    total += tokens[i]
+    if (total > highBudget) {
+      while (total > lowBudget && i - start + 1 > minMessages) {
+        total -= tokens[start]
+        start++
+      }
+    }
+  }
+  return messages.slice(start)
+}
+
 export function splitRecentAndOpening<M extends { id: string; role: string; content: string; parentId: string | null }>(
   messages: M[],
-  budget = 5000,
 ): { recentMsgs: M[]; openingScene: string } {
-  const recentMsgs = sliceByTokenBudget(messages, budget)
+  const recentMsgs = sliceStableWindow(messages)
   const recentIds = new Set(recentMsgs.map(m => m.id))
   const openingMsgs = messages.filter(
     m => m.role === 'assistant' && !m.parentId && !recentIds.has(m.id),
@@ -64,8 +88,6 @@ export function buildModeSystemPrompt({
   base,
   character,
   characters,
-  statsConfig,
-  inventory,
   allowPersonaDialogue,
   flipPersonaPlaceholders,
   fastPace,
@@ -75,15 +97,13 @@ export function buildModeSystemPrompt({
   base: any
   character: any
   characters: any[]
-  statsConfig?: { name: string; value: number; min: number; max: number }[]
-  inventory?: { name: string; qty: number; description?: string }[]
   allowPersonaDialogue?: boolean
   flipPersonaPlaceholders?: boolean
   fastPace?: boolean
   adultGating?: boolean
 }): string {
-  if (mode === 'multiStory') return buildMultiStorySystemPrompt({ ...base, characters, statsConfig, inventory, allowPersonaDialogue, flipPersonaPlaceholders, fastPace, adultGating })
-  return buildStorySystemPrompt({ ...base, character, statsConfig, inventory, allowPersonaDialogue, flipPersonaPlaceholders, fastPace, adultGating })
+  if (mode === 'multiStory') return buildMultiStorySystemPrompt({ ...base, characters, allowPersonaDialogue, flipPersonaPlaceholders, fastPace, adultGating })
+  return buildStorySystemPrompt({ ...base, character, allowPersonaDialogue, flipPersonaPlaceholders, fastPace, adultGating })
 }
 
 export function buildGeminiHistory(
@@ -91,8 +111,9 @@ export function buildGeminiHistory(
   turnControlMsgId: string | undefined,
   allowChoices: boolean,
   enrichMode = false,
+  stateBlock?: string,
 ): GeminiTurn[] {
-  return messages.reduce<GeminiTurn[]>((acc, m) => {
+  const turns = messages.reduce<GeminiTurn[]>((acc, m) => {
     const role = m.role === 'user' ? 'user' as const : 'model' as const
     const contentForModel = m.id === turnControlMsgId ? appendTurnControlInstruction(m.content, allowChoices, enrichMode) : m.content
     const last = acc[acc.length - 1]
@@ -103,6 +124,16 @@ export function buildGeminiHistory(
     }
     return acc
   }, [])
+
+  // 가변 상태 블록(buildVolatileStateBlock)은 마지막 user 턴 맨 앞에 주입한다.
+  // 시스템 프롬프트·앞선 히스토리를 바이트 고정으로 유지해 implicit cache에 적중시키면서,
+  // 매 턴 바뀌는 상태는 생성 직전 위치(주의력 최상)에서 반영되게 한다.
+  if (stateBlock?.trim()) {
+    const lastUser = [...turns].reverse().find(t => t.role === 'user')
+    if (lastUser) lastUser.parts[0].text = `${stateBlock}\n\n---\n\n${lastUser.parts[0].text}`
+    else turns.push({ role: 'user', parts: [{ text: stateBlock }] })
+  }
+  return turns
 }
 
 export async function streamToMessage({

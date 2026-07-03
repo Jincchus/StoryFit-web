@@ -121,31 +121,17 @@ Inside the dark observatory, only starlight illuminated her face.
               />
               <PromptStep
                 step="7"
-                title="현재 상태 (statusTimeline + 스탯·인벤토리)"
-                vars="statusTimeline + statsConfig + inventory"
-                desc="에피소드 상태 기록이며, 스탯(있을 경우)과 인벤토리(있을 경우)도 이 단계에서 삽입됩니다. 매 턴 바뀌는 가변 블록이라 정적 블록 뒤에 배치됩니다 (Gemini implicit cache 적중 유도)."
-                source="statusTimeline/statsConfig/inventory: DB Conversation"
-              />
-              <PromptStep
-                step="8"
-                title="로어북 & 장기 메모리 요약"
-                vars="lorebook + longTermMemory"
-                desc="키워드 스캔 기반 세계관 정보(최대 1,000토큰)와 장기 대화 요약 아카이브입니다."
-                source="lorebooks: DB Lorebook | longTermMemory: DB Memory"
-              />
-              <PromptStep
-                step="9"
-                title="핵심 메모리 (Core Memory)"
-                vars="coreMemory"
-                desc="절대 잊으면 안 되는 설정을 유저가 직접 기입하는 란입니다. longTermMemory 바로 뒤에 삽입됩니다."
-                source="coreMemory: DB Conversation.coreMemory"
-              />
-              <PromptStep
-                step="10"
                 title="최종 강조 규칙 (closingRules)"
                 vars="closingRules"
                 desc="시스템 프롬프트 맨 마지막에 삽입되는 DB 편집 가능 규칙입니다. 관리자 전역 설정에서 편집 가능."
                 source="closingRules: DB GlobalConfig ('story_closing')"
+              />
+              <PromptStep
+                step="※"
+                title="가변 상태 주입 (buildVolatileStateBlock — 마지막 user 턴)"
+                vars="statusTimeline + statsConfig + inventory + lorebook + longTermMemory + coreMemory"
+                desc="매 턴 바뀌는 상태·기억 블록입니다. 시스템 프롬프트가 아니라 마지막 user 턴 맨 앞에 주입됩니다 — 시스템 프롬프트와 앞선 히스토리를 바이트 고정으로 유지해 Gemini implicit cache에 적중시키기 위함입니다."
+                source="statusTimeline/statsConfig/inventory/coreMemory: DB Conversation | lorebooks: DB Lorebook | longTermMemory: DB Memory (RAG 상위 6건)"
               />
             </>
           )}
@@ -203,31 +189,17 @@ Inside the dark observatory, only starlight illuminated her face.
               />
               <PromptStep
                 step="7"
-                title="현재 에피소드 상태 + 스탯·인벤토리"
-                vars="statusTimeline + statsConfig + inventory"
-                desc="에피소드 타임라인 상태 및 스탯·인벤토리(있을 경우)입니다. 매 턴 바뀌는 가변 블록이라 정적 블록 뒤에 배치됩니다 (Gemini implicit cache 적중 유도)."
-                source="statusTimeline/statsConfig/inventory: DB Conversation"
-              />
-              <PromptStep
-                step="8"
-                title="로어북 & 장기 메모리 요약"
-                vars="lorebook + longTermMemory"
-                desc="키워드 스캔 기반 세계관 정보(최대 1,000토큰)와 장기 대화 요약 아카이브입니다."
-                source="lorebooks: DB Lorebook | longTermMemory: DB Memory"
-              />
-              <PromptStep
-                step="9"
-                title="핵심 메모리 (Core Memory)"
-                vars="coreMemory"
-                desc="절대 잊으면 안 되는 설정을 유저가 직접 기입하는 란입니다. longTermMemory 바로 뒤에 삽입됩니다."
-                source="coreMemory: DB Conversation.coreMemory"
-              />
-              <PromptStep
-                step="10"
                 title="최종 강조 규칙 (closingRules)"
                 vars="closingRules"
                 desc="시스템 프롬프트 맨 마지막에 삽입되는 DB 편집 가능 규칙입니다. 관리자 전역 설정에서 편집 가능."
                 source="closingRules: DB GlobalConfig ('multiStory_closing')"
+              />
+              <PromptStep
+                step="※"
+                title="가변 상태 주입 (buildVolatileStateBlock — 마지막 user 턴)"
+                vars="statusTimeline + statsConfig + inventory + lorebook + longTermMemory + coreMemory"
+                desc="매 턴 바뀌는 상태·기억 블록입니다. 시스템 프롬프트가 아니라 마지막 user 턴 맨 앞에 주입됩니다 — 시스템 프롬프트와 앞선 히스토리를 바이트 고정으로 유지해 Gemini implicit cache에 적중시키기 위함입니다."
+                source="statusTimeline/statsConfig/inventory/coreMemory: DB Conversation | lorebooks: DB Lorebook | longTermMemory: DB Memory (RAG 상위 6건)"
               />
             </>
           )}

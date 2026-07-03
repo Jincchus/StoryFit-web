@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { replacePlaceholders, buildStorySystemPrompt, buildMultiStorySystemPrompt, matchLorebook } from './systemPrompt'
+import { replacePlaceholders, buildStorySystemPrompt, buildMultiStorySystemPrompt, buildVolatileStateBlock, matchLorebook } from './systemPrompt'
 import type { Character, LorebookEntry } from '@/types'
 
 describe('replacePlaceholders', () => {
@@ -44,23 +44,45 @@ describe('buildOpeningSceneSection (buildStorySystemPrompt 경유)', () => {
   })
 })
 
-describe('프롬프트 조립 순서 — 정적 프리픽스 유지 (implicit cache)', () => {
+describe('시스템 프롬프트 정적 유지 + 가변 상태 블록 분리 (implicit cache)', () => {
   const character: Character = {
     id: 'char-1', name: '철수', tags: [], additionalInfo: '',
     exampleDialogues: '철수 : "안녕"', safetyLevel: 'standard',
     temperature: 0.9, frequencyPenalty: 0.3, isPreset: false,
   }
 
-  it('가변 블록(상태·스탯·인벤)은 캐릭터 설정·예시 대화보다 뒤에 온다', () => {
-    const prompt = buildStorySystemPrompt({
-      character,
+  it('시스템 프롬프트에는 가변 블록(상태·스탯·인벤·로어북·요약·핵심메모리)이 없다', () => {
+    const prompt = buildStorySystemPrompt({ character })
+    for (const header of ['[현재 상태]', '[현재 스탯]', '[현재 인벤토리]', '[세계관 정보]', '[이전 대화 요약]', '[핵심 메모리 — 절대 준수]']) {
+      expect(prompt).not.toContain(header)
+    }
+  })
+
+  it('buildVolatileStateBlock은 상태→스탯→인벤→로어북→요약→핵심메모리 순으로 조립한다', () => {
+    const block = buildVolatileStateBlock({
       statusTimeline: '마왕성 탐험 중',
       statsConfig: [{ name: '호감도', value: 50, min: 0, max: 100 }],
       inventory: [{ name: '열쇠', qty: 1 }],
+      lorebook: [{ id: 'lb-1', keyword: ['마왕성'], content: '마왕성은 어둡다', priority: 0, scanDepth: 5, isEnabled: true }],
+      longTermMemory: ['• 둘은 화해했다'],
+      coreMemory: '• 철수의 정체는 마왕이다',
     })
-    expect(prompt.indexOf('[예시 대화]')).toBeLessThan(prompt.indexOf('[현재 상태]'))
-    expect(prompt.indexOf('[캐릭터 설정]')).toBeLessThan(prompt.indexOf('[현재 스탯]'))
-    expect(prompt.indexOf('[현재 스탯]')).toBeLessThan(prompt.indexOf('[현재 인벤토리]'))
+    expect(block).toContain('[시스템 상태 주입 — 유저 발화 아님]')
+    expect(block.indexOf('[현재 상태]')).toBeLessThan(block.indexOf('[현재 스탯]'))
+    expect(block.indexOf('[현재 스탯]')).toBeLessThan(block.indexOf('[현재 인벤토리]'))
+    expect(block.indexOf('[현재 인벤토리]')).toBeLessThan(block.indexOf('[세계관 정보]'))
+    expect(block.indexOf('[세계관 정보]')).toBeLessThan(block.indexOf('[이전 대화 요약]'))
+    expect(block.indexOf('[이전 대화 요약]')).toBeLessThan(block.indexOf('[핵심 메모리 — 절대 준수]'))
+  })
+
+  it('가변 데이터가 하나도 없으면 빈 문자열을 반환한다', () => {
+    expect(buildVolatileStateBlock({})).toBe('')
+    expect(buildVolatileStateBlock({ statusTimeline: '  ', longTermMemory: [] })).toBe('')
+  })
+
+  it('멀티 모드는 [현재 에피소드 상태] 헤더를 쓴다', () => {
+    const block = buildVolatileStateBlock({ statusTimeline: '탐험 중', multi: true })
+    expect(block).toContain('[현재 에피소드 상태]')
   })
 
   it('비밀설정(secretSettings)은 캐릭터 블록 안에 포함되고 플레이스홀더가 치환된다', () => {

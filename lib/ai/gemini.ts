@@ -26,7 +26,8 @@ export interface GeminiChatParams {
   model?: string // 기본 GEMINI_CHAT_MODEL. 재작성 등 보조 호출은 flash로 오버라이드
 }
 
-export interface StreamResult { text: string; inputTokens: number; outputTokens: number }
+// cachedTokens: inputTokens 중 implicit cache에 적중해 할인 과금된 토큰 수 (inputTokens에 포함된 부분집합)
+export interface StreamResult { text: string; inputTokens: number; outputTokens: number; cachedTokens: number }
 
 // Gemini 2.5 Pro는 thinking을 끌 수 없다(0 설정 시 API 400, 유효 범위 128~32768).
 // 속도-품질 절충: 0/미설정이면 동적(-1) 대신 최소값(128)으로 고정해 추론 지연을 최소화한다.
@@ -96,13 +97,15 @@ async function streamViaApiKey(
 
   let inputTokens = 0
   let outputTokens = 0
+  let cachedTokens = 0
   try {
     const response = await result.response
     inputTokens = response.usageMetadata?.promptTokenCount ?? 0
     outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0
+    cachedTokens = (response.usageMetadata as any)?.cachedContentTokenCount ?? 0
   } catch {}
 
-  return { text: fullText, inputTokens, outputTokens }
+  return { text: fullText, inputTokens, outputTokens, cachedTokens }
 }
 
 async function streamViaVertex(
@@ -139,6 +142,7 @@ async function streamViaVertex(
   let fullText = ''
   let inputTokens = 0
   let outputTokens = 0
+  let cachedTokens = 0
 
   for await (const chunk of stream) {
     if (signal?.aborted) break
@@ -150,10 +154,11 @@ async function streamViaVertex(
     if (chunk.usageMetadata) {
       inputTokens = chunk.usageMetadata.promptTokenCount ?? 0
       outputTokens = chunk.usageMetadata.candidatesTokenCount ?? 0
+      cachedTokens = chunk.usageMetadata.cachedContentTokenCount ?? 0
     }
   }
 
-  return { text: fullText, inputTokens, outputTokens }
+  return { text: fullText, inputTokens, outputTokens, cachedTokens }
 }
 
 export async function streamGeminiChat(

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { matchLorebook, replacePlaceholders } from '@/lib/systemPrompt'
+import { matchLorebook, replacePlaceholders, buildVolatileStateBlock } from '@/lib/systemPrompt'
 import { stripAnalysisPreamble, deduplicatePreviousContent } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStoryEvaluation } from '@/lib/storyEval'
@@ -67,12 +67,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const basePromptParams = {
     plotSection: plotOutline ? buildPlotSection(plotOutline, conv.chapter) : undefined,
     personaCharacter: conv.personaCharacter ?? null,
-    coreMemory: conv.coreMemory,
-    statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,
     openingScene,
-    lorebook: matchedLorebook,
-    longTermMemory,
     globalRules,
     modeRules,
     closingRules,
@@ -85,12 +81,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     base: basePromptParams,
     character: buildCharParam(character),
     characters: conv.characters.map((cc: any) => buildCharParam(cc.character)),
-    statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
-    inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
     allowPersonaDialogue: conv.personaAutoMode ?? false,
     flipPersonaPlaceholders: conv.personaFlipPlaceholders ?? true,
     fastPace: conv.fastPaceEnabled ?? false,
     adultGating: conv.adultGatingEnabled ?? true,
+  })
+
+  const stateBlock = buildVolatileStateBlock({
+    statusTimeline: conv.statusTimeline ?? undefined,
+    statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
+    inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
+    lorebook: matchedLorebook,
+    longTermMemory,
+    coreMemory: conv.coreMemory ?? undefined,
+    multi: conv.mode === 'multiStory',
   })
 
   const instruction = comebackElapsed
@@ -108,7 +112,7 @@ ${personaName}가 ${comebackElapsed} 만에 돌아왔다. 다음 규칙으로 �
 - 선택지를 제시하지 마라. 본문 서술로만 끝내라.`
 
   const instructionMsg = { id: '__continue__', role: 'user', content: instruction }
-  const history = buildGeminiHistory([...recentMsgs, instructionMsg], instructionMsg.id, false)
+  const history = buildGeminiHistory([...recentMsgs, instructionMsg], instructionMsg.id, false, false, stateBlock)
 
   const lastMsg = conv.messages[conv.messages.length - 1]
   const assistantMsg = await prisma.message.create({
@@ -187,6 +191,7 @@ async function continueAsync({
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
+        cachedTokens: result.cachedTokens,
       },
     })
     await prisma.conversation.update({ where: { id: convId }, data: { updatedAt: new Date() } })

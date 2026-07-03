@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { matchLorebook, replacePlaceholders } from '@/lib/systemPrompt'
+import { matchLorebook, replacePlaceholders, buildVolatileStateBlock } from '@/lib/systemPrompt'
 import type { InventoryItem, StatEntry } from '@/types'
 import { stripAnalysisPreamble, deduplicatePreviousContent } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
@@ -83,19 +83,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const promptParams = {
     plotSection: plotOutline ? buildPlotSection(plotOutline, conv.chapter) : undefined,
     personaCharacter: conv.personaCharacter ?? null,
-    coreMemory: conv.coreMemory,
-    statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,
     openingScene,
-    lorebook: matchedLorebook,
-    longTermMemory,
     globalRules,
     modeRules,
     closingRules,
     personalRules,
     styleConfig: (conv.styleConfig ?? null) as any,
   }
-  const isMultiStory = conv.mode === 'multiStory'
+  // 스탯/인벤토리는 위 롤백이 반영된 최신값을 다시 읽는다
   const freshConv = await prisma.conversation.findUnique({ where: { id: params.id }, select: { statsConfig: true, inventory: true } })
 
   const systemPrompt = buildModeSystemPrompt({
@@ -103,18 +99,26 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     base: promptParams,
     character: charParam,
     characters: conv.characters.map((cc: any) => buildCharParam(cc.character)),
-    statsConfig: conv.statsEnabled && Array.isArray(freshConv?.statsConfig) ? freshConv?.statsConfig as any : undefined,
-    inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv?.inventory as any : undefined,
     allowPersonaDialogue: conv.personaAutoMode ?? false,
     flipPersonaPlaceholders: conv.personaFlipPlaceholders ?? true,
     fastPace: conv.fastPaceEnabled ?? false,
     adultGating: conv.adultGatingEnabled ?? true,
   })
 
+  const stateBlock = buildVolatileStateBlock({
+    statusTimeline: conv.statusTimeline ?? undefined,
+    statsConfig: conv.statsEnabled && Array.isArray(freshConv?.statsConfig) ? freshConv?.statsConfig as any : undefined,
+    inventory: conv.inventoryEnabled && Array.isArray(freshConv?.inventory) ? freshConv?.inventory as any : undefined,
+    lorebook: matchedLorebook,
+    longTermMemory,
+    coreMemory: conv.coreMemory ?? undefined,
+    multi: conv.mode === 'multiStory',
+  })
+
   const latestUserId = [...mappedHistoryMsgs].reverse().find(m => m.role === 'user')?.id
   const enrichMode = conv.enrichInputMode ?? false
   const allowChoices = conv.mode === 'story' || conv.mode === 'multiStory'
-  const history = buildGeminiHistory(recentHistoryMsgs, latestUserId, allowChoices, enrichMode)
+  const history = buildGeminiHistory(recentHistoryMsgs, latestUserId, allowChoices, enrichMode, stateBlock)
 
   const newMsg = await prisma.message.create({
     data: {
@@ -182,6 +186,7 @@ async function regenerateAsync({
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
+        cachedTokens: result.cachedTokens,
       },
     })
     await prisma.conversation.update({ where: { id: convId }, data: { updatedAt: new Date() } })

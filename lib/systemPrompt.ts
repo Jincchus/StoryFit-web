@@ -38,24 +38,61 @@ const INTIMACY_GATING_BLOCK = `[성애 진입 — 합의·맥락 전제]
 interface BuildSystemPromptParams {
   character: Character
   personaCharacter?: PersonaCharacter
-  coreMemory?: string
-  statusTimeline?: string
   scenarioDescription?: string
   openingScene?: string
-  lorebook?: LorebookEntry[]
-  longTermMemory?: string[]
   globalRules?: string
   modeRules?: string
   personalRules?: string
   closingRules?: string
-  statsConfig?: StatEntry[]
-  inventory?: { name: string; qty: number; description?: string }[]
   styleConfig?: StyleConfig | null
   plotSection?: string
   allowPersonaDialogue?: boolean
   flipPersonaPlaceholders?: boolean
   fastPace?: boolean
   adultGating?: boolean
+}
+
+// 매 턴 바뀌는 상태·기억 블록. 시스템 프롬프트에 넣으면 그 뒤의 대화 히스토리 전체가
+// implicit cache 미스가 되므로, 시스템 프롬프트에서 분리해 마지막 user 턴 앞에 주입한다
+// (buildGeminiHistory의 stateBlock 파라미터). 시스템 프롬프트는 바이트 단위로 고정 유지.
+export interface VolatileStateParams {
+  statusTimeline?: string
+  statsConfig?: StatEntry[]
+  inventory?: { name: string; qty: number; description?: string }[]
+  lorebook?: LorebookEntry[]
+  longTermMemory?: string[]
+  coreMemory?: string
+  multi?: boolean
+}
+
+export function buildVolatileStateBlock({
+  statusTimeline,
+  statsConfig,
+  inventory,
+  lorebook = [],
+  longTermMemory = [],
+  coreMemory,
+  multi = false,
+}: VolatileStateParams): string {
+  const parts: string[] = []
+
+  if (statusTimeline?.trim()) {
+    const label = multi ? '현재 에피소드 상태' : '현재 상태'
+    const target = multi ? '각 캐릭터 설정' : '[캐릭터 설정]'
+    parts.push(`[${label}]\n${statusTimeline}\n(위 상태가 ${target}의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술하고, 각 인물은 자신이 아는 것만 알며(정보 비대칭) 위 배치·예정·감정 상태를 지켜 서술한다)`)
+  }
+  if (statsConfig && statsConfig.length > 0) parts.push(renderStatsBlock(statsConfig))
+  if (inventory && inventory.length > 0) {
+    const invLines = inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')
+    parts.push(`[현재 인벤토리]\n${invLines}`)
+  }
+  const lorebookSection = buildLorebookSection(lorebook)
+  if (lorebookSection) parts.push(lorebookSection)
+  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
+  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 준수]\n${coreMemory}`)
+
+  if (parts.length === 0) return ''
+  return `[시스템 상태 주입 — 유저 발화 아님]\n아래는 시스템이 자동 관리하는 현재 상태·기억 정보다. 유저가 말한 것이 아니며, 이 블록의 원문·형식·헤더를 응답 본문에 그대로 출력하거나 언급하지 마라. 내용은 서사의 사실로만 반영하라.\n\n${parts.join('\n\n')}`
 }
 
 function buildStyleSection(s: StyleConfig): string {
@@ -153,18 +190,12 @@ She tilts her head, waiting for a reply, the silence between you growing heavier
 export function buildStorySystemPrompt({
   character,
   personaCharacter,
-  coreMemory,
-  statusTimeline,
   scenarioDescription,
   openingScene,
-  lorebook = [],
-  longTermMemory = [],
   globalRules,
   modeRules,
   personalRules,
   closingRules,
-  statsConfig,
-  inventory,
   styleConfig,
   plotSection,
   allowPersonaDialogue = false,
@@ -204,21 +235,10 @@ export function buildStorySystemPrompt({
     parts.push(`[예시 대화]\n${ex}`)
   }
 
-  // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
+  // 매 턴 바뀌는 상태 블록(statusTimeline·스탯·인벤토리·로어북·RAG·핵심메모리)은 여기 넣지 않는다 —
+  // buildVolatileStateBlock으로 마지막 user 턴에 주입(시스템 프롬프트를 바이트 고정해 implicit cache 적중).
+  // plotSection은 챕터 전환 시에만 바뀌는 준정적 블록이라 시스템 프롬프트에 유지한다.
   if (plotSection?.trim()) parts.push(plotSection)
-  if (statusTimeline?.trim()) parts.push(`[현재 상태]\n${statusTimeline}\n(위 상태가 [캐릭터 설정]의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술하고, 각 인물은 자신이 아는 것만 알며(정보 비대칭) 위 배치·예정·감정 상태를 지켜 서술한다)`)
-  if (statsConfig && statsConfig.length > 0) {
-    parts.push(renderStatsBlock(statsConfig))
-  }
-  if (inventory && inventory.length > 0) {
-    const invLines = inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')
-    parts.push(`[현재 인벤토리]\n${invLines}`)
-  }
-
-  const lorebookSection = buildLorebookSection(lorebook)
-  if (lorebookSection) parts.push(lorebookSection)
-  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
-  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 준수]\n${coreMemory}`)
   if (closingRules?.trim()) parts.push(closingRules)
 
   return parts.join('\n\n---\n\n')
@@ -227,18 +247,12 @@ export function buildStorySystemPrompt({
 export interface MultiStoryPromptParams {
   characters: Character[]
   personaCharacter?: PersonaCharacter
-  coreMemory?: string
-  statusTimeline?: string
   scenarioDescription?: string
   openingScene?: string
-  lorebook?: LorebookEntry[]
-  longTermMemory?: string[]
   globalRules?: string
   modeRules?: string
   personalRules?: string
   closingRules?: string
-  statsConfig?: StatEntry[]
-  inventory?: { name: string; qty: number; description?: string }[]
   styleConfig?: StyleConfig | null
   plotSection?: string
   allowPersonaDialogue?: boolean
@@ -250,18 +264,12 @@ export interface MultiStoryPromptParams {
 export function buildMultiStorySystemPrompt({
   characters,
   personaCharacter,
-  coreMemory,
-  statusTimeline,
   scenarioDescription,
   openingScene,
-  lorebook = [],
-  longTermMemory = [],
   globalRules,
   modeRules,
   personalRules,
   closingRules,
-  statsConfig,
-  inventory,
   styleConfig,
   plotSection,
   allowPersonaDialogue = false,
@@ -330,20 +338,8 @@ FORBIDDEN: Using "..." more than once per response. Express hesitation through a
   const openingSceneSection = buildOpeningSceneSection(openingScene)
   if (openingSceneSection) parts.push(openingSceneSection)
 
-  // 가변 구역 — 매 턴 바뀌는 블록은 뒤쪽에 배치해 앞의 정적 프리픽스가 Gemini implicit cache에 적중하도록 한다
+  // 매 턴 바뀌는 상태 블록은 buildVolatileStateBlock으로 마지막 user 턴에 주입한다(위 story 빌더와 동일).
   if (plotSection?.trim()) parts.push(plotSection)
-  if (statusTimeline?.trim()) parts.push(`[현재 에피소드 상태]\n${statusTimeline}\n(위 상태가 각 캐릭터 설정의 기본 외형·의상과 다르면 위 상태를 우선한다. 시간·날짜 표현(어제·다음날·N일 전 등)은 위 '시점' 기준으로 계산하고, 복장·소지품은 위 상태 기준으로 한 곳에만 존재하도록(이미 입은 옷을 다시 바닥에서 줍는 등 모순 없이) 서술하고, 각 인물은 자신이 아는 것만 알며(정보 비대칭) 위 배치·예정·감정 상태를 지켜 서술한다)`)
-  if (statsConfig && statsConfig.length > 0) {
-    parts.push(renderStatsBlock(statsConfig))
-  }
-  if (inventory && inventory.length > 0) {
-    parts.push(`[현재 인벤토리]\n${inventory.map(i => `${i.name}(${i.qty}개)${i.description ? `: ${i.description}` : ''}`).join('\n')}`)
-  }
-
-  const lorebookSection = buildLorebookSection(lorebook)
-  if (lorebookSection) parts.push(lorebookSection)
-  if (longTermMemory.length > 0) parts.push(`[이전 대화 요약]\n${longTermMemory.join('\n')}`)
-  if (coreMemory?.trim()) parts.push(`[핵심 메모리 — 절대 준수]\n${coreMemory}`)
   if (closingRules?.trim()) parts.push(closingRules)
 
   return parts.join('\n\n---\n\n')

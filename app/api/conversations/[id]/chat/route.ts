@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/apiAuth'
-import { matchLorebook, replacePlaceholders } from '@/lib/systemPrompt'
+import { matchLorebook, replacePlaceholders, buildVolatileStateBlock } from '@/lib/systemPrompt'
 import { stripAnalysisPreamble, deduplicatePreviousContent } from '@/lib/ai'
 import { triggerMemorySummarization } from '@/lib/memorySummarization'
 import { triggerStoryEvaluation, triggerStateTracking } from '@/lib/storyEval'
@@ -177,12 +177,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const basePromptParams = {
     plotSection: plotOutline ? buildPlotSection(plotOutline, conv.chapter) : undefined,
     personaCharacter: conv.personaCharacter ?? null,
-    coreMemory: conv.coreMemory,
-    statusTimeline: conv.statusTimeline,
     scenarioDescription: conv.scenarioDescription,
     openingScene,
-    lorebook: matchedLorebook,
-    longTermMemory,
     globalRules,
     modeRules,
     closingRules,
@@ -195,12 +191,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     base: basePromptParams,
     character: buildCharParam(character),
     characters: conv.characters.map((cc: any) => buildCharParam(cc.character)),
-    statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
-    inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
     allowPersonaDialogue: conv.personaAutoMode ?? false,
     flipPersonaPlaceholders: conv.personaFlipPlaceholders ?? true,
     fastPace: conv.fastPaceEnabled ?? false,
     adultGating: conv.adultGatingEnabled ?? true,
+  })
+
+  // 매 턴 바뀌는 상태·기억은 시스템 프롬프트가 아니라 마지막 user 턴에 주입(implicit cache 유지)
+  const stateBlock = buildVolatileStateBlock({
+    statusTimeline: conv.statusTimeline ?? undefined,
+    statsConfig: conv.statsEnabled && Array.isArray(conv.statsConfig) ? conv.statsConfig as any : undefined,
+    inventory: conv.inventoryEnabled && Array.isArray(conv.inventory) ? conv.inventory as any : undefined,
+    lorebook: matchedLorebook,
+    longTermMemory,
+    coreMemory: conv.coreMemory ?? undefined,
+    multi: conv.mode === 'multiStory',
   })
 
   const finalSystemPrompt = commandDirective ? `${systemPrompt}\n\n${commandDirective}` : systemPrompt
@@ -214,7 +219,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const allowChoices = (conv.mode === 'story' || conv.mode === 'multiStory') && !isCommandGen
   const cleanUserMsgContent = replacePlaceholders(userMsg.content, personaName, charNames)
     + (diceResult ? diceInstruction(diceResult) : '')
-  const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices, enrichMode)
+  const history = buildGeminiHistory([...recentMsgs, { ...userMsg, content: cleanUserMsgContent }], userMsg.id, allowChoices, enrichMode, stateBlock)
 
   // 스트리밍 플레이스홀더 메시지 생성
   const assistantMsg = await prisma.message.create({
@@ -297,6 +302,7 @@ async function generateAsync({
         isStreaming: false,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
+        cachedTokens: result.cachedTokens,
       },
     })
     await prisma.conversation.update({ where: { id: convId }, data: { updatedAt: new Date() } })

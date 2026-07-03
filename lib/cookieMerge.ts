@@ -13,5 +13,5 @@ export function mergeCookieString(existing: string, refreshedPairs: string[]): s
     if (i < 0) continue
     map.set(pair.slice(0, i), pair.slice(i + 1))
   }
-  return [...map.entries()].map(([k, v]) => `${k}=${v}`).join('; ')
+  return Array.from(map.entries()).map(([k, v]) => `${k}=${v}`).join('; ')
 }
