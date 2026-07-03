@@ -15,9 +15,11 @@ async function setConfig(key: string, value: string): Promise<void> {
   await prisma.globalConfig.upsert({ where: { key }, update: { value }, create: { key, value } })
 }
 
-// URL에서 캐릭터 id 추출. 형식: babechat.ai/character/u/{uuid}/profile 또는 /characters/{uuid}
+// URL에서 캐릭터 id 추출. 형식: babechat.ai/character/u/{uuid}/profile 또는 /characters/{uuid}.
+// 커스텀 슬러그가 있는 캐릭터는 "u/" 없이 /character/{slug}/profile 로 오고, API도 슬러그를
+// id 그대로 받는다(실측 확인) — UUID든 슬러그든 그대로 캡처한다.
 export function parseBabechatUrl(url: string): string {
-  const m = url.match(/\/characters?\/(?:u\/)?([0-9a-fA-F-]{36})/)
+  const m = url.match(/\/characters?\/(?:u\/)?([0-9a-zA-Z-]+)/)
   if (!m) throw new Error('babechat 캐릭터 URL이 아닙니다 (/character/u/{id}/profile 형식 필요)')
   return m[1]
 }
@@ -103,16 +105,22 @@ export function assembleBabechat(d: any): AssembledResult {
   const mainContent = details || String(d.description ?? '').trim()
   const additionalInfo = [mainContent, attrs.join('\n')].filter(Boolean).join('\n\n')
 
-  // 도입부: startingScenarios 우선, 없으면 top-level initial*.
+  // 도입부: startingScenarios 우선, 없으면 top-level initial*(+replySuggestions).
   const scenarios = Array.isArray(d.startingScenarios) && d.startingScenarios.length
     ? d.startingScenarios
-    : [{ initialTitle: d.initialTitle, initialAction: d.initialAction, initialMessage: d.initialMessage }]
+    : [{ initialTitle: d.initialTitle, initialAction: d.initialAction, initialMessage: d.initialMessage, replySuggestions: d.replySuggestions }]
   const openingMessages = scenarios
     .map((s: any, i: number) => {
       const content = [stripImgTokens(String(s.initialAction ?? '')), stripImgTokens(String(s.initialMessage ?? ''))]
         .filter(Boolean)
         .join('\n\n')
-      return { id: String(i), title: String(s.initialTitle ?? '').trim() || `도입부 ${i + 1}`, content }
+      // 답장 예시(replySuggestions): 유저가 고를 수 있는 응답 후보. 창작자 팁이 섞여 오기도 하지만
+      // 걸러낼 신뢰할 만한 기준이 없어 그대로 보존한다(정보 손실 방지 우선).
+      const suggestions = arr(s.replySuggestions).map((t) => stripImgTokens(t)).filter(Boolean)
+      const suggestionsBlock = suggestions.length
+        ? `[답장 예시]\n${suggestions.map((t, idx) => `${idx + 1}. ${t}`).join('\n')}`
+        : ''
+      return { id: String(i), title: String(s.initialTitle ?? '').trim() || `도입부 ${i + 1}`, content: [content, suggestionsBlock].filter(Boolean).join('\n\n') }
     })
     .filter((o: any) => o.content)
 

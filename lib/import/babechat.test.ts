@@ -6,6 +6,14 @@ describe('parseBabechatUrl', () => {
     expect(parseBabechatUrl('https://babechat.ai/characters/27a400a6-c60b-48db-88b9-47fcf3547ce2'))
       .toBe('27a400a6-c60b-48db-88b9-47fcf3547ce2')
   })
+  it('u/{uuid} 형식 추출', () => {
+    expect(parseBabechatUrl('https://babechat.ai/character/u/2781bdee-1bb3-42d7-ba83-0dfe66389373/profile'))
+      .toBe('2781bdee-1bb3-42d7-ba83-0dfe66389373')
+  })
+  it('커스텀 슬러그(uuid 아님) 추출 — API가 슬러그를 id로 그대로 받음(실측 확인)', () => {
+    expect(parseBabechatUrl('https://babechat.ai/character/yuki/profile')).toBe('yuki')
+    expect(parseBabechatUrl('https://babechat.ai/character/lucy/profile')).toBe('lucy')
+  })
   it('형식이 아니면 throw', () => {
     expect(() => parseBabechatUrl('https://babechat.ai/dashboard')).toThrow()
   })
@@ -113,5 +121,36 @@ describe('assembleBabechat', () => {
 
   it('이름 없으면 throw', () => {
     expect(() => assembleBabechat({})).toThrow()
+  })
+
+  it('startingScenarios의 replySuggestions를 도입부 뒤에 [답장 예시]로 붙인다', () => {
+    const withReplies = {
+      ...data,
+      startingScenarios: [
+        { id: 'a', initialTitle: '기본', initialAction: '상황', initialMessage: '메시지', replySuggestions: ['첫 번째 답장', '두 번째 답장'], order: 0 },
+      ],
+    }
+    const c = assembleBabechat(withReplies).characters[0]
+    expect(c.openingMessage).toContain('[답장 예시]')
+    expect(c.openingMessage).toContain('1. 첫 번째 답장')
+    expect(c.openingMessage).toContain('2. 두 번째 답장')
+  })
+
+  it('replySuggestions 없으면 [답장 예시] 블록 없음', () => {
+    const c = assembleBabechat(data).characters[0]
+    expect(c.openingMessage).not.toContain('[답장 예시]')
+  })
+
+  it('startingScenarios 없을 때 top-level replySuggestions를 사용한다', () => {
+    const noScenarios = {
+      ...data,
+      startingScenarios: [],
+      initialAction: '상황',
+      initialMessage: '메시지',
+      replySuggestions: ['탑레벨 답장'],
+    }
+    const c = assembleBabechat(noScenarios).characters[0]
+    expect(c.openingMessage).toContain('[답장 예시]')
+    expect(c.openingMessage).toContain('탑레벨 답장')
   })
 })
