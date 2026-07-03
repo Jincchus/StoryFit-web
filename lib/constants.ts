@@ -10,6 +10,7 @@ export const GEMINI_UTILITY_MODEL = 'gemini-2.5-flash'
 export const CHAT_MODEL_OPTIONS: { id: string; label: string; short: string }[] = [
   { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', short: '2.5 Pro' },
   { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', short: '3.1 Pro' },
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (빠름·저비용)', short: '2.5 Flash' },
 ]
 
 export const AI_MODELS: AIModel[] = [
