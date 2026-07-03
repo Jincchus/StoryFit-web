@@ -984,52 +984,13 @@ async function fetchTinglePublicTriggerImages(personaId: string, authToken: stri
   }
 }
 
+// captureTingleRaw(미리보기 경로)와 동일하게 fetchTingleData를 재사용 — 만료 토큰
+// 자동 갱신(refreshTingleToken)이 이 경로(미리보기 없이 직접 호출되는 경우)에도 적용된다.
+// 예전엔 이 함수가 fetch/토큰검증을 중복 구현했는데, 만료 시 즉시 에러만 던지고
+// 갱신을 시도하지 않아 captureTingleRaw와 동작이 달랐다(둘 다 만료돼야 정상인
+// 상황에서 이쪽만 불필요하게 막힘).
 export async function captureTingle(url: string): Promise<Captured> {
-  const m = url.match(/tingle\.chat\/chat\/(universes|scenes|characters)\/(\d+)/)
-  if (!m) throw new Error('올바른 팅글 URL이 아닙니다. /chat/universes/, /chat/scenes/, /chat/characters/ 형식이어야 합니다.')
-  const [, type, id] = m
-
-  const authToken = await getGlobalConfigValue('tingle_auth_token')
-  if (!authToken) throw new Error('팅글 인증 토큰이 설정되어 있지 않습니다. 관리자 설정에서 Firebase JWT 토큰을 입력해주세요.')
-
-  try {
-    const payloadB64 = authToken.split('.')[1]
-    if (payloadB64) {
-      const { exp } = JSON.parse(Buffer.from(payloadB64, 'base64url').toString())
-      if (typeof exp === 'number' && exp * 1000 < Date.now()) {
-        throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
-      }
-    }
-  } catch (e: any) {
-    if (e.message?.includes('만료')) throw e
-  }
-
-  const apiPath = type === 'characters' ? 'personas' : type
-  const apiUrl = `https://api.tingle.chat/${apiPath}/${id}`
-
-  const res = await fetch(apiUrl, {
-    headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' },
-  })
-
-  if (res.status === 401 || res.status === 403) {
-    throw new Error('팅글 인증 토큰이 만료되었습니다. 관리자 설정에서 토큰을 다시 입력해주세요.')
-  }
-  if (res.status === 404) {
-    const label = type === 'universes' ? '서사' : type === 'scenes' ? '테마' : '캐릭터'
-    throw new Error(`팅글 ${label}를 찾을 수 없습니다. (ID: ${id})`)
-  }
-  if (!res.ok) throw new Error(`팅글 API 오류 (HTTP ${res.status})`)
-
-  let data: any
-  try { data = await res.json() } catch { throw new Error('팅글 응답을 해석할 수 없습니다.') }
-
-  if (data?.statusCode && data.statusCode >= 400) {
-    throw new Error(`팅글 API 오류: ${data.message?.[0] ?? data.code ?? '알 수 없는 오류'}`)
-  }
-
-  const coverImageUrl = data.coverImages?.[0]?.url ?? ''
-  const tags = (data.tags ?? []).map((t: any) => String(t.name ?? t)).filter(Boolean)
-  const safetyLevel: 'standard' | 'relaxed' = data.isAdult ? 'relaxed' : 'standard'
+  const { type, id, data, coverImageUrl, tags, safetyLevel, authToken } = await fetchTingleData(url)
 
   if (type === 'characters') {
     const name = data.name ?? '캐릭터'
