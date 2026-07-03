@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer-core'
 import { prisma } from '@/lib/prisma'
 import type { Captured, TingleRawData, TingleField, PersonaPreset } from './types'
 import { buildZetaCaptured, extractZetaLorebookEntries } from './zeta'
+import { mergeCookieString } from '@/lib/cookieMerge'
 
 const INPUT_CAP = 40000  // 분류 출력이 작아져 입력 캡을 크게 상향 (잘림 방지)
 
@@ -812,7 +813,9 @@ export async function captureMelting(url: string): Promise<Captured> {
       .filter(h => h.startsWith('__Host-melting_session'))
       .map(h => h) // "name=value" 형태
     if (refreshed.length > 0) {
-      await setGlobalConfigValue('melting_session_cookie', refreshed.join('; '))
+      // 갱신분만 반영하고 나머지(분석/추적 쿠키 등)는 보존 — 전체 덮어쓰면 페이지 렌더링/
+      // default-persona 같은 다른 엔드포인트가 요구하는 쿠키가 유실된다(실측 확인).
+      await setGlobalConfigValue('melting_session_cookie', mergeCookieString(sessionCookie, refreshed))
       await setGlobalConfigValue('melting_session_started_at', String(Date.now()))
       console.log(`[melting-import] 세션 쿠키 자동 갱신 완료 — id=${characterId}`)
       // keep-alive 타이머 재시작 (6시간 윈도우 리셋)

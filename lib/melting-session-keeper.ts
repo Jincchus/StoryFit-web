@@ -1,6 +1,7 @@
 // 멜팅 세션 keep-alive: 쿠키 등록 시점부터 6시간, 1~30분 랜덤 간격으로 갱신.
 // Next.js instrumentation.ts에서 서버 시작 시 1회 호출된다.
 import { prisma } from '@/lib/prisma'
+import { mergeCookieString } from '@/lib/cookieMerge'
 
 const SESSION_DURATION_MS = 6 * 60 * 60 * 1000   // 6시간
 const MIN_INTERVAL_MS     = 1  * 60 * 1000        // 1분
@@ -99,7 +100,9 @@ async function pingMelting(cookie: string): Promise<void> {
       .filter(h => h.startsWith('__Host-melting_session'))
 
     if (refreshed.length > 0) {
-      await setConfig('melting_session_cookie', refreshed.join('; '))
+      // 갱신분만 반영하고 나머지 쿠키는 보존(capture.ts의 동일 로직 참고 — 전체
+      // 덮어쓰면 분석/추적 쿠키가 유실되어 페이지 렌더링 등이 게이트에 막힌다).
+      await setConfig('melting_session_cookie', mergeCookieString(cookie, refreshed))
       console.log('[melting-keeper] 세션 쿠키 갱신 완료')
     } else {
       console.log('[melting-keeper] Set-Cookie 없음 — 현재 쿠키 유지')
