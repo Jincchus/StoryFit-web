@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { Captured, TingleRawData, TingleField, PersonaPreset } from './types'
 import { buildZetaCaptured, extractZetaLorebookEntries } from './zeta'
 import { mergeCookieString } from '@/lib/cookieMerge'
+import { mapTingleWorldBooks, assembleTingleCharacter, assembleTingleUniverse, assembleTingleScene } from './tingle'
 
 const INPUT_CAP = 40000  // 분류 출력이 작아져 입력 캡을 크게 상향 (잘림 방지)
 
@@ -928,22 +929,6 @@ export async function captureMelting(url: string): Promise<Captured> {
   }
 }
 
-// 팅글 worldBook → 로어북. 실제 응답 필드는 publicContent/title이며 개별 keyword가 없다.
-// isHideContent:true면 제작자가 내용을 비공개로 둬 서버가 publicContent를 비워 내려주므로 제외.
-// 키워드가 없으므로 title을 키워드로 사용한다(title 없으면 트리거 불가라 스킵).
-function mapTingleWorldBooks(data: any): { keyword: string[]; content: string; priority?: number }[] {
-  const wbs = Array.isArray(data?.worldBooks) ? data.worldBooks : []
-  const out: { keyword: string[]; content: string; priority?: number }[] = []
-  for (const wb of wbs) {
-    if (wb?.isHideContent) continue
-    const content = String(wb?.publicContent ?? wb?.content ?? '').trim()
-    const title = String(wb?.title ?? wb?.name ?? '').trim()
-    if (!content || !title) continue
-    out.push({ keyword: [title], content, priority: Number(wb?.priority ?? 0) })
-  }
-  return out
-}
-
 // 공개 트리거 이미지(감정/상황별 추가 이미지) → url 목록. locked=false로 공개분만, displayOrder 정렬.
 async function fetchTinglePublicTriggerImages(personaId: string, authToken: string): Promise<string[]> {
   try {
@@ -974,21 +959,6 @@ export async function captureTingle(url: string): Promise<Captured> {
   const { type, id, data, coverImageUrl, tags, safetyLevel, authToken } = await fetchTingleData(url)
 
   if (type === 'characters') {
-    const name = data.name ?? '캐릭터'
-    const introduction = data.introduction ?? ''
-    const age = data.age ? `나이: ${data.age}세` : ''
-    // isHide* 플래그는 팅글 앱 UI 표시 여부이고, API가 이미 실제 내용을 반환하므로 항상 포함
-    const characterDetails = String(data.characterDetails ?? '')
-    const backgroundDetails = String(data.backgroundDetails ?? '')
-    const creatorComment = data.creatorComment ?? ''
-
-    // composite 캐릭터의 구조화 필드(unified엔 없음) — raw/preview 경로와 동일하게 수집한다.
-    const job = String(data.job ?? '').trim()
-    const personality = String(data.personality ?? '').trim()
-    const speakingStyle = String(data.speakingStyle ?? '').trim()
-    const favorites = String(data.favorites ?? '').trim()
-    const otherDetails = String(data.otherDetails ?? '').trim()
-
     // 연결된 서사(universe)/테마(scene) 보강 + worldBook 로어북 수집(캐릭터 + 서사).
     const lorebooks: { keyword: string[]; content: string; priority?: number }[] = [...mapTingleWorldBooks(data)]
     let linkedRelations = ''
@@ -1010,126 +980,22 @@ export async function captureTingle(url: string): Promise<Captured> {
           .filter(Boolean).join('\n\n')
       } catch {}
     }
-
-    const additionalInfo = [
-      introduction,
-      age,
-      job && `직업: ${job}`,
-      personality && `■ 성격\n${personality}`,
-      speakingStyle && `■ 말투\n${speakingStyle}`,
-      favorites && `■ 좋아하는 것\n${favorites}`,
-      characterDetails,
-      backgroundDetails,
-      otherDetails,
-      sceneInfo && `[세계관]\n${sceneInfo}`,
-      creatorComment && `[제작자 메모]\n${creatorComment}`,
-    ].filter(Boolean).join('\n\n')
-
-    const rawOpenings = Array.isArray(data.openings) ? data.openings : []
-    const openingMessages = rawOpenings
-      .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
-      .map((o: any, idx: number) => ({
-        id: String(o.id ?? `opening_${idx}`),
-        title: String(o.title ?? (idx === 0 ? '기본 도입부' : `도입부 ${idx + 1}`)),
-        content: String(o.content ?? ''),
-      }))
-      .filter((o: any) => o.content.trim().length > 0)
-
-    const openingMessage = openingMessages[0]?.content ?? data.firstMessage ?? ''
     const relatedImages = await fetchTinglePublicTriggerImages(id, authToken)
 
-    console.log(`[tingle-import] characters ok — id=${id} name=${name} openings=${openingMessages.length} lorebooks=${lorebooks.length} images=${relatedImages.length}`)
-    const result: Captured = {
-      sections: [],
-      title: name,
-      imageUrl: coverImageUrl,
-      assembledResult: {
-        title: name,
-        characters: [{
-          name,
-          gender: data.gender ?? '',
-          tags,
-          additionalInfo,
-          openingMessage,
-          openingMessages: openingMessages.length > 1 ? openingMessages : undefined,
-          exampleDialogues: linkedRelations,
-          avatarUrl: coverImageUrl || undefined,
-          ...(relatedImages.length ? { relatedImages } : {}),
-        }],
-        scenarioDescription: introduction,
-        tags,
-        safetyLevel,
-        coverImageUrl,
-      },
-    }
-    if (lorebooks.length > 0) result.lorebooks = lorebooks
+    const result = assembleTingleCharacter(data, { coverImageUrl, tags, safetyLevel, lorebooks, linkedRelations, sceneInfo, relatedImages })
+    console.log(`[tingle-import] characters ok — id=${id} name=${data.name ?? '캐릭터'} lorebooks=${lorebooks.length} images=${relatedImages.length}`)
     return result
   }
 
   if (type === 'universes') {
-    const name = data.name ?? '서사'
-    const introduction = data.introduction ?? ''
-    const relationships = Array.isArray(data.relationships) ? data.relationships : []
-    const privateRelationships = Array.isArray(data.privateRelationships) ? data.privateRelationships : []
-    const exampleDialogues = [...relationships, ...privateRelationships].filter(Boolean).join('\n')
-
-    const lorebooks = mapTingleWorldBooks(data)
-
-    console.log(`[tingle-import] universes ok — id=${id} name=${name} worldBooks=${lorebooks.length}`)
-    const result: Captured = {
-      sections: [],
-      title: name,
-      imageUrl: coverImageUrl,
-      assembledResult: {
-        title: name,
-        characters: [{
-          name,
-          gender: '',
-          tags,
-          additionalInfo: introduction,
-          openingMessage: '',
-          exampleDialogues,
-          avatarUrl: coverImageUrl || undefined,
-        }],
-        scenarioDescription: introduction,
-        tags,
-        safetyLevel,
-        coverImageUrl,
-      },
-    }
-    if (lorebooks.length > 0) result.lorebooks = lorebooks
+    const result = assembleTingleUniverse(data, { coverImageUrl, tags, safetyLevel })
+    console.log(`[tingle-import] universes ok — id=${id} name=${data.name ?? '서사'} worldBooks=${result.lorebooks?.length ?? 0}`)
     return result
   }
 
   // scenes(테마)
-  const name = data.name ?? '테마'
-  const introduction = data.introduction ?? ''
-  const timeFrame = data.timeFrame ?? ''
-  const otherDetails = data.otherDetails ?? ''
-  const scenarioDesc = [introduction, timeFrame && `[시간대] ${timeFrame}`, otherDetails].filter(Boolean).join('\n\n')
-
-  console.log(`[tingle-import] scenes ok — id=${id} name=${name}`)
-  return {
-    sections: [],
-    title: name,
-    imageUrl: coverImageUrl,
-    assembledResult: {
-      title: name,
-      characters: [{
-        name,
-        gender: '',
-        tags,
-        additionalInfo: scenarioDesc,
-        openingMessage: '',
-        exampleDialogues: '',
-        avatarUrl: coverImageUrl || undefined,
-      }],
-      scenarioDescription: scenarioDesc,
-      tags,
-      safetyLevel,
-      coverImageUrl,
-    },
-  }
+  console.log(`[tingle-import] scenes ok — id=${id} name=${data.name ?? '테마'}`)
+  return assembleTingleScene(data, { coverImageUrl, tags, safetyLevel })
 }
 
 export function isTingleTokenExpired(token: string): boolean {
