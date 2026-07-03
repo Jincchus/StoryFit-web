@@ -49,6 +49,10 @@ function fsVal(field: any): any {
 
 const str = (v: any): string => (v == null ? '' : String(v)).trim()
 
+// 플랫폼 전반이 "{nickname}"을 유저 지칭 플레이스홀더로 쓴다(실측: 표본 9개 중 7개
+// greeting/initSituation/backgroundStory에 사용). 우리 시스템 매크로 {{user}}로 치환.
+const denick = (v: string): string => v.replace(/\{nickname\}/gi, '{{user}}')
+
 // 해시태그 정리: 선행 '#' 제거, '_'→공백, 중복/빈값 제거, 최대 20개.
 function cleanTags(arr: any): string[] {
   if (!Array.isArray(arr)) return []
@@ -171,7 +175,7 @@ export function assembleLoveydovey(fields: any): AssembledResult {
   }
   if (noticeText) parts.push(`[창작자 공지]\n${noticeText}`)
 
-  const additionalInfo = parts.filter(Boolean).join('\n\n')
+  const additionalInfo = denick(parts.filter(Boolean).join('\n\n'))
   const tags = cleanTags((loc as any).hashtagNames ?? top.hashtagNames)
   if (!tags.length && genre) tags.push(genre) // 해시태그 없으면 장르를 태그로
 
@@ -180,7 +184,7 @@ export function assembleLoveydovey(fields: any): AssembledResult {
     gender,
     tags,
     additionalInfo,
-    openingMessage: greeting,
+    openingMessage: denick(greeting),
     exampleDialogues: '',
     avatarUrl: image || undefined,
     ...(relatedImages.length ? { relatedImages } : {}),
@@ -188,7 +192,7 @@ export function assembleLoveydovey(fields: any): AssembledResult {
 
   return {
     characters: [character],
-    scenarioDescription: initSituation || description,
+    scenarioDescription: denick(initSituation || description),
     tags,
     title: name,
     safetyLevel: isAdult ? 'relaxed' : 'standard',

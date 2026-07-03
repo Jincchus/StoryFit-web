@@ -131,4 +131,18 @@ describe('assembleLoveydovey', () => {
   it('sceneBackgroundImageUrl 없으면 relatedImages 미설정', () => {
     expect(assembleLoveydovey(fields).characters[0].relatedImages).toBeUndefined()
   })
+
+  it('{nickname} 플레이스홀더를 {{user}}로 치환한다(greeting/initSituation/본문)', () => {
+    const withNickname = JSON.parse(JSON.stringify(fields))
+    const ko = withNickname.translatedInstructionInfos.mapValue.fields.ko.mapValue.fields
+    ko.greetingMessage = { stringValue: '{nickname}, 왔어?' }
+    ko.initSituation = { stringValue: '{nickname}은 오늘도 바빴다' }
+    ko.backgroundStory = { stringValue: '{nickname}과 함께한 시간' }
+    const c = assembleLoveydovey(withNickname).characters[0]
+    const r = assembleLoveydovey(withNickname)
+    expect(c.openingMessage).toBe('{{user}}, 왔어?')
+    expect(r.scenarioDescription).toBe('{{user}}은 오늘도 바빴다')
+    expect(c.additionalInfo).toContain('{{user}}과 함께한 시간')
+    expect(c.additionalInfo).not.toContain('{nickname}')
+  })
 })
