@@ -206,8 +206,8 @@ model Conversation {
   chapter                Int                  @default(1)
   plotOutline            Json?
   suggestRepliesEnabled  Boolean              @default(false)
-  enrichInputMode        Boolean              @default(false)
-  personaAutoMode        Boolean              @default(false)
+  enrichInputMode        Boolean              @default(true)
+  personaAutoMode        Boolean              @default(true)
   personaFlipPlaceholders Boolean              @default(true)
   fastPaceEnabled         Boolean              @default(false)
   adultGatingEnabled      Boolean              @default(true)

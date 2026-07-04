@@ -10,6 +10,7 @@ import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import { useLorebook } from '../_hooks/useLorebook'
 import { useMemoryPanel } from '../_hooks/useMemoryPanel'
 import type { Conv, ConvChar, LbEntry, BranchInfo } from '../_lib/chatShared'
+import { COMMANDS } from '../_lib/chatShared'
 
 export default function SidePanel({
   convId, conv, setConv, allChars, branches, customBg, setCustomBg, currentTheme, setCurrentTheme,
@@ -31,7 +32,7 @@ export default function SidePanel({
   onClose: () => void
   onChangeModel: (id: string) => void
 }) {
-  const [tab, setTab] = useState<'basic' | 'ai' | 'memory' | 'world'>('basic')
+  const [tab, setTab] = useState<'basic' | 'ai' | 'command' | 'memory' | 'world'>('basic')
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleInput, setTitleInput] = useState('')
   const personaName = conv.personaCharacter?.name || conv.user?.displayName || '나'
@@ -157,7 +158,7 @@ export default function SidePanel({
         </div>
 
         <div className="hstack" style={{ gap: 2, padding: '6px 0 8px', borderBottom: '1px solid var(--hairline)' }}>
-          {([['basic', '기본'], ['ai', 'AI응답'], ['memory', '기억'], ['world', '세계관']] as const).map(([k, lbl]) => (
+          {([['basic', '기본'], ['ai', 'AI응답'], ['command', '커맨드'], ['memory', '기억'], ['world', '세계관']] as const).map(([k, lbl]) => (
             <button
               key={k}
               className={`btn ${tab === k ? 'primary' : 'ghost'}`}
@@ -328,9 +329,24 @@ export default function SidePanel({
         )}
       </div>
 
-      <div className="side-section" hidden={tab !== 'basic'}>
+      <div className="side-section" hidden={tab !== 'command'}>
+        {/* 시스템 커맨드 — 기본 제공, 편집 불가 */}
+        <div className="label">시스템 커맨드</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>
+          기본 제공되는 명령어입니다. 채팅에서 <code>!이름</code>으로 실행됩니다.
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+          {COMMANDS.map(c => (
+            <div key={c.name} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '6px 8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}>
+              <code style={{ fontSize: 12, fontWeight: 700, color: '#ff2e93', flexShrink: 0 }}>{c.name}</code>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>{c.desc}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* 커스텀 커맨드 — 사용자가 만든 것 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="label">내 커맨드</div>
+          <div className="label">커스텀 커맨드</div>
           <button className="btn ghost" style={{ fontSize: 9, padding: '1px 6px' }} onClick={() => { setCmdAddOpen(o => !o); setCmdMsg('') }}>
             {cmdAddOpen ? '취소' : '+ 새 커맨드'}
           </button>
@@ -404,7 +420,7 @@ export default function SidePanel({
           <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={conv.enrichInputMode ?? false}
+              checked={conv.enrichInputMode ?? true}
               onChange={async e => {
                 const checked = e.target.checked
                 try {
@@ -425,7 +441,7 @@ export default function SidePanel({
           <label className="hstack" style={{ gap: 6, cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={(conv as any).personaAutoMode ?? false}
+              checked={(conv as any).personaAutoMode ?? true}
               onChange={async e => {
                 const checked = e.target.checked
                 try {
