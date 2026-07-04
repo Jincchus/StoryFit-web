@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
+import { extractRofanSecret } from '@/lib/rofanSecretPaste'
 import NovelText from '@/components/ui/NovelText'
 
 interface Props {
@@ -17,10 +18,18 @@ interface Props {
   onSaved?: (next: string) => void
   className?: string // 래퍼 클래스(테마별 섹션 스타일)
   label?: string // 헤더 텍스트(기본 "비밀설정"). 다중 캐릭터 구분용.
+  enablePaste?: boolean // rofan 전용: 브라우저에서 캡처한 JSON을 붙여넣어 char_secrets 추출
+}
+
+const PASTE_REASON: Record<string, string> = {
+  empty: '붙여넣은 내용이 비어 있습니다.',
+  bad_json: 'JSON 형식이 올바르지 않습니다. 복사한 내용이 잘리지 않았는지 확인해주세요.',
+  no_secret: '이 데이터엔 비밀설정(char_secrets)이 없습니다. 카드 리스트에서 열어 캡처한 "풀 버전"인지 확인해주세요.',
+  empty_after_clean: '추출된 비밀설정이 비어 있습니다.',
 }
 
 export default function SecretSettingsBlock({
-  characterId, value, userName, charNames, editable = true, onSaved, className, label = '비밀설정',
+  characterId, value, userName, charNames, editable = true, onSaved, className, label = '비밀설정', enablePaste = false,
 }: Props) {
   const [current, setCurrent] = useState(value)
   const [open, setOpen] = useState(false)
@@ -28,12 +37,24 @@ export default function SecretSettingsBlock({
   const [draft, setDraft] = useState(value)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [pasteText, setPasteText] = useState('')
+  const [pasteError, setPasteError] = useState('')
 
   // 내용도 없고 편집도 불가면 아무것도 렌더하지 않는다.
   if (!current.trim() && !editable) return null
 
   const startEdit = () => { setDraft(current); setError(''); setEditing(true); setOpen(true) }
-  const cancel = () => { setEditing(false); setError(''); setDraft(current) }
+  const cancel = () => { setEditing(false); setError(''); setDraft(current); setPasteOpen(false); setPasteText(''); setPasteError('') }
+
+  const applyPaste = () => {
+    const r = extractRofanSecret(pasteText)
+    if (!r.ok) { setPasteError(PASTE_REASON[r.reason] ?? '추출에 실패했습니다.'); return }
+    setDraft(r.value)
+    setPasteOpen(false)
+    setPasteText('')
+    setPasteError('')
+  }
 
   const save = async () => {
     setSaving(true); setError('')
@@ -70,6 +91,41 @@ export default function SecretSettingsBlock({
         <div style={{ paddingBottom: 8 }}>
           {editing ? (
             <div>
+              {enablePaste && (
+                <div style={{ marginBottom: 8 }}>
+                  {!pasteOpen ? (
+                    <button type="button" onClick={() => { setPasteOpen(true); setPasteError('') }}
+                      style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(107,92,255,.5)', cursor: 'pointer', fontWeight: 600, fontSize: 12, background: 'rgba(107,92,255,.08)', color: 'inherit' }}>
+                      📋 rofan 데이터 붙여넣기로 채우기
+                    </button>
+                  ) : (
+                    <div style={{ border: '1px solid rgba(107,92,255,.4)', borderRadius: 8, padding: 10, background: 'rgba(107,92,255,.04)' }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 12, opacity: 0.8, lineHeight: 1.5 }}>
+                        rofan에서 <b>카드 리스트를 클릭해 열었을 때</b> 잡히는 데이터를 붙여넣으세요.
+                        CreateChat 요청 페이로드 전체({'{'}botDetail…{'}'})도, 비밀설정 원문도 됩니다. char_secrets만 추려 넣어드려요.
+                      </p>
+                      <textarea
+                        value={pasteText}
+                        onChange={e => setPasteText(e.target.value)}
+                        rows={5}
+                        placeholder='여기에 JSON 또는 비밀설정 텍스트를 붙여넣기'
+                        style={{ width: '100%', boxSizing: 'border-box', padding: 8, borderRadius: 6, border: '1px solid rgba(128,128,128,.4)', background: 'rgba(128,128,128,.06)', color: 'inherit', font: 'inherit', fontSize: 12, lineHeight: 1.5, resize: 'vertical' }}
+                      />
+                      {pasteError && <p style={{ color: '#e5484d', fontSize: 12, margin: '6px 0 0' }}>{pasteError}</p>}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <button type="button" onClick={applyPaste} disabled={!pasteText.trim()}
+                          style={{ padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 12, background: '#6b5cff', color: '#fff', opacity: pasteText.trim() ? 1 : 0.5 }}>
+                          비밀설정 추출
+                        </button>
+                        <button type="button" onClick={() => { setPasteOpen(false); setPasteText(''); setPasteError('') }}
+                          style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(128,128,128,.4)', cursor: 'pointer', fontWeight: 600, fontSize: 12, background: 'none', color: 'inherit' }}>
+                          닫기
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <textarea
                 value={draft}
                 onChange={e => setDraft(e.target.value)}

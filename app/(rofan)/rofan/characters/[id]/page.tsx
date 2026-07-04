@@ -234,6 +234,7 @@ export default function RofanCharDetailPage() {
               value={mainChar.secretSettings ?? ''}
               userName={userDisplayName}
               charNames={col.characters.map(c => c.name)}
+              enablePaste
               onSaved={next => setCol(c => c ? { ...c, characters: c.characters.map(ch => ch.id === mainChar.id ? { ...ch, secretSettings: next } : ch) } : c)}
             />
           )}
