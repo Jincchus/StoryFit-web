@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
@@ -7,28 +7,8 @@ import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import TagFilterBar from '@/components/ui/TagFilterBar'
-import { sortByOption, type SortOption } from '@/lib/listSort'
-import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
-import { tagCounts } from '@/lib/centerCounts'
-import { CENTERS } from '@/lib/centers'
-import type { Character } from '@/types'
-
-// 캐릭터가 속한 센터 키를 collection.sourceUrl로 판별. 컬렉션이 없거나 외부 센터가 아니면 'none'(미분류).
-function centerKeyOf(c: Character): string {
-  const url = c.collection?.sourceUrl ?? ''
-  if (!url) return 'none'
-  return CENTERS.find(ctr => ctr.dbHosts.some(h => url.includes(h)))?.key ?? 'none'
-}
-
-// 성별 원시값(GENDER_MALE·남성·남자 / GENDER_FEMALE·여성 / 빈값 등)을 버킷으로 정규화.
-// ⚠️ 'female'이 'male'을 부분 포함하므로 female을 먼저 검사한다.
-function genderBucket(g?: string): 'male' | 'female' | 'none' {
-  const s = (g ?? '').toLowerCase()
-  if (s.includes('female') || s.includes('여')) return 'female'
-  if (s.includes('male') || s.includes('남')) return 'male'
-  return 'none'
-}
-const GENDER_LABEL: Record<string, string> = { male: '남성', female: '여성', none: '기타·미설정' }
+import { type SortOption } from '@/lib/listSort'
+import { useCharacterLibrary } from '@/lib/useCharacterLibrary'
 
 let sparkleCount = 0
 function sparkleAt(x: number, y: number) {
@@ -59,39 +39,27 @@ function RoomChips({ rooms }: { rooms?: { id: string; title: string }[] }) {
 export default function CharactersPage() {
   const router = useRouter()
   const { draft, dispatch } = useApp()
-  const [characters, setCharacters] = useState<Character[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  // 목록/필터/facet 계산은 훅으로 분리(lib/useCharacterLibrary). 아래 로컬 상태는 선택모드·뮤테이션 UI 전용.
+  const {
+    characters, setCharacters, loading, error, setError,
+    view, setView, personaView, setPersonaView,
+    collectionFilter, setCollectionFilter, roomFilter, setRoomFilter,
+    centerFilter, setCenterFilter, genderFilter, setGenderFilter,
+    sort, setSort, searchOpen, setSearchOpen, searchTab, setSearchTab,
+    query, setQuery, selectedTags, toggleTag, clearTags, resetSearch,
+    availableCenters, availableGenders, collections, completedRooms,
+    tagGroups, tCounts, filteredCharacters, selectableInFilter,
+  } = useCharacterLibrary()
+
   const [importing, setImporting] = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [importUrl, setImportUrl] = useState('')
-  const [collectionFilter, setCollectionFilter] = useState<string>('all')
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [confirmBulk, setConfirmBulk] = useState(false)
-  const [view, setView] = useState<'active' | 'waiting' | 'completed'>('active')
-  const [personaView, setPersonaView] = useState(false) // 페르소나 프리셋 보기(편집/삭제용). 평소엔 그리드에서 숨김.
   const [duplicating, setDuplicating] = useState(false)
-  const [roomFilter, setRoomFilter] = useState<string>('all')
-  const [centerFilter, setCenterFilter] = useState<string>('all')
-  const [genderFilter, setGenderFilter] = useState<string>('all')
-  const [sort, setSort] = useState<SortOption>('latest')
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchTab, setSearchTab] = useState<'text' | 'tag'>('text')
-  const [query, setQuery] = useState('')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [tagConfig, setTagConfig] = useState<CenterTagConfig | null>(null)
-
-  useEffect(() => {
-    // 페르소나 프리셋(isPersonaPreset)은 캐릭터 라이브러리에 노출하지 않는다(페르소나 피커 전용).
-    api.get('/api/characters').then(data => { setCharacters(data); setLoading(false) }).catch(e => { setError(e.message); setLoading(false) })
-    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
-  }, [])
-
-  const toggleTag = (tag: string) => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-  const resetSearch = () => { setQuery(''); setSelectedTags([]) }
 
   const handleImport = async () => {
     if (!importUrl.trim() || importing) return
@@ -121,79 +89,6 @@ export default function CharactersPage() {
   }
 
   const selectedChar = characters.find(c => c.id === draft.charId)
-
-  // view(진행/대기/완결) 기준 1차 분류. 페르소나 보기면 프리셋만, 아니면 프리셋 제외.
-  const viewBase = useMemo(() => {
-    const base = characters.filter(c => personaView ? c.isPersonaPreset : !c.isPersonaPreset)
-    if (personaView) return base // 페르소나 프리셋은 진행/대기/완결 구분 없이 전부
-    if (view === 'completed') return base.filter(c => c.completed)
-    if (view === 'waiting') return base.filter(c => !c.completed && !c.started)
-    return base.filter(c => !c.completed && c.started)
-  }, [characters, view, personaView])
-
-  // 센터 필터 옵션 (이 view에 실제로 멤버가 있는 센터만, 카운트 포함)
-  const availableCenters = useMemo(() => {
-    const counts = new Map<string, number>()
-    viewBase.forEach(c => { const k = centerKeyOf(c); counts.set(k, (counts.get(k) ?? 0) + 1) })
-    const list = CENTERS.filter(ctr => counts.has(ctr.key)).map(ctr => ({ key: ctr.key, label: ctr.label, count: counts.get(ctr.key)! }))
-    if (counts.has('none')) list.push({ key: 'none', label: '미분류·직접만든', count: counts.get('none')! })
-    return list
-  }, [viewBase])
-
-  // 센터 필터 적용 (완결 view는 센터 대신 방 필터를 쓰므로 그대로)
-  const centerBase = useMemo(() => {
-    if (personaView || view === 'completed' || centerFilter === 'all') return viewBase
-    return viewBase.filter(c => centerKeyOf(c) === centerFilter)
-  }, [viewBase, centerFilter, view, personaView])
-
-  // 성별 필터 옵션 (센터 필터 적용된 집합에서 버킷별 카운트)
-  const availableGenders = useMemo(() => {
-    const counts = new Map<string, number>()
-    centerBase.forEach(c => { const b = genderBucket(c.gender); counts.set(b, (counts.get(b) ?? 0) + 1) })
-    return (['male', 'female', 'none'] as const)
-      .filter(b => counts.has(b))
-      .map(b => ({ key: b, label: GENDER_LABEL[b], count: counts.get(b)! }))
-  }, [centerBase])
-
-  // 카드(컬렉션) 드롭다운 옵션 — 센터 필터 적용된 집합에서
-  const collections = useMemo(() => {
-    const map = new Map<string, string>()
-    centerBase.forEach(c => { if (c.collection) map.set(c.collection.id, c.collection.title) })
-    return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
-  }, [centerBase])
-
-  const completedRooms = useMemo(() => {
-    const map = new Map<string, string>()
-    characters.filter(c => c.completed).forEach(c => {
-      c.rooms?.forEach(r => map.set(r.id, r.title))
-    })
-    return Array.from(map.entries()).map(([id, title]) => ({ id, title }))
-  }, [characters])
-
-  // 태그 검색용 — 현재 필터된 집합에 등록된 태그 목록 + 카운트
-  const tagGroups = useMemo(() => buildTagGroups(centerBase.flatMap(c => c.tags ?? []), tagConfig), [centerBase, tagConfig])
-  const tCounts = useMemo(() => tagCounts(centerBase), [centerBase])
-
-  const filteredCharacters = useMemo(() => {
-    let r = centerBase
-    if (view === 'completed') {
-      if (roomFilter !== 'all') r = r.filter(c => c.rooms?.some(rm => rm.id === roomFilter))
-    } else {
-      if (collectionFilter === 'none') r = r.filter(c => !c.collection && !c.isPreset)
-      else if (collectionFilter !== 'all') r = r.filter(c => c.collection?.id === collectionFilter)
-    }
-    // 성별 필터
-    if (genderFilter !== 'all') r = r.filter(c => genderBucket(c.gender) === genderFilter)
-    // 검색: 이름·카드명 텍스트
-    const q = query.trim().toLowerCase()
-    if (q) r = r.filter(c => c.name.toLowerCase().includes(q) || (c.collection?.title ?? '').toLowerCase().includes(q))
-    // 검색: 태그 (선택 태그를 모두 가진 캐릭터)
-    if (selectedTags.length > 0) r = r.filter(c => selectedTags.every(t => (c.tags ?? []).includes(t)))
-    // 정렬
-    return sortByOption(r, sort, c => c.name, c => c.createdAt ?? '', c => c.createdAt ?? '')
-  }, [centerBase, view, collectionFilter, roomFilter, genderFilter, query, selectedTags, sort])
-
-  const selectableInFilter = filteredCharacters.filter(c => !c.isPreset)
 
   // 수동 윈도잉 대신 CSS content-visibility(.char-grid > *, globals.css)로 화면 밖 카드를
   // 브라우저가 자동 스킵한다 → 전체 목록을 그대로 렌더해도 수천 개에서 프리즈가 없다.
@@ -404,7 +299,7 @@ export default function CharactersPage() {
               />
             ) : (
               tagGroups.length > 0
-                ? <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={() => setSelectedTags([])} chipClass="btn ghost" accentVar="--hot-pink" counts={tCounts} />
+                ? <TagFilterBar groups={tagGroups} selected={selectedTags} onToggle={toggleTag} onClear={clearTags} chipClass="btn ghost" accentVar="--hot-pink" counts={tCounts} />
                 : <div className="tiny muted" style={{ padding: '4px 0' }}>등록된 태그가 없습니다.</div>
             )}
           </div>
