@@ -13,6 +13,7 @@ import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { getOpenings } from '@/lib/openings'
+import { splitRofanSections } from '@/lib/rofanSections'
 import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import type { Opening } from '@/types'
 
@@ -220,12 +221,12 @@ export default function RofanCharDetailPage() {
             )}
           </div>
 
-          {mainChar?.additionalInfo?.trim() && (
-            <div className="rofan-section" style={{ paddingTop: 0 }}>
-              <h2 className="rofan-section-title">상세 설정</h2>
-              <MeltingMarkdown text={replaceDisplayPlaceholders(mainChar.additionalInfo, userDisplayName, mainChar.name)} />
+          {mainChar?.additionalInfo?.trim() && splitRofanSections(mainChar.additionalInfo, '상세 설정').map((sec, i) => (
+            <div key={`${sec.title}-${i}`} className="rofan-section" style={{ paddingTop: 0 }}>
+              <h2 className="rofan-section-title">{sec.title}</h2>
+              <MeltingMarkdown text={replaceDisplayPlaceholders(sec.body, userDisplayName, mainChar.name)} />
             </div>
-          )}
+          ))}
 
           {mainChar && (
             <SecretSettingsBlock
