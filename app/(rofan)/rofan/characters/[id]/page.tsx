@@ -14,7 +14,7 @@ import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { getOpenings } from '@/lib/openings'
-import { splitRofanSections } from '@/lib/rofanSections'
+import { splitRofanSections, splitByRule } from '@/lib/rofanSections'
 import MappedCharacters from '@/components/ui/MappedCharacters'
 import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import type { Opening } from '@/types'
@@ -234,8 +234,13 @@ export default function RofanCharDetailPage() {
                   <h2 className="rofan-section-title" style={{ margin: 0 }}>{sec.title}</h2>
                   {dest && <span className="rofan-chip" style={{ fontWeight: 700, flexShrink: 0 }}>{dest}</span>}
                 </div>
-                <div className="rofan-intro-box">
-                  <MeltingMarkdown text={replaceDisplayPlaceholders(sec.body, userDisplayName, mainChar.name)} />
+                {/* --- 구분선이 있으면 조각별로 카드를 나눠 보여준다(표시 전용, 데이터는 그대로) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {splitByRule(sec.body).map((part, j) => (
+                    <div key={j} className="rofan-intro-box">
+                      <MeltingMarkdown text={replaceDisplayPlaceholders(part, userDisplayName, mainChar.name)} />
+                    </div>
+                  ))}
                 </div>
               </div>
             )

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { splitRofanSections } from './rofanSections'
+import { splitRofanSections, splitByRule } from './rofanSections'
 
 describe('splitRofanSections', () => {
   it('임포터가 붙인 마커대로 캐릭터 소개/세계관/유저 역할/제작자 코멘트로 나눈다', () => {
@@ -46,5 +46,24 @@ describe('splitRofanSections', () => {
       { title: '제작자 코멘트', body: '메모' },
       { title: '세계관', body: '세계' },
     ])
+  })
+})
+
+describe('splitByRule', () => {
+  it('--- 구분선으로 조각을 나눈다', () => {
+    const body = '태묵 설정\n\n---\n\n백운해 설정\n\n---\n\n{{user}} 설정'
+    expect(splitByRule(body)).toEqual(['태묵 설정', '백운해 설정', '{{user}} 설정'])
+  })
+  it('구분선이 없으면 원문 하나만', () => {
+    expect(splitByRule('그냥 설정')).toEqual(['그냥 설정'])
+  })
+  it('본문 중간의 하이픈(구분선 아님)은 나누지 않는다', () => {
+    expect(splitByRule('앞 - 뒤 인라인')).toEqual(['앞 - 뒤 인라인'])
+  })
+  it('빈 입력은 빈 배열', () => {
+    expect(splitByRule('   ')).toEqual([])
+  })
+  it('---- (4개 이상)도 구분선으로 인정', () => {
+    expect(splitByRule('A\n----\nB')).toEqual(['A', 'B'])
   })
 })
