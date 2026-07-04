@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import ZoomableImage from '@/components/ui/ZoomableImage'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
@@ -205,7 +206,7 @@ export default function ZetaPlotDetailPage() {
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <div className="zeta-scroll">
           <div className="zeta-cover-wrap">
-            {col.coverImageUrl ? <img className="zeta-cover" src={col.coverImageUrl} alt="" /> : <div className="zeta-cover" />}
+            {col.coverImageUrl ? <ZoomableImage className="zeta-cover" src={col.coverImageUrl} alt="" /> : <div className="zeta-cover" />}
             <button className="zeta-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
           </div>
 

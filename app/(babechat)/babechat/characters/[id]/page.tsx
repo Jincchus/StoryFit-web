@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import ZoomableImage from '@/components/ui/ZoomableImage'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
@@ -188,14 +189,14 @@ export default function BabechatCharDetailPage() {
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <div className="bc-scroll">
           <div className="bc-cover-wrap">
-            {col.coverImageUrl ? <img className="bc-cover" src={col.coverImageUrl} alt="" /> : <div className="bc-cover" />}
+            {col.coverImageUrl ? <ZoomableImage className="bc-cover" src={col.coverImageUrl} alt="" /> : <div className="bc-cover" />}
             <button className="bc-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
           </div>
 
           <div className="bc-section">
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10 }}>
               {mainChar?.avatarUrl
-                ? <img className="bc-avatar" src={mainChar.avatarUrl} alt="" />
+                ? <ZoomableImage className="bc-avatar" src={mainChar.avatarUrl} alt="" />
                 : <div className="bc-avatar" style={{ background: 'var(--b-line)' }} />}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

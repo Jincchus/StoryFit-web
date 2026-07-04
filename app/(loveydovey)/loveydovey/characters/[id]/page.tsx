@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import ZoomableImage from '@/components/ui/ZoomableImage'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
@@ -188,14 +189,14 @@ export default function LoveydoveyCharDetailPage() {
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <div className="lovey-scroll">
           <div className="lovey-cover-wrap">
-            {col.coverImageUrl ? <img className="lovey-cover" src={col.coverImageUrl} alt="" /> : <div className="lovey-cover" />}
+            {col.coverImageUrl ? <ZoomableImage className="lovey-cover" src={col.coverImageUrl} alt="" /> : <div className="lovey-cover" />}
             <button className="lovey-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
           </div>
 
           <div className="lovey-section">
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10 }}>
               {mainChar?.avatarUrl
-                ? <img className="lovey-avatar" src={mainChar.avatarUrl} alt="" />
+                ? <ZoomableImage className="lovey-avatar" src={mainChar.avatarUrl} alt="" />
                 : <div className="lovey-avatar" style={{ background: 'var(--l-line)' }} />}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

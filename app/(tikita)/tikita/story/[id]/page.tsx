@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import ZoomableImage from '@/components/ui/ZoomableImage'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
@@ -275,14 +276,14 @@ export default function TikitaStoryDetailPage() {
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <div className="tikita-scroll">
           <div className="tikita-cover-wrap">
-            {col.coverImageUrl ? <img className="tikita-cover" src={col.coverImageUrl} alt="" /> : <div className="tikita-cover" />}
+            {col.coverImageUrl ? <ZoomableImage className="tikita-cover" src={col.coverImageUrl} alt="" /> : <div className="tikita-cover" />}
             <button className="tikita-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
           </div>
 
           <div className="tikita-section">
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10 }}>
               {mainChar?.avatarUrl
-                ? <img className="tikita-avatar" src={mainChar.avatarUrl} alt="" />
+                ? <ZoomableImage className="tikita-avatar" src={mainChar.avatarUrl} alt="" />
                 : <div className="tikita-avatar" style={{ background: 'var(--t-line)' }} />}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>

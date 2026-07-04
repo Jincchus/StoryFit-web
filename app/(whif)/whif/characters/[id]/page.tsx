@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import ZoomableImage from '@/components/ui/ZoomableImage'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
@@ -165,7 +166,7 @@ export default function CharacterDetailPage() {
           {/* Cover */}
           <div style={{ position: 'relative' }}>
             {char.avatarUrl
-              ? <img className="whif-cover" src={char.avatarUrl} alt="" />
+              ? <ZoomableImage className="whif-cover" src={char.avatarUrl} alt="" />
               : <div className="whif-cover" />}
             <button className="whif-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
             <div style={{ position: 'absolute', top: 12, right: 8, display: 'flex', gap: 8 }}>

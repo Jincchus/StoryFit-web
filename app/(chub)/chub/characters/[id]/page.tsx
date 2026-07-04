@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import ZoomableImage from '@/components/ui/ZoomableImage'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
@@ -216,14 +217,14 @@ export default function ChubCharDetailPage() {
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <div className="chub-scroll">
           <div className="chub-cover-wrap">
-            {col.coverImageUrl ? <img className="chub-cover" src={col.coverImageUrl} alt="" /> : <div className="chub-cover" />}
+            {col.coverImageUrl ? <ZoomableImage className="chub-cover" src={col.coverImageUrl} alt="" /> : <div className="chub-cover" />}
             <button className="chub-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
           </div>
 
           <div className="chub-section">
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10 }}>
               {mainChar?.avatarUrl
-                ? <img className="chub-avatar" src={mainChar.avatarUrl} alt="" />
+                ? <ZoomableImage className="chub-avatar" src={mainChar.avatarUrl} alt="" />
                 : <div className="chub-avatar" style={{ background: 'var(--c-line)' }} />}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

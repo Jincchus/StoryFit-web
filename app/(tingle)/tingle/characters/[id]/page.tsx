@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import ZoomableImage from '@/components/ui/ZoomableImage'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import WhifPersonaModal from '@/components/ui/WhifPersonaModal'
 import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type NewPersonaData } from '@/lib/centerChat'
@@ -315,7 +316,7 @@ export default function TingleCharacterDetailPage() {
         <div className="tingle-scroll">
           <div className="tingle-cover-wrap">
             {col.coverImageUrl
-              ? <img className="tingle-cover" src={col.coverImageUrl} alt="" />
+              ? <ZoomableImage className="tingle-cover" src={col.coverImageUrl} alt="" />
               : <div className="tingle-cover" />}
             <button className="tingle-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
           </div>
