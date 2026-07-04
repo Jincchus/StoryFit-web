@@ -23,11 +23,14 @@ export default function ImageCarousel({
   line = 'rgba(128,128,128,0.4)',
 }: Props) {
   const [idx, setIdx] = useState(0)
+  const [zoom, setZoom] = useState(false)
   if (images.length === 0) return null
 
   const safeIdx = Math.min(idx, images.length - 1)
   const multi = images.length > 1
   const cur = toItem(images[safeIdx])
+  const prev = () => setIdx(i => (i - 1 + images.length) % images.length)
+  const next = () => setIdx(i => (i + 1) % images.length)
   const navBtn = (side: 'left' | 'right'): React.CSSProperties => ({
     position: 'absolute', [side]: 8, top: '50%', transform: 'translateY(-50%)',
     background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '50%',
@@ -42,12 +45,13 @@ export default function ImageCarousel({
           src={cur.url}
           alt={cur.description ?? ''}
           loading="lazy"
-          style={{ width: '100%', aspectRatio, objectFit: 'cover', display: 'block' }}
+          onClick={() => setZoom(true)}
+          style={{ width: '100%', aspectRatio, objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
         />
         {multi && (
           <>
-            <button aria-label="이전 이미지" onClick={() => setIdx(i => (i - 1 + images.length) % images.length)} style={navBtn('left')}>‹</button>
-            <button aria-label="다음 이미지" onClick={() => setIdx(i => (i + 1) % images.length)} style={navBtn('right')}>›</button>
+            <button aria-label="이전 이미지" onClick={prev} style={navBtn('left')}>‹</button>
+            <button aria-label="다음 이미지" onClick={next} style={navBtn('right')}>›</button>
             <div style={{ position: 'absolute', right: 10, top: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, padding: '2px 8px', borderRadius: 10 }}>
               {safeIdx + 1} / {images.length}
             </div>
@@ -72,6 +76,25 @@ export default function ImageCarousel({
               }}
             />
           ))}
+        </div>
+      )}
+
+      {zoom && (
+        <div
+          onClick={() => setZoom(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        >
+          <button aria-label="닫기" onClick={() => setZoom(false)}
+            style={{ position: 'absolute', top: 12, right: 14, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', fontSize: 22, width: 40, height: 40, borderRadius: '50%', cursor: 'pointer' }}>✕</button>
+          <img src={cur.url} alt={cur.description ?? ''} onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} />
+          {multi && (
+            <>
+              <button aria-label="이전 이미지" onClick={e => { e.stopPropagation(); prev() }} style={{ ...navBtn('left'), left: 12, width: 40, height: 40, fontSize: 20 }}>‹</button>
+              <button aria-label="다음 이미지" onClick={e => { e.stopPropagation(); next() }} style={{ ...navBtn('right'), right: 12, width: 40, height: 40, fontSize: 20 }}>›</button>
+              <div style={{ position: 'absolute', bottom: 16, left: 0, right: 0, textAlign: 'center', color: '#fff', fontSize: 13 }}>{safeIdx + 1} / {images.length}</div>
+            </>
+          )}
         </div>
       )}
     </div>

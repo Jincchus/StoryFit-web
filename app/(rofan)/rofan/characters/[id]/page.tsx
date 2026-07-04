@@ -224,14 +224,21 @@ export default function RofanCharDetailPage() {
 
           <MappedCharacters characters={col.characters} prefix="r" personaName={userDisplayName} />
 
-          {mainChar?.additionalInfo?.trim() && splitRofanSections(mainChar.additionalInfo, '상세 설정').map((sec, i) => (
-            <div key={`${sec.title}-${i}`} className="rofan-section" style={{ paddingTop: 0 }}>
-              <div className="rofan-intro-box" style={{ position: 'relative', paddingTop: 40 }}>
-                <span className="rofan-chip" style={{ position: 'absolute', top: 10, right: 10, fontWeight: 700 }}>{sec.title}</span>
-                <MeltingMarkdown text={replaceDisplayPlaceholders(sec.body, userDisplayName, mainChar.name)} />
+          {mainChar?.additionalInfo?.trim() && splitRofanSections(mainChar.additionalInfo, '캐릭터 소개').map((sec, i) => {
+            // 우측 상단 배지: 이 섹션 내용이 실제로 어디로 들어가는지 표시(캐릭터 설정/세계관 상세설명만).
+            const dest = sec.title === '캐릭터 소개' ? '캐릭터 설정' : sec.title === '세계관' ? '세계관 상세설명' : null
+            return (
+              <div key={`${sec.title}-${i}`} className="rofan-section" style={{ paddingTop: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                  <h2 className="rofan-section-title" style={{ margin: 0 }}>{sec.title}</h2>
+                  {dest && <span className="rofan-chip" style={{ fontWeight: 700, flexShrink: 0 }}>{dest}</span>}
+                </div>
+                <div className="rofan-intro-box">
+                  <MeltingMarkdown text={replaceDisplayPlaceholders(sec.body, userDisplayName, mainChar.name)} />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
 
           {mainChar && (
             <SecretSettingsBlock
