@@ -62,3 +62,12 @@ describe('extractRofanSecret', () => {
     if (r.ok) expect(r.value).toBe('깊은 비설')
   })
 })
+
+describe('extractRofanSecret — 저장 시 자동추출(편집창에 JSON 통째 붙여넣기 대비)', () => {
+  it('CreateChat payload 통째를 넣어도 char_secrets만 정리해 돌려준다', () => {
+    const payload = { userData: { id: 'x' }, botDetail: { char: '태묵', char_persona: 'p', char_secrets: '숨김<br />규칙' }, botTags: [] }
+    const r = extractRofanSecret(JSON.stringify(payload))
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.value).toBe('숨김\n규칙')
+  })
+})

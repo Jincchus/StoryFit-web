@@ -57,11 +57,23 @@ export default function SecretSettingsBlock({
   }
 
   const save = async () => {
+    // 붙여넣기 지원 센터(rofan)에서, 편집창에 rofan JSON을 통째로 붙여넣고 저장하는 경우를
+    // 대비해 저장 직전에도 자동 추출한다(어느 칸에 붙여넣든 char_secrets만 저장되도록).
+    let toSave = draft
+    if (enablePaste) {
+      const t = draft.trim()
+      if (t.startsWith('{') || t.startsWith('[')) {
+        const r = extractRofanSecret(t)
+        if (!r.ok) { setError(PASTE_REASON[r.reason] ?? '추출에 실패했습니다.'); return }
+        toSave = r.value
+      }
+    }
     setSaving(true); setError('')
     try {
-      const res = await api.patch(`/api/characters/${characterId}`, { secretSettings: draft })
-      const next = typeof res?.secretSettings === 'string' ? res.secretSettings : draft
+      const res = await api.patch(`/api/characters/${characterId}`, { secretSettings: toSave })
+      const next = typeof res?.secretSettings === 'string' ? res.secretSettings : toSave
       setCurrent(next)
+      setDraft(next)
       setEditing(false)
       onSaved?.(next)
     } catch {
