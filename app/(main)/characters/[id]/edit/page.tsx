@@ -24,7 +24,7 @@ function CharacterEditContent() {
   const [fetchError, setFetchError] = useState('')
   const [error, setError] = useState('')
   const [form, setForm] = useState<CharFormData | null>(null)
-  const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
+  const [collections, setCollections] = useState<{ id: string; title: string; completed?: boolean }[]>([])
   const initialOpeningRef = useRef('')
   const [applyPrompt, setApplyPrompt] = useState<{ total: number; progressed: number } | null>(null)
 
@@ -62,7 +62,7 @@ function CharacterEditContent() {
     else if (isBabechat) colsUrl = '/api/collections?isBabechat=true&fields=basic'
 
     api.get(colsUrl).then((cols: any) => {
-      const colList: { id: string; title: string }[] = Array.isArray(cols) ? cols : []
+      const colList: { id: string; title: string; completed?: boolean }[] = Array.isArray(cols) ? cols : []
       // 현재 소속 컬렉션이 목록에 없으면 합쳐서 드롭다운에 보이게 한다.
       setCollections(prev => {
         const current = prev[0]

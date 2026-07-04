@@ -24,7 +24,7 @@ export interface CharFormData {
 interface CharacterFormProps {
   form: CharFormData
   onChange: <K extends keyof CharFormData>(key: K, val: CharFormData[K]) => void
-  collections?: { id: string; title: string }[]
+  collections?: { id: string; title: string; completed?: boolean }[]
   collectionLabel?: string
   toast?: string
   onToastDone?: () => void
@@ -55,6 +55,8 @@ export default function CharacterForm({ form, onChange, collections, collectionL
   const [showDialogues, setShowDialogues] = useState(!!form.exampleDialogues)
   const [aiStyle, setAiStyle] = useState<AiStyle>('eastern')
   const [aiHint, setAiHint] = useState('')
+  const [colQuery, setColQuery] = useState('')
+  const [colOpen, setColOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState('')
 
@@ -352,23 +354,53 @@ export default function CharacterForm({ form, onChange, collections, collectionL
           )}
         </div>
 
-        {/* 컬렉션 */}
-        {collections !== undefined && (
-          <div className="form-section">
-            <div className="form-section-title">{collectionLabel} <span className="tiny muted">(선택)</span></div>
-            <div className="tiny muted" style={{ marginBottom: 6 }}>같은 작품·시리즈 캐릭터끼리 묶어서 관리할 수 있습니다.</div>
-            <select
-              className="field"
-              value={form.collectionId ?? ''}
-              onChange={e => onChange('collectionId', e.target.value || null)}
-            >
-              <option value="">미분류</option>
-              {collections.map(col => (
-                <option key={col.id} value={col.id}>{col.title}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        {/* 컬렉션(카드) — 검색 가능, 완결 카드는 제외(단 현재 지정된 카드는 항상 표시) */}
+        {collections !== undefined && (() => {
+          const selected = collections.find(c => c.id === form.collectionId) ?? null
+          const q = colQuery.trim().toLowerCase()
+          const options = collections.filter(c => {
+            if (c.id === form.collectionId) return false // 선택된 건 아래 별도 표시
+            if (c.completed) return false // 완결 카드 제외
+            return !q || c.title.toLowerCase().includes(q)
+          })
+          return (
+            <div className="form-section">
+              <div className="form-section-title">{collectionLabel} <span className="tiny muted">(선택)</span></div>
+              <div className="tiny muted" style={{ marginBottom: 6 }}>같은 작품·시리즈 캐릭터끼리 묶어서 관리할 수 있습니다. 완결된 카드는 목록에서 제외됩니다.</div>
+              {/* 현재 지정 상태 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span className="tiny muted">현재:</span>
+                <span style={{ fontWeight: 700, fontSize: 13 }}>{selected ? selected.title : '미분류'}</span>
+                {selected && (
+                  <button type="button" className="tiny" style={{ marginLeft: 'auto', border: 'none', background: 'none', color: 'var(--hot-pink)', cursor: 'pointer' }}
+                    onClick={() => { onChange('collectionId', null); setColQuery('') }}>매핑 해제</button>
+                )}
+              </div>
+              <input
+                className="field"
+                type="text"
+                value={colQuery}
+                placeholder={`${collectionLabel} 검색해서 매핑…`}
+                onChange={e => { setColQuery(e.target.value); setColOpen(true) }}
+                onFocus={() => setColOpen(true)}
+                onBlur={() => setTimeout(() => setColOpen(false), 150)}
+              />
+              {colOpen && (
+                <div style={{ border: '1px solid var(--chrome-border)', borderRadius: 8, marginTop: 4, maxHeight: 220, overflowY: 'auto', background: 'var(--chrome-face)' }}>
+                  {options.length === 0 ? (
+                    <div className="tiny muted" style={{ padding: '10px 12px' }}>{q ? '검색 결과가 없습니다.' : '매핑할 수 있는 카드가 없습니다.'}</div>
+                  ) : options.slice(0, 50).map(col => (
+                    <div key={col.id}
+                      onMouseDown={() => { onChange('collectionId', col.id); setColQuery(''); setColOpen(false) }}
+                      style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--chrome-border)' }}>
+                      {col.title}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
       </div>
     </>

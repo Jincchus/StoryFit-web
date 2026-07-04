@@ -25,14 +25,36 @@ export async function GET(req: NextRequest) {
   }
 
   // 경량 모드: 드롭다운 등 id·title만 필요할 때. 거대 메타(zeta/melting/tikitaMeta) select와
-  // 로어북·대화 집계를 모두 건너뛰어 빠르게 반환한다(수정 페이지 컬렉션 선택용).
+  // 로어북은 건너뛴다(수정 페이지 컬렉션 선택용). 완결 여부(completed)는 함께 계산해
+  // 카드 선택 드롭다운에서 완결 카드를 걸러낼 수 있게 한다.
   if (searchParams.get('fields') === 'basic') {
     const basic = await prisma.characterCollection.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       select: { id: true, title: true, sourceUrl: true },
     })
-    return NextResponse.json(basic)
+    const ids = basic.map(c => c.id)
+    const links = ids.length > 0
+      ? await prisma.conversationCharacter.findMany({
+          where: { conversation: { userId }, character: { collectionId: { in: ids } } },
+          select: {
+            character: { select: { collectionId: true } },
+            conversation: { select: { id: true, isArchived: true, rootConversationId: true, mode: true } },
+          },
+        })
+      : []
+    const byCol = new Map<string, Map<string, CountableConversation>>()
+    for (const link of links) {
+      const colId = link.character.collectionId
+      if (!colId) continue
+      const m = byCol.get(colId) ?? new Map<string, CountableConversation>()
+      m.set(link.conversation.id, link.conversation)
+      byCol.set(colId, m)
+    }
+    return NextResponse.json(basic.map(c => ({
+      ...c,
+      completed: isCompleted(aggregateCounts(Array.from(byCol.get(c.id)?.values() ?? []))),
+    })))
   }
 
   const isIndex = searchParams.get('fields') === 'index'
