@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/providers/AppProvider'
 import { api } from '@/lib/api'
-import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import Win from '@/components/ui/Win'
 import PixelAvatar, { PixelIcons } from '@/components/ui/PixelAvatar'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -100,16 +99,19 @@ export default function CharactersPage() {
     setError('')
     try {
       const result = await api.post('/api/characters/import', { url: importUrl.trim() })
-      const refreshed = await api.get('/api/characters')
-      setCharacters(refreshed)
       const char = result.character ?? result
       dispatch({ type: 'selectChar', id: char.id })
       setImportUrl('')
       setShowUrlInput(false)
       if (result.character) {
+        // 새 대화 화면으로 이동 — 목록 재조회(수천 개)는 이동 후 불필요하므로 생략해 이동 지연을 없앤다.
         if (result.scenarioDescription) sessionStorage.setItem('zeta-import-scenario', result.scenarioDescription)
         if (result.tags?.length) sessionStorage.setItem('zeta-import-tags', JSON.stringify(result.tags))
         router.push('/conversations/new')
+      } else {
+        // 목록에 머무는 경우에만 갱신
+        const refreshed = await api.get('/api/characters')
+        setCharacters(refreshed)
       }
     } catch (e: any) {
       setError(e.message)
@@ -193,15 +195,9 @@ export default function CharactersPage() {
 
   const selectableInFilter = filteredCharacters.filter(c => !c.isPreset)
 
-  // 렌더 윈도잉: 필터·정렬은 전체 목록에서 계산하되(센터/성별/완결 카운트 배지 유지),
-  // 화면에는 count개만 렌더해 수천 개 카드·이미지를 한꺼번에 그리는 프리즈를 방지한다.
+  // 수동 윈도잉 대신 CSS content-visibility(.char-grid > *, globals.css)로 화면 밖 카드를
+  // 브라우저가 자동 스킵한다 → 전체 목록을 그대로 렌더해도 수천 개에서 프리즈가 없다.
   const scrollRef = useRef<HTMLDivElement>(null)
-  const { count: renderCount, sentinelRef } = useInfiniteScroll(
-    [view, centerFilter, collectionFilter, roomFilter, genderFilter, query, selectedTags, sort],
-    scrollRef,
-    30,
-  )
-  const visibleCharacters = filteredCharacters.slice(0, renderCount)
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
@@ -486,7 +482,7 @@ export default function CharactersPage() {
               가져온 제작자 페르소나가 없습니다.<br />Zeta·멜팅·Tikita 카드를 가져오면 여기에 표시됩니다.
             </div>
           )}
-          {visibleCharacters.map(c => {
+          {filteredCharacters.map(c => {
             const isChecked = selected.has(c.id)
             if (view === 'completed') {
               return (
@@ -590,7 +586,6 @@ export default function CharactersPage() {
               <p>태그·추가정보로<br />직접 설정</p>
             </div>
           )}
-          <div ref={sentinelRef} style={{ gridColumn: '1 / -1', height: 1 }} />
         </div>
         )}
       </div>
