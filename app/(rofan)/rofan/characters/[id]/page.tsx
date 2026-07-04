@@ -14,6 +14,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import { getOpenings } from '@/lib/openings'
 import { splitRofanSections } from '@/lib/rofanSections'
+import MappedCharacters from '@/components/ui/MappedCharacters'
 import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
 import type { Opening } from '@/types'
 
@@ -220,6 +221,8 @@ export default function RofanCharDetailPage() {
               </div>
             )}
           </div>
+
+          <MappedCharacters characters={col.characters} prefix="r" personaName={userDisplayName} />
 
           {mainChar?.additionalInfo?.trim() && splitRofanSections(mainChar.additionalInfo, '상세 설정').map((sec, i) => (
             <div key={`${sec.title}-${i}`} className="rofan-section" style={{ paddingTop: 0 }}>

@@ -8,6 +8,7 @@ import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type N
 import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
+import MappedCharacters from '@/components/ui/MappedCharacters'
 import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CollectionEditModal from '@/components/ui/CollectionEditModal'
@@ -219,6 +220,8 @@ export default function BabechatCharDetailPage() {
               </div>
             )}
           </div>
+
+          <MappedCharacters characters={col.characters} prefix="b" personaName={userDisplayName} />
 
           {mainChar?.additionalInfo?.trim() && (
             <div className="bc-section" style={{ paddingTop: 0 }}>

@@ -10,6 +10,7 @@ import CollectionEditModal from '@/components/ui/CollectionEditModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import NovelText from '@/components/ui/NovelText'
 import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
+import MappedCharacters from '@/components/ui/MappedCharacters'
 import TingleCardPreviewSheet from '@/components/ui/TingleCardPreviewSheet'
 import { getOpenings } from '@/lib/openings'
 import { useRefetchOnForeground } from '@/lib/useRefetchOnForeground'
@@ -341,6 +342,8 @@ export default function TingleCharacterDetailPage() {
               </div>
             )}
           </div>
+
+          <MappedCharacters characters={col.characters} prefix="tg" personaName={userName} />
 
           {(col.tingleMeta?.fields?.length ?? 0) > 0 ? (() => {
             const detailFields = (col.tingleMeta!.fields as TingleField[]).filter(f => f.key !== 'introduction' && f.value?.trim())

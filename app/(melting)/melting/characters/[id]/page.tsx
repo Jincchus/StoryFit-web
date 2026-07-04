@@ -8,6 +8,7 @@ import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type N
 import ChatModeModal from '@/components/ui/ChatModeModal'
 import NovelText from '@/components/ui/NovelText'
 import MeltingMarkdown from '@/components/ui/MeltingMarkdown'
+import MappedCharacters from '@/components/ui/MappedCharacters'
 import ImageCarousel from '@/components/ui/ImageCarousel'
 import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -280,6 +281,8 @@ export default function MeltingCharDetailPage() {
               </button>
             </div>
           </div>
+
+          <MappedCharacters characters={col.characters} prefix="m" personaName={userDisplayName} />
 
           {mainChar?.additionalInfo?.trim() && (
             <div className="melting-section" style={{ paddingTop: 0 }}>

@@ -8,6 +8,7 @@ import { createCenterChat, buildPersonaCandidates, type PersonaCandidate, type N
 import NovelText from '@/components/ui/NovelText'
 import ImageCarousel from '@/components/ui/ImageCarousel'
 import SecretSettingsBlock from '@/components/ui/SecretSettingsBlock'
+import MappedCharacters from '@/components/ui/MappedCharacters'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { getOpenings } from '@/lib/openings'
 import { useDisplayName } from '@/lib/useDisplayName'
@@ -36,6 +37,7 @@ export default function CharacterDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const [char, setChar] = useState<Character | null>(null)
+  const [mapped, setMapped] = useState<any[]>([])
   const [standalone, setStandalone] = useState<PersonaCandidate[]>([])
   const [openingIdx, setOpeningIdx] = useState(0)
   const [personaOpen, setPersonaOpen] = useState(false)
@@ -57,6 +59,13 @@ export default function CharacterDetailPage() {
     setChar(null)
     api.get(`/api/characters/${id}`).then(setChar).catch(() => setChar(null))
   }, [id])
+
+  // whif는 단일 캐릭터를 로드하므로, 같은 카드(컬렉션)에 매핑된 캐릭터들은 컬렉션 조회로 따로 가져온다.
+  useEffect(() => {
+    const colId = char?.collection?.id
+    if (!colId) { setMapped([]); return }
+    api.get(`/api/collections/${colId}`).then((c: any) => setMapped(Array.isArray(c?.characters) ? c.characters : [])).catch(() => setMapped([]))
+  }, [char?.collection?.id])
 
   useEffect(() => {
     if (id) {
@@ -178,6 +187,8 @@ export default function CharacterDetailPage() {
               </div>
             )}
           </div>
+
+          <MappedCharacters characters={mapped.length > 0 ? mapped : [char]} prefix="w" personaName={userName} />
 
           {/* 캐릭터 소개 */}
           {char.additionalInfo?.trim() && (
