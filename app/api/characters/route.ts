@@ -133,6 +133,12 @@ export async function GET(req: NextRequest) {
     }
   })
 
+  // unassigned=true는 대화 시작 시 "페르소나 후보" 전용 조회다. 완결(모든 대화가 보관됨)이거나
+  // 이미 다른 대화방/컬렉션에 매핑된(rooms 있는) 후보는 제외해, 아직 안 쓴 페르소나만 노출한다.
+  if (unassigned) {
+    return NextResponse.json(result.filter(r => !r.completed && r.rooms.length === 0))
+  }
+
   return NextResponse.json(result)
 }
 
