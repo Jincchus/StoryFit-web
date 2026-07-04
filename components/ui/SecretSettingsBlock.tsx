@@ -40,6 +40,7 @@ export default function SecretSettingsBlock({
   const [pasteOpen, setPasteOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const [pasteError, setPasteError] = useState('')
+  const [translating, setTranslating] = useState(false)
 
   // 내용도 없고 편집도 불가면 아무것도 렌더하지 않는다.
   if (!current.trim() && !editable) return null
@@ -54,6 +55,26 @@ export default function SecretSettingsBlock({
     setPasteOpen(false)
     setPasteText('')
     setPasteError('')
+  }
+
+  // 현재 비밀설정 언어를 AI가 파악해 한국어로 번역 후 저장한다.
+  const translate = async () => {
+    if (!current.trim()) return
+    setTranslating(true); setError('')
+    try {
+      const res = await api.post('/api/translate', { text: current })
+      const translated = typeof res?.translated === 'string' ? res.translated.trim() : ''
+      if (!translated) throw new Error('empty')
+      const saved = await api.patch(`/api/characters/${characterId}`, { secretSettings: translated })
+      const next = typeof saved?.secretSettings === 'string' ? saved.secretSettings : translated
+      setCurrent(next)
+      setDraft(next)
+      onSaved?.(next)
+    } catch {
+      setError('번역에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setTranslating(false)
+    }
   }
 
   const save = async () => {
@@ -166,11 +187,20 @@ export default function SecretSettingsBlock({
               {current.trim()
                 ? <NovelText text={replaceDisplayPlaceholders(current, userName, charNames)} />
                 : <p style={{ opacity: 0.55, fontSize: 13, margin: 0 }}>등록된 비밀설정이 없습니다.</p>}
+              {error && <p style={{ color: '#e5484d', fontSize: 12, margin: '8px 0 0' }}>{error}</p>}
               {editable && (
-                <button type="button" onClick={startEdit}
-                  style={{ marginTop: 8, padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(128,128,128,.4)', cursor: 'pointer', fontWeight: 600, fontSize: 12, background: 'none', color: 'inherit' }}>
-                  ✏ 수정
-                </button>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'space-between', alignItems: 'center' }}>
+                  <button type="button" onClick={startEdit}
+                    style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(128,128,128,.4)', cursor: 'pointer', fontWeight: 600, fontSize: 12, background: 'none', color: 'inherit' }}>
+                    ✏ 수정
+                  </button>
+                  {current.trim() && (
+                    <button type="button" onClick={translate} disabled={translating}
+                      style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(107,92,255,.5)', cursor: translating ? 'default' : 'pointer', fontWeight: 600, fontSize: 12, background: 'rgba(107,92,255,.08)', color: 'inherit', opacity: translating ? 0.6 : 1 }}>
+                      {translating ? '번역 중…' : '🌐 한국어로 번역'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}
