@@ -6,7 +6,7 @@ import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { useDisplayName } from '@/lib/useDisplayName'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
-import { useCenterList } from '@/lib/useCenterList'
+import { useCenterListPaged } from '@/lib/useCenterListPaged'
 import type { CenterListItem } from '@/lib/centerListSelect'
 import LikedImportSheet from '@/components/ui/LikedImportSheet'
 
@@ -46,18 +46,14 @@ export default function TingleListPage() {
   const userName = useDisplayName()
   const [typeTab, setTypeTab] = useState<TypeTab>('character')
 
-  const typeFilter = useCallback(
-    (items: CenterListItem[]) => items.filter(c => detectTingleType(c.sourceUrl ?? '').type === typeTab),
-    [typeTab],
-  )
   const {
     items, loading, error,
     view, setView, sort, setSort, query, setQuery,
     selectedTags, toggleTag, clearTags, genderFilter, setGenderFilter,
     searchOpen, toggleSearch,
-    counts, tagGroups, tCounts, genderBuckets, visibleChars,
+    counts, tagGroups, tCounts, genderBuckets, visibleChars, facets,
     isFav, toggleFav, scrollRef, refresh,
-  } = useCenterList({ indexQuery: 'isTingle=true', storagePrefix: 'tingle', mapItems: typeFilter })
+  } = useCenterListPaged({ indexQuery: 'isTingle=true', storagePrefix: 'tingle', extraParams: { tingleType: typeTab } })
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -166,9 +162,9 @@ export default function TingleListPage() {
   }
 
   const typeCounts = {
-    character: items.filter(c => detectTingleType(c.sourceUrl ?? '').type === 'character').length,
-    universe: items.filter(c => detectTingleType(c.sourceUrl ?? '').type === 'universe').length,
-    scene: items.filter(c => detectTingleType(c.sourceUrl ?? '').type === 'scene').length,
+    character: facets?.typeCounts?.character ?? 0,
+    universe: facets?.typeCounts?.universe ?? 0,
+    scene: facets?.typeCounts?.scene ?? 0,
   }
   const typeLabel = typeTab === 'character' ? '캐릭터' : typeTab === 'universe' ? '서사' : '테마'
 

@@ -12,7 +12,7 @@ import type { GenderBucket } from './cardGender'
 import type { SortOption } from './listSort'
 
 type View = 'active' | 'waiting' | 'completed' | 'favorites'
-type Facets = { counts: Record<string, number>; genders: { key: GenderBucket; label: string; count: number }[]; tags: Record<string, number> }
+type Facets = { counts: Record<string, number>; genders: { key: GenderBucket; label: string; count: number }[]; tags: Record<string, number>; typeCounts?: Record<string, number> }
 
 function deriveCenterKey(indexQuery: string): string {
   const m = indexQuery.match(/is(\w+)=true/)
@@ -21,9 +21,10 @@ function deriveCenterKey(indexQuery: string): string {
 
 const LIMIT = 30
 
-export function useCenterListPaged(opts: { indexQuery: string; storagePrefix: string }) {
-  const { indexQuery, storagePrefix } = opts
+export function useCenterListPaged(opts: { indexQuery: string; storagePrefix: string; extraParams?: Record<string, string> }) {
+  const { indexQuery, storagePrefix, extraParams } = opts
   const centerKey = deriveCenterKey(indexQuery)
+  const extraKey = JSON.stringify(extraParams ?? {})
 
   const { isFav, toggleFav } = useFavorites()
   const [items, setItems] = useState<CenterListItem[]>([])
@@ -72,10 +73,11 @@ export function useCenterListPaged(opts: { indexQuery: string; storagePrefix: st
     if (query.trim()) p.set('q', query.trim())
     if (genderFilter !== 'all') p.set('gender', genderFilter)
     if (selectedTags.length) p.set('tags', selectedTags.join(','))
+    for (const [k, v] of Object.entries(extraParams ?? {})) if (v) p.set(k, v)
     p.set('limit', String(LIMIT)); p.set('offset', String(offset))
     if (withFacets) p.set('facets', '1')
     return p.toString()
-  }, [centerKey, view, sort, randomSeed, query, genderFilter, selectedTags])
+  }, [centerKey, view, sort, randomSeed, query, genderFilter, selectedTags, extraKey])
 
   // 필터 변경 → offset=0 재조회(패싯 포함)
   const reload = useCallback(() => {
@@ -153,6 +155,7 @@ export function useCenterListPaged(opts: { indexQuery: string; storagePrefix: st
     selectedTags, toggleTag, clearTags, genderFilter, setGenderFilter,
     searchOpen, toggleSearch, randomSeed,
     counts, tagGroups, tCounts, genderBuckets, visibleChars: items,
+    facets,
     isFav, toggleFav, scrollRef, refresh,
   }
 }

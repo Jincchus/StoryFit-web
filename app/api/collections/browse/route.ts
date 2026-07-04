@@ -45,16 +45,22 @@ export async function GET(req: NextRequest) {
   const scopeHosts = centerKeyParam
     ? (CENTERS.find(c => c.key === centerKeyParam)?.dbHosts ?? EXTERNAL_HOSTS)
     : EXTERNAL_HOSTS
+  // tingle은 서사(universe)/테마(scene)도 리스트에 포함하고 타입 탭으로 필터한다.
+  const isTingle = centerKeyParam === 'tingle'
+  const tingleType = sp.get('tingleType') // 'character' | 'universe' | 'scene'
+  const tingleTypeOf = (u: string) => u.includes('/chat/universes/') ? 'universe' : u.includes('/chat/scenes/') ? 'scene' : 'character'
 
-  // 센터 컬렉션(팅글 서사/테마 제외) 경량 로드 — 메타 블롭은 싣지 않음
+  // 센터 컬렉션 경량 로드 — 메타 블롭은 싣지 않음 (tingle 외에는 서사/테마 제외)
   const cols = await prisma.characterCollection.findMany({
     where: {
       userId,
       OR: scopeHosts.map(h => ({ sourceUrl: { contains: h } })),
-      NOT: [
-        { sourceUrl: { contains: 'tingle.chat/chat/universes/' } },
-        { sourceUrl: { contains: 'tingle.chat/chat/scenes/' } },
-      ],
+      ...(isTingle ? {} : {
+        NOT: [
+          { sourceUrl: { contains: 'tingle.chat/chat/universes/' } },
+          { sourceUrl: { contains: 'tingle.chat/chat/scenes/' } },
+        ],
+      }),
     },
     select: {
       id: true, title: true, coverImageUrl: true, sourceUrl: true, description: true, tags: true, createdAt: true,
@@ -107,14 +113,17 @@ export async function GET(req: NextRequest) {
     || c.characters.some(ch => ch.name.toLowerCase().includes(q))
   const matchesGender = (c: Card) => gender === 'all' || cardGenderBucket(c.characters) === gender
   const matchesTags = (c: Card) => selectedTags.length === 0 || selectedTags.every(t => c.tags.includes(t))
+  const matchesTingleType = (c: Card) => !isTingle || !tingleType || tingleTypeOf(c.sourceUrl) === tingleType
   const inView = (c: Card) => view === 'favorites' ? favSet.has(c.id)
     : view === 'completed' ? c.completed
     : view === 'waiting' ? !c.started
     : !c.completed && c.started
 
   const viewCenterBase = cards.filter(c => inView(c) && matchesCenter(c))
+  // tingle 타입 필터는 뷰 필터처럼 별도 적용(타입 카운트는 타입 필터 전 기준으로 계산)
+  const typedBase = viewCenterBase.filter(matchesTingleType)
   const filtered = sortByOption(
-    viewCenterBase.filter(c => matchesGender(c) && matchesQuery(c) && matchesTags(c)),
+    typedBase.filter(c => matchesGender(c) && matchesQuery(c) && matchesTags(c)),
     sort, c => c.title, c => c.createdAt, c => c.lastActivityAt || c.createdAt, seed,
   )
 
@@ -140,8 +149,9 @@ export async function GET(req: NextRequest) {
   const res: any = { items: page, total: filtered.length, hasMore: offset + limit < filtered.length }
 
   if (withFacets) {
-    const genderQ = viewCenterBase.filter(matchesQuery)
-    const tagBase = viewCenterBase.filter(c => matchesGender(c) && matchesQuery(c))
+    // 성별/태그 옵션은 타입 필터 적용 후(typedBase) 기준 — tingle에선 선택 타입 내에서 계산
+    const genderQ = typedBase.filter(matchesQuery)
+    const tagBase = typedBase.filter(c => matchesGender(c) && matchesQuery(c))
     res.facets = {
       counts: {
         active: cards.filter(c => !c.completed && c.started).length,
@@ -151,6 +161,13 @@ export async function GET(req: NextRequest) {
       },
       genders: availableGenderBuckets(genderQ),
       tags: tagCounts(tagBase),
+      ...(isTingle ? {
+        typeCounts: {
+          character: viewCenterBase.filter(c => tingleTypeOf(c.sourceUrl) === 'character').length,
+          universe: viewCenterBase.filter(c => tingleTypeOf(c.sourceUrl) === 'universe').length,
+          scene: viewCenterBase.filter(c => tingleTypeOf(c.sourceUrl) === 'scene').length,
+        },
+      } : {}),
     }
   }
 
