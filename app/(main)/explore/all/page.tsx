@@ -1,16 +1,15 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { sortByOption, type SortOption } from '@/lib/listSort'
+import type { SortOption } from '@/lib/listSort'
 import { useFavorites } from '@/lib/useFavorites'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import { useDisplayName } from '@/lib/useDisplayName'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import { buildTagGroups, type CenterTagConfig } from '@/lib/tagGroups'
-import { tagCounts } from '@/lib/centerCounts'
-import { cardGenderBucket, availableGenderBuckets, type GenderBucket } from '@/lib/cardGender'
+import type { GenderBucket } from '@/lib/cardGender'
 
 interface Col {
   id: string
@@ -59,7 +58,10 @@ function isWorldType(col: Col): boolean {
 
 export default function AllCentersPage() {
   const router = useRouter()
-  const [cols, setCols] = useState<Col[]>([])
+  const [items, setItems] = useState<Col[]>([])
+  const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [facets, setFacets] = useState<{ counts: Record<string, number>; genders: { key: GenderBucket; label: string; count: number }[]; tags: Record<string, number> } | null>(null)
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ViewTab>('active')
   const [sort, setSort] = useState<SortOption>('latest')
@@ -73,17 +75,63 @@ export default function AllCentersPage() {
   const { isFav, toggleFav } = useFavorites()
   const scrollRef = useRef<HTMLDivElement>(null)
   const userName = useDisplayName()
-  const { count, sentinelRef } = useInfiniteScroll([view, sort, query, selectedCenters, genderFilter, selectedTags, randomSeed], scrollRef)
+  const offsetRef = useRef(0)
+  const genRef = useRef(0)      // 필터 변경마다 증가 — 진행 중이던 스크롤 응답의 stale append 방지
+  const loadingMoreRef = useRef(false)
+  const LIMIT = 30
 
+  const buildParams = useCallback((offset: number, withFacets: boolean) => {
+    const p = new URLSearchParams()
+    p.set('view', view); p.set('sort', sort); p.set('seed', String(randomSeed))
+    if (query.trim()) p.set('q', query.trim())
+    if (selectedCenters.length) p.set('centers', selectedCenters.join(','))
+    if (genderFilter !== 'all') p.set('gender', genderFilter)
+    if (selectedTags.length) p.set('tags', selectedTags.join(','))
+    p.set('limit', String(LIMIT)); p.set('offset', String(offset))
+    if (withFacets) p.set('facets', '1')
+    return p.toString()
+  }, [view, sort, randomSeed, query, selectedCenters, genderFilter, selectedTags])
+
+  useEffect(() => { api.get('/api/center-tags').then(setTagConfig).catch(() => {}) }, [])
   useEffect(() => {
-    setView((sessionStorage.getItem('all_view') as ViewTab) || 'active')
-    setSort((localStorage.getItem('all_sort') as SortOption) || 'latest')
-    api.get('/api/collections?all=true')
-      .then(setCols)
-      .catch(() => {})
-      .finally(() => setLoading(false))
-    api.get('/api/center-tags').then(setTagConfig).catch(() => {})
+    const saved = { view: sessionStorage.getItem('all_view'), sort: localStorage.getItem('all_sort') }
+    if (saved.view) setView(saved.view as ViewTab)
+    if (saved.sort) setSort(saved.sort as SortOption)
   }, [])
+
+  // 필터/정렬/검색이 바뀌면 offset=0으로 재조회(패싯 포함)
+  useEffect(() => {
+    const gen = ++genRef.current
+    setLoading(true); offsetRef.current = 0
+    api.get(`/api/collections/browse?${buildParams(0, true)}`)
+      .then((r: any) => {
+        if (gen !== genRef.current) return
+        setItems(r.items ?? [])
+        setTotal(r.total ?? 0)
+        setHasMore(!!r.hasMore)
+        if (r.facets) setFacets(r.facets)
+        offsetRef.current = (r.items?.length ?? 0)
+      })
+      .catch(() => {})
+      .finally(() => { if (gen === genRef.current) setLoading(false) })
+  }, [buildParams])
+
+  const loadMore = useCallback(() => {
+    if (loadingMoreRef.current || !hasMore) return
+    loadingMoreRef.current = true
+    const gen = genRef.current
+    api.get(`/api/collections/browse?${buildParams(offsetRef.current, false)}`)
+      .then((r: any) => {
+        if (gen !== genRef.current) return
+        setItems(prev => [...prev, ...(r.items ?? [])])
+        setHasMore(!!r.hasMore)
+        offsetRef.current += (r.items?.length ?? 0)
+      })
+      .catch(() => {})
+      .finally(() => { loadingMoreRef.current = false })
+  }, [hasMore, buildParams])
+
+  const { sentinelRef } = useInfiniteScroll([], scrollRef, LIMIT, loadMore)
 
   const handleView = (v: ViewTab) => { setView(v); sessionStorage.setItem('all_view', v) }
   const handleSort = (v: SortOption) => {
@@ -96,44 +144,11 @@ export default function AllCentersPage() {
     setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   const toggleSearch = () => setSearchOpen(o => { if (o) { setQuery(''); setSelectedCenters([]); setGenderFilter('all'); setSelectedTags([]) } return !o })
 
-  const matchesCenter = (url: string) => selectedCenters.length === 0 || selectedCenters.some(k => CENTERS.find(c => c.key === k)?.match(url))
-  const matchesQuery = (c: Col) => {
-    const q = query.trim().toLowerCase()
-    if (!q) return true
-    return c.title.toLowerCase().includes(q)
-      || (c.tags?.some(t => t.toLowerCase().includes(q)) ?? false)
-      || (c.description?.toLowerCase().includes(q) ?? false)
-      || c.characters.some(ch => ch.name.toLowerCase().includes(q))
-  }
-  const matchesGender = (c: Col) => genderFilter === 'all' || cardGenderBucket(c.characters) === genderFilter
-  const matchesTags = (c: Col) => selectedTags.length === 0 || selectedTags.every(t => (c.tags ?? []).includes(t))
-
-  // 뷰탭 → 센터칩까지 적용한 기준 집합. 성별/태그의 노출 옵션·카운트는 여기서 자기 자신을 제외하고 좁힌다.
-  const viewCenterBase = cols.filter(c =>
-    (view === 'favorites' ? isFav('collection', c.id)
-    : view === 'completed' ? c.completed
-    : view === 'waiting' ? !c.started
-    : !c.completed && !!c.started) &&
-    matchesCenter(c.sourceUrl)
-  )
-
-  // 성별 옵션: 뷰+센터+검색 기준 (성별 자신 제외)
-  const genderBuckets = availableGenderBuckets(viewCenterBase.filter(matchesQuery))
-  // 태그 옵션·카운트: 뷰+센터+성별+검색 기준 (태그 자신 제외)
-  const tagBase = viewCenterBase.filter(c => matchesGender(c) && matchesQuery(c))
-  const tagGroups = buildTagGroups(tagBase.flatMap(c => c.tags ?? []), tagConfig)
-  const tCounts = tagCounts(tagBase)
-
-  const filtered = sortByOption(
-    viewCenterBase.filter(c => matchesGender(c) && matchesQuery(c) && matchesTags(c)),
-    sort, c => c.title, c => c.createdAt ?? '', c => c.lastActivityAt ?? c.createdAt ?? '', randomSeed
-  )
-
-  const counts = {
-    active: cols.filter(c => !c.completed && !!c.started).length,
-    waiting: cols.filter(c => !c.started).length,
-    completed: cols.filter(c => !!c.completed).length,
-  }
+  // 패싯(서버 계산) 파생값
+  const counts = { active: facets?.counts.active ?? 0, waiting: facets?.counts.waiting ?? 0, completed: facets?.counts.completed ?? 0 }
+  const genderBuckets = facets?.genders ?? []
+  const tCounts = facets?.tags ?? {}
+  const tagGroups = buildTagGroups(Object.keys(tCounts), tagConfig)
 
   return (
     <>
@@ -244,13 +259,13 @@ export default function AllCentersPage() {
               <div key={i} className="skeleton" style={{ height: 200, borderRadius: 'var(--radius-lg)' }} />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 14px', color: 'var(--ink-soft)', fontSize: 13 }}>
             {query || selectedCenters.length > 0 || genderFilter !== 'all' || selectedTags.length > 0 ? '검색 결과가 없습니다.' : view === 'favorites' ? '즐겨찾기한 항목이 없습니다.' : view === 'completed' ? '완결한 항목이 없습니다.' : view === 'waiting' ? '대기 중인 항목이 없습니다.' : '진행 중인 항목이 없습니다.'}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, paddingTop: 10 }}>
-            {filtered.slice(0, count).map(col => {
+            {items.map(col => {
               const center = detectCenter(col.sourceUrl)
               const world = isWorldType(col)
               const thumb = col.coverImageUrl || col.characters[0]?.avatarUrl || ''
