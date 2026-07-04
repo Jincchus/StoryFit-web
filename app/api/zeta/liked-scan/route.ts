@@ -3,7 +3,7 @@ import { authenticate } from '@/lib/apiAuth'
 import { getValidZetaToken } from '@/lib/import/capture'
 
 const ZETA_API = 'https://api.zeta-ai.io'
-const PAGE_SIZE = 30
+const PAGE_SIZE = 200
 
 export interface LikedPlot {
   id: string
@@ -25,9 +25,14 @@ function mapPlot(p: any): LikedPlot | null {
   }
 }
 
-async function fetchPage(token: string, offset: number): Promise<{ plots: any[]; hasMore: boolean }> {
-  const url = `${ZETA_API}/v1/plots/liked?limit=${PAGE_SIZE}&offset=${offset}&orderBy.property=LIKED_AT&orderBy.direction=DESC`
-  const res = await fetch(url, {
+async function fetchPage(token: string, cursor: string | null): Promise<{ plots: any[]; nextCursor: string | null }> {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    'orderBy.property': 'LIKED_AT',
+    'orderBy.direction': 'DESC',
+  })
+  if (cursor) params.set('cursor', cursor)
+  const res = await fetch(`${ZETA_API}/v1/plots/liked?${params.toString()}`, {
     headers: {
       'Accept': 'application/json',
       'Accept-Language': 'ko-KR,ko;q=0.9',
@@ -39,10 +44,11 @@ async function fetchPage(token: string, offset: number): Promise<{ plots: any[];
   if (res.status === 401 || res.status === 403) throw new Error('Zeta 토큰이 만료되었습니다. 관리자 설정에서 TOKEN과 REFRESH_TOKEN을 재입력해주세요.')
   if (!res.ok) throw new Error(`Zeta API 오류 (HTTP ${res.status})`)
   const data = await res.json()
-  // 응답 구조: { plots: [...] } 또는 { data: { plots: [...] } } 등
+  // 응답 구조: { plots: [...], nextCursor: number|null } — offset 파라미터는 서버가 무시하고
+  // 항상 1페이지를 반환한다(2026-07-04 실측). 실제 페이지네이션은 nextCursor로만 진행된다.
   const plots: any[] = data?.plots ?? data?.data?.plots ?? data?.items ?? data?.data ?? []
-  const total: number = data?.totalCount ?? data?.total ?? data?.count ?? plots.length
-  return { plots, hasMore: offset + plots.length < total }
+  const nextCursor = data?.nextCursor != null ? String(data.nextCursor) : null
+  return { plots, nextCursor }
 }
 
 export async function GET(req: NextRequest) {
@@ -54,18 +60,16 @@ export async function GET(req: NextRequest) {
 
   try {
     const liked: LikedPlot[] = []
-    let offset = 0
-    let hasMore = true
+    let cursor: string | null = null
 
-    while (hasMore) {
-      const { plots, hasMore: more } = await fetchPage(token, offset)
+    while (true) {
+      const { plots, nextCursor }: { plots: any[]; nextCursor: string | null } = await fetchPage(token, cursor)
       for (const p of plots) {
         const mapped = mapPlot(p)
         if (mapped) liked.push(mapped)
       }
-      hasMore = more && plots.length === PAGE_SIZE
-      offset += plots.length
-      if (plots.length === 0) break
+      if (plots.length === 0 || !nextCursor) break
+      cursor = nextCursor
     }
 
     return NextResponse.json({ liked, total: liked.length })
