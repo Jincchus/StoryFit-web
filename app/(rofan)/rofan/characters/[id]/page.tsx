@@ -223,8 +223,8 @@ export default function RofanCharDetailPage() {
 
           {mainChar?.additionalInfo?.trim() && splitRofanSections(mainChar.additionalInfo, '상세 설정').map((sec, i) => (
             <div key={`${sec.title}-${i}`} className="rofan-section" style={{ paddingTop: 0 }}>
-              <h2 className="rofan-section-title">{sec.title}</h2>
-              <div className="rofan-intro-box">
+              <div className="rofan-intro-box" style={{ position: 'relative', paddingTop: 40 }}>
+                <span className="rofan-chip" style={{ position: 'absolute', top: 10, right: 10, fontWeight: 700 }}>{sec.title}</span>
                 <MeltingMarkdown text={replaceDisplayPlaceholders(sec.body, userDisplayName, mainChar.name)} />
               </div>
             </div>
