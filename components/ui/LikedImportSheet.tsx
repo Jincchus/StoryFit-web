@@ -29,14 +29,24 @@ export default function LikedImportSheet({
   const v = (name: string) => `var(--${prefix}-${name})`
 
   const importable = items.filter(x => !alreadyImported(x))
-  const doneCount = items.length - importable.length
+  const doneItems = items.filter(x => alreadyImported(x))
+  const doneCount = doneItems.length
   const allSelected = importable.length > 0 && importable.every(x => selected.has(x.id))
+  const allDoneSelected = doneItems.length > 0 && doneItems.every(x => selected.has(x.id))
   const toggle = (id: string) => {
     const next = new Set(selected)
     next.has(id) ? next.delete(id) : next.add(id)
     onChangeSelected(next)
   }
-  const toggleAll = () => onChangeSelected(allSelected ? new Set() : new Set(importable.map(x => x.id)))
+  // 부분집합(미가져옴/완료)만 선택 상태를 뒤집는다 — 서로의 선택을 건드리지 않아 두 버튼을 함께 써서
+  // "전체 선택" + "완료 전체 업데이트"로 전체를 한 번에 선택할 수 있다.
+  const toggleSubset = (subset: LikedItem[], subsetAllSelected: boolean) => {
+    const next = new Set(selected)
+    for (const x of subset) subsetAllSelected ? next.delete(x.id) : next.add(x.id)
+    onChangeSelected(next)
+  }
+  const toggleAll = () => toggleSubset(importable, allSelected)
+  const toggleAllDone = () => toggleSubset(doneItems, allDoneSelected)
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
@@ -57,12 +67,20 @@ export default function LikedImportSheet({
         {scanMsg && (
           <div style={{ padding: '0 16px 6px', fontSize: 11, color: scanMsg.startsWith('⚠') ? '#ff6b8a' : v('ink-soft'), flexShrink: 0 }}>{scanMsg}</div>
         )}
-        {!scanning && importable.length > 0 && (
-          <div style={{ padding: '0 16px 6px', flexShrink: 0 }}>
-            <button onClick={toggleAll}
-              style={{ appearance: 'none', border: `1px solid ${v('line')}`, background: v('surface'), color: v('ink-soft'), borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
-              {allSelected ? '전체 해제' : `전체 선택 (${importable.length}개)`}
-            </button>
+        {!scanning && (importable.length > 0 || doneCount > 0) && (
+          <div style={{ padding: '0 16px 6px', flexShrink: 0, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {importable.length > 0 && (
+              <button onClick={toggleAll}
+                style={{ appearance: 'none', border: `1px solid ${v('line')}`, background: v('surface'), color: v('ink-soft'), borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
+                {allSelected ? '전체 해제' : `전체 선택 (${importable.length}개)`}
+              </button>
+            )}
+            {doneCount > 0 && (
+              <button onClick={toggleAllDone}
+                style={{ appearance: 'none', border: `1px solid ${v('line')}`, background: v('surface'), color: v('ink-soft'), borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
+                {allDoneSelected ? '완료 전체 해제' : `완료 전체 업데이트 (${doneCount}개)`}
+              </button>
+            )}
           </div>
         )}
         {!scanning && doneCount > 0 && (
