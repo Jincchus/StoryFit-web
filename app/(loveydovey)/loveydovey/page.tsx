@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
-import { useCenterList } from '@/lib/useCenterList'
+import { useCenterListPaged } from '@/lib/useCenterListPaged'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import type { CenterListItem } from '@/lib/centerListSelect'
 
@@ -17,7 +17,7 @@ export default function LoveydoveyListPage() {
     searchOpen, toggleSearch,
     counts, tagGroups, tCounts, genderBuckets, visibleChars,
     isFav, toggleFav, scrollRef, refresh,
-  } = useCenterList({ indexQuery: 'isLoveydovey=true', storagePrefix: 'lovey' })
+  } = useCenterListPaged({ indexQuery: 'isLoveydovey=true', storagePrefix: 'lovey' })
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)

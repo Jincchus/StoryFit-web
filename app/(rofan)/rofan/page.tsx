@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
-import { useCenterList } from '@/lib/useCenterList'
+import { useCenterListPaged } from '@/lib/useCenterListPaged'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import type { CenterListItem } from '@/lib/centerListSelect'
 import LikedImportSheet from '@/components/ui/LikedImportSheet'
@@ -19,7 +19,7 @@ export default function RofanListPage() {
     searchOpen, toggleSearch,
     counts, tagGroups, tCounts, genderBuckets, visibleChars,
     isFav, toggleFav, scrollRef, refresh,
-  } = useCenterList({ indexQuery: 'isRofan=true', storagePrefix: 'rofan' })
+  } = useCenterListPaged({ indexQuery: 'isRofan=true', storagePrefix: 'rofan' })
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)

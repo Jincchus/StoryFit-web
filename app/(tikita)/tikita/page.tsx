@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
-import { useCenterList } from '@/lib/useCenterList'
+import { useCenterListPaged } from '@/lib/useCenterListPaged'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import type { CenterListItem } from '@/lib/centerListSelect'
 import type { LikedItem } from '@/lib/likedScan'
@@ -19,7 +19,7 @@ export default function TikitaListPage() {
     searchOpen, toggleSearch,
     counts, tagGroups, tCounts, genderBuckets, visibleChars,
     isFav, toggleFav, scrollRef, refresh,
-  } = useCenterList({ indexQuery: 'isTikita=true', storagePrefix: 'tikita' })
+  } = useCenterListPaged({ indexQuery: 'isTikita=true', storagePrefix: 'tikita' })
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)

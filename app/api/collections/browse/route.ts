@@ -40,12 +40,17 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Math.max(Number(sp.get('limit') ?? 30), 1), 100)
   const offset = Math.max(Number(sp.get('offset') ?? 0), 0)
   const withFacets = sp.get('facets') === '1' || offset === 0
+  // 단일 센터 페이지(center=키)면 그 센터 호스트로만 DB 스코프 — 전체 로드 방지
+  const centerKeyParam = sp.get('center')
+  const scopeHosts = centerKeyParam
+    ? (CENTERS.find(c => c.key === centerKeyParam)?.dbHosts ?? EXTERNAL_HOSTS)
+    : EXTERNAL_HOSTS
 
-  // 외부 센터 컬렉션(팅글 서사/테마 제외) 경량 로드
+  // 센터 컬렉션(팅글 서사/테마 제외) 경량 로드 — 메타 블롭은 싣지 않음
   const cols = await prisma.characterCollection.findMany({
     where: {
       userId,
-      OR: EXTERNAL_HOSTS.map(h => ({ sourceUrl: { contains: h } })),
+      OR: scopeHosts.map(h => ({ sourceUrl: { contains: h } })),
       NOT: [
         { sourceUrl: { contains: 'tingle.chat/chat/universes/' } },
         { sourceUrl: { contains: 'tingle.chat/chat/scenes/' } },
@@ -114,6 +119,23 @@ export async function GET(req: NextRequest) {
   )
 
   const page = filtered.slice(offset, offset + limit)
+
+  // zeta/tikita 카드 부제(메타의 소필드)만 페이지 항목에 붙인다 — 전체 메타 블롭은 싣지 않음
+  const pageIds = page.map(c => c.id)
+  if (pageIds.length) {
+    const metas = await prisma.characterCollection.findMany({
+      where: { id: { in: pageIds } },
+      select: { id: true, zetaMeta: true, tikitaMeta: true },
+    })
+    const metaById = new Map(metas.map(m => [m.id, m]))
+    for (const c of page as any[]) {
+      const m = metaById.get(c.id)
+      const sd = (m?.zetaMeta as any)?.shortDescription
+      const tl = (m?.tikitaMeta as any)?.tagline
+      if (sd) c.zetaMeta = { shortDescription: sd }
+      if (tl) c.tikitaMeta = { tagline: tl }
+    }
+  }
 
   const res: any = { items: page, total: filtered.length, hasMore: offset + limit < filtered.length }
 

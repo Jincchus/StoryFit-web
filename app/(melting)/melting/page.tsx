@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
-import { useCenterList } from '@/lib/useCenterList'
+import { useCenterListPaged } from '@/lib/useCenterListPaged'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import type { CenterListItem } from '@/lib/centerListSelect'
 import type { LikedCharacter } from '@/app/api/melting/liked-scan/route'
@@ -19,7 +19,7 @@ export default function MeltingListPage() {
     searchOpen, toggleSearch,
     counts, tagGroups, tCounts, genderBuckets, visibleChars,
     isFav, toggleFav, scrollRef, refresh,
-  } = useCenterList({ indexQuery: 'isMelting=true', storagePrefix: 'melting' })
+  } = useCenterListPaged({ indexQuery: 'isMelting=true', storagePrefix: 'melting' })
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)

@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import { replaceDisplayPlaceholders } from '@/lib/josa'
 import TagFilterBar from '@/components/ui/TagFilterBar'
 import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
-import { useCenterList } from '@/lib/useCenterList'
+import { useCenterListPaged } from '@/lib/useCenterListPaged'
 import { useDisplayName } from '@/lib/useDisplayName'
 import type { CenterListItem } from '@/lib/centerListSelect'
 import type { LikedPlot } from '@/app/api/zeta/liked-scan/route'
@@ -20,7 +20,7 @@ export default function ZetaListPage() {
     searchOpen, toggleSearch,
     counts, tagGroups, tCounts, genderBuckets, visibleChars,
     isFav, toggleFav, scrollRef, refresh,
-  } = useCenterList({ indexQuery: 'isZeta=true', storagePrefix: 'zeta' })
+  } = useCenterListPaged({ indexQuery: 'isZeta=true', storagePrefix: 'zeta' })
   const userName = useDisplayName()
 
   const [menuOpen, setMenuOpen] = useState(false)
