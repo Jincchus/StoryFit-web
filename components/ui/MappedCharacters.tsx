@@ -28,7 +28,8 @@ export default function MappedCharacters({
   title?: string
 }) {
   const [openChar, setOpenChar] = useState<CharacterCardData | null>(null)
-  if (!characters || characters.length === 0) return null
+  // 캐릭터가 2명 이상 매핑된 카드에서만 표시(1명이면 아래 상세와 중복되므로 숨김).
+  if (!characters || characters.length < 2) return null
   const v = (name: string) => `var(--${prefix}-${name})`
 
   const toCardData = (c: Char): CharacterCardData => ({
