@@ -67,6 +67,7 @@ export default function AllCentersPage() {
   const [sort, setSort] = useState<SortOption>('latest')
   const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 1e9))
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [selectedCenters, setSelectedCenters] = useState<string[]>([])
   const [genderFilter, setGenderFilter] = useState<GenderBucket | 'all'>('all')
@@ -83,14 +84,20 @@ export default function AllCentersPage() {
   const buildParams = useCallback((offset: number, withFacets: boolean) => {
     const p = new URLSearchParams()
     p.set('view', view); p.set('sort', sort); p.set('seed', String(randomSeed))
-    if (query.trim()) p.set('q', query.trim())
+    if (debouncedQuery.trim()) p.set('q', debouncedQuery.trim())
     if (selectedCenters.length) p.set('centers', selectedCenters.join(','))
     if (genderFilter !== 'all') p.set('gender', genderFilter)
     if (selectedTags.length) p.set('tags', selectedTags.join(','))
     p.set('limit', String(LIMIT)); p.set('offset', String(offset))
     if (withFacets) p.set('facets', '1')
     return p.toString()
-  }, [view, sort, randomSeed, query, selectedCenters, genderFilter, selectedTags])
+  }, [view, sort, randomSeed, debouncedQuery, selectedCenters, genderFilter, selectedTags])
+
+  // 검색어 디바운스(300ms)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300)
+    return () => clearTimeout(t)
+  }, [query])
 
   useEffect(() => { api.get('/api/center-tags').then(setTagConfig).catch(() => {}) }, [])
   useEffect(() => {

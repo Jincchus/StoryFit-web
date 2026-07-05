@@ -37,6 +37,7 @@ export function useCenterListPaged(opts: { indexQuery: string; storagePrefix: st
   const [view, setViewState] = useState<View>('active')
   const [sort, setSortState] = useState<SortOption>('latest')
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [genderFilter, setGenderFilter] = useState('all')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -70,14 +71,20 @@ export function useCenterListPaged(opts: { indexQuery: string; storagePrefix: st
     const p = new URLSearchParams()
     p.set('center', centerKey)
     p.set('view', view); p.set('sort', sort); p.set('seed', String(randomSeed))
-    if (query.trim()) p.set('q', query.trim())
+    if (debouncedQuery.trim()) p.set('q', debouncedQuery.trim())
     if (genderFilter !== 'all') p.set('gender', genderFilter)
     if (selectedTags.length) p.set('tags', selectedTags.join(','))
     for (const [k, v] of Object.entries(extraParams ?? {})) if (v) p.set(k, v)
     p.set('limit', String(LIMIT)); p.set('offset', String(offset))
     if (withFacets) p.set('facets', '1')
     return p.toString()
-  }, [centerKey, view, sort, randomSeed, query, genderFilter, selectedTags, extraKey])
+  }, [centerKey, view, sort, randomSeed, debouncedQuery, genderFilter, selectedTags, extraKey])
+
+  // 검색어 디바운스(300ms) — 키 입력마다 세부내용 검색 요청이 나가지 않게.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300)
+    return () => clearTimeout(t)
+  }, [query])
 
   // 필터 변경 → offset=0 재조회(패싯 포함)
   const reload = useCallback(() => {

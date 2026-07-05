@@ -64,9 +64,20 @@ export async function GET(req: NextRequest) {
     },
     select: {
       id: true, title: true, coverImageUrl: true, sourceUrl: true, description: true, tags: true, createdAt: true,
-      characters: { select: { id: true, name: true, avatarUrl: true, gender: true } },
+      // 검색어가 있을 때만 세부내용(캐릭터 설정)을 로드해 검색에 포함(무거운 필드라 평소엔 미로드).
+      characters: { select: { id: true, name: true, avatarUrl: true, gender: true, ...(q ? { additionalInfo: true } : {}) } },
     },
   })
+
+  // 검색 텍스트 인덱스(검색어 있을 때만) — 제목·설명·태그·캐릭터명·세부내용·sourceUrl(작성자 포함 URL) 통합.
+  const searchTextById = new Map<string, string>()
+  if (q) {
+    for (const c of cols) {
+      const parts: string[] = [c.title, c.description ?? '', (c.sourceUrl ?? ''), ...(c.tags ?? [])]
+      for (const ch of c.characters as any[]) { parts.push(ch.name ?? ''); if (ch.additionalInfo) parts.push(ch.additionalInfo) }
+      searchTextById.set(c.id, parts.join(' ').toLowerCase())
+    }
+  }
 
   const ids = cols.map(c => c.id)
   // 완결/시작 판정 + 최근활동 시각 (대화 링크 집계)
@@ -106,11 +117,8 @@ export async function GET(req: NextRequest) {
 
   // ── 필터 함수들 (클라 explore/all 과 동일 의미) ──
   const matchesCenter = (c: Card) => centers.length === 0 || centers.includes(centerKey(c.sourceUrl))
-  const matchesQuery = (c: Card) => !q
-    || c.title.toLowerCase().includes(q)
-    || (c.tags.some(t => t.toLowerCase().includes(q)))
-    || (c.description.toLowerCase().includes(q))
-    || c.characters.some(ch => ch.name.toLowerCase().includes(q))
+  // 제목·태그·설명·캐릭터명·세부내용(캐릭터 설정)·sourceUrl 통합 검색 (searchTextById에 인덱싱됨)
+  const matchesQuery = (c: Card) => !q || (searchTextById.get(c.id) ?? '').includes(q)
   const matchesGender = (c: Card) => gender === 'all' || cardGenderBucket(c.characters) === gender
   const matchesTags = (c: Card) => selectedTags.length === 0 || selectedTags.every(t => c.tags.includes(t))
   const matchesTingleType = (c: Card) => !isTingle || !tingleType || tingleTypeOf(c.sourceUrl) === tingleType
