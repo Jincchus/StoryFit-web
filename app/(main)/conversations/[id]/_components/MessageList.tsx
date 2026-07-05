@@ -301,17 +301,25 @@ export default function MessageList({
 
             {/* ── 본문 4지선다 선택지 버튼 (단일 호출로 받은 본문 내 선택지를 파싱해 렌더) ── */}
             {isStoryOrMulti && !isYou && isLast && !typing && storyParsed && storyParsed.choices.length > 0 && !m.commandName && (
-              <div className="vstack" style={{ gap: 5, marginTop: 8, paddingLeft: 4 }}>
+              <div className="vstack" style={{ gap: 7, marginTop: 10, paddingLeft: 4 }}>
                 {storyParsed.choices.map((choice, i) => (
-                  <div key={i} className="hstack" style={{ gap: 4, alignItems: 'stretch' }}>
+                  <div key={i} className="hstack" style={{ gap: 6, alignItems: 'stretch' }}>
                     <button
-                      className="btn ghost"
-                      style={{ flex: 1, textAlign: 'left', fontSize: 11, padding: '5px 10px', lineHeight: 1.5, whiteSpace: 'normal' }}
                       onClick={() => send(choice)}
-                    ><span style={{ opacity: 0.5, marginRight: 6, fontWeight: 700 }}>{i + 1}</span>{choice}</button>
+                      style={{
+                        flex: 1, display: 'flex', gap: 9, alignItems: 'center', textAlign: 'left',
+                        fontSize: 12, lineHeight: 1.5, padding: '10px 12px', whiteSpace: 'normal', cursor: 'pointer',
+                        background: 'var(--pane)', border: '1.5px solid var(--chrome-border)', borderRadius: 12, color: 'var(--ink)',
+                      }}
+                    >
+                      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--hot-pink)', color: '#fff', fontSize: 12, fontWeight: 800, display: 'grid', placeItems: 'center' }}>{i + 1}</span>
+                      <span>{choice}</span>
+                    </button>
                     <button
-                      className="btn ghost"
-                      style={{ fontSize: 10, padding: '0 7px', flexShrink: 0 }}
+                      style={{
+                        flexShrink: 0, fontSize: 12, padding: '0 11px', cursor: 'pointer',
+                        background: 'var(--pane)', border: '1.5px solid var(--chrome-border)', borderRadius: 12, color: 'var(--ink-soft)',
+                      }}
                       title="수정 후 전송"
                       onClick={() => fillComposer(choice)}
                     >✏</button>
