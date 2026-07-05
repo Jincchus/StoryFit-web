@@ -208,7 +208,7 @@ model Conversation {
   suggestRepliesEnabled  Boolean              @default(false)
   enrichInputMode        Boolean              @default(true)
   personaAutoMode        Boolean              @default(true)
-  personaFlipPlaceholders Boolean              @default(true)
+  personaFlipPlaceholders Boolean              @default(false)
   fastPaceEnabled         Boolean              @default(false)
   adultGatingEnabled      Boolean              @default(true)
   autoChapterEnabled     Boolean              @default(false)

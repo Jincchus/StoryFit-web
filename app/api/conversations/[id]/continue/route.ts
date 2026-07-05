@@ -82,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     character: buildCharParam(character),
     characters: conv.characters.map((cc: any) => buildCharParam(cc.character)),
     allowPersonaDialogue: conv.personaAutoMode ?? false,
-    flipPersonaPlaceholders: conv.personaFlipPlaceholders ?? true,
+    flipPersonaPlaceholders: conv.personaFlipPlaceholders ?? false,
     fastPace: conv.fastPaceEnabled ?? false,
     adultGating: conv.adultGatingEnabled ?? true,
   })

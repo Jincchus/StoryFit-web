@@ -121,7 +121,7 @@ export default function CharacterDetailPage() {
     aiCharIds: [char.id],
   })
 
-  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = true) => {
+  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = false) => {
     setCreating(true); setError('')
     try {
       const resp = await createCenterChat({

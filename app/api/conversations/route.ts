@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
       enrichInputMode: body.enrichInputMode ?? true,
       personaAutoMode: typeof body.personaAutoMode === 'boolean' ? body.personaAutoMode : true,
       autoChapterEnabled: body.autoChapterEnabled ?? false,
-      personaFlipPlaceholders: typeof body.personaFlipPlaceholders === 'boolean' ? body.personaFlipPlaceholders : true,
+      personaFlipPlaceholders: typeof body.personaFlipPlaceholders === 'boolean' ? body.personaFlipPlaceholders : false,
       fastPaceEnabled: typeof body.fastPaceEnabled === 'boolean' ? body.fastPaceEnabled : false,
       adultGatingEnabled: typeof body.adultGatingEnabled === 'boolean' ? body.adultGatingEnabled : true,
       sourceUrl: convSourceUrl,

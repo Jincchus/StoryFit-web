@@ -147,7 +147,7 @@ export default function ZetaPlotDetailPage() {
     ? [chatProfile.summary, chatProfile.description].filter(Boolean).join('\n')
     : ''
 
-  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = true) => {
+  const handlePersonaSelect = async (personaCharId: string | null, newPersona?: NewPersonaData, flip = false) => {
     if (!mainChar) return
     setCreating(true); setError('')
     try {

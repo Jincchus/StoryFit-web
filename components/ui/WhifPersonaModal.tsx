@@ -52,7 +52,7 @@ export default function WhifPersonaModal({ candidates, loading, defaultName, def
   const [gender, setGender] = useState('여성')
   const [settings, setSettings] = useState(defaultSettings ?? '')
   const [relationships, setRelationships] = useState<string[]>([])
-  const [flip, setFlip] = useState(defaultFlip ?? true)
+  const [flip, setFlip] = useState(defaultFlip ?? false)
 
   const toggleRelationship = (r: string) => {
     setRelationships(prev =>
