@@ -174,7 +174,6 @@ export default function CrackCharacterDetailPage() {
             <button className="crack-back" style={{ position: 'absolute', top: 12, left: 8 }} onClick={() => router.back()}>‹</button>
             <div style={{ position: 'absolute', top: 12, right: 8, display: 'flex', gap: 8 }}>
               <button className="crack-iconbtn" style={{ color: 'var(--crack-accent)' }} onClick={() => router.push(`/characters/${id}/edit`)}>✏ 정보 수정</button>
-              <button className="crack-iconbtn" onClick={() => router.push('/characters/new?isCrack=true')}>+ 캐릭터 등록</button>
               <button className="crack-iconbtn" style={{ color: '#ff6b8a' }} onClick={handleDelete}>삭제</button>
             </div>
           </div>
