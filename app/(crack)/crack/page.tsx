@@ -8,6 +8,8 @@ import VirtualCardGrid from '@/components/ui/VirtualCardGrid'
 import { useCenterList } from '@/lib/useCenterList'
 import { useDisplayName } from '@/lib/useDisplayName'
 import type { CenterListItem } from '@/lib/centerListSelect'
+import LikedImportSheet from '@/components/ui/LikedImportSheet'
+import type { LikedItem } from '@/lib/likedScan'
 
 interface Character {
   id: string; name: string; avatarUrl: string | null; gender?: string | null
@@ -55,6 +57,11 @@ export default function CrackExplorePage() {
   const [importUrl, setImportUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [msg, setMsg] = useState('')
+  const [likedPanel, setLikedPanel] = useState(false)
+  const [likedList, setLikedList] = useState<LikedItem[]>([])
+  const [likedSelected, setLikedSelected] = useState<Set<string>>(new Set())
+  const [scanning, setScanning] = useState(false)
+  const [scanMsg, setScanMsg] = useState('')
 
   useEffect(() => {
     setEditMode(localStorage.getItem('crack_edit') === '1')
@@ -63,6 +70,38 @@ export default function CrackExplorePage() {
 
   const handleTab = (v: typeof tab) => { setTab(v); sessionStorage.setItem('crack_tab', v) }
   const refreshAll = async () => { await Promise.all([storyHook.refresh(), charHook.refresh()]) }
+
+  const handleCrackLikedScan = async () => {
+    setMenuOpen(false); setLikedPanel(true)
+    if (likedList.length > 0) return
+    setScanning(true); setScanMsg('크랙 좋아요 목록 스캔 중...')
+    try {
+      const res = await api.get('/api/crack/liked-scan')
+      setLikedList(res.liked ?? [])
+      setScanMsg(`♥ 스토리 ${res.total ?? (res.liked?.length ?? 0)}개 발견`)
+    } catch (e: any) { setScanMsg(`⚠ ${e?.message ?? '스캔 실패'}`) }
+    finally { setScanning(false) }
+  }
+
+  const handleCrackLikedImport = async () => {
+    const targets = likedList.filter(x => likedSelected.has(x.id))
+    if (targets.length === 0 || importing) return
+    setImporting(true); setMsg('')
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+    let ok = 0
+    const failed: string[] = []
+    for (let i = 0; i < targets.length; i++) {
+      setMsg(`가져오는 중... (${i + 1}/${targets.length})`)
+      try { await api.post('/api/characters/import', { url: targets[i].sourceUrl }); ok++ }
+      catch { failed.push(targets[i].name) }
+      // 봇 탐지 방지: 마지막 항목이 아니면 랜덤 3~8초 대기
+      if (i < targets.length - 1) await sleep(3000 + Math.floor(Math.random() * 5000))
+    }
+    setImporting(false)
+    setMsg(failed.length ? `✓ ${ok}개 완료 · ⚠ ${failed.join(', ')} 실패` : `✓ ${ok}개 가져왔습니다`)
+    if (failed.length === 0) { setLikedPanel(false); setLikedSelected(new Set()) }
+    await refreshAll()
+  }
 
   const handleImport = async () => {
     const urls = importUrl.split(String.fromCharCode(10)).map(u => u.trim()).filter(Boolean)
@@ -174,6 +213,22 @@ export default function CrackExplorePage() {
 
   return (
     <>
+      <LikedImportSheet
+        open={likedPanel}
+        onClose={() => setLikedPanel(false)}
+        title="♥ 크랙 좋아요 목록"
+        prefix="crack"
+        items={likedList}
+        scanning={scanning}
+        scanMsg={scanMsg}
+        onRescan={() => { setLikedList([]); setLikedSelected(new Set()); setScanMsg(''); handleCrackLikedScan() }}
+        alreadyImported={x => storyHook.items.some(u => u.sourceUrl === x.sourceUrl)}
+        selected={likedSelected}
+        onChangeSelected={setLikedSelected}
+        importing={importing}
+        importProgress={msg}
+        onImport={handleCrackLikedImport}
+      />
       <div className="crack-header" style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button className="crack-iconbtn" aria-label="홈으로" onClick={() => router.push('/')}>🏠</button>
@@ -189,6 +244,7 @@ export default function CrackExplorePage() {
                 disabled={importing} onClick={handleImport}>{importing ? '가져오는 중...' : '📥 가져오기'}</button>
             </div>
             <button className="crack-menu-item" onClick={createStory}>+ 새 스토리 만들기</button>
+            <button className="crack-menu-item" onClick={handleCrackLikedScan}>♥ 좋아요 목록</button>
             <button className="crack-menu-item" onClick={toggleEditMode}>
               {editMode ? '✓ 편집 모드 끄기' : '✏ 편집 모드 켜기'}
             </button>
