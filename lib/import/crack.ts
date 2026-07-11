@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/prisma'
 import { withCrackPage } from '@/lib/crackBrowser'
 import type { AssembledResult, AssembledCharacter } from './types'
+import type { LikedItem } from '@/lib/likedScan'
 
 interface AssembledOpening {
   id: string
@@ -210,4 +211,40 @@ export async function captureCrackStory(url: string): Promise<{ story: any; asso
 
     return { story, associatedCharacters }
   })
+}
+
+// 크랙 좋아요 스토리 1건 → 공용 LikedItem
+export function mapCrackLikedStory(s: any): LikedItem {
+  const id = String(s?._id ?? '').trim()
+  const cover =
+    s?.portraitImage?.w600 ?? s?.portraitImage?.origin ??
+    s?.profileImage?.w600 ?? s?.profileImage?.origin ?? null
+  return {
+    id,
+    name: String(s?.name ?? '').trim(),
+    coverImageUrl: cover,
+    tags: Array.isArray(s?.tags) ? s.tags : [],
+    isAdult: !!s?.isAdult,
+    sourceUrl: `https://crack.wrtn.ai/detail/${id}`,
+  }
+}
+
+// 저장된 세션 쿠키로 crack-api를 plain fetch(GET, JSON). CF는 쿠키의 cf_clearance로 통과.
+// Bearer는 쿠키의 access_token에서 추출해 함께 부착. (스캔 등 가벼운 GET 전용)
+export async function crackApiGetJson(path: string): Promise<any> {
+  const cfg = await prisma.globalConfig.findUnique({ where: { key: 'crack_session_cookie' } })
+  const cookie = (cfg?.value ?? '').trim()
+  if (!cookie) throw new Error('크랙 세션 쿠키가 설정되어 있지 않습니다. 관리자 설정에서 입력하세요.')
+  const token = (cookie.match(/(?:^|;\s*)access_token=([^;]+)/)?.[1] ?? '').trim()
+  const res = await fetch(`https://crack-api.wrtn.ai${path}`, {
+    headers: {
+      accept: 'application/json',
+      cookie,
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+  })
+  if (res.status === 401 || res.status === 403) throw new Error('크랙 세션 쿠키가 만료되었습니다. 관리자 설정에서 다시 입력하세요.')
+  if (!res.ok) throw new Error(`크랙 API 오류 (HTTP ${res.status})`)
+  return res.json()
 }
