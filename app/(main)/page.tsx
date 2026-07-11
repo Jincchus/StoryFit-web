@@ -35,6 +35,7 @@ const GUIDE_SECTIONS: { title: string; items: GuideItem[] }[] = [
       { emoji: '💗', label: 'rofanai (rofan.ai)', desc: '로맨스 판타지 캐릭터 URL을 붙여넣으면 설정·첫 장면을 자동으로 가져옵니다.', href: '/rofan' },
       { emoji: '💞', label: 'loveydovey (loveydovey.ai)', desc: '캐릭터 URL을 붙여넣으면 메타데이터(이름·소개·장르·이미지)를 가져옵니다.', href: '/loveydovey' },
       { emoji: '🩵', label: 'babechat (babechat.ai)', desc: '캐릭터 URL을 붙여넣으면 설정·도입부를 가져옵니다. (관리자 인증 토큰 설정 필요)', href: '/babechat' },
+      { emoji: '🩶', label: '크랙 (crack.wrtn.ai)', desc: '뤼튼 크랙 스토리·캐릭터 가져오기', href: '/crack' },
     ],
   },
   {

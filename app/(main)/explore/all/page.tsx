@@ -37,6 +37,7 @@ const CENTERS: { key: string; label: string; match: (url: string) => boolean; co
   { key: 'loveydovey', label: 'loveydovey', match: u => u.includes('loveydovey.ai'),color: '#ff5a5f', detail: id => `/loveydovey/characters/${id}` },
   { key: 'babechat',   label: 'babechat',   match: u => u.includes('babechat.'),    color: '#5b8cff', detail: id => `/babechat/characters/${id}` },
   { key: 'tingle',     label: 'tingle',     match: u => u.includes('tingle.chat'),  color: '#ff5776', detail: id => `/tingle/characters/${id}` },
+  { key: 'crack',      label: '크랙',       match: u => u.includes('crack.wrtn.ai'),color: '#3a3a3f', detail: id => `/crack/stories/${id}` },
 ]
 
 function detectCenter(sourceUrl: string) {
