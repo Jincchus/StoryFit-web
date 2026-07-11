@@ -11,6 +11,7 @@ import { captureChub } from '@/lib/import/chub'
 import { captureRofan } from '@/lib/import/rofan'
 import { captureLoveydovey } from '@/lib/import/loveydovey'
 import { captureBabechat } from '@/lib/import/babechat'
+import { captureCrackStory, assembleCrackStory } from '@/lib/import/crack'
 import { splitIntoBlocks } from '@/lib/import/blocks'
 import { classifyBlocks } from '@/lib/import/classify'
 import { assemble, buildFallback } from '@/lib/import/assemble'
@@ -328,6 +329,68 @@ async function runImport(captured: Captured, url: string, userId: string) {
   return { characterId: firstChar?.id, conversationId: '', collectionId: collection.id }
 }
 
+// 크랙(crack.wrtn.ai) 스토리 가져오기: 스토리 = 컬렉션, 등장 캐릭터들을 CrackStoryCharacter로 조인.
+// crackId가 있는 캐릭터는 재수집 시 재사용(dedupe)하고, 컬렉션은 sourceUrl로 dedupe한다.
+async function runCrackImport(url: string, userId: string) {
+  const { story, associatedCharacters } = await captureCrackStory(url)
+  const { result, crackIds } = assembleCrackStory(story, associatedCharacters)
+
+  const sourceUrl = normalizeUrl(url)
+
+  let collection = await prisma.characterCollection.findFirst({ where: { userId, sourceUrl } })
+  if (!collection) {
+    collection = await prisma.characterCollection.create({
+      data: {
+        title: result.title,
+        sourceUrl,
+        userId,
+        conversationId: null,
+        coverImageUrl: result.coverImageUrl ?? '',
+        description: result.scenarioDescription ?? '',
+        tags: result.tags ?? [],
+      },
+    })
+  }
+
+  const characterIds: string[] = []
+  for (let i = 0; i < result.characters.length; i++) {
+    const c = result.characters[i]
+    const crackId = crackIds[i]
+
+    let ch = crackId ? await prisma.character.findFirst({ where: { creatorId: userId, crackId } }) : null
+    if (!ch) {
+      ch = await prisma.character.create({
+        data: {
+          name: c.name.slice(0, 100),
+          gender: (c.gender || '').slice(0, 20),
+          tags: c.tags ?? [],
+          additionalInfo: c.additionalInfo,
+          exampleDialogues: c.exampleDialogues,
+          openingMessage: c.openingMessage,
+          openingMessages: c.openingMessages ? (c.openingMessages as any) : undefined,
+          relatedImages: c.relatedImages ?? [],
+          safetyLevel: result.safetyLevel || 'standard',
+          isAutoCreated: true,
+          creatorId: userId,
+          ...(crackId ? { crackId } : {}),
+          collectionId: collection.id,
+          ...(c.avatarUrl ? { avatarUrl: c.avatarUrl } : {}),
+        },
+      })
+    }
+
+    await prisma.crackStoryCharacter.upsert({
+      where: { collectionId_characterId: { collectionId: collection.id, characterId: ch.id } },
+      update: { order: i },
+      create: { collectionId: collection.id, characterId: ch.id, order: i },
+    })
+
+    characterIds.push(ch.id)
+  }
+
+  return { characterId: characterIds[0], conversationId: '', collectionId: collection.id }
+}
+
 export async function POST(req: NextRequest) {
   const userId = await authenticate(req)
   if (!userId) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
@@ -376,6 +439,10 @@ export async function POST(req: NextRequest) {
   if (matchesHost(url, 'babechat.ai', 'babechat.jp')) {
     try { return NextResponse.json(await runImport(await captureBabechat(url.trim()), url.trim(), userId), { status: 201 }) }
     catch (e: any) { return NextResponse.json({ error: e.message ?? 'babechat 가져오기 실패' }, { status: 400 }) }
+  }
+  if (matchesHost(url, 'crack.wrtn.ai')) {
+    try { return NextResponse.json(await runCrackImport(url.trim(), userId), { status: 201 }) }
+    catch (e: any) { return NextResponse.json({ error: e.message ?? '크랙 가져오기 실패' }, { status: 400 }) }
   }
   if (matchesHost(url, 'tingle.chat')) {
     try { return NextResponse.json(await runImport(await captureTingle(url.trim()), url.trim(), userId), { status: 201 }) }
