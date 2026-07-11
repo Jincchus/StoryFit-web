@@ -120,6 +120,7 @@ model CharacterCollection {
   user           User          @relation(fields: [userId], references: [id])
   conversation   Conversation? @relation(fields: [conversationId], references: [id])
   characters     Character[]
+  crackCharacters CrackStoryCharacter[]
   lorebooks      Lorebook[]
   coverImageUrl  String        @default("")
   description    String        @default("")
@@ -133,6 +134,19 @@ model CharacterCollection {
 
   @@index([userId])
   @@index([sourceUrl])
+}
+
+model CrackStoryCharacter {
+  id           String              @id @default(cuid())
+  collectionId String
+  characterId  String
+  order        Int                 @default(0)
+  collection   CharacterCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  character    Character           @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, characterId])
+  @@index([collectionId])
+  @@index([characterId])
 }
 
 model Character {
@@ -161,11 +175,14 @@ model Character {
   creator             User?     @relation(fields: [creatorId], references: [id])
   collectionId        String?
   collection          CharacterCollection? @relation(fields: [collectionId], references: [id])
+  crackId             String?   // 크랙 원본 캐릭터 _id — 여러 스토리 공유 시 dedupe 키
+  crackStories        CrackStoryCharacter[]
   conversations       ConversationCharacter[]
   personaConversations Conversation[]
 
   @@index([creatorId])
   @@index([collectionId])
+  @@index([crackId])
 }
 
 model UploadedImage {
