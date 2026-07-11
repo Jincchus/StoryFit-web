@@ -111,6 +111,13 @@ export const CENTERS: CenterDef[] = [
     dbHosts: ['tingle.chat'], importHosts: ['tingle.chat'],
     cssVar: '--tg-', cssClass: 'tingle-', storagePrefix: 'tg',
   },
+  {
+    key: 'crack', label: '크랙', domain: 'crack.wrtn.ai', path: '/crack', emoji: '🩶',
+    grad: 'linear-gradient(135deg, #3a3a3f, #6b6b73)',
+    desc: '뤼튼 크랙 스토리·캐릭터 가져오기',
+    dbHosts: ['crack.wrtn.ai'], importHosts: ['crack.wrtn.ai'],
+    cssVar: '--crack-', cssClass: 'crack-', storagePrefix: 'crack',
+  },
 ]
 
 /** collections API에서 "외부 센터 전체"를 가리키는 sourceUrl 부분 문자열 목록. */
