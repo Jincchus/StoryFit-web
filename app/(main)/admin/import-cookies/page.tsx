@@ -6,7 +6,7 @@ import { PixelIcons } from '@/components/ui/PixelAvatar'
 import AdminNav from '../_components/AdminNav'
 
 type CookieEntry = { value: string; updatedAt: string | null }
-type CookieData = Record<'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'zeta_refresh_token' | 'rofan_session_cookie' | 'tikita_session_token', CookieEntry>
+type CookieData = Record<'whif_session_cookie' | 'whif_persona_id' | 'melting_session_cookie' | 'melting_session_nickname' | 'babechat_access_token' | 'babechat_refresh_token' | 'tingle_auth_token' | 'tingle_refresh_token' | 'tingle_firebase_api_key' | 'zeta_token' | 'zeta_refresh_token' | 'rofan_session_cookie' | 'tikita_session_token' | 'crack_session_cookie', CookieEntry>
 
 function formatUpdatedAt(iso: string | null): string {
   if (!iso) return '저장된 값 없음'
@@ -93,6 +93,8 @@ export default function AdminImportCookiesPage() {
   const [rofanCookieUpdatedAt, setRofanCookieUpdatedAt] = useState<string | null>(null)
   const [tikitaToken, setTikitaToken] = useState('')
   const [tikitaTokenUpdatedAt, setTikitaTokenUpdatedAt] = useState<string | null>(null)
+  const [crackCookie, setCrackCookie] = useState('')
+  const [crackCookieUpdatedAt, setCrackCookieUpdatedAt] = useState<string | null>(null)
   const [tingleOpen, setTingleOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -125,6 +127,8 @@ export default function AdminImportCookiesPage() {
       setRofanCookieUpdatedAt(data.rofan_session_cookie?.updatedAt ?? null)
       setTikitaToken(data.tikita_session_token?.value ?? '')
       setTikitaTokenUpdatedAt(data.tikita_session_token?.updatedAt ?? null)
+      setCrackCookie(data.crack_session_cookie?.value ?? '')
+      setCrackCookieUpdatedAt(data.crack_session_cookie?.updatedAt ?? null)
     }).catch(() => {})
   }
 
@@ -148,6 +152,7 @@ export default function AdminImportCookiesPage() {
         zeta_refresh_token: zetaRefreshToken,
         rofan_session_cookie: rofanCookie,
         tikita_session_token: tikitaToken,
+        crack_session_cookie: crackCookie,
       })
       setSaved(true)
       load()
@@ -261,6 +266,15 @@ export default function AdminImportCookiesPage() {
               value={tikitaToken}
               onChange={setTikitaToken}
               updatedAt={tikitaTokenUpdatedAt}
+            />
+
+            <CookieField
+              label="크랙 세션 쿠키 (crack.wrtn.ai)"
+              hint={'브라우저에서 crack.wrtn.ai에 로그인한 뒤 개발자도구 → Network 탭 → crack-api.wrtn.ai 요청 클릭 → Headers → Cookie 헤더 값 전체를 복사해 붙여넣으세요.\ncrack은 Cloudflare 뒤에 있어 서버가 헤드리스 브라우저로 쿠키를 주입해 접속합니다.'}
+              placeholder="access_token=eyJ...; refresh_token=...; ..."
+              value={crackCookie}
+              onChange={setCrackCookie}
+              updatedAt={crackCookieUpdatedAt}
             />
 
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
