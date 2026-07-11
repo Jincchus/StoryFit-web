@@ -80,7 +80,7 @@ const FEATURE_SECTIONS: FeatureSection[] = [
   {
     title: '📥 외부 센터 가져오기',
     items: [
-      { emoji: '🔗', label: 'URL 붙여넣기 가져오기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle 센터의 캐릭터/스토리 URL을 각 센터 ⋮ 메뉴에 붙여넣으면 캐릭터·첫 장면·설정을 자동으로 가져옵니다.' },
+      { emoji: '🔗', label: 'URL 붙여넣기 가져오기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle·크랙 센터의 캐릭터/스토리 URL을 각 센터 ⋮ 메뉴에 붙여넣으면 캐릭터·첫 장면·설정을 자동으로 가져옵니다.' },
       { emoji: '🧩', label: 'Chub 외국 센터', desc: 'chub.ai의 외국 캐릭터 카드를 원문(영어) 그대로 즉시 가져옵니다. 상세 화면의 "🌐 한국어로 번역" 버튼을 누르면 AI(Gemini)가 설명·도입부·예시대화를 번역하며, "🔤 원문" 버튼으로 다시 되돌릴 수 있습니다(태그는 가져올 때 한글로 정규화, 이름은 원문 유지).' },
       { emoji: '💗', label: 'rofanai 국내 센터', desc: 'rofan.ai의 로맨스 판타지 캐릭터를 가져옵니다. 캐릭터 페이지 URL(/character/...)을 붙여넣으면 설정·세계관·첫 장면·태그를 자동으로 가져옵니다(한국어라 번역 없음). 비설(숨김 설정)은 관리자 설정에 rofan 세션 쿠키가 등록돼 있을 때만 함께 가져와 [비밀설정]으로 저장됩니다.' },
       { emoji: '🔒', label: '비밀설정 (숨김 설정)', desc: '화면에는 접힌 상태로 표시되지만 AI 프롬프트에는 항상 포함되는 숨김 캐릭터 설정입니다. 센터 카드와 채팅 설정창 양쪽에서 펼쳐 보고 ✏ 수정으로 바로 편집할 수 있으며, 한쪽에서 고치면 같은 캐릭터를 보는 다른 쪽에도 반영됩니다.' },
@@ -96,7 +96,7 @@ const FEATURE_SECTIONS: FeatureSection[] = [
     title: '🔍 검색 & 기록',
     items: [
       { emoji: '🔍', label: '본문 검색', desc: '채팅 목록 검색창에 2글자 이상 입력하면 모든 대화의 메시지 본문에서 검색하고, 결과를 누르면 해당 위치로 바로 이동합니다.' },
-      { emoji: '🏷', label: '센터 태그·제목 검색', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle 센터에서 태그 칩을 눌러 작품/캐릭터를 좁히고, 검색창에 제목·이름을 입력해 빠르게 찾을 수 있습니다.' },
+      { emoji: '🏷', label: '센터 태그·제목 검색', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle·크랙 센터에서 태그 칩을 눌러 작품/캐릭터를 좁히고, 검색창에 제목·이름을 입력해 빠르게 찾을 수 있습니다.' },
       { emoji: '🗂', label: '내 캐릭터 필터·정렬·검색', desc: '캐릭터 페이지에서 센터별·성별로 필터링하고 최신순·오래된순·가나다순으로 정렬할 수 있습니다. 🔍 검색을 눌러 캐릭터명·카드(세계관)명으로 찾거나, 태그 탭에서 등록된 태그 목록을 골라 좁힐 수 있습니다.' },
       { emoji: '⚧', label: '센터 성별 필터', desc: '각 센터의 캐릭터 카드를 🔍 검색 패널에서 남성·여성·멀티·미분류로 필터링할 수 있습니다(해당 성별이 있을 때만 노출).' },
       { emoji: '🌐', label: '전체 센터 통합 필터', desc: '탐색 > 전체 센터에서 모든 센터의 작품을 한 화면에 모아 봅니다. 🔍 검색 패널에서 센터 칩·성별·카테고리별 태그(카운트 포함)로 좁히고, 검색창은 제목·태그뿐 아니라 설명·캐릭터명까지 함께 검색합니다.' },
@@ -128,7 +128,7 @@ const FEATURE_SECTIONS: FeatureSection[] = [
     items: [
       { emoji: '📚', label: '서재', desc: '완결된 대화를 보관합니다. /library에서 모아보고, "꺼내기"로 채팅 목록에 복귀시킬 수 있습니다.' },
       { emoji: '📌', label: '핀 고정', desc: '자주 쓰는 대화를 채팅 목록 상단에 고정합니다.' },
-      { emoji: '★', label: '센터 즐겨찾기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle 센터에서 카드의 ★를 눌러 즐겨찾기하고, 즐겨찾기 탭에서 모아볼 수 있습니다. 기기 간 동기화됩니다.' },
+      { emoji: '★', label: '센터 즐겨찾기', desc: 'WHIF·ZETA·melting·Tikita·Chub·rofanai·loveydovey·babechat·tingle·크랙 센터에서 카드의 ★를 눌러 즐겨찾기하고, 즐겨찾기 탭에서 모아볼 수 있습니다. 기기 간 동기화됩니다.' },
       { emoji: '🔖', label: '챕터 뱃지', desc: '자동 챕터 구분이 켜진 대화에서 진행 중인 장(N장)을 표시합니다.' },
     ],
   },
