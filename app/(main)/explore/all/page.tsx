@@ -101,11 +101,31 @@ export default function AllCentersPage() {
   }, [query])
 
   useEffect(() => { api.get('/api/center-tags').then(setTagConfig).catch(() => {}) }, [])
+
+  // 필터 상태 복원 — 카드 detail 갔다가 뒤로가기해도 보던 검색/필터 그대로.
   useEffect(() => {
-    const saved = { view: sessionStorage.getItem('all_view'), sort: localStorage.getItem('all_sort') }
-    if (saved.view) setView(saved.view as ViewTab)
-    if (saved.sort) setSort(saved.sort as SortOption)
+    const savedView = sessionStorage.getItem('all_view')
+    const savedSort = localStorage.getItem('all_sort')
+    if (savedView) setView(savedView as ViewTab)
+    if (savedSort) setSort(savedSort as SortOption)
+    try {
+      const raw = sessionStorage.getItem('all_filter')
+      if (raw) {
+        const f = JSON.parse(raw)
+        if (typeof f.query === 'string') setQuery(f.query)
+        if (typeof f.searchOpen === 'boolean') setSearchOpen(f.searchOpen)
+        if (Array.isArray(f.selectedCenters)) setSelectedCenters(f.selectedCenters)
+        if (typeof f.genderFilter === 'string') setGenderFilter(f.genderFilter)
+        if (Array.isArray(f.selectedTags)) setSelectedTags(f.selectedTags)
+        if (typeof f.randomSeed === 'number') setRandomSeed(f.randomSeed)
+      }
+    } catch {}
   }, [])
+
+  // 필터 상태 영속화 (뒤로가기 복원용)
+  useEffect(() => {
+    sessionStorage.setItem('all_filter', JSON.stringify({ query, searchOpen, selectedCenters, genderFilter, selectedTags, randomSeed }))
+  }, [query, searchOpen, selectedCenters, genderFilter, selectedTags, randomSeed])
 
   // 필터/정렬/검색이 바뀌면 offset=0으로 재조회(패싯 포함)
   useEffect(() => {

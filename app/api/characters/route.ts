@@ -26,7 +26,9 @@ export async function GET(req: NextRequest) {
   const collectionId = searchParams.get('collectionId')
   const unassigned = searchParams.get('unassigned') === 'true'
   const finalWhere = unassigned
-    ? { creatorId: userId, collectionId: null }
+    // 페르소나 후보는 사용자가 "직접 등록"(POST /api/characters)했거나 "복제"(duplicate)한
+    // 캐릭터만 노출한다. 가져오기로 생성돼 아직 설정이 필요한 "대기 중" 캐릭터(isAutoCreated)는 제외.
+    ? { creatorId: userId, collectionId: null, isAutoCreated: false }
     : collectionId
       ? { ...whereClause, collectionId }
       : whereClause
